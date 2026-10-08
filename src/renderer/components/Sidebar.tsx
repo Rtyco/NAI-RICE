@@ -424,7 +424,7 @@ export function Sidebar() {
 
       <section className="sidebar-card">
         <div className="sidebar-section-title">
-          <span title="여러 작업에서 다시 쓰는 프리셋">
+          <span title="생성 설정·캐릭터·감정 모음·인페인트 보관함">
             <Icon name="storage" />
             {!collapsed && <b>라이브러리</b>}
           </span>

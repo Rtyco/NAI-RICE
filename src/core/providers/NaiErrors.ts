@@ -68,7 +68,7 @@ export function naiHttpError(status: number, body: string, correlationId?: strin
 
 export function naiNetworkError(error: unknown): NaiApiError {
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return new NaiApiError('cancelled', '사용자 요청 또는 제한 시간에 따라 중단되었습니다.');
+    return new NaiApiError('cancelled', '취소했거나 응답 시간이 초과되어 중단했습니다.');
   }
   const detail = error instanceof Error ? error.message : String(error);
   return new NaiApiError('network', detail || 'NovelAI 서버에 연결할 수 없습니다.');

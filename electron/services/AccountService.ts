@@ -46,7 +46,7 @@ export class AccountService {
     return {
       ...checked,
       ...(await this.vault.getStatus()),
-      message: 'NovelAI 토큰 검증 및 보안 저장이 완료되었습니다.',
+      message: 'NovelAI 토큰을 확인하고 안전하게 저장했습니다.',
     };
   }
 

@@ -356,7 +356,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           </>
         ) : (
           <>
-            <p className="hint">참고 이미지 + 빈 생성 영역이 든 이미지 · 배경을 감지해 보호 영역 탐지</p>
+            <p className="hint">참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 보호할 영역을 찾습니다.</p>
             <NumberField
               label="배경 임계값"
               value={threshold}
@@ -389,7 +389,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             dirty.current = true;
           }}
         />
-        <p className="hint">참고 이미지 둘레 추가 보호 · 결과 크롭(파란 영역)은 그 바깥으로 맞춰짐</p>
+        <p className="hint">참고 그림 둘레를 이만큼 더 보호합니다. 결과(파란 영역)는 그 바깥에서 자릅니다.</p>
         {working && (
           <div className="crop-grid">
             <span>결과 크롭 (파란 영역)</span>

@@ -139,7 +139,7 @@ function AccountTab() {
 
       <Card
         title="계정 상태"
-        subtitle="생성 시와 1분마다 조회됩니다"
+        subtitle="생성할 때와 1분마다 확인합니다"
         actions={
           <button
             className="with-icon"
@@ -246,7 +246,7 @@ function OutputTab() {
           </p>
         )}
         <Toggle
-          label="전체 생성 캔버스를 diagnostic 폴더에 보관"
+          label="생성에 쓴 전체 캔버스도 보관 (diagnostic 폴더)"
           checked={settings.keepDiagnosticCanvas}
           onChange={(keepDiagnosticCanvas) =>
             patchSettings((current) => ({ ...current, keepDiagnosticCanvas }))

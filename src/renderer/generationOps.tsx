@@ -23,7 +23,7 @@ export async function deleteResults(
     title: records.length === 1 ? '생성 결과 삭제' : `생성 결과 ${records.length}장 삭제`,
     message: (
       <p>
-        {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 진단 캔버스를
+        {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 전체 캔버스를
         Windows 휴지통으로 이동합니다.
         {pickedFavorites > 0 &&
           ` 대표 이미지 ${pickedFavorites}장이 포함되어 있어 해당 감정의 대표 지정이 풀립니다.`}
@@ -63,7 +63,7 @@ export async function clearEmotionResults(
       <p>
         {names.join(', ')}
         {emotions.length > names.length ? ` 외 ${emotions.length - names.length}개` : ''} 감정의
-        결과 {targets.length}장을 Windows 휴지통으로 이동합니다(진단 캔버스 포함). 감정은 그대로
+        결과 {targets.length}장을 Windows 휴지통으로 이동합니다(전체 캔버스 포함). 감정은 그대로
         둡니다.
         {kept > 0 && ` 대표 이미지 ${kept}장은 남깁니다.`}
       </p>

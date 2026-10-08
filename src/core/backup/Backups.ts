@@ -112,7 +112,7 @@ function parseJson(raw: string): unknown {
   try {
     return JSON.parse(raw);
   } catch {
-    throw new BackupImportError('JSON 문법을 확인하십시오. 파일을 해석할 수 없습니다.');
+    throw new BackupImportError('파일을 읽을 수 없습니다. JSON 문법을 확인하십시오.');
   }
 }
 

@@ -267,7 +267,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                 }))
               }
             />
-            <span>"선택 감정 생성"에 포함 (이 작업만)</span>
+            <span>일괄 생성에 포함 (이 작업만)</span>
           </label>
 
           <div className="generate-row">

@@ -262,7 +262,7 @@ export function ImageImportDialog({
               onChange={(event) => setName(event.target.value)}
             />
             <small className="hint">
-              새로 만드는 항목에 모두 붙습니다 · 덮어쓰는 항목은 이름 그대로
+              새로 만드는 항목의 이름이 됩니다. 덮어쓰는 항목은 이름을 바꾸지 않습니다.
             </small>
           </label>
           <div className="select-all-row">

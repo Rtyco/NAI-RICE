@@ -154,7 +154,7 @@ function CleanupDialog({
       }
     >
       <p>
-        대표(★) 이미지를 뺀 생성 결과를 지웁니다. 결과 이미지와 썸네일, 같은 결과의 진단 캔버스가
+        대표(★) 이미지를 뺀 생성 결과를 지웁니다. 결과 이미지와 썸네일, 같은 결과의 전체 캔버스가
         함께 지워집니다.
       </p>
       <label className="toggle-field">
@@ -355,7 +355,7 @@ export function StorageTab() {
                       <th>작업</th>
                       <th className="num">결과</th>
                       <th className="num">이미지</th>
-                      <th className="num">진단 캔버스</th>
+                      <th className="num">전체 캔버스</th>
                       <th className="num">기타</th>
                       <th className="num">합계</th>
                       <th />

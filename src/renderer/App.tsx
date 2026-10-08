@@ -52,10 +52,6 @@ function Welcome() {
           </button>
         ))}
       </div>
-      <p>
-        네 가지는 여러 작업에서 다시 쓰는 라이브러리(프리셋)입니다. <b>작업</b>은 이 네 가지를
-        하나씩 골라 묶은 조합이며, 생성 결과는 작업에 쌓입니다.
-      </p>
       <div className="button-row center">
         <button
           className="accent"

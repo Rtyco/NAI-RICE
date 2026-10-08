@@ -116,14 +116,15 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           />
         </div>
         <p className="hint">
-          {g.referenceInset
-            ? g.referenceInsetPosition === 'character-start'
-              ? '성별 태그(girl, 1girl 등) 바로 뒤'
-              : g.referenceInsetPosition === 'common-end'
-                ? '품질 태그를 켰다면 그 바로 앞'
-                : '해당 위치에 넣습니다'
-            : '넣지 않음'}
-          {g.referenceInset && ' · 프롬프트에 직접 쓴 reference inset이 있으면 추가하지 않습니다'}
+          {!g.referenceInset
+            ? '넣지 않음'
+            : [
+                g.referenceInsetPosition === 'character-start' && '성별 태그(girl, 1girl 등) 바로 뒤',
+                g.referenceInsetPosition === 'common-end' && '품질 태그를 켰다면 그 바로 앞',
+                '프롬프트에 직접 쓴 reference inset이 있으면 추가하지 않습니다',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
         </p>
         <div className="inset-row">
           <span className="inset-label">감정 프롬프트</span>
@@ -154,7 +155,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         />
         {isV3 && <p className="hint">V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합쳐 보냅니다</p>}
         {isV5 && (
-          <p className="hint">V5: Noise Schedule karras 고정 · 무료 할당량(%) 먼저 사용됩니다</p>
+          <p className="hint">V5: Noise Schedule karras 고정 · 무료 할당량(%)을 먼저 씁니다</p>
         )}
       </Card>
 

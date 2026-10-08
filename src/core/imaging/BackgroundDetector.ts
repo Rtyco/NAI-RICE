@@ -115,7 +115,7 @@ export function detectBackground(
   padding = 12,
 ): BackgroundDetection {
   const { width, height, data } = image;
-  if (data.length !== width * height * 4) throw new Error('픽셀 버퍼 크기가 캔버스와 달라.');
+  if (data.length !== width * height * 4) throw new Error('픽셀 버퍼 크기가 캔버스와 다릅니다.');
   const edges = edgeIndices(width, height);
   const transparentEdges = edges.filter((pixel) => data[pixel * 4 + 3] < 16).length;
   const backgroundMask = new Uint8Array(width * height);

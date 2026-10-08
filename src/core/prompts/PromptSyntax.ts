@@ -135,7 +135,7 @@ export function analyzePrompt(
       issues.push({
         level: 'warning',
         start: i,
-        message: '| 는 캐릭터 프롬프트 칸과 함께 쓸 수 없음',
+        message: '|는 캐릭터 프롬프트 칸과 함께 쓸 수 없음',
       });
       i += 1;
       continue;
@@ -158,7 +158,7 @@ export function analyzePrompt(
       issues.push({
         level: 'warning',
         start: token.start,
-        message: `${text.slice(token.start, token.end)} 가 닫히지 않아 끝까지 적용`,
+        message: `닫히지 않은 ${text.slice(token.start, token.end)} · 끝까지 적용`,
       });
     } else {
       token.problem = 'error';

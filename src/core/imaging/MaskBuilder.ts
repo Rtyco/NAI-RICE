@@ -13,9 +13,9 @@ export type MaskBuildInput = {
 export function buildGenerationMask(input: MaskBuildInput): Uint8Array {
   const { width, height, backgroundMask, overrides } = input;
   if (backgroundMask.length !== width * height)
-    throw new Error('배경 마스크 크기가 캔버스와 달라.');
+    throw new Error('배경 마스크 크기가 캔버스와 다릅니다.');
   if (overrides && overrides.length !== width * height)
-    throw new Error('수동 마스크 크기가 캔버스와 달라.');
+    throw new Error('수동 마스크 크기가 캔버스와 다릅니다.');
   const protectedRect = expandRect(input.referenceRect, input.expansionPx, width, height);
   const mask = new Uint8Array(width * height);
   for (let y = 0; y < height; y += 1) {

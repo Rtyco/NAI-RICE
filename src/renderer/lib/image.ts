@@ -82,7 +82,7 @@ export async function decodeMask(
   const image = await loadHtmlImage(dataUrl);
   if (image.naturalWidth !== width || image.naturalHeight !== height) {
     throw new Error(
-      `마스크 크기가 달라. 이미지 ${width}×${height}, 마스크 ${image.naturalWidth}×${image.naturalHeight}`,
+      `마스크 크기가 이미지와 다릅니다. 이미지 ${width}×${height}, 마스크 ${image.naturalWidth}×${image.naturalHeight}`,
     );
   }
   const { context } = canvas2d(width, height);
@@ -96,7 +96,7 @@ export async function decodeMask(
 }
 
 export function maskToDataUrl(mask: Uint8Array, width: number, height: number): string {
-  if (mask.length !== width * height) throw new Error('마스크 크기가 캔버스와 달라.');
+  if (mask.length !== width * height) throw new Error('마스크 크기가 캔버스와 다릅니다.');
   const { canvas, context } = canvas2d(width, height);
   const image = context.createImageData(width, height);
   for (let pixel = 0; pixel < mask.length; pixel += 1) {

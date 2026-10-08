@@ -91,7 +91,7 @@ export function QueueBar() {
               ? '일시 중지됨'
               : active.length
                 ? '대기 중'
-                : '유휴'}
+                : '대기 없음'}
           {active.length > 0 && <b> · 남은 작업 {active.length}</b>}
           {failed > 0 && <b className="error-text"> · 실패 {failed}</b>}
         </span>

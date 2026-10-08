@@ -229,7 +229,9 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
                   </select>
                   {value === SKIP ? (
                     <span className="hint">
-                      {isBlocked ? `${item.name} · 추가 안 하는 항목을 써서 제외` : item.name}
+                      {isBlocked
+                        ? `${item.name} · 이 항목이 쓰는 다른 항목을 추가하지 않아 함께 제외`
+                        : item.name}
                     </span>
                   ) : target ? (
                     <span className="hint">"{item.name}" 내용 교체 · 이름 유지</span>
