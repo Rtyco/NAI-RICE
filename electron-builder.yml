@@ -1,0 +1,48 @@
+appId: io.nairice.app
+productName: NAI RICE
+directories:
+  output: release
+files:
+  - dist-electron/**/*
+  - dist-renderer/**/*
+  - package.json
+  # 소스맵은 개발 중 디버깅용이다. 배포물에는 넣지 않는다.
+  - '!**/*.map'
+# 출처·라이선스 고지는 설치 폴더(실행 파일 옆)에 둔다.
+extraFiles:
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: LICENSE
+    to: LICENSE.txt
+  # sharp에 포함된 libvips(LGPL)가 요구하는 라이선스 전문.
+  - from: licenses
+    to: licenses
+# Electron 기본 ffmpeg.dll 대신 특허 코덱이 없는 빌드를 넣는다(영상·음성을 쓰지 않으므로 기능 차이 없음).
+afterPack: scripts/free-ffmpeg.cjs
+asarUnpack:
+  - node_modules/sharp/**/*
+  - node_modules/@img/**/*
+# 같은 PC의 다른 프로그램이 이 실행 파일을 Node 인터프리터로 쓰거나 app.asar를 바꿔치기하지 못하게 한다.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  # 화면을 file://로 불러오므로(loadFile) 이 권한은 그대로 둔다.
+  grantFileProtocolExtraPrivileges: true
+# 코드 서명: 인증서가 있으면 CSC_LINK·CSC_KEY_PASSWORD 환경 변수만 지정하면 electron-builder가 서명한다.
+# 인증서가 없을 때도 릴리스에 SHA256SUMS.txt를 함께 올려 다운로드한 파일을 확인할 수 있게 한다.
+win:
+  icon: build/icon.png
+  target:
+    - nsis
+    - portable
+nsis:
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}

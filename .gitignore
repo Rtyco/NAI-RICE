@@ -1,0 +1,12 @@
+node_modules/
+dist-electron/
+dist-renderer/
+release/
+release-*/
+coverage/
+*.log
+.DS_Store
+legacy/
+.cache/
+ForTest/
+docs/아카라이브-소개글.html
