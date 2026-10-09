@@ -6,6 +6,7 @@ import {
   inferSavedExpansion,
   invertMask,
   manualOverrides,
+  maskHasGeneratePixels,
 } from '../../core/imaging/MaskBuilder';
 import { clampRect, contains } from '../../core/imaging/rects';
 import { loadHtmlImage, maskToDataUrl } from '../lib/image';
@@ -149,6 +150,8 @@ export function ReferenceCanvas(props: Props) {
       overrides,
     ],
   );
+
+  const hasGeneratePixels = useMemo(() => maskHasGeneratePixels(mask), [mask]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -346,6 +349,12 @@ export function ReferenceCanvas(props: Props) {
     setOverrides(Int8Array.from(invertMask(mask), (value) => (value ? 1 : 0)));
   };
 
+  // 모든 픽셀을 보호로 고정한다. 자동 계산이 다시 칠하지 않으므로 마스크가 빈 채로 남는다.
+  const clearMask = () => {
+    beginHistory();
+    setOverrides(new Int8Array(props.width * props.height).fill(0));
+  };
+
   return (
     <section className="canvas-card">
       <div className="canvas-toolbar">
@@ -379,6 +388,13 @@ export function ReferenceCanvas(props: Props) {
           다시 실행
         </button>
         <button onClick={invert}>반전</button>
+        <button
+          onClick={clearMask}
+          disabled={!hasGeneratePixels}
+          title="생성 마스크(청록색)를 모두 지웁니다. Ctrl+Z로 되돌릴 수 있습니다."
+        >
+          마스크 비우기
+        </button>
         <button onClick={props.onRedetect}>영역 재감지</button>
       </div>
       <div className="canvas-meta">

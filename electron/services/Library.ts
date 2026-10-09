@@ -35,6 +35,7 @@ import {
   toDataUrl,
   toPosix,
 } from './fsUtils';
+import { maskHasGeneratePixels } from './Images';
 import { migrateV1Workspace } from './LegacyMigration';
 import type { ExportSource, GenerationStore, WorkspaceFolders } from './ports';
 
@@ -229,6 +230,11 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       await this.resolveReferenceReal(reference.id, image.canvasFile),
     );
     const mask = await fs.readFile(await this.resolveReferenceReal(reference.id, image.maskFile));
+    // 마스크가 비면 다시 그릴 영역이 없으므로, 요청을 보내기 전에 막는다.
+    if (!(await maskHasGeneratePixels(mask)))
+      throw new Error(
+        '생성 영역(청록색)이 비어 있어 생성할 수 없습니다. 인페인트 편집에서 생성 마스크를 칠하십시오.',
+      );
     const imageSha256 = sha256(canvas);
     const maskSha256 = sha256(mask);
     const imagePath = `inputs/${imageSha256}.png`;

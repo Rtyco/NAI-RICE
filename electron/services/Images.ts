@@ -16,6 +16,12 @@ export async function imageSize(buffer: Buffer): Promise<{ width: number; height
   return { width: meta.width, height: meta.height };
 }
 
+/** 마스크 PNG에 생성할 픽셀(흰색, 화면의 마스크 해석과 같은 128 이상)이 하나라도 있는지. */
+export async function maskHasGeneratePixels(png: Buffer): Promise<boolean> {
+  const red = await sharp(png).extractChannel(0).raw().toBuffer();
+  return red.some((value) => value >= 128);
+}
+
 /**
  * 생성 캔버스에서 결과 영역만 잘라 PNG로 만든다. 원본 응답의 NovelAI 텍스트 청크와
  * 이 앱의 보조 메타데이터를 함께 기록해, 결과물을 다시 드래그해 설정을 불러올 수 있게 한다.

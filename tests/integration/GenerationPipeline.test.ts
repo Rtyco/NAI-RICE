@@ -70,7 +70,7 @@ describe('generation pipeline', () => {
     await library.saveReferenceImages(reference.id, {
       originalDataUrl: dataUrl(await png(64, 64, '#ff0000')),
       canvasDataUrl: dataUrl(await png(256, 128, '#ffffff')),
-      maskDataUrl: dataUrl(await png(256, 128, '#000000')),
+      maskDataUrl: dataUrl(await png(256, 128, '#ffffff')),
     });
     const promptSet = createPromptSet('기본', { positive: 'silver hair', negative: 'bad hands' });
     const character = createCharacter('아리아', [promptSet]);
@@ -207,7 +207,7 @@ describe('generation pipeline', () => {
     const canvas = dataUrl(await png(64, 64, '#ffffff'));
     await library.saveReferenceImages(reference.id, {
       canvasDataUrl: canvas,
-      maskDataUrl: dataUrl(await png(64, 64, '#000000')),
+      maskDataUrl: dataUrl(await png(64, 64, '#c0c0c0')),
     });
     const first = await library.prepareInputs('project-a', reference);
     await library.saveReferenceImages(reference.id, {
@@ -219,5 +219,17 @@ describe('generation pipeline', () => {
     await expect(
       readFile(library.resolveProject('project-a', first.maskPath)),
     ).resolves.toBeTruthy();
+  });
+
+  it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {
+    const { library } = await setupLibrary();
+    const reference = makeReference(64, 64);
+    await library.saveReferenceImages(reference.id, {
+      canvasDataUrl: dataUrl(await png(64, 64, '#ffffff')),
+      maskDataUrl: dataUrl(await png(64, 64, '#000000')),
+    });
+    await expect(library.prepareInputs('project-a', reference)).rejects.toThrow(
+      '생성 영역(청록색)이 비어 있어',
+    );
   });
 });
