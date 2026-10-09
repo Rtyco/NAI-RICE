@@ -97,8 +97,6 @@ export function ReferenceCanvas(props: Props) {
   /** 붓질 중에는 같은 버퍼를 직접 고치고, 프레임마다 한 번만 다시 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
-  /** 영역을 끄는 중에 마지막으로 계산한 사각형. 프레임마다 한 번만 상위에 반영한다. */
-  const pendingRectRef = useRef<{ rect: Rect; reference: boolean } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [tool, setTool] = useState<Tool>('reference');
   const [zoom, setZoom] = useState(70);
@@ -283,14 +281,6 @@ export function ReferenceCanvas(props: Props) {
     }
   };
 
-  const applyPendingRect = () => {
-    const pending = pendingRectRef.current;
-    pendingRectRef.current = null;
-    if (!pending) return;
-    if (pending.reference) props.onReferenceRectChange(pending.rect);
-    else props.onOutputRectChange(pending.rect);
-  };
-
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const drag = dragRef.current;
     if (!drag) return;
@@ -306,28 +296,21 @@ export function ReferenceCanvas(props: Props) {
       point.x - drag.startX,
       point.y - drag.startY,
     );
-    pendingRectRef.current = {
-      rect: clampRect(candidate, props.width, props.height, 16),
-      reference: tool === 'reference',
-    };
-    // 포인터 이벤트는 프레임보다 자주 오므로 마지막 위치만 프레임마다 반영한다.
-    if (!frameRef.current) {
-      frameRef.current = requestAnimationFrame(() => {
-        frameRef.current = 0;
-        applyPendingRect();
-      });
-    }
+    // Chromium이 pointermove를 이미 프레임에 맞춰 보내므로 바로 반영한다.
+    // rAF로 한 번 더 미루면 한 프레임 늦게 따라와 딱딱하게 느껴진다.
+    const next = clampRect(candidate, props.width, props.height, 16);
+    if (tool === 'reference') props.onReferenceRectChange(next);
+    else props.onOutputRectChange(next);
   };
 
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
     dragRef.current = null;
-    cancelAnimationFrame(frameRef.current);
-    frameRef.current = 0;
-    applyPendingRect();
     const stroke = strokeRef.current;
     if (stroke) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = 0;
       strokeRef.current = null;
       setOverrides(new Int8Array(stroke.buffer));
     }
