@@ -1,5 +1,5 @@
-import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import type { Character, EmotionSet, PieceSet, Preset, Reference } from '../../core/domain/types';
+import { useRef, useState, type MouseEvent } from 'react';
+import type { Reference } from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
 import { moveItems } from '../../core/model/mutations';
 import { showContextMenu } from '../components/ContextMenu';
@@ -24,7 +24,6 @@ import {
   useStore,
   type LibrarySection,
 } from '../store';
-import { ReferenceEditor } from './ReferenceEditor';
 import {
   createItem,
   deleteItem,
@@ -38,10 +37,7 @@ import {
   type Item,
 } from './library/itemActions';
 import { UsedBy } from './library/UsedBy';
-import { PresetEditor } from './library/PresetEditor';
-import { CharacterEditor } from './library/CharacterEditor';
-import { EmotionSetEditor } from './library/EmotionSetEditor';
-import { PieceSetEditor } from './library/PieceSetEditor';
+import { LibraryItemEditor } from './library/LibraryEditorDialog';
 
 const DRAG_TYPE = 'application/x-library-item';
 
@@ -229,16 +225,6 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     ]);
   };
 
-  let editor: ReactNode = null;
-  if (selected) {
-    if (section === 'presets') editor = <PresetEditor preset={selected as Preset} />;
-    if (section === 'characters') editor = <CharacterEditor character={selected as Character} />;
-    if (section === 'emotionSets') editor = <EmotionSetEditor set={selected as EmotionSet} />;
-    if (section === 'references')
-      editor = <ReferenceEditor key={selected.id} reference={selected as Reference} />;
-    if (section === 'pieceSets') editor = <PieceSetEditor set={selected as PieceSet} />;
-  }
-
   return (
     <div className={`library-view ${collapsed ? 'list-collapsed' : ''}`}>
       <aside className={`library-list ${collapsed ? 'collapsed' : ''}`}>
@@ -363,7 +349,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             </header>
             <UsedBy section={section} id={selected.id} />
             <div className={`library-editor-body ${section === 'references' ? 'fill' : ''}`}>
-              {editor}
+              <LibraryItemEditor section={section} item={selected} />
             </div>
           </>
         ) : (

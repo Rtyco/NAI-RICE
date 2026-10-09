@@ -167,12 +167,42 @@ export function emotionMenu(
     const cover = coverRecord(records, favorite);
     if (cover) action(cover);
   };
+  const folder = {
+    label: '결과 폴더 열기',
+    onSelect: () =>
+      void run('폴더를 여는 중', () =>
+        records[0]
+          ? libraryApi().showGeneration(projectId, records[0].id)
+          : libraryApi().openInExplorer({
+              kind: 'emotion',
+              projectId,
+              emotionName: emotion.name,
+              method: generationKindFor(
+                useStore.getState().library?.projects.find((item) => item.id === projectId)?.mode ??
+                  'reference',
+              ),
+            }),
+      ),
+  };
+  // 비슷한 일끼리 묶는다: 보기, 생성, 씬 고치기, 대표 이미지로 하는 일, 지우기.
   return [
     { label: '열기', onSelect: () => openEmotion(emotion.id) },
+    folder,
+    'divider',
     {
       label: '이 씬만 생성',
       disabled: !emotion.prompt.trim(),
       onSelect: () => void generateEmotions(projectId, [emotion.id]),
+    },
+    {
+      label: excluded ? '일괄 생성에 포함' : '일괄 생성에서 제외',
+      onSelect: () =>
+        updateProject(projectId, (project) => ({
+          ...project,
+          excludedEmotionIds: excluded
+            ? project.excludedEmotionIds.filter((id) => id !== emotion.id)
+            : [...project.excludedEmotionIds, emotion.id],
+        })),
     },
     'divider',
     { label: '이름 변경', onSelect: () => void renameEmotion(set.id, emotion) },
@@ -192,48 +222,22 @@ export function emotionMenu(
           .writeText(emotion.prompt)
           .then(() => toast('씬 프롬프트를 클립보드에 복사했습니다.')),
     },
+    'divider',
+    { heading: records.length ? '대표 이미지 (없으면 최신)' : '대표 이미지 (결과 없음)' },
     {
-      label: excluded ? '일괄 생성에 포함' : '일괄 생성에서 제외',
-      onSelect: () =>
-        updateProject(projectId, (project) => ({
-          ...project,
-          excludedEmotionIds: excluded
-            ? project.excludedEmotionIds.filter((id) => id !== emotion.id)
-            : [...project.excludedEmotionIds, emotion.id],
-        })),
-    },
-    {
-      label: '대표 이미지 i2i로 보내기',
-      hint: '없으면 최신',
+      label: 'i2i로 보내기',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
     },
     {
-      label: '대표 이미지로 인페인트 만들기',
-      disabled: !records.length,
-      onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
-    },
-    {
-      label: '대표 이미지 자유 생성 i2i',
+      label: '자유 생성 i2i',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void sendToFreeImg2Img(projectId, cover)),
     },
     {
-      label: '결과 폴더 열기',
-      onSelect: () =>
-        void run('폴더를 여는 중', () =>
-          records[0]
-            ? libraryApi().showGeneration(projectId, records[0].id)
-            : libraryApi().openInExplorer({
-                kind: 'emotion',
-                projectId,
-                emotionName: emotion.name,
-                method: generationKindFor(
-                  useStore.getState().library?.projects.find((item) => item.id === projectId)
-                    ?.mode ?? 'reference',
-                ),
-              }),
-        ),
+      label: '인페인트 만들기',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
     },
     'divider',
     {

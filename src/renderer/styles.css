@@ -767,6 +767,21 @@ textarea {
   flex-basis: 100%;
   margin: 0;
 }
+.prompt-position {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.prompt-position .segmented {
+  flex: 1;
+}
+.prompt-position .segmented button {
+  flex: 1;
+  font-size: 12px;
+}
 .preset-number-row {
   display: flex;
   align-items: center;
@@ -1612,6 +1627,23 @@ textarea.syntax-input::selection {
 .modal.wide {
   width: min(900px, calc(100vw - 40px));
 }
+/* 위쪽 32px는 창 제목 막대(최소화·닫기 버튼)라 비워 둔다. */
+.modal.large {
+  width: min(1400px, calc(100vw - 40px));
+  height: calc(100vh - 32px - 40px);
+  margin-top: 32px;
+}
+.modal.large .used-by {
+  padding: 8px 16px 0;
+}
+.modal.large > .modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
 .modal > header,
 .modal > footer {
   display: flex;
@@ -2080,6 +2112,12 @@ textarea.syntax-input::selection {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+}
+.menu-heading {
+  padding: 6px 10px 2px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
 }
 .menu-popup button small {
   color: var(--muted);

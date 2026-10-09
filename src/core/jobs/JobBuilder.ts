@@ -1,6 +1,7 @@
 import type {
   AppSettings,
   CharacterPromptSet,
+  EmotionPosition,
   EmotionSet,
   GenerationKind,
   GenerationRecord,
@@ -241,6 +242,8 @@ export type FreeJobBuildInput = {
   /** 캐릭터 없이 생성하면 비운다. */
   character?: { name: string; promptSet: CharacterPromptSet };
   prompt: string;
+  /** 비어 있거나 캐릭터 프롬프트가 없으면 공통 포지티브 끝에 붙인다. */
+  promptPosition?: EmotionPosition;
   count: number;
   /**
    * 주면 이 이미지를 i2i로 다시 그린다. 마스크가 있으면 칠한 곳만 다시 그리는 인페인팅이다. 크기는 생성
@@ -260,19 +263,21 @@ export type FreeJobBuildInput = {
   randomSeed?: () => number;
 };
 
-/**
- * 자유 생성: 감정 대신 입력한 프롬프트로 `count`장을 만든다. 입력은 장면·구도 설명일 때가 많아
- * 캐릭터 프롬프트가 아니라 공통 포지티브 끝에 붙인다.
- */
+/** 자유 생성: 씬 대신 입력한 프롬프트로 `count`장을 만든다. */
 export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
   const settings = normalizeGenerationSettings(input.preset.generation);
+  const promptSet = input.character?.promptSet ?? createPromptSet('', {});
+  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어가 공통과 따로 논다.
+  const emotionPosition =
+    input.promptPosition === 'character-end' && promptSet.positive.trim()
+      ? 'character-end'
+      : 'common-end';
   const preset: Preset = {
     ...input.preset,
-    generation: { ...input.preset.generation, emotionPosition: 'common-end' },
+    generation: { ...input.preset.generation, emotionPosition },
   };
-  const promptSet = input.character?.promptSet ?? createPromptSet('', {});
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
   const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> = [];

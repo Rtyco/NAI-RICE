@@ -29,6 +29,7 @@ import {
   ucPresetsFor,
 } from '../../../core/providers/NaiModels';
 import { Card, NumberField, PromptField, SelectField, Toggle } from '../../components/ui';
+import { PROMPT_POSITIONS } from '../../promptPositions';
 import { toast, updateLibrary } from '../../store';
 
 const INSET_POSITIONS: Record<ReferenceInsetPosition, string> = {
@@ -38,10 +39,6 @@ const INSET_POSITIONS: Record<ReferenceInsetPosition, string> = {
   'character-end': '캐릭터 프롬프트 맨 끝',
 };
 
-const EMOTION_POSITIONS: Record<EmotionPosition, string> = {
-  'character-end': '캐릭터 프롬프트 맨 끝',
-  'common-end': '공통 포지티브 맨 끝',
-};
 
 const SAMPLERS = [
   'k_euler_ancestral',
@@ -147,9 +144,9 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           <SelectField
             label="붙일 위치"
             value={g.emotionPosition}
-            options={(Object.keys(EMOTION_POSITIONS) as EmotionPosition[]).map((value) => ({
+            options={(['character-end', 'common-end'] as EmotionPosition[]).map((value) => ({
               value,
-              label: EMOTION_POSITIONS[value],
+              label: PROMPT_POSITIONS[value],
             }))}
             onChange={(emotionPosition) => setting({ emotionPosition })}
           />

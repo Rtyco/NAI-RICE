@@ -68,12 +68,15 @@ export function Modal({
   footer,
   onClose,
   wide,
+  large,
 }: {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  /** 거의 창 크기. 라이브러리 편집기처럼 화면 하나를 통째로 띄울 때 쓴다. */
+  large?: boolean;
 }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -84,7 +87,7 @@ export function Modal({
   }, [onClose]);
   return (
     <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <section className={`modal ${wide ? 'wide' : ''} ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <header>
           <b>{title}</b>
           <button className="icon-button" onClick={onClose} aria-label="닫기">

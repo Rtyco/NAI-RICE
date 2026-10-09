@@ -112,6 +112,7 @@ export function generateFree(
       preset,
       character: character && promptSet ? { name: character.name, promptSet } : undefined,
       prompt,
+      promptPosition: free.promptPosition,
       count: options.count ?? free.count,
       pieceSets: library.pieceSets,
       seedOverride: options.seed,

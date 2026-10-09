@@ -4,6 +4,8 @@ import { create } from 'zustand';
 
 export type MenuItem =
   | { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean; hint?: string }
+  /** 아래 항목들이 무엇에 하는 일인지 적는 작은 제목. 누를 수 없다. */
+  | { heading: string }
   | 'divider';
 
 const useContextMenu = create<{ x: number; y: number; items: MenuItem[] } | null>(() => null);
@@ -58,6 +60,10 @@ export function ContextMenuHost() {
       {menu.items.map((item, index) =>
         item === 'divider' ? (
           <hr key={`divider-${index}`} />
+        ) : 'heading' in item ? (
+          <div key={`heading-${index}`} className="menu-heading" role="presentation">
+            {item.heading}
+          </div>
         ) : (
           <button
             key={item.label}

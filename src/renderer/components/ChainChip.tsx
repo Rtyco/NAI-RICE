@@ -3,13 +3,22 @@ import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
 import { normalizeGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { sectionInfo } from '../sections';
-import { openLibrary, updateLibrary, type LibrarySection } from '../store';
+import { openLibrary, updateLibrary, useStore, type LibrarySection } from '../store';
+import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
+import { openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
 
 /**
- * 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보이고, 라이브러리의 그
- * 칸(`section`) 또는 `edit`이 가리키는 화면을 연다.
+ * 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보이고, 고른 항목을 편집
+ * 팝업으로 연다(화면을 떠나지 않는다). 고른 항목이 없으면 라이브러리의 그 칸으로 간다.
  */
+function itemExists(section: LibrarySection, id: string): boolean {
+  const library = useStore.getState().library;
+  return Boolean(
+    library && (library[section] as Array<{ id: string }>).some((item) => item.id === id),
+  );
+}
+
 export function ChainChip(props: {
   section?: LibrarySection;
   itemId?: string;
@@ -22,8 +31,18 @@ export function ChainChip(props: {
   const info = props.section ? sectionInfo(props.section) : undefined;
   const label = props.label ?? { text: info!.label, icon: info!.icon, usage: info!.usage };
   const edit = props.edit ?? {
-    title: `라이브러리에서 ${info!.label} 편집`,
-    open: () => openLibrary(props.section!, props.itemId),
+    title: `${info!.label} 편집`,
+    open: () => {
+      const { section, itemId } = props;
+      if (!section) return;
+      if (!itemId || !itemExists(section, itemId)) {
+        openLibrary(section, itemId);
+        return;
+      }
+      void openDialog((close) => (
+        <LibraryEditorDialog section={section} itemId={itemId} close={close} />
+      ));
+    },
   };
   return (
     <div

@@ -11,6 +11,7 @@ import {
   createDefaultLibrary,
   createPreset,
   createProject,
+  createPromptSet,
 } from '../../src/core/model/defaults';
 import { generationEnqueueRequestSchema, librarySchema } from '../../src/core/validation/schemas';
 
@@ -89,6 +90,32 @@ describe('자유 생성 i2i 작업', () => {
       ...image,
     });
     expect(generationEnqueueRequestSchema.safeParse({ jobs: [job] }).success).toBe(true);
+  });
+});
+
+describe('자유 생성 프롬프트 위치', () => {
+  const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+  const build = (positive: string, promptPosition?: 'character-end' | 'common-end') =>
+    buildFreeJobs({
+      preset,
+      character: { name: 'C', promptSet: createPromptSet('기본', { positive }) },
+      prompt: 'sitting',
+      promptPosition,
+      count: 1,
+    })[0];
+
+  it('고르지 않으면 공통 포지티브 끝에, 캐릭터 끝을 고르면 캐릭터 프롬프트 끝에 붙여', () => {
+    expect(build('1girl').prompt).toContain('sitting');
+    expect(build('1girl').characterPrompt).not.toContain('sitting');
+    const character = build('1girl', 'character-end');
+    expect(character.characterPrompt).toBe('1girl, sitting');
+    expect(character.prompt).not.toContain('sitting');
+  });
+
+  it('캐릭터 프롬프트가 비어 있으면 캐릭터 끝을 골라도 공통 포지티브 끝에 붙여', () => {
+    const job = build('', 'character-end');
+    expect(job.prompt).toContain('sitting');
+    expect(job.characterPrompt).toBe('');
   });
 });
 

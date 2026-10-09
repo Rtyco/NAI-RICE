@@ -229,6 +229,7 @@ describe('자유 생성 작업', () => {
       count: 1,
       mode: 'txt2img',
       inpaint: false,
+      promptPosition: 'common-end',
     });
   });
 });

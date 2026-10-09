@@ -17,7 +17,6 @@ import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
-  openLibrary,
   referenceMedia,
   updateLibrary,
   updateProject,
@@ -26,6 +25,7 @@ import {
   useStore,
 } from '../store';
 import { EmotionDetail } from './EmotionDetail';
+import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
 
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
@@ -324,7 +324,14 @@ export function ProjectView({ projectId }: { projectId: string }) {
             </span>
           )}
           {project.mode === 'reference' && !reference?.image && reference && (
-            <button className="link-button" onClick={() => openLibrary('references', reference.id)}>
+            <button
+              className="link-button"
+              onClick={() =>
+                void openDialog((close) => (
+                  <LibraryEditorDialog section="references" itemId={reference.id} close={close} />
+                ))
+              }
+            >
               참고 이미지 설정하기 →
             </button>
           )}

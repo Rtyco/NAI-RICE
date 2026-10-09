@@ -5,6 +5,7 @@ import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/d
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
+import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
@@ -228,6 +229,10 @@ export function FreeView() {
   }, [records, selected]);
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
+  // 캐릭터 프롬프트가 없으면 캐릭터 끝을 골라 두었어도 공통 끝에 붙인다(buildFreeJobs와 같은 규칙).
+  const hasCharacterPrompt = Boolean(promptSet?.positive.trim());
+  const promptPosition =
+    free.promptPosition === 'character-end' && hasCharacterPrompt ? 'character-end' : 'common-end';
   const generation = preset && normalizeGenerationSettings(preset.generation);
   const costJob = generation && {
     kind: inpainting ? ('inpaint' as const) : free.mode,
@@ -548,7 +553,6 @@ export function FreeView() {
                 <span>
                   프롬프트
                   <span className="prompt-field-tools">
-                    <em>공통 포지티브 끝에 붙습니다</em>
                     <ExpandTextButton
                       title="자유 생성 프롬프트"
                       value={free.prompt}
@@ -564,6 +568,32 @@ export function FreeView() {
                   onChange={(prompt) => updateFreeGeneration({ prompt })}
                 />
               </label>
+              <div className="prompt-position">
+                <span>붙일 위치</span>
+                <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
+                  {(['common-end', 'character-end'] as const).map((value) => {
+                    const blocked = value === 'character-end' && !hasCharacterPrompt;
+                    return (
+                      <button
+                        key={value}
+                        className={promptPosition === value ? 'active' : ''}
+                        aria-pressed={promptPosition === value}
+                        disabled={blocked}
+                        title={
+                          blocked
+                            ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
+                            : value === 'character-end'
+                              ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
+                              : undefined
+                        }
+                        onClick={() => updateFreeGeneration({ promptPosition: value })}
+                      >
+                        {PROMPT_POSITIONS[value]}
+                      </button>
+                    );
+                  })}
+                </span>
+              </div>
               <p className="hint">
                 생성 설정의 공통 프롬프트{character ? `와 ${character.name}의 캐릭터 프롬프트` : ''}
                 에 더해 보냅니다.

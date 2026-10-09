@@ -245,6 +245,8 @@ export const librarySchema = z.object({
           })
           .optional(),
         inpaint: z.boolean().default(false),
+        // 이 설정이 생기기 전에는 늘 공통 포지티브 끝에 붙였다.
+        promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
       }),
     )
     .default({
@@ -255,6 +257,7 @@ export const librarySchema = z.object({
       count: 1,
       mode: 'txt2img',
       inpaint: false,
+      promptPosition: 'common-end',
     }),
   lastProjectId: z.string().optional(),
 });

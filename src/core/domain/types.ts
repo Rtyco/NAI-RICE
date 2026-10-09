@@ -231,6 +231,8 @@ export type FreeGeneration = {
   image?: FreeImage;
   /** i2i에서 마스크로 칠한 곳만 다시 그린다(인페인팅). 끄면 이미지 전체를 i2i한다. */
   inpaint: boolean;
+  /** 입력한 프롬프트를 붙일 곳. 캐릭터 프롬프트가 비어 있으면 공통 포지티브 끝에 붙인다. */
+  promptPosition: EmotionPosition;
 };
 
 /**
