@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GenerationSummary, Project } from '../../core/domain/types';
 import type { ProjectInspection, ProjectUsage, StorageUsage } from '../../shared/ipc';
 import { Modal, confirmDialog, openDialog } from '../components/Dialogs';
+import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { Card } from '../components/ui';
 import { fileApi, libraryApi, queueApi, storageApi } from '../desktop';
 import { importJsonFromPicker } from '../importers';
@@ -223,6 +224,8 @@ function ProjectRow({
         <td>
           {project ? (
             <b>{project.name}</b>
+          ) : usage.projectId === FREE_PROJECT_ID ? (
+            <b>자유 생성</b>
           ) : (
             <span className="hint" title={usage.projectId}>
               라이브러리에 없는 폴더
@@ -242,7 +245,7 @@ function ProjectRow({
           <b>{formatBytes(usage.total)}</b>
         </td>
         <td className="actions">
-          {project ? (
+          {project || usage.projectId === FREE_PROJECT_ID ? (
             <>
               <button
                 disabled={!usage.records}
@@ -316,8 +319,10 @@ export function StorageTab() {
   useEffect(refresh, [refresh]);
 
   const projectTotal = usage?.projects.reduce((sum, item) => sum + item.total, 0) ?? 0;
-  const known = usage?.projects.filter((item) =>
-    library.projects.some((project) => project.id === item.projectId),
+  const known = usage?.projects.filter(
+    (item) =>
+      item.projectId === FREE_PROJECT_ID ||
+      library.projects.some((project) => project.id === item.projectId),
   );
 
   return (

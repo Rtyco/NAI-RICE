@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { QueueJobView, QueueView } from '../../core/domain/types';
 import { isActive, isFinished } from '../../core/jobs/JobLifecycle';
-import { openEmotion, openProject, run, useStore } from '../store';
+import { FREE_PROJECT_ID } from '../../core/model/defaults';
+import { openEmotion, openFree, openProject, run, useStore } from '../store';
 import { queueApi } from '../desktop';
 
 const STATUS: Record<string, string> = {
@@ -57,13 +58,12 @@ export function QueueBar() {
                   <button
                     className="queue-target"
                     onClick={() => {
+                      if (job.projectId === FREE_PROJECT_ID) return openFree();
                       openProject(job.projectId);
                       openEmotion(job.emotionId);
                     }}
                   >
-                    <b>
-                      {job.projectName} · {job.emotionName}
-                    </b>
+                    <b>{[job.projectName, job.emotionName].filter(Boolean).join(' · ')}</b>
                     <small>
                       v{job.variantIndex} · seed {job.seed} · 시도 {job.attempts}/{job.maxAttempts}
                       {anlasText(job)}

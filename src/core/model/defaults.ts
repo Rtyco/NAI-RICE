@@ -16,6 +16,9 @@ import type {
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
 import { NAI_MODELS, supportsInpaint } from '../providers/NaiModels';
 
+/** 자유 생성 결과가 쌓이는 폴더(`projects/free/`). 작업 ID는 항상 무작위 접미사가 붙어 겹치지 않는다. */
+export const FREE_PROJECT_ID = 'free';
+
 export function newId(): string {
   return globalThis.crypto.randomUUID();
 }
@@ -196,6 +199,7 @@ export function createDefaultLibrary(): Library {
     references: [],
     projects: [],
     pieceSets: [],
+    freeGeneration: { presetId: '', characterId: '', promptSetId: '', prompt: '', count: 1 },
   };
 }
 

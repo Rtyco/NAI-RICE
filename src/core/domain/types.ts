@@ -203,6 +203,18 @@ export type AppSettings = {
 export type ThemeId = 'navy' | 'graphite' | 'violet' | 'forest' | 'rose';
 export type ThemeMode = 'dark' | 'light' | 'system';
 
+/** 자유 생성 화면에서 마지막으로 고른 값. 결과는 작업이 아니라 `projects/free/`에 쌓인다. */
+export type FreeGeneration = {
+  /** 비어 있거나 지워진 생성 설정이면 첫 생성 설정을 쓴다. */
+  presetId: string;
+  /** 비어 있으면 캐릭터 없이 생성한다. */
+  characterId: string;
+  promptSetId: string;
+  prompt: string;
+  /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
+  count: number;
+};
+
 export type Library = {
   schemaVersion: 2;
   settings: AppSettings;
@@ -212,6 +224,7 @@ export type Library = {
   references: Reference[];
   projects: Project[];
   pieceSets: PieceSet[];
+  freeGeneration: FreeGeneration;
   lastProjectId?: string;
 };
 
@@ -232,6 +245,7 @@ export type GenerationRecord = {
   /** 이전 생성 결과를 입력으로 썼으면(i2i·디렉터 툴) 그 기록 ID. */
   sourceRecordId?: string;
   projectId: string;
+  /** 자유 생성은 감정이 없어 비어 있고, 입력한 프롬프트는 `emotionPrompt`에 남는다. */
   emotionId: string;
   emotionName: string;
   createdAt: string;

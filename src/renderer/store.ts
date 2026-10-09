@@ -1,7 +1,13 @@
 import { create } from 'zustand';
-import type { GenerationSummary, Library, Project, QueueView } from '../core/domain/types';
+import type {
+  FreeGeneration,
+  GenerationSummary,
+  Library,
+  Project,
+  QueueView,
+} from '../core/domain/types';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
-import { resolveProject, type ResolvedProject } from '../core/model/defaults';
+import { FREE_PROJECT_ID, resolveProject, type ResolvedProject } from '../core/model/defaults';
 import type { TokenStatus } from '../shared/ipc';
 import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
@@ -10,6 +16,7 @@ export type LibrarySection = 'presets' | 'characters' | 'emotionSets' | 'referen
 export type View =
   | { kind: 'home' }
   | { kind: 'project'; projectId: string }
+  | { kind: 'free' }
   | { kind: 'library'; section: LibrarySection; itemId?: string };
 
 export type Toast = { id: number; kind: 'info' | 'error'; message: string };
@@ -278,6 +285,29 @@ export function openProject(projectId: string): void {
   set({ view: { kind: 'project', projectId }, detailEmotionId: undefined });
   updateLibrary((library) => ({ ...library, lastProjectId: projectId }));
   if (!get().generations[projectId]) void loadGenerations(projectId);
+}
+
+export function openFree(): void {
+  set({ view: { kind: 'free' }, detailEmotionId: undefined });
+  if (!get().generations[FREE_PROJECT_ID]) void loadGenerations(FREE_PROJECT_ID);
+}
+
+export function updateFreeGeneration(patch: Partial<FreeGeneration>): void {
+  updateLibrary((library) => ({
+    ...library,
+    freeGeneration: { ...library.freeGeneration, ...patch },
+  }));
+}
+
+/** 자유 생성에 쓸 생성 설정과 캐릭터. 지워진 항목은 첫 생성 설정·캐릭터 없음으로 본다. */
+export function resolveFreeGeneration(library: Library) {
+  const free = library.freeGeneration;
+  const preset =
+    library.presets.find((item) => item.id === free.presetId) ?? library.presets[0];
+  const character = library.characters.find((item) => item.id === free.characterId);
+  const promptSet =
+    character?.promptSets.find((item) => item.id === free.promptSetId) ?? character?.promptSets[0];
+  return { free, preset, character, promptSet };
 }
 
 export function openLibrary(section: LibrarySection, itemId?: string): void {

@@ -7,13 +7,14 @@ import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { GenerationRecord, QueueView, Reference } from '../../src/core/domain/types';
-import { buildJobs } from '../../src/core/jobs/JobBuilder';
+import { buildFreeJobs, buildJobs } from '../../src/core/jobs/JobBuilder';
 import { interpretMetadata } from '../../src/core/metadata/NaiMetadata';
 import { insertPngChunks, makeITextChunk, readPngText } from '../../src/core/metadata/PngChunks';
 import {
   createCharacter,
   createEmotion,
   createPreset,
+  FREE_PROJECT_ID,
   createProject,
   createPromptSet,
   DEFAULT_LAYOUT,
@@ -294,6 +295,40 @@ describe('generation pipeline', () => {
       prompt: 'smile',
     });
     expect((await library.listGenerations('project-a'))[0].kind).toBe('txt2img');
+  });
+
+  it('자유 생성 결과는 작업과 따로 free 폴더의 날짜별 폴더에 쌓여', async () => {
+    const { root, library } = await setupLibrary();
+    const generated = await png(64, 64, '#0000ff');
+    const records: GenerationRecord[] = [];
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: { generate: async () => generated },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: (record) => records.push(record),
+      requestDelayMs: () => 0,
+    });
+    await queue.initialize();
+    const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+    const createdAt = new Date(2026, 9, 10, 23, 30);
+    const jobs = buildFreeJobs({ preset, prompt: 'cafe', count: 1, now: () => createdAt });
+    await queue.enqueue(jobs, [0]);
+    for (let tries = 0; tries < 250 && !records.length; tries += 1)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(records[0]).toMatchObject({
+      projectId: FREE_PROJECT_ID,
+      emotionId: '',
+      emotionPrompt: 'cafe',
+    });
+    expect(records[0].file.startsWith('outputs/2026-10-10/')).toBe(true);
+    expect(library.projectDir(FREE_PROJECT_ID)).toBe(path.join(root, 'projects', 'free'));
+    await expect(
+      readFile(library.resolveProject(FREE_PROJECT_ID, records[0].file)),
+    ).resolves.toBeTruthy();
+    expect(await library.listGenerations(FREE_PROJECT_ID)).toHaveLength(1);
   });
 
   it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {

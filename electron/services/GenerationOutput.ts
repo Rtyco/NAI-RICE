@@ -33,6 +33,12 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
   };
 }
 
+function localDate(iso: string): string {
+  const date = new Date(iso);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** 인페인트는 캔버스에서 결과 영역만 잘라 낸다. 나머지 방식은 받은 이미지가 그대로 결과다. */
 async function resultImage(
   job: QueuedGenerationJob,
@@ -72,8 +78,10 @@ export async function saveGenerationOutput(
     },
   );
   const generationId = randomUUID();
+  // 감정이 없는 자유 생성은 만든 날짜(현지 시각)별 폴더에 모은다.
+  const folder = job.emotionId ? job.emotionName : localDate(job.createdAt);
   const outputPath = await uniquePath(
-    store.emotionOutputDir(job.projectId, job.emotionName),
+    store.emotionOutputDir(job.projectId, folder),
     stem,
     '.png',
   );

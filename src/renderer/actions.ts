@@ -1,7 +1,7 @@
-import { buildJobs, buildTxt2ImgJobs } from '../core/jobs/JobBuilder';
+import { buildFreeJobs, buildJobs, buildTxt2ImgJobs } from '../core/jobs/JobBuilder';
 import { resolveProject } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
-import { flushSaves, run, toast, useStore } from './store';
+import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
 
 export type GenerateOptions = {
@@ -50,6 +50,33 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
     toast(result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
+  }).then(() => undefined);
+}
+
+/** 자유 생성 화면의 지금 값으로 생성한다. `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
+export function generateFree(options: { prompt?: string; seed?: number; count?: number } = {}): Promise<void> {
+  return run('생성 작업을 준비하는 중', async () => {
+    await flushSaves();
+    const state = useStore.getState();
+    const library = state.library;
+    if (!library) throw new Error('라이브러리를 읽지 못했습니다.');
+    const { free, preset, character, promptSet } = resolveFreeGeneration(library);
+    if (!preset) throw new Error('생성 설정이 없습니다. 라이브러리에서 하나 만드십시오.');
+    if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
+    const prompt = options.prompt ?? free.prompt;
+    if (!prompt.trim() && !promptSet?.positive.trim()) throw new Error('프롬프트를 입력하십시오.');
+
+    const jobs = buildFreeJobs({
+      preset,
+      character: character && promptSet ? { name: character.name, promptSet } : undefined,
+      prompt,
+      count: options.count ?? free.count,
+      pieceSets: library.pieceSets,
+      seedOverride: options.seed,
+    });
+    const result = await queueApi().enqueueGeneration({ jobs });
+    useStore.setState({ queue: result.snapshot });
+    toast(result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 

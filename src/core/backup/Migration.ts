@@ -1,5 +1,11 @@
 import type { EmotionSet, Library, Project, Reference } from '../domain/types';
-import { DEFAULT_SETTINGS, createReference, newId, readableId } from '../model/defaults';
+import {
+  DEFAULT_SETTINGS,
+  createDefaultLibrary,
+  createReference,
+  newId,
+  readableId,
+} from '../model/defaults';
 import type { V1Character, V1Workspace } from '../validation/schemas';
 
 export type V1CharacterMove = {
@@ -92,6 +98,7 @@ export function migrateV1(workspace: V1Workspace, characters: V1Character[]): { 
     })),
     references: [],
     projects: [],
+    freeGeneration: createDefaultLibrary().freeGeneration,
     lastProjectId: workspace.lastCharacterId,
   };
   const presetId = workspace.presets.some((preset) => preset.id === workspace.activePresetId)

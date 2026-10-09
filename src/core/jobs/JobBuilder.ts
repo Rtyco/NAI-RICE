@@ -10,7 +10,7 @@ import type {
   Reference,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
-import { normalizeGenerationSettings } from '../model/defaults';
+import { createPromptSet, FREE_PROJECT_ID, normalizeGenerationSettings } from '../model/defaults';
 import { composeSeparatedPrompts, referenceInsetCount } from '../prompts/PromptComposer';
 import { expandPieces } from '../prompts/PromptPieces';
 import { applyNaiTags, emptyNegativeFor, naiTagText } from '../providers/NaiModels';
@@ -216,6 +216,85 @@ export function buildJobs(input: JobBuildInput): InpaintJobSnapshot[] {
       keepDiagnosticCanvas: input.settings.keepDiagnosticCanvas,
     }),
   );
+}
+
+export type FreeJobBuildInput = {
+  preset: Preset;
+  /** 캐릭터 없이 생성하면 비운다. */
+  character?: { name: string; promptSet: CharacterPromptSet };
+  prompt: string;
+  count: number;
+  pieceSets?: PieceSet[];
+  seedOverride?: number;
+  now?: () => Date;
+  randomSeed?: () => number;
+};
+
+/**
+ * 자유 생성: 감정 대신 입력한 프롬프트로 `count`장을 만든다. 입력은 장면·구도 설명일 때가 많아
+ * 캐릭터 프롬프트가 아니라 공통 포지티브 끝에 붙인다.
+ */
+export function buildFreeJobs(input: FreeJobBuildInput): Txt2ImgJobSnapshot[] {
+  const settings = normalizeGenerationSettings(input.preset.generation);
+  const preset: Preset = {
+    ...input.preset,
+    generation: { ...input.preset.generation, emotionPosition: 'common-end' },
+  };
+  const promptSet = input.character?.promptSet ?? createPromptSet('', {});
+  const now = input.now ?? (() => new Date());
+  const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
+  const jobs: Txt2ImgJobSnapshot[] = [];
+  for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
+    const seed =
+      input.seedOverride !== undefined
+        ? seedForVariant(input.seedOverride, variantIndex)
+        : settings.seedMode === 'fixed'
+          ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
+          : randomSeed();
+    const { missingPieces, ...prompts } = composeRequestPrompts(
+      preset,
+      promptSet,
+      input.prompt,
+      { sets: input.pieceSets ?? [], seed },
+      'txt2img',
+    );
+    if (missingPieces.length) {
+      throw new Error(
+        `찾을 수 없는 프롬프트 조각: ${missingPieces.join(', ')}. 라이브러리의 프롬프트 조각에서 이름을 확인하십시오.`,
+      );
+    }
+    const createdAt = now().toISOString();
+    jobs.push({
+      kind: 'txt2img',
+      id: `${FREE_PROJECT_ID}-${variantIndex}-${seed}-${createdAt}`,
+      createdAt,
+      projectId: FREE_PROJECT_ID,
+      projectName: '자유 생성',
+      characterName: input.character?.name ?? '',
+      emotionId: '',
+      emotionName: '',
+      emotionPrompt: input.prompt,
+      presetName: input.preset.name,
+      promptSetName: input.character?.promptSet.name ?? '',
+      emotionSetName: '',
+      referenceName: '',
+      ...prompts,
+      source: {
+        commonPositive: input.preset.commonPositive,
+        commonNegative: input.preset.commonNegative,
+        characterPositive: promptSet.positive,
+      },
+      seed,
+      variantIndex,
+      canvasWidth: settings.width,
+      canvasHeight: settings.height,
+      // 감정이 없으므로 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다.
+      outputFilenameTemplate: '{date}-{time}__{seed}',
+      settings: { ...settings },
+      warnings: [],
+    });
+  }
+  return jobs;
 }
 
 /** 일반 생성: 참고 이미지 없이 생성 설정의 해상도로 감정마다 txt2img를 한다. */

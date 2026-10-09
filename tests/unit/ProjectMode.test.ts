@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildTxt2ImgJobs, composeRequestPrompts } from '../../src/core/jobs/JobBuilder';
+import {
+  buildFreeJobs,
+  buildTxt2ImgJobs,
+  composeRequestPrompts,
+} from '../../src/core/jobs/JobBuilder';
 import { guessModelFromSource } from '../../src/core/metadata/NaiMetadata';
 import {
   createCharacter,
@@ -10,6 +14,7 @@ import {
   createPromptSet,
   createReference,
   DEFAULT_SETTINGS,
+  FREE_PROJECT_ID,
   resolveProject,
 } from '../../src/core/model/defaults';
 import { estimateJobAnlas } from '../../src/core/providers/NaiCost';
@@ -172,5 +177,56 @@ describe('V5 Curated', () => {
     expect(guessModelFromSource('NovelAI Diffusion V5 1A2B3C4D')).toBe(
       'nai-diffusion-5-full-inpainting',
     );
+  });
+});
+
+describe('자유 생성 작업', () => {
+  it('캐릭터 없이도 만들고, 입력한 프롬프트는 공통 포지티브 끝에 붙여', () => {
+    const { preset } = setup();
+    const jobs = buildFreeJobs({ preset, prompt: 'cafe, window', count: 3 });
+    expect(jobs).toHaveLength(3);
+    expect(jobs.map((job) => job.seed)).toEqual([5, 6, 7]);
+    expect(jobs[0]).toMatchObject({
+      kind: 'txt2img',
+      projectId: FREE_PROJECT_ID,
+      emotionId: '',
+      emotionPrompt: 'cafe, window',
+      characterName: '',
+      characterPrompt: '',
+      canvasWidth: 1024,
+      canvasHeight: 1024,
+    });
+    expect(jobs[0].prompt).toBe('masterpiece, cafe, window');
+    expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+  });
+
+  it('캐릭터를 고르면 캐릭터 프롬프트는 그대로 두고 seed를 지정해 다시 만들 수 있어', () => {
+    const { preset, character, promptSet } = setup();
+    const [job] = buildFreeJobs({
+      preset,
+      character: { name: character.name, promptSet },
+      prompt: 'cafe',
+      count: 1,
+      seedOverride: 42,
+    });
+    expect(job).toMatchObject({
+      characterName: '아리아',
+      characterPrompt: '1girl, silver hair',
+      seed: 42,
+    });
+    expect(job.prompt).toBe('masterpiece, cafe');
+  });
+
+  it('자유 생성 설정이 없는 옛 라이브러리도 읽어', () => {
+    const library = createDefaultLibrary();
+    const old: Record<string, unknown> = { ...library };
+    delete old.freeGeneration;
+    expect(librarySchema.parse(old).freeGeneration).toEqual({
+      presetId: '',
+      characterId: '',
+      promptSetId: '',
+      prompt: '',
+      count: 1,
+    });
   });
 });

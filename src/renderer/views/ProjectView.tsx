@@ -6,17 +6,15 @@ import {
   readableId,
   type ResolvedProject,
 } from '../../core/model/defaults';
-import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
-import { patchItem, uniqueName } from '../../core/model/mutations';
+import { uniqueName } from '../../core/model/mutations';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { Icon, type IconName } from '../components/Icon';
+import { ChainChip, SizeChip } from '../components/ChainChip';
 import { Menu } from '../components/ui';
 import { deleteProject } from '../projectOps';
-import { sectionInfo } from '../sections';
 import {
   openLibrary,
   openProject,
@@ -28,43 +26,10 @@ import {
   useLibrary,
   useResolvedProject,
   useStore,
-  type LibrarySection,
 } from '../store';
 import { EmotionDetail } from './EmotionDetail';
 import { GalleryView } from './GalleryView';
 import { libraryApi } from '../desktop';
-
-/** 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보인다. */
-function ChainChip(props: {
-  section: LibrarySection;
-  itemId?: string;
-  missing?: boolean;
-  /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
-  label?: { text: string; icon: IconName; usage: string };
-  children: React.ReactNode;
-}) {
-  const info = sectionInfo(props.section);
-  const label = props.label ?? { text: info.label, icon: info.icon, usage: info.usage };
-  return (
-    <div
-      className={`chain-chip ${props.missing ? 'missing' : ''}`}
-      title={[label.text, label.usage].filter(Boolean).join(' · ')}
-    >
-      <span className="chain-chip-label">
-        <Icon name={label.icon} size={15} />
-        {label.text}
-      </span>
-      {props.children}
-      <button
-        className="icon-button chain-chip-edit"
-        title={`라이브러리에서 ${info.label} 편집`}
-        onClick={() => openLibrary(props.section, props.itemId)}
-      >
-        <Icon name="edit" size={14} />
-      </button>
-    </div>
-  );
-}
 
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   { value: 'reference', label: '레퍼런스 생성', title: '참고 이미지 옆에 인페인트로 그립니다' },
@@ -102,12 +67,6 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         resolved.reference.updatedAt,
       )
     : undefined;
-  const generation = resolved.preset && normalizeGenerationSettings(resolved.preset.generation);
-  const sizePreset =
-    generation &&
-    RESOLUTION_PRESETS.find(
-      (item) => item.width === generation.width && item.height === generation.height,
-    );
 
   return (
     <div className="chain-bar">
@@ -159,42 +118,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         )}
       </ChainChip>
       {project.mode === 'txt2img' ? (
-        generation && (
-          <ChainChip
-            section="presets"
-            itemId={resolved.preset?.id}
-            label={{
-              text: '해상도',
-              icon: 'expand',
-              usage: `생성 설정 「${resolved.preset?.name}」의 일반 생성 해상도를 바꿉니다`,
-            }}
-          >
-            <select
-              value={sizePreset?.id ?? 'custom'}
-              onChange={(event) => {
-                const next = RESOLUTION_PRESETS.find((item) => item.id === event.target.value);
-                if (next && resolved.preset)
-                  updateLibrary((current) =>
-                    patchItem(current, 'presets', resolved.preset!.id, (item) => ({
-                      ...item,
-                      generation: { ...item.generation, width: next.width, height: next.height },
-                    })),
-                  );
-              }}
-            >
-              {RESOLUTION_PRESETS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-              {!sizePreset && (
-                <option value="custom">
-                  직접 입력 {generation.width}×{generation.height}
-                </option>
-              )}
-            </select>
-          </ChainChip>
-        )
+        resolved.preset && <SizeChip preset={resolved.preset} />
       ) : (
         <ChainChip
           section="references"

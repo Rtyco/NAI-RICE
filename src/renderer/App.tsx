@@ -18,6 +18,7 @@ import {
   useStore,
 } from './store';
 import { LibraryView } from './views/LibraryView';
+import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
 import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -109,7 +110,7 @@ export default function App() {
       ? `project:${view.projectId}`
       : view.kind === 'library'
         ? `library:${view.section}:${view.itemId ?? ''}`
-        : 'home';
+        : view.kind;
   // 화면 종류가 바뀔 때만 전환 효과를 준다. 라이브러리 안에서 항목만 바꿀 때는 편집기만 바뀐다.
   const transitionKey = view.kind === 'library' ? `library:${view.section}` : viewKey;
   const projectExists =
@@ -129,6 +130,8 @@ export default function App() {
                 </p>
               ) : view.kind === 'project' && projectExists ? (
                 <ProjectView projectId={view.projectId} />
+              ) : view.kind === 'free' ? (
+                <FreeView />
               ) : view.kind === 'library' ? (
                 <LibraryView section={view.section} itemId={view.itemId} />
               ) : (

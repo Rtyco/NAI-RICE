@@ -36,7 +36,7 @@ const KIND_LABELS: Record<GenerationKind, string> = {
 };
 
 /** 선택한 결과의 생성 정보. 목록에는 프롬프트가 없어서, 열 때 기록 하나를 통째로 받아 온다. */
-function RecordInfo({ projectId, record }: { projectId: string; record: GenerationSummary }) {
+export function RecordInfo({ projectId, record }: { projectId: string; record: GenerationSummary }) {
   const [full, setFull] = useState<GenerationRecord | null>();
   useEffect(() => {
     let alive = true;

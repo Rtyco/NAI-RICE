@@ -1791,6 +1791,14 @@ textarea.syntax-input::selection {
   font-size: 17px;
   font-weight: 700;
 }
+.free-title {
+  margin: 0;
+  padding: 0 8px;
+  font-size: 17px;
+}
+.free-card {
+  padding: 6px 0;
+}
 .project-name-input:hover {
   border-color: var(--line);
 }

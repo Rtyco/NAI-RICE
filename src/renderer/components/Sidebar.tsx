@@ -14,6 +14,7 @@ import { importJsonFromPicker } from '../importers';
 import { deleteProject, deleteProjects } from '../projectOps';
 import { SECTIONS } from '../sections';
 import {
+  openFree,
   openLibrary,
   openProject,
   referenceMedia,
@@ -391,6 +392,28 @@ export function Sidebar() {
           </div>
         )}
       </div>
+
+      <section className="sidebar-card free-card">
+        <nav className="library-nav" aria-label="자유 생성">
+          <button
+            title={
+              collapsed
+                ? '자유 생성 · 감정 없이 프롬프트로 여러 장'
+                : '감정 없이 프롬프트로 여러 장'
+            }
+            className={view.kind === 'free' ? 'active' : ''}
+            onClick={openFree}
+          >
+            <Icon name="sparkle" />
+            {!collapsed && (
+              <span className="library-nav-text">
+                <b>자유 생성</b>
+                <small>프롬프트만으로 여러 장</small>
+              </span>
+            )}
+          </button>
+        </nav>
+      </section>
 
       <section className={`sidebar-card grow ${projectsFolded ? 'folded' : ''}`}>
         <SectionTitle

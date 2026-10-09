@@ -199,6 +199,15 @@ export const librarySchema = z.object({
   references: z.array(referenceSchema),
   projects: z.array(projectSchema),
   pieceSets: z.array(pieceSetSchema).default([]),
+  freeGeneration: z
+    .object({
+      presetId: z.string(),
+      characterId: z.string(),
+      promptSetId: z.string(),
+      prompt: z.string(),
+      count: z.number().int().min(1).max(20),
+    })
+    .default({ presetId: '', characterId: '', promptSetId: '', prompt: '', count: 1 }),
   lastProjectId: z.string().optional(),
 });
 
@@ -259,7 +268,8 @@ const jobSnapshotCommonSchema = z.object({
   projectId: z.string().regex(FOLDER_ID),
   projectName: z.string(),
   characterName: z.string(),
-  emotionId: z.string().min(1),
+  // 자유 생성은 감정이 없다.
+  emotionId: z.string(),
   emotionName: z.string(),
   emotionPrompt: z.string(),
   presetName: z.string(),
