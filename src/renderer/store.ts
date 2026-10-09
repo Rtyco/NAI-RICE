@@ -170,7 +170,15 @@ window.addEventListener('beforeunload', () => {
 
 // ── 초기화 ───────────────────────────────────────────
 
-export async function initialize(): Promise<void> {
+let initializing: Promise<void> | undefined;
+
+/** 작업 폴더를 연다. 개발 모드의 StrictMode처럼 여러 번 불려도 한 번만 연다. */
+export function initialize(): Promise<void> {
+  initializing ??= openWorkspace();
+  return initializing;
+}
+
+async function openWorkspace(): Promise<void> {
   try {
     const [snapshot, token, queue, version] = await Promise.all([
       libraryApi().loadLibrary(),
@@ -207,15 +215,23 @@ export async function initialize(): Promise<void> {
     set({ ready: true });
     toast(`작업 폴더를 열 수 없습니다: ${errorMessage(error)}`, 'error');
   }
-  queueApi().onQueueUpdate((queue) => set({ queue }));
-  accountApi().onTokenStatus((token) => set({ token }));
-  queueApi().onGenerationAdded((record) => {
-    set((state) => {
-      const current = state.generations[record.projectId];
-      if (!current) return {};
-      return { generations: { ...state.generations, [record.projectId]: [...current, record] } };
-    });
-  });
+}
+
+/** 메인 프로세스의 알림(큐·계정·새 생성 기록)을 받는다. 돌려준 함수를 부르면 그만 받는다. */
+export function subscribeToMain(): () => void {
+  const stops = [
+    queueApi().onQueueUpdate((queue) => set({ queue })),
+    accountApi().onTokenStatus((token) => set({ token })),
+    queueApi().onGenerationAdded((record) =>
+      set((state) => {
+        const current = state.generations[record.projectId];
+        // 목록을 다시 읽은 직후라 이미 들어 있을 수 있다.
+        if (!current || current.some((item) => item.id === record.id)) return {};
+        return { generations: { ...state.generations, [record.projectId]: [...current, record] } };
+      }),
+    ),
+  ];
+  return () => stops.forEach((stop) => stop());
 }
 
 // ── 라이브러리 ─────────────────────────────────────────

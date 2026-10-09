@@ -9,7 +9,14 @@ import { EmptyState } from './components/ui';
 import { importJsonFromPicker } from './importers';
 import { PROJECT_SECTIONS } from './sections';
 import { applyAppearance } from './theme';
-import { dismissToast, initialize, openLibrary, setSettingsOpen, useStore } from './store';
+import {
+  dismissToast,
+  initialize,
+  openLibrary,
+  setSettingsOpen,
+  subscribeToMain,
+  useStore,
+} from './store';
 import { LibraryView } from './views/LibraryView';
 import { ProjectView } from './views/ProjectView';
 import { SettingsModal } from './views/SettingsModal';
@@ -78,6 +85,7 @@ export default function App() {
 
   const appearance = library?.settings.appearance;
 
+  useEffect(() => subscribeToMain(), []);
   useEffect(() => {
     void initialize();
   }, []);
