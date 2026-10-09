@@ -14,9 +14,11 @@ import { clearEmotionResults } from '../generationOps';
 import {
   coverRecord,
   emotionRecords,
+  GALLERY_COLUMN_CHOICES,
   openEmotion,
   openLibrary,
   projectMedia,
+  setGalleryColumns,
   updateProject,
   useLibrary,
   useStore,
@@ -39,7 +41,6 @@ function EmotionCard(props: {
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
-  aspect: string;
   dragging: string | undefined;
   setDragging: (id: string | undefined) => void;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
@@ -91,7 +92,6 @@ function EmotionCard(props: {
     >
       <button
         className="emotion-thumb"
-        style={{ aspectRatio: props.aspect }}
         onClick={open}
         title="클릭: 결과와 프롬프트 편집 · 우클릭: 메뉴 · Ctrl·Shift 클릭: 여러 개 선택"
       >
@@ -160,9 +160,10 @@ export function GalleryView({
   generate: ReactNode;
 }) {
   const library = useLibrary();
-  const { project, emotionSet, reference } = resolved;
+  const { project, emotionSet } = resolved;
   const records = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
+  const columns = useStore((state) => state.galleryColumns);
   const [dragging, setDragging] = useState<string>();
   const emotions = emotionSet?.emotions ?? [];
   const removeMany = (ids: string[]) => {
@@ -189,8 +190,6 @@ export function GalleryView({
     );
   }
 
-  const output = reference?.image?.outputRect;
-  const aspect = output ? `${Math.round(output.width)} / ${Math.round(output.height)}` : '3 / 4';
   const projectJobs = queue.jobs.filter((job) => job.projectId === project.id);
   const excluded = new Set(project.excludedEmotionIds);
   const included = emotionSet.emotions.filter(
@@ -263,10 +262,31 @@ export function GalleryView({
           </span>
         )}
         <div className="header-spacer" />
+        <span className="toolbar-summary">한 줄</span>
+        <div
+          className="segmented"
+          role="group"
+          aria-label="한 줄에 보일 카드 수"
+          title="한 줄에 보일 카드 수"
+        >
+          {GALLERY_COLUMN_CHOICES.map((choice) => (
+            <button
+              key={choice}
+              className={choice === columns ? 'active' : ''}
+              aria-pressed={choice === columns}
+              onClick={() => setGalleryColumns(choice)}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
         {generate}
       </div>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
-      <div className="emotion-grid">
+      <div
+        className="emotion-grid"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
         {emotionSet.emotions.map((emotion, index) => (
           <EmotionCard
             key={emotion.id}
@@ -276,7 +296,6 @@ export function GalleryView({
             records={emotionRecords(records, emotion.id)}
             jobs={projectJobs.filter((job) => job.emotionId === emotion.id)}
             prefer={library.settings.export.target}
-            aspect={aspect}
             dragging={dragging}
             setDragging={setDragging}
             picked={selection.isSelected(emotion.id)}

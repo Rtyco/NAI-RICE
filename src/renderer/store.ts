@@ -29,6 +29,7 @@ type State = {
   sidebarCollapsed: boolean;
   /** 접힌 사이드바 카드. 사이드바 전체 접기(Ctrl+B)와는 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
+  galleryColumns: number;
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -61,6 +62,19 @@ function saveUiState(key: string, value: string): void {
 const SIDEBAR_KEY = 'sidebar-collapsed';
 const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
+export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7] as const;
+const GALLERY_COLUMNS_KEY = 'gallery-columns';
+
+const readGalleryColumns = () =>
+  readUiState(
+    GALLERY_COLUMNS_KEY,
+    (raw) => {
+      const value = Number(raw);
+      return (GALLERY_COLUMN_CHOICES as readonly number[]).includes(value) ? value : 6;
+    },
+    6,
+  );
+
 const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
 
 const readSidebarSections = (): Record<SidebarSection, boolean> =>
@@ -82,6 +96,7 @@ export const useStore = create<State>(() => ({
   settingsOpen: false,
   sidebarCollapsed: readSidebarCollapsed(),
   sidebarSections: readSidebarSections(),
+  galleryColumns: readGalleryColumns(),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -289,6 +304,12 @@ export function toggleSidebarSection(section: SidebarSection): void {
   const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
   set({ sidebarSections: sections });
   saveUiState(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
+}
+
+/** 작업 화면에서 한 줄에 놓을 감정 카드 수. 다음 실행에도 기억한다. */
+export function setGalleryColumns(columns: number): void {
+  set({ galleryColumns: columns });
+  saveUiState(GALLERY_COLUMNS_KEY, String(columns));
 }
 
 export async function refreshAccount(): Promise<void> {
