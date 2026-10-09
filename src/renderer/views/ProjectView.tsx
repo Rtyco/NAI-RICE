@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
+  generationKindFor,
   normalizeGenerationSettings,
   readableId,
   type ResolvedProject,
@@ -32,7 +33,7 @@ import { GalleryView } from './GalleryView';
 import { libraryApi } from '../desktop';
 
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
-  { value: 'reference', label: '레퍼런스 생성', title: '참고 이미지 옆에 인페인트로 그립니다' },
+  { value: 'reference', label: '인페인트', title: '참고 이미지 옆에 인페인트로 그립니다' },
   { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
   {
     value: 'img2img',
@@ -183,7 +184,7 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
     resolved.promptSet,
     emotion?.prompt,
     { sets: library.pieceSets },
-    resolved.project.mode === 'reference' ? 'inpaint' : resolved.project.mode,
+    generationKindFor(resolved.project.mode),
   );
   return (
     <Modal title="최종 요청 미리보기" onClose={close} wide>

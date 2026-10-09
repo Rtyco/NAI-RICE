@@ -3,12 +3,13 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import type {
+  GenerationKind,
   GenerationRecord,
   Library as LibraryData,
   Reference,
 } from '../../src/core/domain/types';
 import { createDefaultLibrary } from '../../src/core/model/defaults';
-import { sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
+import { KIND_FOLDERS, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
 import { FOLDER_ID, generationIndexSchema, librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
@@ -497,9 +498,14 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return folders;
   }
 
-  /** 감정별 결과 폴더. 이름이 바뀌면 이후 결과는 새 이름 폴더에 저장된다. */
-  emotionOutputDir(projectId: string, emotionName: string): string {
-    return path.join(this.projectDir(projectId), 'outputs', sanitizeFilenameStem(emotionName));
+  /** 방식·감정별 결과 폴더. 감정 이름이 바뀌면 이후 결과는 새 이름 폴더에 저장된다. */
+  emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string {
+    return path.join(
+      this.projectDir(projectId),
+      'outputs',
+      KIND_FOLDERS[kind],
+      sanitizeFilenameStem(folder),
+    );
   }
 
   toProjectRelative(projectId: string, absolute: string): string {

@@ -29,7 +29,7 @@ import { PromptTextarea } from '../components/PromptTextarea';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 
 const KIND_LABELS: Record<GenerationKind, string> = {
-  inpaint: '레퍼런스 생성',
+  inpaint: '인페인트',
   txt2img: '일반 생성',
   img2img: 'i2i',
   augment: '디렉터 툴',

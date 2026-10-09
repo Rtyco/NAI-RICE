@@ -134,7 +134,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           {!g.referenceInset
             ? '넣지 않음'
             : [
-                '레퍼런스 생성에만 붙습니다',
+                '인페인트 방식에만 붙습니다',
                 g.referenceInsetPosition === 'character-start' && '성별 태그(girl, 1girl 등) 바로 뒤',
                 g.referenceInsetPosition === 'common-end' && '품질 태그를 켰다면 그 바로 앞',
                 '프롬프트에 직접 쓴 reference inset이 있으면 추가하지 않습니다',
@@ -170,7 +170,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           onChange={changeModel}
         />
         {!supportsInpaint(g.model) && (
-          <p className="hint">인페인트가 없어 레퍼런스 생성 작업에는 쓸 수 없습니다</p>
+          <p className="hint">인페인트 모델이 없어 인페인트 방식에는 쓸 수 없습니다</p>
         )}
         {isV3 && <p className="hint">V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합쳐 보냅니다</p>}
         {isV5 && (
@@ -178,7 +178,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         )}
       </Card>
 
-      <Card title="일반 생성 · i2i" subtitle="레퍼런스 생성은 인페인트의 캔버스 크기를 씁니다">
+      <Card title="일반 생성 · i2i" subtitle="인페인트 방식은 인페인트의 캔버스 크기를 씁니다">
         <SelectField
           label="해상도"
           value={customSize || !sizePreset ? 'custom' : sizePreset.id}

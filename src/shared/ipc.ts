@@ -1,5 +1,6 @@
 import type {
   ExportFormat,
+  GenerationKind,
   GenerationRecord,
   GenerationSummary,
   GenerationJobSnapshot,
@@ -113,7 +114,7 @@ export type OpenTarget =
   | { kind: 'root' }
   | { kind: 'project'; projectId: string }
   | { kind: 'outputs'; projectId: string }
-  | { kind: 'emotion'; projectId: string; emotionName: string }
+  | { kind: 'emotion'; projectId: string; emotionName: string; method: GenerationKind }
   | { kind: 'reference'; referenceId: string };
 
 export type MediaOwner = { kind: 'project' | 'reference'; id: string };

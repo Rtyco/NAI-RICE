@@ -81,7 +81,7 @@ export async function saveGenerationOutput(
   // 감정이 없는 자유 생성은 만든 날짜(현지 시각)별 폴더에 모은다.
   const folder = job.emotionId ? job.emotionName : localDate(job.createdAt);
   const outputPath = await uniquePath(
-    store.emotionOutputDir(job.projectId, folder),
+    store.emotionOutputDir(job.projectId, job.kind, folder),
     stem,
     '.png',
   );

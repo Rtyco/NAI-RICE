@@ -1,5 +1,5 @@
 import type { Emotion, EmotionSet } from '../core/domain/types';
-import { projectsUsing } from '../core/model/defaults';
+import { generationKindFor, projectsUsing } from '../core/model/defaults';
 import {
   addEmotion,
   duplicateEmotion,
@@ -216,6 +216,10 @@ export function emotionMenu(
                 kind: 'emotion',
                 projectId,
                 emotionName: emotion.name,
+                method: generationKindFor(
+                  useStore.getState().library?.projects.find((item) => item.id === projectId)
+                    ?.mode ?? 'reference',
+                ),
               }),
         ),
     },

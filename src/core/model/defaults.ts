@@ -5,6 +5,7 @@ import type {
   CharacterPromptSet,
   Emotion,
   EmotionSet,
+  GenerationKind,
   GenerationSettings,
   Library,
   PieceSet,
@@ -221,6 +222,10 @@ export type ResolvedProject = {
   reference?: Reference;
   missing: string[];
 };
+
+export function generationKindFor(mode: Project['mode']): GenerationKind {
+  return mode === 'reference' ? 'inpaint' : mode;
+}
 
 export function resolveProject(library: Library, project: Project): ResolvedProject {
   const preset = library.presets.find((item) => item.id === project.presetId);

@@ -1,3 +1,16 @@
+import type { GenerationKind } from '../domain/types';
+
+/**
+ * 결과는 `outputs/<방식>/<감정 또는 날짜>/`에 나눠 저장한다. 이 구분이 생기기 전의 결과는
+ * `outputs/<감정>/`에 그대로 남아 있다.
+ */
+export const KIND_FOLDERS: Record<GenerationKind, string> = {
+  inpaint: '인페인트',
+  txt2img: '일반 생성',
+  img2img: 'i2i',
+  augment: '디렉터 툴',
+};
+
 export const DEFAULT_OUTPUT_FILENAME_TEMPLATE =
   '{character}__{emotion}__v{variant}__{seed}';
 

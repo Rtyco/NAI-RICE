@@ -144,7 +144,8 @@ export type Reference = {
 };
 
 /**
- * 레퍼런스 생성은 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지 없이 txt2img로 만든다.
+ * 인페인트(`reference`, 예전 이름 레퍼런스 생성)는 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지
+ * 없이 txt2img로 만든다.
  * i2i는 인페인트의 원본 이미지를 생성 설정의 해상도로 맞춰 다시 그린다.
  */
 export type ProjectMode = 'reference' | 'txt2img' | 'img2img';

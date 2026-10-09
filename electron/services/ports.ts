@@ -1,5 +1,5 @@
 import type { Dialog, Shell } from 'electron';
-import type { GenerationRecord, Reference } from '../../src/core/domain/types';
+import type { GenerationKind, GenerationRecord, Reference } from '../../src/core/domain/types';
 import type {
   NovelAIImageRequest,
   NovelAIUserStatus,
@@ -34,7 +34,7 @@ export interface TokenStore {
 export interface GenerationStore {
   resolveProjectReal(projectId: string, relative: string): Promise<string>;
   projectDir(projectId: string): string;
-  emotionOutputDir(projectId: string, emotionName: string): string;
+  emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string;
   toProjectRelative(projectId: string, absolute: string): string;
   addGeneration(record: GenerationRecord): Promise<void>;
 }
@@ -53,7 +53,7 @@ export interface WorkspaceFolders {
   readonly root: string;
   projectDir(projectId: string): string;
   referenceDir(referenceId: string): string;
-  emotionOutputDir(projectId: string, emotionName: string): string;
+  emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string;
   resolveProject(projectId: string, relative: string): string;
   findGeneration(projectId: string, generationId: string): Promise<GenerationRecord>;
   verifyReal(absolute: string): Promise<string>;

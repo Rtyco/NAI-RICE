@@ -152,7 +152,7 @@ describe('generation pipeline', () => {
     expect(snapshot?.jobs[0]).toMatchObject({ anlasEstimate: 0, anlasSpent: 1 });
 
     const record = records[0];
-    expect(record.file).toBe('outputs/기쁨/아리아__기쁨__42.png');
+    expect(record.file).toBe('outputs/인페인트/기쁨/아리아__기쁨__42.png');
     expect(record).toMatchObject({
       projectId: project.id,
       width: 128,
@@ -323,7 +323,7 @@ describe('generation pipeline', () => {
       emotionId: '',
       emotionPrompt: 'cafe',
     });
-    expect(records[0].file.startsWith('outputs/2026-10-10/')).toBe(true);
+    expect(records[0].file.startsWith('outputs/일반 생성/2026-10-10/')).toBe(true);
     expect(library.projectDir(FREE_PROJECT_ID)).toBe(path.join(root, 'projects', 'free'));
     await expect(
       readFile(library.resolveProject(FREE_PROJECT_ID, records[0].file)),

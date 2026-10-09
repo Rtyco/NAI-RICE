@@ -16,7 +16,11 @@ export class WorkspaceShell {
     if (target.kind === 'outputs')
       directory = path.join(this.folders.projectDir(target.projectId), 'outputs');
     if (target.kind === 'emotion')
-      directory = this.folders.emotionOutputDir(target.projectId, target.emotionName);
+      directory = this.folders.emotionOutputDir(
+        target.projectId,
+        target.method,
+        target.emotionName,
+      );
     if (target.kind === 'reference') directory = this.folders.referenceDir(target.referenceId);
     await fs.mkdir(directory, { recursive: true });
     const error = await this.shell.openPath(directory);
