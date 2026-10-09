@@ -2068,7 +2068,15 @@ textarea.syntax-input::selection {
   background: var(--bg-3);
 }
 .sidebar-card.grow {
-  flex: 1;
+  /* 내용 높이에서 출발해 남는 높이를 채운다. 접히면 flex-grow가 0으로 줄어든다. */
+  flex: 1 1 auto;
+  transition: flex-grow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sidebar-card.grow.folded {
+  flex-grow: 0;
+}
+.sidebar-card:not(.grow) {
+  flex-shrink: 0;
 }
 .sidebar-section-title {
   display: flex;
@@ -2083,15 +2091,21 @@ textarea.syntax-input::selection {
   align-items: center;
   gap: 7px;
 }
+/* 제목 줄은 + 버튼을 뺀 나머지 전체가 접기 버튼이다. */
+.sidebar-section-title:has(> .sidebar-section-toggle) {
+  padding: 4px 4px 0;
+}
 .sidebar-section-toggle {
-  display: inline-flex;
+  flex: 1;
+  min-width: 0;
+  display: flex;
   align-items: center;
   gap: 7px;
-  margin-left: -4px;
-  padding: 2px 4px;
+  padding: 5px 6px;
   border-color: transparent;
   background: transparent;
   color: inherit;
+  text-align: left;
 }
 .sidebar-section-toggle:hover:not(:disabled) {
   border-color: transparent;
@@ -2099,17 +2113,31 @@ textarea.syntax-input::selection {
 }
 .section-chevron {
   color: var(--faint);
-  transition: transform 120ms ease;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sidebar-section-toggle[aria-expanded='true'] .section-chevron {
   transform: rotate(90deg);
 }
-/* 접힌 카드는 제목 줄만 남기고, 남는 높이는 펼쳐진 카드나 아래 여백이 쓴다. */
-.sidebar-card.folded {
-  padding-bottom: 6px;
+/* 접으면 내용 높이가 사이드바 폭과 같은 곡선으로 줄고, 글자는 앱의 다른 곳처럼 흐려지며 사라진다. */
+.sidebar-card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 220ms ease,
+    visibility 0s;
 }
-.sidebar-card.folded > :not(.sidebar-section-title) {
-  display: none;
+.sidebar-card.folded .sidebar-card-body {
+  height: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease,
+    visibility 0s linear 240ms;
 }
 .sidebar-caption {
   margin: 0 10px 6px;
@@ -2209,6 +2237,10 @@ textarea.syntax-input::selection {
 }
 .sidebar.collapsed .sidebar-card {
   margin: 0 6px;
+  align-items: center;
+}
+.sidebar.collapsed .sidebar-card-body {
+  align-self: stretch;
   align-items: center;
 }
 .sidebar.collapsed .sidebar-section-title {
@@ -2460,6 +2492,8 @@ textarea.syntax-input::selection {
 }
 .sidebar {
   overflow: hidden;
+  /* 카드 내용의 height: auto ↔ 0을 애니메이션할 수 있게 한다. */
+  interpolate-size: allow-keywords;
 }
 /* 사이드바를 펼칠 때 글자는 폭이 넓어진 뒤에 나타난다. */
 .sidebar .brand-text,

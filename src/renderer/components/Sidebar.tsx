@@ -391,7 +391,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <section className={`sidebar-card ${projectsFolded ? 'folded' : 'grow'}`}>
+      <section className={`sidebar-card grow ${projectsFolded ? 'folded' : ''}`}>
         <SectionTitle
           section="projects"
           icon="project"
@@ -406,65 +406,67 @@ export function Sidebar() {
             </button>
           )}
         </SectionTitle>
-        <nav
-          className={`project-list ${collapsed ? '' : 'selectable'}`}
-          aria-label="작업 목록"
-          {...(collapsed ? {} : selection.containerProps)}
-        >
-          {library.projects.map((project, index) => {
-            const reference = library.references.find((item) => item.id === project.referenceId);
-            const character = library.characters.find((item) => item.id === project.characterId);
-            return (
-              <ProjectRow
-                key={project.id}
-                project={project}
-                index={index}
-                collapsed={collapsed}
-                active={view.kind === 'project' && view.projectId === project.id}
-                busy={active.get(project.id)}
-                avatar={
-                  reference?.image
-                    ? referenceMedia(
-                        reference.id,
-                        reference.image.originalFile,
-                        reference.updatedAt,
-                      )
-                    : undefined
-                }
-                subtitle={character?.name ?? '캐릭터 없음'}
-                dragging={dragging}
-                setDragging={setDragging}
-                picked={!collapsed && selection.isSelected(project.id)}
-                onPick={(event) => selection.clickItem(event, project.id)}
-              />
-            );
-          })}
-          {collapsed && (
-            <button className="project-item add" title="새 작업 (Ctrl+N)" onClick={newProject}>
-              <span className="avatar">
-                <Icon name="plus" />
-              </span>
-            </button>
+        <div className="sidebar-card-body">
+          <nav
+            className={`project-list ${collapsed ? '' : 'selectable'}`}
+            aria-label="작업 목록"
+            {...(collapsed ? {} : selection.containerProps)}
+          >
+            {library.projects.map((project, index) => {
+              const reference = library.references.find((item) => item.id === project.referenceId);
+              const character = library.characters.find((item) => item.id === project.characterId);
+              return (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  index={index}
+                  collapsed={collapsed}
+                  active={view.kind === 'project' && view.projectId === project.id}
+                  busy={active.get(project.id)}
+                  avatar={
+                    reference?.image
+                      ? referenceMedia(
+                          reference.id,
+                          reference.image.originalFile,
+                          reference.updatedAt,
+                        )
+                      : undefined
+                  }
+                  subtitle={character?.name ?? '캐릭터 없음'}
+                  dragging={dragging}
+                  setDragging={setDragging}
+                  picked={!collapsed && selection.isSelected(project.id)}
+                  onPick={(event) => selection.clickItem(event, project.id)}
+                />
+              );
+            })}
+            {collapsed && (
+              <button className="project-item add" title="새 작업 (Ctrl+N)" onClick={newProject}>
+                <span className="avatar">
+                  <Icon name="plus" />
+                </span>
+              </button>
+            )}
+            {!library.projects.length && !collapsed && (
+              <p className="hint pad-x">아직 작업이 없습니다.</p>
+            )}
+            {!collapsed && selection.boxElement}
+          </nav>
+          {!collapsed && selection.selected.size > 0 && (
+            <div className="selection-bar">
+              <span>{selection.selected.size}개 선택</span>
+              <button
+                className="with-icon danger-quiet"
+                onClick={() => removeMany([...selection.selected])}
+              >
+                <Icon name="trash" size={14} /> 삭제
+              </button>
+              <button className="link-button" onClick={selection.clear}>
+                선택 취소
+              </button>
+            </div>
           )}
-          {!library.projects.length && !collapsed && (
-            <p className="hint pad-x">아직 작업이 없습니다.</p>
-          )}
-          {!collapsed && selection.boxElement}
-        </nav>
-        {!collapsed && selection.selected.size > 0 && (
-          <div className="selection-bar">
-            <span>{selection.selected.size}개 선택</span>
-            <button
-              className="with-icon danger-quiet"
-              onClick={() => removeMany([...selection.selected])}
-            >
-              <Icon name="trash" size={14} /> 삭제
-            </button>
-            <button className="link-button" onClick={selection.clear}>
-              선택 취소
-            </button>
-          </div>
-        )}
+        </div>
       </section>
 
       <section className={`sidebar-card ${libraryFolded ? 'folded' : ''}`}>
@@ -476,32 +478,34 @@ export function Sidebar() {
           narrow={collapsed}
           folded={libraryFolded}
         />
-        <nav className="library-nav" aria-label="라이브러리">
-          {SECTIONS.map((section) => (
-            <button
-              key={section.id}
-              title={(collapsed
-                ? [section.label, section.role, section.shortcut]
-                : [section.usage, section.shortcut]
-              )
-                .filter(Boolean)
-                .join(' · ')}
-              className={view.kind === 'library' && view.section === section.id ? 'active' : ''}
-              onClick={() => openLibrary(section.id)}
-            >
-              <Icon name={section.icon} />
-              {!collapsed && (
-                <>
-                  <span className="library-nav-text">
-                    <b>{section.label}</b>
-                    {section.role && <small>{section.role}</small>}
-                  </span>
-                  <span className="count">{(library[section.key] as unknown[]).length}</span>
-                </>
-              )}
-            </button>
-          ))}
-        </nav>
+        <div className="sidebar-card-body">
+          <nav className="library-nav" aria-label="라이브러리">
+            {SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                title={(collapsed
+                  ? [section.label, section.role, section.shortcut]
+                  : [section.usage, section.shortcut]
+                )
+                  .filter(Boolean)
+                  .join(' · ')}
+                className={view.kind === 'library' && view.section === section.id ? 'active' : ''}
+                onClick={() => openLibrary(section.id)}
+              >
+                <Icon name={section.icon} />
+                {!collapsed && (
+                  <>
+                    <span className="library-nav-text">
+                      <b>{section.label}</b>
+                      {section.role && <small>{section.role}</small>}
+                    </span>
+                    <span className="count">{(library[section.key] as unknown[]).length}</span>
+                  </>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
       </section>
 
       <div className="sidebar-footer">
