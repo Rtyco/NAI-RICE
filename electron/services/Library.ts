@@ -13,6 +13,7 @@ import { KIND_FOLDERS, sanitizeFilenameStem } from '../../src/core/output/Output
 import { FOLDER_ID, generationIndexSchema, librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
+  ImageDataSource,
   ImageInputRequest,
   ImageInputSource,
   LibrarySnapshot,
@@ -299,6 +300,17 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
         : await this.readImageSource(request);
     const { png, width, height, content } = await padToMultiple(original);
     return { file: await this.writeSource(png), width, height, outputRect: content };
+  }
+
+  async readImageDataUrl(source: ImageDataSource): Promise<string> {
+    const file =
+      source.kind === 'source'
+        ? await this.verifyReal(this.sourceFile(source.file))
+        : await this.resolveProjectReal(
+            source.projectId,
+            (await this.findGeneration(source.projectId, source.generationId)).file,
+          );
+    return toDataUrl(await fs.readFile(file), imageMime(file));
   }
 
   async addSourceMask(dataUrl: string): Promise<string> {

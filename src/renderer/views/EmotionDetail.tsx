@@ -339,48 +339,48 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                     })
                   }
                 >
-                  다른 이름으로 저장
+                  💾 다른 이름으로 저장
                 </button>
                 <button
                   onClick={() => void generateEmotions(project.id, [emotion.id], { seed: selected.seed, variants: 1 })}
                   title="현재 프롬프트와 이 결과의 seed로 다시 생성"
                 >
-                  이 seed로 다시
+                  🌱 이 seed로 다시
                 </button>
                 <button
                   disabled={selected.emotionPrompt === emotion.prompt}
                   onClick={() => patchEmotion(set.id, emotion.id, { prompt: selected.emotionPrompt })}
                   title="이 결과를 만들 때의 감정 프롬프트로 되돌립니다"
                 >
-                  프롬프트 복원
+                  ↩ 프롬프트 복원
                 </button>
                 <button
                   onClick={() =>
                     void run('폴더를 여는 중', () => libraryApi().showGeneration(project.id, selected.id))
                   }
                 >
-                  폴더에서 보기
+                  📂 폴더에서 보기
                 </button>
                 <button
                   onClick={() => openImg2ImgDialog(project.id, [selected])}
                   title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
                 >
-                  i2i로 보내기
+                  🔁 i2i로 보내기
                 </button>
                 <button
                   onClick={() => void makeReferenceFromRecord(project.id, selected)}
                   title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
                 >
-                  인페인트 만들기
+                  🎨 인페인트 만들기
                 </button>
                 <button
                   onClick={() => void sendToFreeInpaint(project.id, selected)}
                   title="자유 생성에서 이 결과의 일부를 마스크로 칠해 다시 그립니다"
                 >
-                  자유 인페인팅
+                  🖌 자유 인페인팅
                 </button>
                 <button className="danger-quiet" onClick={() => void deleteResults(project.id, [selected])}>
-                  결과 삭제
+                  🗑 결과 삭제
                 </button>
               </div>
             </section>
@@ -393,10 +393,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                 if (copy) openEmotion(copy);
               }}
             >
-              감정 복제
+              ⧉ 감정 복제
             </button>
             <button className="danger-quiet" onClick={() => void deleteEmotion(set.id, emotion, project.id)}>
-              감정 삭제
+              🗑 감정 삭제
             </button>
           </div>
           <p className="hint">←/→ 결과 이동 · PageUp/PageDown 감정 이동 · Esc 갤러리</p>

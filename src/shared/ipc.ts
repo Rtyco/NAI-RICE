@@ -53,6 +53,9 @@ export type PreparedInputs = {
 /** 입력으로 쓸 생성 결과. */
 export type ImageInputSource = { kind: 'record'; projectId: string; generationId: string };
 
+/** data URL로 읽을 이미지. `sources/`의 파일이거나 생성 결과다. */
+export type ImageDataSource = { kind: 'source'; file: string } | ImageInputSource;
+
 /** 자유 인페인팅에 쓸 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
 export type SourceImageAdd = { kind: 'data'; dataUrl: string } | ImageInputSource;
 
@@ -143,6 +146,11 @@ export type LibraryApi = {
   /** 이 앱이 만든 사본이라 휴지통을 거치지 않고 지운다. */
   deleteSourceImage: (file: string) => Promise<void>;
   prepareSourceInpaint: (request: SourceInpaintRequest) => Promise<PreparedInputs>;
+  /**
+   * 픽셀을 읽어야 하는 이미지를 data URL로 받는다. 화면의 CSP가 `desk-media:`를 fetch하지 못하게 막고,
+   * 그 주소로 그린 캔버스는 다른 출처라 픽셀을 읽을 수 없다.
+   */
+  readImageDataUrl: (source: ImageDataSource) => Promise<string>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
   /** 화면 목록용 요약. 프롬프트·설정은 getGeneration으로 하나씩 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;

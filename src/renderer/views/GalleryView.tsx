@@ -7,7 +7,6 @@ import { showContextMenu } from '../components/ContextMenu';
 import { openDialog } from '../components/Dialogs';
 import { ExportDialog } from '../components/ExportDialog';
 import { EmptyState } from '../components/ui';
-import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
 import { clearEmotionResults, openImg2ImgDialog } from '../generationOps';
@@ -208,16 +207,21 @@ export function GalleryView({
     <div className="gallery-view selectable" {...selection.containerProps}>
       <div className="toolbar">
         {/* 체크는 일괄 생성 대상이고, 카드 선택(Ctrl·Shift 클릭, 끌기)은 삭제·i2i 같은 일괄 작업 대상이다. */}
-        <span className="toolbar-group" title="체크한 감정만 일괄 생성합니다">
-          <span className="toolbar-label">생성 대상</span>
+        <span className="toolbar-group">
           <button
+            className="emoji-button"
+            title="생성 대상: 모든 감정 체크"
+            aria-label="생성 대상 모두 체크"
             onClick={() =>
               updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
             }
           >
-            모두 체크
+            ☑
           </button>
           <button
+            className="emoji-button"
+            title="생성 대상: 모든 감정 체크 해제"
+            aria-label="생성 대상 모두 해제"
             onClick={() =>
               updateProject(project.id, (current) => ({
                 ...current,
@@ -225,19 +229,15 @@ export function GalleryView({
               }))
             }
           >
-            모두 해제
+            ☐
           </button>
-        </span>
-        <span
-          className="toolbar-group"
-          title="고른 카드에 결과 삭제·대표 이미지 i2i·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
-        >
-          <span className="toolbar-label">카드</span>
-          <button onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}>
-            모두 고르기
-          </button>
-          <button disabled={!selection.selected.size} onClick={selection.clear}>
-            고르기 취소
+          <button
+            className="emoji-button"
+            title="카드 모두 고르기: 결과 삭제·대표 이미지 i2i·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
+            aria-label="카드 모두 고르기"
+            onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
+          >
+            🔳
           </button>
         </span>
         <button
@@ -247,16 +247,21 @@ export function GalleryView({
             void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
           }
         >
-          내보내기
+          📤 내보내기
         </button>
-        <span className="toolbar-summary">
-          체크한 감정 {included}/{emotionSet.emotions.length}개 · 결과 있음 {withResults}개
+        <span
+          className="toolbar-summary"
+          title={`생성 대상으로 체크한 감정 ${included}/${emotionSet.emotions.length}개 · 결과가 있는 감정 ${withResults}개`}
+        >
+          ☑ {included}/{emotionSet.emotions.length} · 🖼 {withResults}
         </span>
         {selection.selected.size > 0 && (
           <span className="selection-bar inline">
-            <span>카드 {selection.selected.size}개</span>
+            <span>{selection.selected.size}개 고름</span>
             <button
-              title="감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+              className="emoji-button"
+              title="결과만 삭제: 감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+              aria-label="결과만 삭제"
               onClick={() =>
                 void clearEmotionResults(
                   project.id,
@@ -264,7 +269,7 @@ export function GalleryView({
                 )
               }
             >
-              결과만 삭제
+              🧹
             </button>
             <button
               title="고른 감정마다 대표 이미지(없으면 최신)를 i2i로 다시 그립니다"
@@ -283,13 +288,23 @@ export function GalleryView({
                 )
               }
             >
-              대표 이미지 i2i로
+              🔁 i2i
             </button>
             <button
-              className="with-icon danger-quiet"
+              className="emoji-button danger-quiet"
+              title="고른 감정 삭제"
+              aria-label="감정 삭제"
               onClick={() => removeMany([...selection.selected])}
             >
-              <Icon name="trash" size={14} /> 감정 삭제
+              🗑
+            </button>
+            <button
+              className="emoji-button"
+              title="고르기 취소 (Esc)"
+              aria-label="고르기 취소"
+              onClick={selection.clear}
+            >
+              ✕
             </button>
           </span>
         )}

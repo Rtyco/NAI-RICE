@@ -42,6 +42,7 @@ function createPreviewApi(): DesktopApi {
     addSourceMask: unsupported,
     deleteSourceImage: async () => undefined,
     prepareSourceInpaint: unsupported,
+    readImageDataUrl: unsupported,
     deleteProjectFiles: async () => undefined,
     listGenerations: async () => [],
     getGeneration: unsupported,

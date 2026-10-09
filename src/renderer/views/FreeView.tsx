@@ -466,14 +466,14 @@ export function FreeView() {
                       onClick={() => void generateFree({ seed: selected.seed, count: 1 })}
                       title="지금 프롬프트와 이 결과의 seed로 다시 생성"
                     >
-                      이 seed로 다시
+                      🌱 이 seed로 다시
                     </button>
                     <button
                       disabled={selected.emotionPrompt === free.prompt}
                       onClick={() => updateFreeGeneration({ prompt: selected.emotionPrompt })}
                       title="이 결과를 만들 때 입력한 프롬프트로 되돌립니다"
                     >
-                      프롬프트 복원
+                      ↩ 프롬프트 복원
                     </button>
                     <button
                       onClick={() =>
@@ -488,7 +488,7 @@ export function FreeView() {
                         })
                       }
                     >
-                      다른 이름으로 저장
+                      💾 다른 이름으로 저장
                     </button>
                     <button
                       onClick={() =>
@@ -497,13 +497,13 @@ export function FreeView() {
                         )
                       }
                     >
-                      폴더에서 보기
+                      📂 폴더에서 보기
                     </button>
                     <button
                       onClick={() => openImg2ImgDialog(FREE_PROJECT_ID, [selected])}
                       title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
                     >
-                      i2i로 보내기
+                      🔁 i2i로 보내기
                     </button>
                     <button
                       onClick={() =>
@@ -513,19 +513,19 @@ export function FreeView() {
                       }
                       title="이 결과의 일부를 마스크로 칠해 다시 그립니다"
                     >
-                      자유 인페인팅
+                      🖌 자유 인페인팅
                     </button>
                     <button
                       onClick={() => void makeReferenceFromRecord(FREE_PROJECT_ID, selected)}
                       title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
                     >
-                      인페인트 만들기
+                      🎨 인페인트 만들기
                     </button>
                     <button
                       className="danger-quiet"
                       onClick={() => void deleteResults(FREE_PROJECT_ID, [selected])}
                     >
-                      결과 삭제
+                      🗑 결과 삭제
                     </button>
                   </div>
                 </section>

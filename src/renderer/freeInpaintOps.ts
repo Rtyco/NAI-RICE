@@ -2,12 +2,11 @@ import type { FreeInpaint, GenerationSummary } from '../core/domain/types';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
 import { createReference, FREE_PROJECT_ID } from '../core/model/defaults';
 import { fileApi, libraryApi } from './desktop';
-import { blobToDataUrl, maskToDataUrl } from './lib/image';
+import { maskToDataUrl } from './lib/image';
 import type { StoredSource } from '../shared/ipc';
 import {
   openFree,
   openLibrary,
-  projectMedia,
   run,
   setPendingReference,
   toast,
@@ -20,9 +19,8 @@ export function sourceMedia(file: string): string {
   return libraryApi().mediaUrl({ kind: 'source' }, file);
 }
 
-/** 화면에 그리고 마스크를 읽으려면 픽셀을 꺼내야 해서, 사용자 지정 프로토콜 대신 data URL로 읽는다. */
-export async function sourceDataUrl(file: string): Promise<string> {
-  return blobToDataUrl(await (await fetch(sourceMedia(file))).blob());
+export function sourceDataUrl(file: string): Promise<string> {
+  return libraryApi().readImageDataUrl({ kind: 'source', file });
 }
 
 function recordName(projectId: string, record: GenerationSummary): string {
@@ -121,9 +119,11 @@ export function makeReferenceFromRecord(
   record: GenerationSummary,
 ): Promise<void> {
   return run('인페인트를 만드는 중', async () => {
-    const dataUrl = await blobToDataUrl(
-      await (await fetch(projectMedia(projectId, record.file))).blob(),
-    );
+    const dataUrl = await libraryApi().readImageDataUrl({
+      kind: 'record',
+      projectId,
+      generationId: record.id,
+    });
     const name = recordName(projectId, record);
     const reference = createReference(name);
     updateLibrary((library) => ({ ...library, references: [...library.references, reference] }));

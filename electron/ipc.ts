@@ -2,6 +2,7 @@ import { BrowserWindow, ipcMain, shell } from 'electron';
 import type { Library as LibraryData, Reference } from '../src/core/domain/types';
 import type {
   ExportRequest,
+  ImageDataSource,
   ImageInputRequest,
   OpenTarget,
   ReferenceImageSave,
@@ -62,6 +63,9 @@ export function registerIpc(services: AppServices): void {
   );
   ipcMain.handle('source:add-mask', (_event, dataUrl: string) => library.addSourceMask(dataUrl));
   ipcMain.handle('source:delete', (_event, file: string) => library.deleteSource(file));
+  ipcMain.handle('image:read-data-url', (_event, source: ImageDataSource) =>
+    library.readImageDataUrl(source),
+  );
   ipcMain.handle('source:prepare-inpaint', (_event, request: SourceInpaintRequest) =>
     library.prepareSourceInpaint(request),
   );

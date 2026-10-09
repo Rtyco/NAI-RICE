@@ -22,6 +22,7 @@ const api: DesktopApi = {
   addSourceMask: (dataUrl) => ipcRenderer.invoke('source:add-mask', dataUrl),
   deleteSourceImage: (file) => ipcRenderer.invoke('source:delete', file),
   prepareSourceInpaint: (request) => ipcRenderer.invoke('source:prepare-inpaint', request),
+  readImageDataUrl: (source) => ipcRenderer.invoke('image:read-data-url', source),
   deleteProjectFiles: (id) => ipcRenderer.invoke('project:delete-files', id),
   listGenerations: (id) => ipcRenderer.invoke('generations:list', id),
   getGeneration: (id, generationId) => ipcRenderer.invoke('generations:get', id, generationId),

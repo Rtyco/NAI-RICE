@@ -1835,10 +1835,11 @@ textarea.syntax-input::selection {
   padding-left: 0;
   border-left: 0;
 }
-.toolbar-label {
-  margin-right: 2px;
-  color: var(--muted);
-  font-size: 12px;
+.emoji-button {
+  min-width: 30px;
+  padding: 3px 6px;
+  font-size: 15px;
+  line-height: 1.2;
 }
 .record-input {
   width: 72px;
