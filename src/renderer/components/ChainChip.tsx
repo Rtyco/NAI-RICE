@@ -83,3 +83,43 @@ export function SizeChip({ preset }: { preset: Preset }) {
     </ChainChip>
   );
 }
+
+const STRENGTHS = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+
+/** i2i 세기. 낮을수록 원본을 많이 남긴다. 생성 설정에 저장된다. */
+export function StrengthChip({ preset }: { preset: Preset }) {
+  const { img2imgStrength } = normalizeGenerationSettings(preset.generation);
+  const choices = STRENGTHS.includes(img2imgStrength)
+    ? STRENGTHS
+    : [...STRENGTHS, img2imgStrength].sort((a, b) => a - b);
+  return (
+    <ChainChip
+      section="presets"
+      itemId={preset.id}
+      label={{
+        text: 'i2i 세기',
+        icon: 'refresh',
+        usage: `낮을수록 원본을 많이 남깁니다 · 생성 설정 「${preset.name}」에 저장됩니다`,
+      }}
+    >
+      <select
+        value={img2imgStrength}
+        onChange={(event) => {
+          const value = Number(event.target.value);
+          updateLibrary((library) =>
+            patchItem(library, 'presets', preset.id, (item) => ({
+              ...item,
+              generation: { ...item.generation, img2imgStrength: value },
+            })),
+          );
+        }}
+      >
+        {choices.map((value) => (
+          <option key={value} value={value}>
+            {value}
+          </option>
+        ))}
+      </select>
+    </ChainChip>
+  );
+}

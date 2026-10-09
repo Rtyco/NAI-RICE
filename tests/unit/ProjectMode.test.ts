@@ -228,6 +228,7 @@ describe('자유 생성 작업', () => {
       prompt: '',
       count: 1,
       mode: 'txt2img',
+      inpaint: false,
     });
   });
 });

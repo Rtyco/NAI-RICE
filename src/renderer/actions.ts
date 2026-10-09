@@ -12,7 +12,7 @@ import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
-import { saveFreeInpaintMask } from './freeInpaintOps';
+import { saveFreeMask } from './freeImageOps';
 
 export type GenerateOptions = {
   seed?: number;
@@ -69,7 +69,7 @@ export function generateFree(
   options: { prompt?: string; seed?: number; count?: number } = {},
 ): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
-    await saveFreeInpaintMask();
+    await saveFreeMask();
     await flushSaves();
     const state = useStore.getState();
     const library = state.library;
@@ -80,27 +80,31 @@ export function generateFree(
     const prompt = options.prompt ?? free.prompt;
     if (!prompt.trim() && !promptSet?.positive.trim()) throw new Error('프롬프트를 입력하십시오.');
 
-    let inpaint;
-    if (free.mode === 'inpaint') {
-      const image = free.inpaint;
-      if (!image) throw new Error('자유 인페인팅할 이미지를 먼저 고르십시오.');
-      if (!image.maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
-      if (!supportsInpaint(preset.generation.model))
-        throw new Error(
-          `${modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다. 생성 설정에서 인페인트를 지원하는 모델로 바꾸십시오.`,
-        );
-      inpaint = {
-        input: await libraryApi().prepareSourceInpaint({
-          projectId: FREE_PROJECT_ID,
-          file: image.file,
-          maskFile: image.maskFile,
-        }),
-        width: image.width,
-        height: image.height,
-        outputRect: image.outputRect,
+    let image;
+    if (free.mode === 'img2img') {
+      const source = free.image;
+      if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+      if (free.inpaint) {
+        if (!source.maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
+        if (!supportsInpaint(preset.generation.model))
+          throw new Error(
+            `${modelLabel(preset.generation.model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서 모델을 바꾸거나 인페인팅을 끄십시오.`,
+          );
+      }
+      const { mask, ...prepared } = await libraryApi().prepareSourceInput({
+        projectId: FREE_PROJECT_ID,
+        file: source.file,
+        ...(free.inpaint ? { maskFile: source.maskFile } : {}),
+      });
+      image = {
+        image: prepared,
+        mask,
+        width: source.width,
+        height: source.height,
+        outputRect: source.outputRect,
         sourceRecordId:
-          image.fromRecord?.projectId === FREE_PROJECT_ID
-            ? image.fromRecord.generationId
+          source.fromRecord?.projectId === FREE_PROJECT_ID
+            ? source.fromRecord.generationId
             : undefined,
       };
     }
@@ -111,7 +115,7 @@ export function generateFree(
       count: options.count ?? free.count,
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
-      inpaint,
+      image,
     });
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });

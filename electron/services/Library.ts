@@ -25,7 +25,8 @@ import type {
   ReferenceImages,
   ReferenceImageSave,
   SourceImageAdd,
-  SourceInpaintRequest,
+  PreparedSourceInput,
+  SourceInputRequest,
   StoredSource,
 } from '../../src/shared/ipc';
 import {
@@ -244,16 +245,23 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.writeInpaintInputs(projectId, canvas, mask);
   }
 
-  /** 자유 인페인팅의 이미지와 마스크를 작업 폴더에 해시 이름으로 복사한다. */
-  async prepareSourceInpaint(request: SourceInpaintRequest): Promise<PreparedInputs> {
+  /** 자유 생성 i2i의 이미지(와 인페인팅 마스크)를 작업 폴더에 해시 이름으로 복사한다. */
+  async prepareSourceInput(request: SourceInputRequest): Promise<PreparedSourceInput> {
     const read = async (file: string) => fs.readFile(await this.verifyReal(this.sourceFile(file)));
-    const [canvas, mask] = await Promise.all([read(request.file), read(request.maskFile)]);
+    const canvas = await read(request.file);
+    if (!request.maskFile) return this.writeInput(request.projectId, canvas);
+    const mask = await read(request.maskFile);
     const [canvasSize, maskSize] = await Promise.all([imageSize(canvas), imageSize(mask)]);
     if (canvasSize.width !== maskSize.width || canvasSize.height !== maskSize.height)
       throw new Error('마스크 크기가 이미지와 다릅니다. 마스크를 다시 칠하십시오.');
     if (!(await maskHasGeneratePixels(mask)))
       throw new Error('다시 그릴 영역이 비어 있습니다. 이미지에 마스크를 칠하십시오.');
-    return this.writeInpaintInputs(request.projectId, canvas, mask);
+    const { maskPath, maskSha256, ...image } = await this.writeInpaintInputs(
+      request.projectId,
+      canvas,
+      mask,
+    );
+    return { ...image, mask: { maskPath, maskSha256 } };
   }
 
   private async writeInpaintInputs(

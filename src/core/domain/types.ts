@@ -226,15 +226,18 @@ export type FreeGeneration = {
   prompt: string;
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
-  mode: 'txt2img' | 'inpaint';
-  inpaint?: FreeInpaint;
+  mode: 'txt2img' | 'img2img';
+  /** i2i로 다시 그릴 이미지. */
+  image?: FreeImage;
+  /** i2i에서 마스크로 칠한 곳만 다시 그린다(인페인팅). 끄면 이미지 전체를 i2i한다. */
+  inpaint: boolean;
 };
 
 /**
- * 자유 인페인팅에서 고쳐 그릴 이미지와 마스크. 파일은 `sources/`에 있다. NovelAI는 64의 배수 크기만
+ * 자유 생성 i2i에서 다시 그릴 이미지와 인페인팅 마스크. 파일은 `sources/`에 있다. NovelAI는 64의 배수 크기만
  * 받으므로 이미지 오른쪽·아래에 여백을 넣어 두고, 결과에서는 `outputRect`(원래 이미지 영역)만 남긴다.
  */
-export type FreeInpaint = {
+export type FreeImage = {
   name: string;
   file: string;
   width: number;
@@ -370,6 +373,8 @@ export type Img2ImgJobSnapshot = JobSnapshotCommon &
     kind: 'img2img';
     strength: number;
     noise: number;
+    /** 결과에서 남길 영역. 비어 있으면 받은 이미지 전체다. */
+    outputRect?: Rect;
   };
 
 export type AugmentJobSnapshot = JobSnapshotCommon &

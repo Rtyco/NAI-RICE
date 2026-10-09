@@ -10,6 +10,8 @@ import {
 } from '../../core/imaging/MaskBuilder';
 import { clampRect, contains } from '../../core/imaging/rects';
 import type { CanvasImage } from '../lib/image';
+import { Icon } from './Icon';
+import { clampZoom, usePan, useWheel, useZoomAnchor, ZOOM_STEP } from './zoom';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep';
 type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
@@ -99,7 +101,11 @@ export function ReferenceCanvas(props: Props) {
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
   const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
-  const [zoom, setZoom] = useState(70);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  /** 원본 픽셀 대비 배율. 처음에는 화면에 맞춘다. */
+  const [zoom, setZoom] = useState<number | 'fit'>('fit');
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  const [panReady, setPanReady] = useState(false);
   const [opacity, setOpacity] = useState(42);
   const [brushSize, setBrushSize] = useState(24);
   const [overrides, setOverrides] = useState<Int8Array>(() =>
@@ -140,6 +146,55 @@ export function ReferenceCanvas(props: Props) {
   );
 
   const hasGeneratePixels = useMemo(() => maskHasGeneratePixels(mask), [mask]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() =>
+      setBox({ width: node.clientWidth, height: node.clientHeight }),
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  // canvas-scroll의 안쪽 여백(16px)을 빼고 맞춘다.
+  const fitScale = box.width
+    ? Math.max(0.05, Math.min((box.width - 32) / props.width, (box.height - 32) / props.height))
+    : 0.5;
+  const scale = zoom === 'fit' ? fitScale : zoom;
+  // 렌더 사이에 휠 이벤트가 여러 번 오면 렌더된 값이 아니라 마지막으로 정한 배율에서 이어 간다.
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const anchor = useZoomAnchor(scrollRef, canvasRef);
+  const pan = usePan(scrollRef);
+  const zoomTo = (next: number, x?: number, y?: number) => {
+    anchor(x, y);
+    scaleRef.current = clampZoom(next);
+    setZoom(scaleRef.current);
+  };
+  useWheel(scrollRef, (event) => {
+    event.preventDefault();
+    zoomTo(
+      scaleRef.current * (event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP),
+      event.clientX,
+      event.clientY,
+    );
+  });
+
+  // Space를 누르고 있는 동안은 끌어서 화면을 옮긴다(그림 프로그램과 같은 방식).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== ' ' || (event.target as HTMLElement).closest('input, textarea, select'))
+        return;
+      if (event.type === 'keydown') event.preventDefault();
+      setPanReady(event.type === 'keydown');
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKey);
+    };
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -249,6 +304,10 @@ export function ReferenceCanvas(props: Props) {
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button === 1 || panReady) {
+      pan.begin(event);
+      return;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = pointFromEvent(event);
     if (tool === 'generate' || tool === 'keep') {
@@ -272,6 +331,7 @@ export function ReferenceCanvas(props: Props) {
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (pan.move(event)) return;
     const drag = dragRef.current;
     if (!drag) return;
     const point = pointFromEvent(event);
@@ -296,6 +356,7 @@ export function ReferenceCanvas(props: Props) {
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
+    if (pan.end()) return;
     dragRef.current = null;
     const stroke = strokeRef.current;
     if (stroke) {
@@ -423,24 +484,47 @@ export function ReferenceCanvas(props: Props) {
           />{' '}
           {opacity}%
         </label>
-        <label>
-          줌{' '}
-          <input
-            type="range"
-            min="35"
-            max="150"
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-          />{' '}
-          {zoom}%
-        </label>
+        <span
+          className="canvas-zoom"
+          title="휠: 확대·축소 · Space나 가운데 버튼으로 끌기: 화면 이동"
+        >
+          <button
+            className="icon-button"
+            aria-label="축소"
+            title="축소 (휠)"
+            onClick={() => zoomTo(scale / ZOOM_STEP)}
+          >
+            <Icon name="zoom-out" size={15} />
+          </button>
+          <button className="zoom-level" title="화면에 맞추기" onClick={() => setZoom('fit')}>
+            {Math.round(scale * 100)}%
+          </button>
+          <button
+            className="icon-button"
+            aria-label="확대"
+            title="확대 (휠)"
+            onClick={() => zoomTo(scale * ZOOM_STEP)}
+          >
+            <Icon name="zoom-in" size={15} />
+          </button>
+          <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
+            1:1
+          </button>
+        </span>
       </div>
-      <div className="canvas-scroll">
+      <div
+        ref={scrollRef}
+        className={`canvas-scroll ${panReady ? 'pan-ready' : ''}`}
+        onMouseDown={(event) => {
+          // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
+          if (event.button === 1) event.preventDefault();
+        }}
+      >
         <canvas
           ref={canvasRef}
           width={props.width}
           height={props.height}
-          style={{ width: `${zoom}%`, aspectRatio: `${props.width} / ${props.height}` }}
+          style={{ width: props.width * scale, height: props.height * scale }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={finishPointer}

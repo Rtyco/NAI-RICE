@@ -7,6 +7,7 @@ import { showContextMenu } from '../components/ContextMenu';
 import { openDialog } from '../components/Dialogs';
 import { ExportDialog } from '../components/ExportDialog';
 import { EmptyState } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
 import { clearEmotionResults, openImg2ImgDialog } from '../generationOps';
@@ -216,7 +217,7 @@ export function GalleryView({
               updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
             }
           >
-            ☑
+            <Icon name="check-square" size={16} />
           </button>
           <button
             className="emoji-button"
@@ -229,31 +230,32 @@ export function GalleryView({
               }))
             }
           >
-            ☐
+            <Icon name="square" size={16} />
           </button>
           <button
             className="emoji-button"
-            title="카드 모두 고르기: 결과 삭제·대표 이미지 i2i·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
+            title="카드 모두 고르기: 결과 삭제·대표 이미지 업스케일·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
             aria-label="카드 모두 고르기"
             onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
           >
-            🔳
+            <Icon name="select-all" size={16} />
           </button>
         </span>
         <button
-          className="accent"
+          className="accent with-icon"
           disabled={!withResults}
           onClick={() =>
             void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
           }
         >
-          📤 내보내기
+          <Icon name="export" size={14} /> 내보내기
         </button>
         <span
           className="toolbar-summary"
           title={`생성 대상으로 체크한 감정 ${included}/${emotionSet.emotions.length}개 · 결과가 있는 감정 ${withResults}개`}
         >
-          ☑ {included}/{emotionSet.emotions.length} · 🖼 {withResults}
+          <Icon name="check-square" size={14} /> {included}/{emotionSet.emotions.length}
+          <Icon name="images" size={14} /> {withResults}
         </span>
         {selection.selected.size > 0 && (
           <span className="selection-bar inline">
@@ -269,10 +271,11 @@ export function GalleryView({
                 )
               }
             >
-              🧹
+              <Icon name="eraser" size={16} />
             </button>
             <button
-              title="고른 감정마다 대표 이미지(없으면 최신)를 i2i로 다시 그립니다"
+              className="with-icon"
+              title="고른 감정마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
               onClick={() =>
                 openImg2ImgDialog(
                   project.id,
@@ -288,7 +291,7 @@ export function GalleryView({
                 )
               }
             >
-              🔁 i2i
+              <Icon name="upscale" size={14} /> 업스케일
             </button>
             <button
               className="emoji-button danger-quiet"
@@ -296,7 +299,7 @@ export function GalleryView({
               aria-label="감정 삭제"
               onClick={() => removeMany([...selection.selected])}
             >
-              🗑
+              <Icon name="trash" size={16} />
             </button>
             <button
               className="emoji-button"
@@ -304,7 +307,7 @@ export function GalleryView({
               aria-label="고르기 취소"
               onClick={selection.clear}
             >
-              ✕
+              <Icon name="close" size={16} />
             </button>
           </span>
         )}

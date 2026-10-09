@@ -37,22 +37,24 @@ function maskPng(width: number, height: number, paint: boolean) {
     .toBuffer();
 }
 
-describe('자유 인페인팅 작업', () => {
-  it('이미지 크기의 캔버스로 인페인트하고 reference inset은 붙이지 않아', () => {
-    const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
-    preset.generation = { ...preset.generation, referenceInset: true };
-    const input = {
-      imagePath: `inputs/${'a'.repeat(64)}.png`,
-      maskPath: `inputs/${'b'.repeat(64)}.png`,
-      imageSha256: 'a'.repeat(64),
-      maskSha256: 'b'.repeat(64),
-    };
-    const outputRect = { x: 0, y: 0, width: 600, height: 900 };
+describe('자유 생성 i2i 작업', () => {
+  const image = { imagePath: `inputs/${'a'.repeat(64)}.png`, imageSha256: 'a'.repeat(64) };
+  const mask = { maskPath: `inputs/${'b'.repeat(64)}.png`, maskSha256: 'b'.repeat(64) };
+  const outputRect = { x: 0, y: 0, width: 600, height: 900 };
+  const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+  preset.generation = {
+    ...preset.generation,
+    referenceInset: true,
+    img2imgStrength: 0.35,
+    img2imgNoise: 0.1,
+  };
+
+  it('마스크가 있으면 이미지 크기의 캔버스로 인페인트하고 reference inset은 붙이지 않아', () => {
     const jobs = buildFreeJobs({
       preset,
       prompt: 'smile',
       count: 2,
-      inpaint: { input, width: 640, height: 960, outputRect, sourceRecordId: 'rec-1' },
+      image: { image, mask, width: 640, height: 960, outputRect, sourceRecordId: 'rec-1' },
     });
     expect(jobs).toHaveLength(2);
     expect(jobs[0]).toMatchObject({
@@ -63,10 +65,30 @@ describe('자유 인페인팅 작업', () => {
       keepDiagnosticCanvas: false,
       sourceRecordId: 'rec-1',
       projectId: 'free',
-      ...input,
+      ...image,
+      ...mask,
     });
     expect(jobs[0].prompt).toBe('masterpiece, smile');
     expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+  });
+
+  it('마스크가 없으면 생성 설정의 세기로 이미지 전체를 i2i하고 여백은 결과에서 잘라', () => {
+    const [job] = buildFreeJobs({
+      preset,
+      prompt: 'smile',
+      count: 1,
+      image: { image, width: 640, height: 960, outputRect },
+    });
+    expect(job).toMatchObject({
+      kind: 'img2img',
+      canvasWidth: 640,
+      canvasHeight: 960,
+      strength: 0.35,
+      noise: 0.1,
+      outputRect,
+      ...image,
+    });
+    expect(generationEnqueueRequestSchema.safeParse({ jobs: [job] }).success).toBe(true);
   });
 });
 
@@ -109,22 +131,26 @@ describe('자유 인페인팅 입력', () => {
       .toBuffer();
     const stored = await library.addSourceImage({ kind: 'data', dataUrl: pngUrl(image) });
     const maskFile = await library.addSourceMask(pngUrl(await maskPng(128, 64, true)));
-    const input = await library.prepareSourceInpaint({
+    const input = await library.prepareSourceInput({
       projectId: 'free',
       file: stored.file,
       maskFile,
     });
     expect(input.imagePath).toBe(`inputs/${input.imageSha256}.png`);
-    expect(input.maskPath).toBe(`inputs/${input.maskSha256}.png`);
-    await expect(readFile(library.resolveProject('free', input.maskPath))).resolves.toBeTruthy();
+    expect(input.mask?.maskPath).toBe(`inputs/${input.mask?.maskSha256}.png`);
+    await expect(
+      readFile(library.resolveProject('free', input.mask!.maskPath)),
+    ).resolves.toBeTruthy();
+    const plain = await library.prepareSourceInput({ projectId: 'free', file: stored.file });
+    expect(plain).toEqual({ imagePath: input.imagePath, imageSha256: input.imageSha256 });
 
     const blank = await library.addSourceMask(pngUrl(await maskPng(128, 64, false)));
     await expect(
-      library.prepareSourceInpaint({ projectId: 'free', file: stored.file, maskFile: blank }),
+      library.prepareSourceInput({ projectId: 'free', file: stored.file, maskFile: blank }),
     ).rejects.toThrow('비어 있습니다');
     const small = await library.addSourceMask(pngUrl(await maskPng(64, 64, true)));
     await expect(
-      library.prepareSourceInpaint({ projectId: 'free', file: stored.file, maskFile: small }),
+      library.prepareSourceInput({ projectId: 'free', file: stored.file, maskFile: small }),
     ).rejects.toThrow('크기');
 
     await library.deleteSource(blank);
@@ -153,7 +179,7 @@ describe('i2i 입력 맞추기', () => {
 });
 
 describe('없어진 i2i 방식', () => {
-  it('i2i 방식 작업은 인페인트로, 자유 생성 i2i는 일반 생성으로 읽어', () => {
+  it('i2i 방식 작업은 인페인트로 읽고, 옛 i2i 원본을 고른 자유 생성 i2i는 이미지 없는 i2i가 돼', () => {
     const library = createDefaultLibrary();
     const character = createCharacter('아리아');
     const project = {
@@ -176,6 +202,29 @@ describe('없어진 i2i 방식', () => {
     expect(parsed.projects[0].mode).toBe('reference');
     expect(parsed.projects[0]).not.toHaveProperty('img2imgSourceId');
     expect(parsed).not.toHaveProperty('img2imgSources');
-    expect(parsed.freeGeneration.mode).toBe('txt2img');
+    expect(parsed.freeGeneration).toMatchObject({ mode: 'img2img', inpaint: false });
+    expect(parsed.freeGeneration.image).toBeUndefined();
+  });
+
+  it('잠시 있던 자유 인페인팅 모드는 i2i의 인페인팅으로 읽어', () => {
+    const library = createDefaultLibrary();
+    const image = {
+      name: '결과',
+      file: `${'c'.repeat(24)}.png`,
+      width: 640,
+      height: 960,
+      outputRect: { x: 0, y: 0, width: 600, height: 900 },
+    };
+    for (const mode of ['inpaint', 'txt2img']) {
+      const parsed = librarySchema.parse({
+        ...library,
+        freeGeneration: { ...library.freeGeneration, mode, inpaint: image },
+      });
+      expect(parsed.freeGeneration).toMatchObject({
+        mode: mode === 'inpaint' ? 'img2img' : 'txt2img',
+        image,
+        inpaint: true,
+      });
+    }
   });
 });

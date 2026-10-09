@@ -79,8 +79,12 @@ export type PreparedImage = { imagePath: string; imageSha256: string };
  */
 export type StoredSource = { file: string; width: number; height: number; outputRect: Rect };
 
-/** 자유 인페인팅의 `sources/` 이미지와 마스크를 작업 입력으로 복사해 달라는 요청. */
-export type SourceInpaintRequest = { projectId: string; file: string; maskFile: string };
+/** 자유 생성 i2i의 `sources/` 이미지(와 인페인팅 마스크)를 작업 입력으로 복사해 달라는 요청. */
+export type SourceInputRequest = { projectId: string; file: string; maskFile?: string };
+
+export type PreparedSourceInput = PreparedImage & {
+  mask?: Pick<PreparedInputs, 'maskPath' | 'maskSha256'>;
+};
 
 export type TokenStatus = {
   stored: boolean;
@@ -145,7 +149,7 @@ export type LibraryApi = {
   addSourceMask: (dataUrl: string) => Promise<string>;
   /** 이 앱이 만든 사본이라 휴지통을 거치지 않고 지운다. */
   deleteSourceImage: (file: string) => Promise<void>;
-  prepareSourceInpaint: (request: SourceInpaintRequest) => Promise<PreparedInputs>;
+  prepareSourceInput: (request: SourceInputRequest) => Promise<PreparedSourceInput>;
   /**
    * 픽셀을 읽어야 하는 이미지를 data URL로 받는다. 화면의 CSP가 `desk-media:`를 fetch하지 못하게 막고,
    * 그 주소로 그린 캔버스는 다른 출처라 픽셀을 읽을 수 없다.

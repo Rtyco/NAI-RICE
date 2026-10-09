@@ -37,6 +37,8 @@ type State = {
   /** 접힌 사이드바 카드. 사이드바 전체 접기(Ctrl+B)와는 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
+  /** 결과 화면 아래의 이미지 목록을 접었는지. */
+  filmstripCollapsed: boolean;
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -82,6 +84,8 @@ const readGalleryColumns = () =>
     6,
   );
 
+const FILMSTRIP_KEY = 'filmstrip-collapsed';
+
 const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
 
 const readSidebarSections = (): Record<SidebarSection, boolean> =>
@@ -104,6 +108,7 @@ export const useStore = create<State>(() => ({
   sidebarCollapsed: readSidebarCollapsed(),
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
+  filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -340,6 +345,12 @@ export function toggleSidebarSection(section: SidebarSection): void {
 export function setGalleryColumns(columns: number): void {
   set({ galleryColumns: columns });
   saveUiState(GALLERY_COLUMNS_KEY, String(columns));
+}
+
+export function toggleFilmstrip(): void {
+  const collapsed = !get().filmstripCollapsed;
+  set({ filmstripCollapsed: collapsed });
+  saveUiState(FILMSTRIP_KEY, collapsed ? '1' : '0');
 }
 
 export async function refreshAccount(): Promise<void> {

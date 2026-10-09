@@ -22,7 +22,7 @@ import {
   useStore,
 } from './store';
 import { libraryApi } from './desktop';
-import { makeReferenceFromRecord, sendToFreeInpaint } from './freeInpaintOps';
+import { makeReferenceFromRecord, sendToFreeImg2Img } from './freeImageOps';
 import { clearEmotionResults, openImg2ImgDialog } from './generationOps';
 
 export function updateEmotionSet(id: string, recipe: (set: EmotionSet) => EmotionSet): void {
@@ -203,7 +203,7 @@ export function emotionMenu(
         })),
     },
     {
-      label: '대표 이미지 i2i로',
+      label: '대표 이미지 업스케일',
       hint: '없으면 최신',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
@@ -214,9 +214,9 @@ export function emotionMenu(
       onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
     },
     {
-      label: '대표 이미지 자유 인페인팅',
+      label: '대표 이미지 자유 생성 i2i',
       disabled: !records.length,
-      onSelect: () => withCover((cover) => void sendToFreeInpaint(projectId, cover)),
+      onSelect: () => withCover((cover) => void sendToFreeImg2Img(projectId, cover)),
     },
     {
       label: '결과 폴더 열기',

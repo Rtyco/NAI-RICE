@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { FreeInpaint, GenerationSummary } from '../../core/domain/types';
+import type { FreeGeneration, FreeImage, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip } from '../components/ChainChip';
+import { ChainChip, SizeChip, StrengthChip } from '../components/ChainChip';
 import { Icon } from '../components/Icon';
+import { ImageStage } from '../components/ImageStage';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { ExpandTextButton } from '../components/TextEditorDialog';
@@ -15,15 +16,15 @@ import { NumberField } from '../components/ui';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { fileApi, libraryApi } from '../desktop';
 import {
-  clearFreeInpaint,
-  loadFreeInpaintFromFile,
+  clearFreeImage,
+  loadFreeImageFromFile,
   makeReferenceFromRecord,
-  saveFreeInpaintMask,
-  sendToFreeInpaint,
-  setFreeInpaintMask,
+  saveFreeMask,
+  sendToFreeImg2Img,
+  setFreeMask,
   sourceDataUrl,
   sourceMedia,
-} from '../freeInpaintOps';
+} from '../freeImageOps';
 import { deleteResults, openImg2ImgDialog } from '../generationOps';
 import { decodeMask, loadHtmlImage } from '../lib/image';
 import {
@@ -42,12 +43,12 @@ const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
 const ignore = () => undefined;
 
 /**
- * 자유 인페인팅 이미지에 다시 그릴 곳을 칠한다. 이미지가 바뀌면 `key`로 새로 만들어, 처음 불러온 마스크와
+ * i2i 이미지에 인페인팅으로 다시 그릴 곳을 칠한다. 이미지가 바뀌면 `key`로 새로 만들어, 처음 불러온 마스크와
  * 실행 취소 기록이 이전 이미지와 섞이지 않게 한다.
  */
-function FreeInpaintCanvas({ inpaint }: { inpaint: FreeInpaint }) {
-  const { file, width, height } = inpaint;
-  const [initialMaskFile] = useState(inpaint.maskFile);
+function FreeMaskCanvas({ image }: { image: FreeImage }) {
+  const { file, width, height } = image;
+  const [initialMaskFile] = useState(image.maskFile);
   const [loaded, setLoaded] = useState<{ image: HTMLImageElement; mask?: Uint8Array }>();
   const [failed, setFailed] = useState(false);
   const empty = useMemo(() => new Uint8Array(width * height), [width, height]);
@@ -56,14 +57,14 @@ function FreeInpaintCanvas({ inpaint }: { inpaint: FreeInpaint }) {
     let cancelled = false;
     void (async () => {
       try {
-        const image = await loadHtmlImage(await sourceDataUrl(file));
+        const picture = await loadHtmlImage(await sourceDataUrl(file));
         // 마스크 파일을 읽지 못하면 빈 마스크에서 다시 칠한다.
         const mask = initialMaskFile
           ? await sourceDataUrl(initialMaskFile)
               .then((url) => decodeMask(url, width, height))
               .catch(() => undefined)
           : undefined;
-        if (!cancelled) setLoaded({ image, mask });
+        if (!cancelled) setLoaded({ image: picture, mask });
       } catch {
         if (!cancelled) setFailed(true);
       }
@@ -73,10 +74,10 @@ function FreeInpaintCanvas({ inpaint }: { inpaint: FreeInpaint }) {
     };
   }, [file, width, height, initialMaskFile]);
 
-  useEffect(() => () => void saveFreeInpaintMask(), []);
+  useEffect(() => () => void saveFreeMask(), []);
 
   const onMaskChange = useCallback(
-    (mask: Uint8Array) => setFreeInpaintMask(file, mask, width, height),
+    (mask: Uint8Array) => setFreeMask(file, mask, width, height),
     [file, width, height],
   );
 
@@ -96,7 +97,7 @@ function FreeInpaintCanvas({ inpaint }: { inpaint: FreeInpaint }) {
       height={height}
       backgroundMask={empty}
       referenceRect={NO_RECT}
-      outputRect={inpaint.outputRect}
+      outputRect={image.outputRect}
       expansionPx={0}
       initialMask={loaded.mask}
       detectionLabel=""
@@ -108,34 +109,52 @@ function FreeInpaintCanvas({ inpaint }: { inpaint: FreeInpaint }) {
   );
 }
 
-/** 자유 인페인팅에 쓰는 이미지. 결과의 「자유 인페인팅」으로 보내거나 파일에서 불러온다. */
-function InpaintSourcePanel({ inpaint }: { inpaint: FreeInpaint | undefined }) {
+/** i2i로 다시 그릴 이미지와, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅). */
+function FreeImagePanel({ free }: { free: FreeGeneration }) {
+  const { image } = free;
   return (
-    <section className="detail-card free-inpaint-source">
+    <section className="detail-card free-source">
       <div className="detail-card-head">
-        <b>자유 인페인팅 이미지</b>
-        {inpaint && (
-          <button className="link-button" onClick={clearFreeInpaint}>
+        <b>i2i 이미지</b>
+        {image && (
+          <button className="link-button" onClick={clearFreeImage}>
             비우기
           </button>
         )}
       </div>
-      <div className="free-inpaint-source-body">
-        {inpaint ? (
-          <img src={sourceMedia(inpaint.file)} alt="" />
+      <div className="free-source-body">
+        {image ? (
+          <img src={sourceMedia(image.file)} alt="" />
         ) : (
-          <span className="free-inpaint-source-empty" />
+          <span className="free-source-empty" />
         )}
         <span className="hint">
-          {inpaint
-            ? `${inpaint.name} · ${inpaint.outputRect.width}×${inpaint.outputRect.height}`
+          {image
+            ? `${image.name} · ${image.outputRect.width}×${image.outputRect.height}`
             : '아직 고르지 않았습니다'}
           <br />
-          결과의 「자유 인페인팅」으로 보내거나 파일에서 불러옵니다. 왼쪽 이미지에 칠한 곳만 다시
-          그립니다.
+          결과의 「자유 생성 i2i」로 보내거나 파일에서 불러옵니다.
         </span>
       </div>
-      <button className="with-icon" onClick={() => void loadFreeInpaintFromFile()}>
+      <div className="segmented free-source-mode" role="group" aria-label="다시 그릴 범위">
+        <button
+          className={free.inpaint ? '' : 'active'}
+          aria-pressed={!free.inpaint}
+          title="이미지 전체를 i2i 세기만큼 다시 그립니다"
+          onClick={() => updateFreeGeneration({ inpaint: false })}
+        >
+          <Icon name="refresh" size={14} /> 전체 다시 그리기
+        </button>
+        <button
+          className={free.inpaint ? 'active' : ''}
+          aria-pressed={free.inpaint}
+          title="왼쪽 이미지에 마스크로 칠한 곳만 다시 그립니다"
+          onClick={() => updateFreeGeneration({ inpaint: true })}
+        >
+          <Icon name="brush" size={14} /> 인페인팅
+        </button>
+      </div>
+      <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
         <Icon name="plus" size={14} /> 파일에서 불러오기
       </button>
     </section>
@@ -146,19 +165,20 @@ function InpaintSourcePanel({ inpaint }: { inpaint: FreeInpaint | undefined }) {
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, character, promptSet } = resolveFreeGeneration(library);
-  const inpaint = free.mode === 'inpaint' ? free.inpaint : undefined;
+  const image = free.mode === 'img2img' ? free.image : undefined;
   const allRecords = useStore((state) => state.generations[FREE_PROJECT_ID]) ?? NO_RECORDS;
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
+  const filmstripCollapsed = useStore((state) => state.filmstripCollapsed);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],
   );
   const [selectedId, setSelectedId] = useState<string>();
   const [showInfo, setShowInfo] = useState(false);
-  const [stage, setStage] = useState<'mask' | 'result'>('mask');
-  const showMask = Boolean(inpaint) && stage === 'mask';
+  const [stage, setStage] = useState<'source' | 'result'>('source');
+  const showSource = Boolean(image) && stage === 'source';
   const selected = records.find((record) => record.id === selectedId) ?? records[0];
   const pending = queue.jobs.filter(
     (job) => job.projectId === FREE_PROJECT_ID && isActive(job.status),
@@ -191,21 +211,38 @@ export function FreeView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [records, selected]);
 
+  const inpainting = free.mode === 'img2img' && free.inpaint;
   const generation = preset && normalizeGenerationSettings(preset.generation);
   const costJob = generation && {
-    kind: free.mode,
+    kind: inpainting ? ('inpaint' as const) : free.mode,
+    strength: generation.img2imgStrength,
     settings: generation,
-    canvasWidth: inpaint?.width ?? generation.width,
-    canvasHeight: inpaint?.height ?? generation.height,
+    canvasWidth: image?.width ?? generation.width,
+    canvasHeight: image?.height ?? generation.height,
   };
   const estimate = costJob ? estimateJobAnlas(costJob, token) * free.count : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
-  const inpaintModelMissing =
-    free.mode === 'inpaint' && preset && !supportsInpaint(preset.generation.model);
+  const inpaintModelMissing = inpainting && preset && !supportsInpaint(preset.generation.model);
   const canGenerate =
     Boolean(preset) &&
     Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
-    (free.mode === 'txt2img' || (Boolean(inpaint) && !inpaintModelMissing));
+    (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
+
+  const resultStage = (
+    <ImageStage
+      src={selected && projectMedia(FREE_PROJECT_ID, selected.file)}
+      filmstrip={records.length > 0}
+      empty={
+        <div className="stage-empty">
+          <p>아직 생성된 이미지가 없습니다.</p>
+          <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
+        </div>
+      }
+      overlay={
+        pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>
+      }
+    />
+  );
 
   return (
     <section className="project-view">
@@ -215,7 +252,7 @@ export function FreeView() {
           {(
             [
               ['txt2img', '일반 생성', '프롬프트로만 그립니다'],
-              ['inpaint', '자유 인페인팅', '이미지에서 칠한 곳만 다시 그립니다'],
+              ['img2img', 'i2i', '고른 이미지를 다시 그리거나, 칠한 곳만 다시 그립니다'],
             ] as const
           ).map(([mode, label, title]) => (
             <button
@@ -294,11 +331,12 @@ export function FreeView() {
           )}
         </ChainChip>
         {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
+        {preset && free.mode === 'img2img' && !free.inpaint && <StrengthChip preset={preset} />}
       </div>
       {inpaintModelMissing && (
         <div className="missing-banner">
-          ⚠ {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다. 자유 인페인팅을 하려면
-          생성 설정에서 인페인트를 지원하는 모델로 바꾸십시오.
+          ⚠ {modelLabel(preset.generation.model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서
+          모델을 바꾸거나 「전체 다시 그리기」로 바꾸십시오.
         </div>
       )}
 
@@ -306,44 +344,37 @@ export function FreeView() {
         <div className="emotion-detail">
           <div className="detail-body">
             <section className="detail-stage">
-              {inpaint && (
+              {image && (
                 <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
                   <button
-                    className={stage === 'mask' ? 'active' : ''}
-                    aria-pressed={stage === 'mask'}
-                    onClick={() => setStage('mask')}
+                    className={stage === 'source' ? 'active' : ''}
+                    aria-pressed={stage === 'source'}
+                    onClick={() => setStage('source')}
                   >
-                    🖌 마스크 칠하기
+                    <Icon name={free.inpaint ? 'brush' : 'reference'} size={14} />
+                    {free.inpaint ? '마스크 칠하기' : 'i2i 이미지'}
                   </button>
                   <button
                     className={stage === 'result' ? 'active' : ''}
                     aria-pressed={stage === 'result'}
                     onClick={() => setStage('result')}
                   >
-                    🖼 결과 보기
+                    <Icon name="images" size={14} /> 결과
                   </button>
                 </div>
               )}
-              {showMask && inpaint ? (
-                <div className="free-inpaint-stage">
-                  <FreeInpaintCanvas key={inpaint.file} inpaint={inpaint} />
-                </div>
+              {showSource && image ? (
+                free.inpaint ? (
+                  <div className="free-mask-stage">
+                    <FreeMaskCanvas key={image.file} image={image} />
+                  </div>
+                ) : (
+                  <ImageStage src={sourceMedia(image.file)} filmstrip={records.length > 0} />
+                )
               ) : (
-                <div className="stage-image">
-                  {selected ? (
-                    <img src={projectMedia(FREE_PROJECT_ID, selected.file)} alt="" />
-                  ) : (
-                    <div className="stage-empty">
-                      <p>아직 생성된 이미지가 없습니다.</p>
-                      <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
-                    </div>
-                  )}
-                  {pending > 0 && (
-                    <span className="card-status busy stage-status">생성 대기 {pending}</span>
-                  )}
-                </div>
+                resultStage
               )}
-              {records.length > 0 && (
+              {records.length > 0 && !filmstripCollapsed && (
                 <div
                   className="filmstrip selectable"
                   role="listbox"
@@ -375,7 +406,7 @@ export function FreeView() {
                   {picking.boxElement}
                 </div>
               )}
-              {records.length > 0 && (
+              {records.length > 0 && !filmstripCollapsed && (
                 <div className="filmstrip-bar">
                   {picking.selected.size > 0 ? (
                     <>
@@ -400,7 +431,7 @@ export function FreeView() {
             </section>
 
             <aside className="detail-side">
-              {free.mode === 'inpaint' && <InpaintSourcePanel inpaint={inpaint} />}
+              {free.mode === 'img2img' && <FreeImagePanel free={free} />}
               <label className="prompt-field">
                 <span>
                   프롬프트
@@ -466,14 +497,14 @@ export function FreeView() {
                       onClick={() => void generateFree({ seed: selected.seed, count: 1 })}
                       title="지금 프롬프트와 이 결과의 seed로 다시 생성"
                     >
-                      🌱 이 seed로 다시
+                      <Icon name="refresh" size={14} /> 이 seed로 다시
                     </button>
                     <button
                       disabled={selected.emotionPrompt === free.prompt}
                       onClick={() => updateFreeGeneration({ prompt: selected.emotionPrompt })}
                       title="이 결과를 만들 때 입력한 프롬프트로 되돌립니다"
                     >
-                      ↩ 프롬프트 복원
+                      <Icon name="undo" size={14} /> 프롬프트 복원
                     </button>
                     <button
                       onClick={() =>
@@ -488,7 +519,7 @@ export function FreeView() {
                         })
                       }
                     >
-                      💾 다른 이름으로 저장
+                      <Icon name="save" size={14} /> 다른 이름으로 저장
                     </button>
                     <button
                       onClick={() =>
@@ -497,35 +528,35 @@ export function FreeView() {
                         )
                       }
                     >
-                      📂 폴더에서 보기
+                      <Icon name="folder" size={14} /> 폴더에서 보기
                     </button>
                     <button
                       onClick={() => openImg2ImgDialog(FREE_PROJECT_ID, [selected])}
-                      title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
+                      title="이 결과를 더 큰 크기로 i2i해 다시 그립니다(업스케일 우회)"
                     >
-                      🔁 i2i로 보내기
+                      <Icon name="upscale" size={14} /> 업스케일
                     </button>
                     <button
                       onClick={() =>
-                        void sendToFreeInpaint(FREE_PROJECT_ID, selected).then(() =>
-                          setStage('mask'),
+                        void sendToFreeImg2Img(FREE_PROJECT_ID, selected).then(() =>
+                          setStage('source'),
                         )
                       }
-                      title="이 결과의 일부를 마스크로 칠해 다시 그립니다"
+                      title="이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다"
                     >
-                      🖌 자유 인페인팅
+                      <Icon name="sparkle" size={14} /> 이 결과로 i2i
                     </button>
                     <button
                       onClick={() => void makeReferenceFromRecord(FREE_PROJECT_ID, selected)}
                       title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
                     >
-                      🎨 인페인트 만들기
+                      <Icon name="reference" size={14} /> 인페인트 만들기
                     </button>
                     <button
                       className="danger-quiet"
                       onClick={() => void deleteResults(FREE_PROJECT_ID, [selected])}
                     >
-                      🗑 결과 삭제
+                      <Icon name="trash" size={14} /> 결과 삭제
                     </button>
                   </div>
                 </section>

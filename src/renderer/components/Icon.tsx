@@ -132,6 +132,61 @@ const ICONS = {
       <path d="M18 14l.8 2.2 2.2.8-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z" />
     </>
   ),
+  'check-square': (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <path d="m8 12 3 3 5-6" />
+    </>
+  ),
+  square: <rect x="3.5" y="3.5" width="17" height="17" rx="3" />,
+  'select-all': (
+    <>
+      <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" />
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1" />
+    </>
+  ),
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  eraser: (
+    <path d="M8 20 3.5 15.5a1.5 1.5 0 0 1 0-2.1L13.4 3.5a1.5 1.5 0 0 1 2.1 0l5 5a1.5 1.5 0 0 1 0 2.1L11 20ZM8 20h12M9 8l7 7" />
+  ),
+  brush: (
+    <>
+      <path d="M20.5 3.5 11 13" />
+      <path d="M11 13c-2.3-1.2-5-.1-5.5 2.6-.3 1.6-1 2.6-2.5 3.4 3.4 1 7.2.4 8.5-2.2.8-1.6.4-3.1-.5-3.8Z" />
+    </>
+  ),
+  upscale: (
+    <>
+      <rect x="3" y="10" width="11" height="11" rx="2" />
+      <path d="M14 3h7v7M21 3l-8 8" />
+    </>
+  ),
+  save: (
+    <>
+      <path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M7 3v5h8M7 21v-7h10v7" />
+    </>
+  ),
+  undo: <path d="M9 14 4 9l5-5M4 9h11a5.5 5.5 0 0 1 0 11h-4" />,
+  star: <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />,
+  'zoom-in': (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.8-4.8M10.5 7.5v6M7.5 10.5h6" />
+    </>
+  ),
+  'zoom-out': (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.8-4.8M7.5 10.5h6" />
+    </>
+  ),
+  filmstrip: (
+    <>
+      <rect x="3" y="3.5" width="18" height="11" rx="2" />
+      <path d="M3 19.5h4M10 19.5h4M17 19.5h4" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICONS;

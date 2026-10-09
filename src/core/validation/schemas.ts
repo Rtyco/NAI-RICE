@@ -197,6 +197,23 @@ export const appSettingsSchema = z.object({
 /** `sources/` 안의 파일 이름. 해시로 지어 경로 문자를 넣을 수 없다. */
 const sourceFileSchema = z.string().regex(/^[0-9a-f]+\.png$/);
 
+/**
+ * 잠시 있던 「자유 인페인팅」 모드는 이미지를 `inpaint`에 두었다(mode 'inpaint'). i2i의 인페인팅으로 옮겨
+ * 읽는다.
+ */
+function readFreeInpaintMode(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const free = value as Record<string, unknown>;
+  if (free.mode !== 'inpaint' && (typeof free.inpaint !== 'object' || free.inpaint === null))
+    return free;
+  return {
+    ...free,
+    mode: free.mode === 'inpaint' ? 'img2img' : free.mode,
+    image: typeof free.inpaint === 'object' && free.inpaint ? free.inpaint : free.image,
+    inpaint: true,
+  };
+}
+
 export const librarySchema = z.object({
   schemaVersion: z.literal(2),
   settings: appSettingsSchema,
@@ -207,26 +224,29 @@ export const librarySchema = z.object({
   projects: z.array(projectSchema),
   pieceSets: z.array(pieceSetSchema).default([]),
   freeGeneration: z
-    .object({
-      presetId: z.string(),
-      characterId: z.string(),
-      promptSetId: z.string(),
-      prompt: z.string(),
-      count: z.number().int().min(1).max(20),
-      // 없어진 자유 생성 i2i는 일반 생성으로 읽는다.
-      mode: z.enum(['txt2img', 'inpaint']).catch('txt2img'),
-      inpaint: z
-        .object({
-          name: z.string(),
-          file: sourceFileSchema,
-          width: z.number().int().positive(),
-          height: z.number().int().positive(),
-          outputRect: rectSchema,
-          maskFile: sourceFileSchema.optional(),
-          fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
-        })
-        .optional(),
-    })
+    .preprocess(
+      readFreeInpaintMode,
+      z.object({
+        presetId: z.string(),
+        characterId: z.string(),
+        promptSetId: z.string(),
+        prompt: z.string(),
+        count: z.number().int().min(1).max(20),
+        mode: z.enum(['txt2img', 'img2img']).catch('txt2img'),
+        image: z
+          .object({
+            name: z.string(),
+            file: sourceFileSchema,
+            width: z.number().int().positive(),
+            height: z.number().int().positive(),
+            outputRect: rectSchema,
+            maskFile: sourceFileSchema.optional(),
+            fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
+          })
+          .optional(),
+        inpaint: z.boolean().default(false),
+      }),
+    )
     .default({
       presetId: '',
       characterId: '',
@@ -234,6 +254,7 @@ export const librarySchema = z.object({
       prompt: '',
       count: 1,
       mode: 'txt2img',
+      inpaint: false,
     }),
   lastProjectId: z.string().optional(),
 });
@@ -341,6 +362,7 @@ export const generationJobSnapshotSchema = z.discriminatedUnion('kind', [
     ...sourceImageSchema,
     strength: z.number().min(0).max(1),
     noise: z.number().min(0).max(1),
+    outputRect: rectSchema.optional(),
   }),
   jobSnapshotCommonSchema.extend({
     kind: z.literal('augment'),

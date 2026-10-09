@@ -10,11 +10,12 @@ import type { ResolvedProject } from '../../core/model/defaults';
 import { modelLabel } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { Icon } from '../components/Icon';
+import { ImageStage } from '../components/ImageStage';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { deleteResults, openImg2ImgDialog } from '../generationOps';
-import { makeReferenceFromRecord, sendToFreeInpaint } from '../freeInpaintOps';
+import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
 import {
   emotionRecords,
   openEmotion,
@@ -109,6 +110,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const library = useLibrary();
   const allRecords = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
+  const filmstripCollapsed = useStore((state) => state.filmstripCollapsed);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [selectedId, setSelectedId] = useState<string>();
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
@@ -185,18 +187,19 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
 
       <div className="detail-body">
         <section className="detail-stage">
-          <div className="stage-image">
-            {selected ? (
-              <img src={projectMedia(project.id, selected.file)} alt={emotion.name} />
-            ) : (
+          <ImageStage
+            src={selected && projectMedia(project.id, selected.file)}
+            alt={emotion.name}
+            filmstrip={records.length > 0}
+            empty={
               <div className="stage-empty">
                 <p>아직 생성된 이미지가 없습니다.</p>
                 <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
               </div>
-            )}
-            {pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>}
-          </div>
-          {records.length > 0 && (
+            }
+            overlay={pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>}
+          />
+          {records.length > 0 && !filmstripCollapsed && (
             <div
               className="filmstrip selectable"
               role="listbox"
@@ -223,7 +226,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
               {picking.boxElement}
             </div>
           )}
-          {records.length > 0 && (
+          {records.length > 0 && !filmstripCollapsed && (
             <div className="filmstrip-bar">
               {picking.selected.size > 0 ? (
                 <>
@@ -324,7 +327,8 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                   className={favoriteId === selected.id ? 'active' : ''}
                   onClick={() => setFavorite(favoriteId === selected.id ? undefined : selected.id)}
                 >
-                  {favoriteId === selected.id ? '★ 대표 해제' : '☆ 대표로 지정'}
+                  <Icon name="star" size={14} className={favoriteId === selected.id ? 'filled' : ''} />
+                  {favoriteId === selected.id ? '대표 해제' : '대표로 지정'}
                 </button>
                 <button
                   onClick={() =>
@@ -339,48 +343,48 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                     })
                   }
                 >
-                  💾 다른 이름으로 저장
+                  <Icon name="save" size={14} /> 다른 이름으로 저장
                 </button>
                 <button
                   onClick={() => void generateEmotions(project.id, [emotion.id], { seed: selected.seed, variants: 1 })}
                   title="현재 프롬프트와 이 결과의 seed로 다시 생성"
                 >
-                  🌱 이 seed로 다시
+                  <Icon name="refresh" size={14} /> 이 seed로 다시
                 </button>
                 <button
                   disabled={selected.emotionPrompt === emotion.prompt}
                   onClick={() => patchEmotion(set.id, emotion.id, { prompt: selected.emotionPrompt })}
                   title="이 결과를 만들 때의 감정 프롬프트로 되돌립니다"
                 >
-                  ↩ 프롬프트 복원
+                  <Icon name="undo" size={14} /> 프롬프트 복원
                 </button>
                 <button
                   onClick={() =>
                     void run('폴더를 여는 중', () => libraryApi().showGeneration(project.id, selected.id))
                   }
                 >
-                  📂 폴더에서 보기
+                  <Icon name="folder" size={14} /> 폴더에서 보기
                 </button>
                 <button
                   onClick={() => openImg2ImgDialog(project.id, [selected])}
-                  title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
+                  title="이 결과를 더 큰 크기로 i2i해 다시 그립니다(업스케일 우회)"
                 >
-                  🔁 i2i로 보내기
+                  <Icon name="upscale" size={14} /> 업스케일
                 </button>
                 <button
                   onClick={() => void makeReferenceFromRecord(project.id, selected)}
                   title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
                 >
-                  🎨 인페인트 만들기
+                  <Icon name="reference" size={14} /> 인페인트 만들기
                 </button>
                 <button
-                  onClick={() => void sendToFreeInpaint(project.id, selected)}
-                  title="자유 생성에서 이 결과의 일부를 마스크로 칠해 다시 그립니다"
+                  onClick={() => void sendToFreeImg2Img(project.id, selected)}
+                  title="자유 생성의 i2i로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다"
                 >
-                  🖌 자유 인페인팅
+                  <Icon name="sparkle" size={14} /> 자유 생성 i2i
                 </button>
                 <button className="danger-quiet" onClick={() => void deleteResults(project.id, [selected])}>
-                  🗑 결과 삭제
+                  <Icon name="trash" size={14} /> 결과 삭제
                 </button>
               </div>
             </section>
@@ -393,10 +397,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                 if (copy) openEmotion(copy);
               }}
             >
-              ⧉ 감정 복제
+              <Icon name="copy" size={14} /> 감정 복제
             </button>
             <button className="danger-quiet" onClick={() => void deleteEmotion(set.id, emotion, project.id)}>
-              🗑 감정 삭제
+              <Icon name="trash" size={14} /> 감정 삭제
             </button>
           </div>
           <p className="hint">←/→ 결과 이동 · PageUp/PageDown 감정 이동 · Esc 갤러리</p>

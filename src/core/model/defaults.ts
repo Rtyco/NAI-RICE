@@ -210,6 +210,7 @@ export function createDefaultLibrary(): Library {
       prompt: '',
       count: 1,
       mode: 'txt2img',
+      inpaint: false,
     },
   };
 }

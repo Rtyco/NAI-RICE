@@ -242,9 +242,13 @@ export type FreeJobBuildInput = {
   character?: { name: string; promptSet: CharacterPromptSet };
   prompt: string;
   count: number;
-  /** 주면 자유 인페인팅으로 만든다. 크기는 생성 설정의 해상도 대신 이미지 크기다. */
-  inpaint?: {
-    input: InpaintInput;
+  /**
+   * 주면 이 이미지를 i2i로 다시 그린다. 마스크가 있으면 칠한 곳만 다시 그리는 인페인팅이다. 크기는 생성
+   * 설정의 해상도 대신 이미지 크기이고, 세기는 생성 설정 값을 쓴다.
+   */
+  image?: {
+    image: ImageInput;
+    mask?: Pick<InpaintInput, 'maskPath' | 'maskSha256'>;
     width: number;
     height: number;
     outputRect: Rect;
@@ -262,7 +266,7 @@ export type FreeJobBuildInput = {
  */
 export function buildFreeJobs(
   input: FreeJobBuildInput,
-): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot> {
+): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
   const settings = normalizeGenerationSettings(input.preset.generation);
   const preset: Preset = {
     ...input.preset,
@@ -271,7 +275,7 @@ export function buildFreeJobs(
   const promptSet = input.character?.promptSet ?? createPromptSet('', {});
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
-  const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot> = [];
+  const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> = [];
   for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
     const seed =
       input.seedOverride !== undefined
@@ -313,26 +317,39 @@ export function buildFreeJobs(
       },
       seed,
       variantIndex,
-      canvasWidth: input.inpaint?.width ?? settings.width,
-      canvasHeight: input.inpaint?.height ?? settings.height,
+      canvasWidth: input.image?.width ?? settings.width,
+      canvasHeight: input.image?.height ?? settings.height,
       // 감정이 없으므로 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다.
       outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
       settings: { ...settings },
       warnings: [],
     };
-    const { inpaint } = input;
+    const { image } = input;
+    if (!image) {
+      jobs.push({ ...common, kind: 'txt2img' });
+      continue;
+    }
+    const fromImage = {
+      ...common,
+      ...image.image,
+      ...(image.sourceRecordId ? { sourceRecordId: image.sourceRecordId } : {}),
+      outputRect: { ...image.outputRect },
+    };
     jobs.push(
-      inpaint
+      image.mask
         ? {
-            ...common,
+            ...fromImage,
             kind: 'inpaint',
-            ...inpaint.input,
-            ...(inpaint.sourceRecordId ? { sourceRecordId: inpaint.sourceRecordId } : {}),
-            outputRect: { ...inpaint.outputRect },
+            ...image.mask,
             // 캔버스가 원래 이미지와 거의 같아 따로 남길 필요가 없다.
             keepDiagnosticCanvas: false,
           }
-        : { ...common, kind: 'txt2img' },
+        : {
+            ...fromImage,
+            kind: 'img2img',
+            strength: settings.img2imgStrength,
+            noise: settings.img2imgNoise,
+          },
     );
   }
   return jobs;

@@ -39,14 +39,19 @@ function localDate(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/** 인페인트는 캔버스에서 결과 영역만 잘라 낸다. 나머지 방식은 받은 이미지가 그대로 결과다. */
+/**
+ * 인페인트는 캔버스에서 결과 영역만 잘라 낸다. 자유 생성 i2i도 64 배수로 넣은 여백을 잘라 낸다. 나머지는
+ * 받은 이미지가 그대로 결과다.
+ */
 async function resultImage(
   job: QueuedGenerationJob,
   generated: Buffer,
   metadata: Record<string, string>,
 ): Promise<{ png: Buffer; width: number; height: number }> {
-  if (job.kind !== 'inpaint') return withMetadata(generated, metadata);
-  const { png, crop } = await cropWithMetadata(generated, job.outputRect, metadata);
+  const rect =
+    job.kind === 'inpaint' ? job.outputRect : job.kind === 'img2img' ? job.outputRect : undefined;
+  if (!rect) return withMetadata(generated, metadata);
+  const { png, crop } = await cropWithMetadata(generated, rect, metadata);
   return { png, width: crop.width, height: crop.height };
 }
 

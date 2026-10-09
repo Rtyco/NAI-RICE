@@ -514,13 +514,83 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  overflow: hidden;
 }
-.stage-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+.zoom-view {
+  position: absolute;
+  inset: 0;
+}
+.zoom-viewport {
+  width: 100%;
+  height: 100%;
+  /* 맞춤일 때 소수점 반올림으로 1px 넘쳐 스크롤 막대가 생기지 않게 한다. */
+  overflow: hidden;
+}
+.zoom-viewport.zoomed {
+  overflow: auto;
+  cursor: grab;
+}
+.zoom-viewport.zoomed:active {
+  cursor: grabbing;
+}
+.zoom-content {
+  box-sizing: border-box;
+  width: max-content;
+  height: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zoom-content img {
+  display: block;
+  max-width: none;
   box-shadow: 0 10px 40px #000c;
+  user-select: none;
+}
+.zoom-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-2) 88%, transparent);
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.stage-image:hover .zoom-toolbar,
+.lightbox .zoom-toolbar,
+.zoom-toolbar:focus-within {
+  opacity: 1;
+}
+.zoom-toolbar .icon-button.active {
+  border-color: var(--line-strong);
+  background: var(--bg-5);
+}
+.zoom-level {
+  min-width: 46px;
+  height: 28px;
+  padding: 0 6px;
+  border-color: transparent;
+  background: transparent;
+  font:
+    12px Consolas,
+    monospace;
+}
+.zoom-level:hover {
+  border-color: var(--line);
+}
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #000e;
 }
 .stage-empty {
   text-align: center;
@@ -534,7 +604,12 @@ textarea {
   align-self: center;
   margin-top: 10px;
 }
-.free-inpaint-stage {
+.stage-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.free-mask-stage {
   flex: 1;
   min-height: 0;
   padding: 10px 14px 0;
@@ -616,6 +691,17 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
+}
+.button-grid button,
+.detail-footer button,
+.toolbar-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.icon.filled {
+  fill: currentColor;
 }
 .record-info {
   display: grid;
@@ -1162,17 +1248,26 @@ textarea.syntax-input::selection {
   min-height: 0;
   flex: 1;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  /* 캔버스가 화면보다 크면 가운데 정렬이 왼쪽·위를 스크롤 밖으로 밀어내므로 safe를 쓴다. */
+  align-items: safe center;
+  justify-content: safe center;
   overflow: auto;
   padding: 16px;
   border: 1px solid var(--bg-4);
   background: var(--bg-0);
 }
+.canvas-scroll.pan-ready canvas {
+  cursor: grab;
+}
+.canvas-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
 .canvas-scroll canvas {
   display: block;
+  flex: none;
   max-width: none;
-  height: auto;
   background: white;
   box-shadow: 0 10px 40px #000d;
   touch-action: none;
@@ -1851,19 +1946,26 @@ textarea.syntax-input::selection {
   padding: 0 8px;
   font-size: 17px;
 }
-.free-inpaint-source {
+.free-source-mode button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.free-source {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
 }
-.free-inpaint-source-body {
+.free-source-body {
   display: flex;
   gap: 10px;
   align-items: flex-start;
 }
-.free-inpaint-source-body img,
-.free-inpaint-source-empty {
+.free-source-body img,
+.free-source-empty {
   width: 72px;
   height: 96px;
   flex-shrink: 0;
