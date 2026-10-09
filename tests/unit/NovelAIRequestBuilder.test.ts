@@ -21,6 +21,8 @@ const settings: GenerationSettings = {
   ucPreset: 'none',
   width: 832,
   height: 1216,
+  img2imgStrength: 0.4,
+  img2imgNoise: 0,
 };
 
 describe('NovelAIRequestBuilder', () => {

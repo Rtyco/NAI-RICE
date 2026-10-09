@@ -1448,6 +1448,30 @@ textarea.syntax-input::selection {
 .dialog-message p {
   line-height: 1.55;
 }
+.i2i-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.i2i-sources figure {
+  margin: 0;
+}
+.i2i-sources img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+.i2i-sources figcaption {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .export-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -1795,6 +1819,25 @@ textarea.syntax-input::selection {
   margin: 0;
   padding: 0 8px;
   font-size: 17px;
+}
+.i2i-source {
+  margin-bottom: 12px;
+}
+.i2i-source-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.i2i-source-body img,
+.i2i-source-empty {
+  width: 72px;
+  height: 96px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: top;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
 }
 .free-card {
   padding: 6px 0;

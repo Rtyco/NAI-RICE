@@ -227,6 +227,7 @@ describe('자유 생성 작업', () => {
       promptSetId: '',
       prompt: '',
       count: 1,
+      mode: 'txt2img',
     });
   });
 });

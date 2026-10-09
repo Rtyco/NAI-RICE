@@ -29,6 +29,8 @@ export const generationSettingsSchema = z.object({
   emotionPosition: z.enum(['character-end', 'common-end']).default('character-end'),
   width: z.number().int().min(256).max(2048).multipleOf(64).default(832),
   height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
+  img2imgStrength: z.number().min(0.01).max(0.99).default(0.4),
+  img2imgNoise: z.number().min(0).max(0.99).default(0),
 });
 
 export const presetSchema = z.object({
@@ -151,7 +153,7 @@ export const referenceSchema = z.object({
 export const projectSchema = z.object({
   id: z.string().regex(FOLDER_ID),
   name: z.string(),
-  mode: z.enum(['reference', 'txt2img']).default('reference'),
+  mode: z.enum(['reference', 'txt2img', 'img2img']).default('reference'),
   presetId: z.string(),
   characterId: z.string(),
   promptSetId: z.string(),
@@ -206,8 +208,28 @@ export const librarySchema = z.object({
       promptSetId: z.string(),
       prompt: z.string(),
       count: z.number().int().min(1).max(20),
+      mode: z.enum(['txt2img', 'img2img']).default('txt2img'),
+      source: z
+        .discriminatedUnion('kind', [
+          z.object({ kind: z.literal('record'), generationId: z.string().min(1) }),
+          z.object({
+            kind: z.literal('input'),
+            imagePath: z.string().min(1),
+            name: z.string(),
+            width: z.number().int().positive(),
+            height: z.number().int().positive(),
+          }),
+        ])
+        .optional(),
     })
-    .default({ presetId: '', characterId: '', promptSetId: '', prompt: '', count: 1 }),
+    .default({
+      presetId: '',
+      characterId: '',
+      promptSetId: '',
+      prompt: '',
+      count: 1,
+      mode: 'txt2img',
+    }),
   lastProjectId: z.string().optional(),
 });
 

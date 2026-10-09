@@ -67,7 +67,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const ucPresets = ucPresetsFor(g.model);
   const tagText = naiTagText(g.model, g);
   const autoNsfw = addsAutoNsfw(g.model, g.ucPreset);
-  const { width, height } = normalizeGenerationSettings(g);
+  const { width, height, img2imgStrength, img2imgNoise } = normalizeGenerationSettings(g);
   const sizePreset = RESOLUTION_PRESETS.find(
     (item) => item.width === width && item.height === height,
   );
@@ -178,7 +178,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         )}
       </Card>
 
-      <Card title="일반 생성 해상도" subtitle="레퍼런스 생성은 인페인트의 캔버스 크기를 씁니다">
+      <Card title="일반 생성 · i2i" subtitle="레퍼런스 생성은 인페인트의 캔버스 크기를 씁니다">
         <SelectField
           label="해상도"
           value={customSize || !sizePreset ? 'custom' : sizePreset.id}
@@ -224,6 +224,27 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             {width}×{height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
           </p>
         )}
+        <div className="two-column-fields">
+          <NumberField
+            label="i2i 세기 (Strength)"
+            value={img2imgStrength}
+            min={0.01}
+            max={0.99}
+            step={0.05}
+            onChange={(img2imgStrength) => setting({ img2imgStrength })}
+          />
+          <NumberField
+            label="i2i 노이즈 (Noise)"
+            value={img2imgNoise}
+            min={0}
+            max={0.99}
+            step={0.05}
+            onChange={(img2imgNoise) => setting({ img2imgNoise })}
+          />
+        </div>
+        <p className="hint">
+          세기가 낮을수록 원본을 많이 남깁니다. 0.3~0.5에서 얼굴과 구도가 유지됩니다.
+        </p>
       </Card>
 
       <Card title="품질 태그 · UC 프리셋" subtitle="">

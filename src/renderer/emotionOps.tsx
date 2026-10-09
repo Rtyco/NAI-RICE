@@ -11,6 +11,7 @@ import { confirmDialog, promptDialog } from './components/Dialogs';
 import type { MenuItem } from './components/ContextMenu';
 import { generateEmotions } from './actions';
 import {
+  coverRecord,
   deleteGenerations,
   emotionRecords,
   openEmotion,
@@ -21,7 +22,7 @@ import {
   useStore,
 } from './store';
 import { libraryApi } from './desktop';
-import { clearEmotionResults } from './generationOps';
+import { clearEmotionResults, openImg2ImgDialog } from './generationOps';
 
 export function updateEmotionSet(id: string, recipe: (set: EmotionSet) => EmotionSet): void {
   updateLibrary((library) => patchItem(library, 'emotionSets', id, recipe));
@@ -193,6 +194,17 @@ export function emotionMenu(
             ? project.excludedEmotionIds.filter((id) => id !== emotion.id)
             : [...project.excludedEmotionIds, emotion.id],
         })),
+    },
+    {
+      label: '대표 이미지 i2i로',
+      hint: '없으면 최신',
+      disabled: !records.length,
+      onSelect: () => {
+        const favorite = useStore.getState().library?.projects.find((item) => item.id === projectId)
+          ?.favorites[emotion.id];
+        const cover = coverRecord(records, favorite);
+        if (cover) openImg2ImgDialog(projectId, [cover]);
+      },
     },
     {
       label: '결과 폴더 열기',

@@ -1,6 +1,7 @@
 import { Gunzip } from 'fflate';
 import type { GenerationSettings, QualityLevel, UcPresetId } from '../domain/types';
 import { isPng, readPngText } from './PngChunks';
+import { removeReferenceInset } from '../prompts/PromptComposer';
 
 /**
  * 이 앱이 결과 PNG에 함께 기록하는 보조 메타데이터 키.
@@ -141,14 +142,6 @@ export function readStealthMetadata(
   }
 }
 
-function stripReferenceInset(prompt: string): string {
-  return prompt
-    .split(',')
-    .map((piece) => piece.trim())
-    .filter((piece) => piece && piece.toLowerCase() !== 'reference inset')
-    .join(', ');
-}
-
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
@@ -194,14 +187,14 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     const base =
       asString(v4?.base_caption) ?? asString(comment.prompt) ?? asString(entries.Description);
     const negative = asString(v4Negative?.base_caption) ?? asString(comment.uc);
-    if (base !== undefined) result.commonPositive = stripReferenceInset(base);
+    if (base !== undefined) result.commonPositive = removeReferenceInset(base);
     if (negative !== undefined) result.commonNegative = negative;
     const positives: unknown[] = Array.isArray(v4?.char_captions) ? v4.char_captions : [];
     const negatives: unknown[] = Array.isArray(v4Negative?.char_captions)
       ? v4Negative.char_captions
       : [];
     result.characters = positives.map((item, index) => ({
-      positive: stripReferenceInset(
+      positive: removeReferenceInset(
         asString((item as Record<string, unknown>)?.char_caption) ?? '',
       ),
       negative: asString((negatives[index] as Record<string, unknown>)?.char_caption) ?? '',

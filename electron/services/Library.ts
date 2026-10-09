@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import sharp from 'sharp';
 import type {
   GenerationRecord,
   Library as LibraryData,
@@ -11,13 +12,17 @@ import { sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
 import { FOLDER_ID, generationIndexSchema, librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
+  ImageInputRequest,
+  ImageInputSource,
   LibrarySnapshot,
+  PreparedImage,
   PreparedInputs,
   ProjectInspection,
   ProjectUsage,
   StorageUsage,
   ReferenceImages,
   ReferenceImageSave,
+  StoredImage,
 } from '../../src/shared/ipc';
 import {
   atomicWrite,
@@ -35,7 +40,7 @@ import {
   toDataUrl,
   toPosix,
 } from './fsUtils';
-import { maskHasGeneratePixels } from './Images';
+import { fitImage, imageSize, maskHasGeneratePixels } from './Images';
 import { migrateV1Workspace } from './LegacyMigration';
 import type { ExportSource, GenerationStore, WorkspaceFolders } from './ports';
 
@@ -243,6 +248,40 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       if (!(await exists(target))) await atomicWrite(target, buffer);
     }
     return { imagePath, maskPath, imageSha256, maskSha256 };
+  }
+
+  private async readImageSource(source: ImageInputSource): Promise<Buffer> {
+    if (source.kind === 'record') {
+      const record = await this.findGeneration(source.projectId, source.generationId);
+      return fs.readFile(await this.resolveProjectReal(source.projectId, record.file));
+    }
+    if (source.kind === 'reference')
+      return fs.readFile(await this.resolveReferenceReal(source.referenceId, source.file));
+    return fs.readFile(await this.resolveProjectReal(source.projectId, source.imagePath));
+  }
+
+  /** 해시 이름으로 저장하므로 같은 입력은 한 번만 쓰고, 대기 중에 원본이 바뀌어도 작업 입력은 그대로다. */
+  private async writeInput(projectId: string, png: Buffer): Promise<PreparedImage> {
+    const imageSha256 = sha256(png);
+    const imagePath = `inputs/${imageSha256}.png`;
+    const target = await this.resolveProjectReal(projectId, imagePath);
+    if (!(await exists(target))) await atomicWrite(target, png);
+    return { imagePath, imageSha256 };
+  }
+
+  async prepareImageInput(request: ImageInputRequest): Promise<PreparedImage> {
+    const side = (value: number) => Number.isInteger(value) && value >= 64 && value <= 4096;
+    if (!side(request.width) || !side(request.height))
+      throw new Error('i2i 크기가 올바르지 않습니다.');
+    const source = await this.readImageSource(request.source);
+    const png = await fitImage(source, request.width, request.height, request.fit);
+    return this.writeInput(request.projectId, png);
+  }
+
+  async storeImageInput(projectId: string, dataUrl: string): Promise<StoredImage> {
+    const png = await sharp(decodeDataUrl(dataUrl).buffer).rotate().png().toBuffer();
+    const stored = await this.writeInput(projectId, png);
+    return { ...stored, ...(await imageSize(png)) };
   }
 
   private indexPath(projectId: string): string {

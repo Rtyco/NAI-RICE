@@ -1,4 +1,13 @@
-import { buildFreeJobs, buildJobs, buildTxt2ImgJobs } from '../core/jobs/JobBuilder';
+import {
+  buildFreeJobs,
+  buildImg2ImgJobs,
+  buildJobs,
+  buildResultImg2ImgJobs,
+  buildTxt2ImgJobs,
+  FREE_FILENAME_TEMPLATE,
+} from '../core/jobs/JobBuilder';
+import type { GenerationJobSnapshot, GenerationSummary } from '../core/domain/types';
+import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../core/model/defaults';
 import { resolveProject } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
@@ -37,14 +46,29 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
       variantsOverride: options.variants,
     };
     const reference = resolved.reference!;
-    const jobs =
-      project.mode === 'txt2img'
-        ? buildTxt2ImgJobs(common)
-        : buildJobs({
-            ...common,
-            reference,
-            input: await libraryApi().prepareInputs(project.id, reference),
-          });
+    let jobs: GenerationJobSnapshot[];
+    if (project.mode === 'txt2img') jobs = buildTxt2ImgJobs(common);
+    else if (project.mode === 'img2img') {
+      const { width, height } = normalizeGenerationSettings(common.preset.generation);
+      const image = await libraryApi().prepareImageInput({
+        projectId: project.id,
+        source: {
+          kind: 'reference',
+          referenceId: reference.id,
+          file: reference.image!.originalFile,
+        },
+        width,
+        height,
+        fit: 'crop',
+      });
+      jobs = buildImg2ImgJobs({ ...common, reference, image });
+    } else {
+      jobs = buildJobs({
+        ...common,
+        reference,
+        input: await libraryApi().prepareInputs(project.id, reference),
+      });
+    }
     if (!jobs.length) throw new Error('생성할 감정이 없습니다. 프롬프트가 있는 감정을 선택하십시오.');
 
     const result = await queueApi().enqueueGeneration({ jobs });
@@ -54,7 +78,9 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
 }
 
 /** 자유 생성 화면의 지금 값으로 생성한다. `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
-export function generateFree(options: { prompt?: string; seed?: number; count?: number } = {}): Promise<void> {
+export function generateFree(
+  options: { prompt?: string; seed?: number; count?: number } = {},
+): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
     await flushSaves();
     const state = useStore.getState();
@@ -66,6 +92,25 @@ export function generateFree(options: { prompt?: string; seed?: number; count?: 
     const prompt = options.prompt ?? free.prompt;
     if (!prompt.trim() && !promptSet?.positive.trim()) throw new Error('프롬프트를 입력하십시오.');
 
+    let img2img;
+    if (free.mode === 'img2img') {
+      if (!free.source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+      const { width, height } = normalizeGenerationSettings(preset.generation);
+      const image = await libraryApi().prepareImageInput({
+        projectId: FREE_PROJECT_ID,
+        source:
+          free.source.kind === 'record'
+            ? { kind: 'record', projectId: FREE_PROJECT_ID, generationId: free.source.generationId }
+            : { kind: 'input', projectId: FREE_PROJECT_ID, imagePath: free.source.imagePath },
+        width,
+        height,
+        fit: 'crop',
+      });
+      img2img = {
+        image,
+        sourceRecordId: free.source.kind === 'record' ? free.source.generationId : undefined,
+      };
+    }
     const jobs = buildFreeJobs({
       preset,
       character: character && promptSet ? { name: character.name, promptSet } : undefined,
@@ -73,10 +118,71 @@ export function generateFree(options: { prompt?: string; seed?: number; count?: 
       count: options.count ?? free.count,
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
+      img2img,
     });
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}장을 생성 큐에 등록했습니다.`);
+    toast(
+      result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}장을 생성 큐에 등록했습니다.`,
+    );
+  }).then(() => undefined);
+}
+
+export type ResultImg2ImgOptions = {
+  width: number;
+  height: number;
+  fit: 'crop' | 'pad';
+  strength: number;
+  noise: number;
+  count: number;
+  seedMode: 'source' | 'random';
+};
+
+/** 결과들을 i2i로 다시 그린다. 결과는 원래 감정(자유 생성이면 자유 생성)에 새 결과로 쌓인다. */
+export function sendResultsToImg2Img(
+  projectId: string,
+  records: GenerationSummary[],
+  options: ResultImg2ImgOptions,
+): Promise<void> {
+  return run('i2i 작업을 준비하는 중', async () => {
+    await flushSaves();
+    const state = useStore.getState();
+    const library = state.library;
+    if (!library) throw new Error('라이브러리를 읽지 못했습니다.');
+    if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
+    const free = projectId === FREE_PROJECT_ID;
+    const project = library.projects.find((item) => item.id === projectId);
+    if (!free && !project) throw new Error('작업을 찾을 수 없습니다.');
+    const jobs: GenerationJobSnapshot[] = [];
+    for (const summary of records) {
+      const record = await libraryApi().getGeneration(projectId, summary.id);
+      const image = await libraryApi().prepareImageInput({
+        projectId,
+        source: { kind: 'record', projectId, generationId: record.id },
+        width: options.width,
+        height: options.height,
+        fit: options.fit,
+      });
+      jobs.push(
+        ...buildResultImg2ImgJobs({
+          record,
+          image,
+          ...options,
+          projectName: free ? '자유 생성' : project!.name,
+          outputFilenameTemplate: free
+            ? FREE_FILENAME_TEMPLATE
+            : library.settings.outputFilenameTemplate,
+        }),
+      );
+    }
+    if (!jobs.length) throw new Error('i2i로 보낼 결과가 없습니다.');
+    const result = await queueApi().enqueueGeneration({ jobs });
+    useStore.setState({ queue: result.snapshot });
+    toast(
+      result.cancelled
+        ? '생성 요청을 취소했습니다.'
+        : `i2i ${jobs.length}장을 생성 큐에 등록했습니다.`,
+    );
   }).then(() => undefined);
 }
 

@@ -107,6 +107,8 @@ describe('GenerationRequests', () => {
       emotionPosition: 'character-end',
       width: 832,
       height: 1216,
+      img2imgStrength: 0.4,
+      img2imgNoise: 0,
     },
     warnings: [],
   } satisfies InpaintJobSnapshot;

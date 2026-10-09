@@ -1,5 +1,6 @@
 import type { GenerationSummary } from '../core/domain/types';
-import { confirmDialog } from './components/Dialogs';
+import { confirmDialog, openDialog } from './components/Dialogs';
+import { Img2ImgDialog } from './components/Img2ImgDialog';
 import { deleteGenerations, emotionRecords, run, toast, useStore } from './store';
 
 /** 작업에서 대표 이미지로 지정한 생성 기록 ID. */
@@ -79,4 +80,12 @@ export async function clearEmotionResults(
     ),
   );
   return true;
+}
+
+/** 결과들을 i2i로 다시 그리는 대화 상자를 연다. 결과는 원래 감정(또는 자유 생성)에 쌓인다. */
+export function openImg2ImgDialog(projectId: string, records: GenerationSummary[]): void {
+  if (!records.length) return;
+  void openDialog((close) => (
+    <Img2ImgDialog projectId={projectId} records={records} close={close} />
+  ));
 }

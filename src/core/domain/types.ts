@@ -48,6 +48,9 @@ export type GenerationSettings = {
   /** 일반 생성(txt2img)의 결과 크기. 인페인트는 참고 이미지 캔버스 크기를 쓴다. */
   width: number;
   height: number;
+  /** i2i에서 원본을 얼마나 바꿀지(0~1). 0단계에서 0.4가 얼굴·구도를 지키면서 선을 다시 그렸다. */
+  img2imgStrength: number;
+  img2imgNoise: number;
 };
 
 export type Preset = {
@@ -140,8 +143,11 @@ export type Reference = {
   updatedAt: string;
 };
 
-/** 레퍼런스 생성은 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지 없이 txt2img로 만든다. */
-export type ProjectMode = 'reference' | 'txt2img';
+/**
+ * 레퍼런스 생성은 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지 없이 txt2img로 만든다.
+ * i2i는 인페인트의 원본 이미지를 생성 설정의 해상도로 맞춰 다시 그린다.
+ */
+export type ProjectMode = 'reference' | 'txt2img' | 'img2img';
 
 /** 작업: 프리셋 · 캐릭터 · 감정 모음 · 레퍼런스를 하나씩 골라 묶은 조합. 생성 결과는 작업에 쌓인다. */
 export type Project = {
@@ -213,7 +219,14 @@ export type FreeGeneration = {
   prompt: string;
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
+  mode: 'txt2img' | 'img2img';
+  /** i2i 원본. 자유 생성 결과이거나 파일에서 골라 `projects/free/inputs/`에 넣어 둔 이미지다. */
+  source?: FreeImageSource;
 };
+
+export type FreeImageSource =
+  | { kind: 'record'; generationId: string }
+  | { kind: 'input'; imagePath: string; name: string; width: number; height: number };
 
 export type Library = {
   schemaVersion: 2;

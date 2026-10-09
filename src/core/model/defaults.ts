@@ -57,6 +57,8 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   emotionPosition: 'character-end',
   width: 832,
   height: 1216,
+  img2imgStrength: 0.4,
+  img2imgNoise: 0,
 };
 
 export function normalizeGenerationSettings(settings: GenerationSettings): GenerationSettings {
@@ -199,7 +201,14 @@ export function createDefaultLibrary(): Library {
     references: [],
     projects: [],
     pieceSets: [],
-    freeGeneration: { presetId: '', characterId: '', promptSetId: '', prompt: '', count: 1 },
+    freeGeneration: {
+      presetId: '',
+      characterId: '',
+      promptSetId: '',
+      prompt: '',
+      count: 1,
+      mode: 'txt2img',
+    },
   };
 }
 
@@ -221,13 +230,14 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     character?.promptSets[0];
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
-  const inpaint = project.mode !== 'txt2img';
+  const inpaint = project.mode === 'reference';
+  const needsImage = project.mode !== 'txt2img';
   const missing = [
     !preset && '생성 설정',
     !character && '캐릭터',
     !emotionSet && '감정 모음',
-    inpaint && !reference && '인페인트',
-    inpaint && reference && !reference.image && '참고 이미지',
+    needsImage && !reference && '인페인트',
+    needsImage && reference && !reference.image && '참고 이미지',
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
   ].filter(Boolean) as string[];
   return { project, preset, character, promptSet, emotionSet, reference, missing };

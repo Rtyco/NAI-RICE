@@ -48,6 +48,28 @@ export type PreparedInputs = {
   maskSha256: string;
 };
 
+/** i2i 입력으로 쓸 이미지. 결과, 인페인트의 원본 이미지, 미리 올려 둔 파일 중 하나다. */
+export type ImageInputSource =
+  | { kind: 'record'; projectId: string; generationId: string }
+  | { kind: 'reference'; referenceId: string; file: string }
+  | { kind: 'input'; projectId: string; imagePath: string };
+
+/**
+ * NovelAI는 i2i 입력을 요청 크기로 비율을 무시하고 늘리므로(0단계), 보내기 전에 목표 크기로 맞춘다.
+ * crop은 위쪽을 남기고 자르고, pad는 가운데에 두고 흰 여백을 넣는다.
+ */
+export type ImageInputRequest = {
+  projectId: string;
+  source: ImageInputSource;
+  width: number;
+  height: number;
+  fit: 'crop' | 'pad';
+};
+
+export type PreparedImage = { imagePath: string; imageSha256: string };
+
+export type StoredImage = PreparedImage & { width: number; height: number };
+
 export type TokenStatus = {
   stored: boolean;
   secureStorageAvailable: boolean;
@@ -104,6 +126,9 @@ export type LibraryApi = {
   copyReferenceFiles: (fromId: string, toId: string) => Promise<void>;
   deleteReferenceFiles: (referenceId: string) => Promise<void>;
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
+  prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
+  /** 파일에서 고른 이미지를 작업의 inputs/에 PNG로 넣어 두고, 나중에 `input` 출처로 쓴다. */
+  storeImageInput: (projectId: string, dataUrl: string) => Promise<StoredImage>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
   /** 화면 목록용 요약. 프롬프트·설정은 getGeneration으로 하나씩 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;

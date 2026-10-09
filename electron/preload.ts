@@ -17,6 +17,9 @@ const api: DesktopApi = {
   deleteReferenceFiles: (id) => ipcRenderer.invoke('reference:delete-files', id),
   prepareInputs: (projectId, reference) =>
     ipcRenderer.invoke('project:prepare-inputs', projectId, reference),
+  prepareImageInput: (request) => ipcRenderer.invoke('project:prepare-image-input', request),
+  storeImageInput: (projectId, dataUrl) =>
+    ipcRenderer.invoke('project:store-image-input', projectId, dataUrl),
   deleteProjectFiles: (id) => ipcRenderer.invoke('project:delete-files', id),
   listGenerations: (id) => ipcRenderer.invoke('generations:list', id),
   getGeneration: (id, generationId) => ipcRenderer.invoke('generations:get', id, generationId),

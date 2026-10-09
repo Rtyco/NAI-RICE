@@ -1,6 +1,11 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
 import type { Library as LibraryData, Reference } from '../src/core/domain/types';
-import type { ExportRequest, OpenTarget, ReferenceImageSave } from '../src/shared/ipc';
+import type {
+  ExportRequest,
+  ImageInputRequest,
+  OpenTarget,
+  ReferenceImageSave,
+} from '../src/shared/ipc';
 import type { AccountService } from './services/AccountService';
 import type { Exporter } from './services/Exporter';
 import type { FilePicker } from './services/FilePicker';
@@ -46,6 +51,12 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('reference:delete-files', (_event, id: string) => workspace.trashReference(id));
   ipcMain.handle('project:prepare-inputs', (_event, projectId: string, reference: Reference) =>
     library.prepareInputs(projectId, reference),
+  );
+  ipcMain.handle('project:prepare-image-input', (_event, request: ImageInputRequest) =>
+    library.prepareImageInput(request),
+  );
+  ipcMain.handle('project:store-image-input', (_event, projectId: string, dataUrl: string) =>
+    library.storeImageInput(projectId, dataUrl),
   );
   ipcMain.handle('project:delete-files', async (_event, id: string) => {
     await queue.cancelProject(id);

@@ -12,7 +12,7 @@ import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip } from '../components/ChainChip';
+import { ChainChip, SizeChip, StrengthChip } from '../components/ChainChip';
 import { Menu } from '../components/ui';
 import { deleteProject } from '../projectOps';
 import {
@@ -34,6 +34,11 @@ import { libraryApi } from '../desktop';
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   { value: 'reference', label: '레퍼런스 생성', title: '참고 이미지 옆에 인페인트로 그립니다' },
   { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
+  {
+    value: 'img2img',
+    label: 'i2i',
+    title: '인페인트의 원본 이미지를 생성 설정의 해상도로 맞춰 감정마다 다시 그립니다',
+  },
 ];
 
 function ModeSwitch({ project }: { project: Project }) {
@@ -117,9 +122,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           </>
         )}
       </ChainChip>
-      {project.mode === 'txt2img' ? (
-        resolved.preset && <SizeChip preset={resolved.preset} />
-      ) : (
+      {project.mode !== 'txt2img' && (
         <ChainChip
           section="references"
           itemId={resolved.reference?.id}
@@ -140,6 +143,8 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           </select>
         </ChainChip>
       )}
+      {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
+      {project.mode === 'img2img' && resolved.preset && <StrengthChip preset={resolved.preset} />}
       <ChainChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
@@ -178,7 +183,7 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
     resolved.promptSet,
     emotion?.prompt,
     { sets: library.pieceSets },
-    resolved.project.mode === 'txt2img' ? 'txt2img' : 'inpaint',
+    resolved.project.mode === 'reference' ? 'inpaint' : resolved.project.mode,
   );
   return (
     <Modal title="최종 요청 미리보기" onClose={close} wide>
@@ -240,9 +245,10 @@ export function ProjectView({ projectId }: { projectId: string }) {
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
   const generation = preset && normalizeGenerationSettings(preset.generation);
   const costJob =
-    project.mode === 'txt2img'
+    project.mode !== 'reference'
       ? generation && {
-          kind: 'txt2img' as const,
+          kind: project.mode,
+          strength: generation.img2imgStrength,
           settings: generation,
           canvasWidth: generation.width,
           canvasHeight: generation.height,
@@ -318,7 +324,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
       {resolved.missing.length > 0 && (
         <div className="missing-banner">
           ⚠ 생성하려면 {resolved.missing.join(', ')}이(가) 필요합니다.
-          {project.mode !== 'txt2img' && preset && !supportsInpaint(preset.generation.model) && (
+          {project.mode === 'reference' && preset && !supportsInpaint(preset.generation.model) && (
             <span>
               {' '}
               {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다. 생성 설정에서 모델을

@@ -3,6 +3,8 @@ import type {
   CharacterPromptSet,
   EmotionSet,
   GenerationKind,
+  GenerationRecord,
+  Img2ImgJobSnapshot,
   InpaintJobSnapshot,
   PieceSet,
   Preset,
@@ -11,7 +13,11 @@ import type {
   Txt2ImgJobSnapshot,
 } from '../domain/types';
 import { createPromptSet, FREE_PROJECT_ID, normalizeGenerationSettings } from '../model/defaults';
-import { composeSeparatedPrompts, referenceInsetCount } from '../prompts/PromptComposer';
+import {
+  composeSeparatedPrompts,
+  referenceInsetCount,
+  removeReferenceInset,
+} from '../prompts/PromptComposer';
 import { expandPieces } from '../prompts/PromptPieces';
 import { applyNaiTags, emptyNegativeFor, naiTagText } from '../providers/NaiModels';
 
@@ -38,6 +44,14 @@ export type JobBuildInput = EmotionJobBuildInput & {
 };
 
 export type Txt2ImgJobBuildInput = EmotionJobBuildInput;
+
+/** 메인 프로세스가 목표 크기로 맞춰 작업 폴더의 inputs/에 넣어 둔 i2i 입력. */
+export type ImageInput = { imagePath: string; imageSha256: string };
+
+export type Img2ImgJobBuildInput = EmotionJobBuildInput & {
+  reference: Reference;
+  image: ImageInput;
+};
 
 const UINT32 = 4_294_967_296;
 
@@ -224,6 +238,8 @@ export type FreeJobBuildInput = {
   character?: { name: string; promptSet: CharacterPromptSet };
   prompt: string;
   count: number;
+  /** 주면 i2i로 만든다. 세기는 생성 설정 값을 쓴다. */
+  img2img?: { image: ImageInput; sourceRecordId?: string };
   pieceSets?: PieceSet[];
   seedOverride?: number;
   now?: () => Date;
@@ -234,7 +250,9 @@ export type FreeJobBuildInput = {
  * 자유 생성: 감정 대신 입력한 프롬프트로 `count`장을 만든다. 입력은 장면·구도 설명일 때가 많아
  * 캐릭터 프롬프트가 아니라 공통 포지티브 끝에 붙인다.
  */
-export function buildFreeJobs(input: FreeJobBuildInput): Txt2ImgJobSnapshot[] {
+export function buildFreeJobs(
+  input: FreeJobBuildInput,
+): Array<Txt2ImgJobSnapshot | Img2ImgJobSnapshot> {
   const settings = normalizeGenerationSettings(input.preset.generation);
   const preset: Preset = {
     ...input.preset,
@@ -243,7 +261,7 @@ export function buildFreeJobs(input: FreeJobBuildInput): Txt2ImgJobSnapshot[] {
   const promptSet = input.character?.promptSet ?? createPromptSet('', {});
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
-  const jobs: Txt2ImgJobSnapshot[] = [];
+  const jobs: Array<Txt2ImgJobSnapshot | Img2ImgJobSnapshot> = [];
   for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
     const seed =
       input.seedOverride !== undefined
@@ -264,8 +282,7 @@ export function buildFreeJobs(input: FreeJobBuildInput): Txt2ImgJobSnapshot[] {
       );
     }
     const createdAt = now().toISOString();
-    jobs.push({
-      kind: 'txt2img',
+    const common = {
       id: `${FREE_PROJECT_ID}-${variantIndex}-${seed}-${createdAt}`,
       createdAt,
       projectId: FREE_PROJECT_ID,
@@ -289,9 +306,118 @@ export function buildFreeJobs(input: FreeJobBuildInput): Txt2ImgJobSnapshot[] {
       canvasWidth: settings.width,
       canvasHeight: settings.height,
       // 감정이 없으므로 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다.
-      outputFilenameTemplate: '{date}-{time}__{seed}',
+      outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
       settings: { ...settings },
       warnings: [],
+    };
+    jobs.push(
+      input.img2img
+        ? {
+            ...common,
+            kind: 'img2img',
+            ...input.img2img.image,
+            ...(input.img2img.sourceRecordId
+              ? { sourceRecordId: input.img2img.sourceRecordId }
+              : {}),
+            strength: settings.img2imgStrength,
+            noise: settings.img2imgNoise,
+          }
+        : { ...common, kind: 'txt2img' },
+    );
+  }
+  return jobs;
+}
+
+/** 감정이 없는 자유 생성 결과는 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다. */
+export const FREE_FILENAME_TEMPLATE = '{date}-{time}__{seed}';
+
+/** i2i 모드: 인페인트의 원본 이미지를 감정마다 다시 그린다. 크기는 생성 설정의 해상도다. */
+export function buildImg2ImgJobs(input: Img2ImgJobBuildInput): Img2ImgJobSnapshot[] {
+  const settings = normalizeGenerationSettings(input.preset.generation);
+  return buildEmotionJobs(
+    input,
+    'img2img',
+    {
+      referenceName: input.reference.name,
+      canvasWidth: settings.width,
+      canvasHeight: settings.height,
+    },
+    (common) => ({
+      ...common,
+      kind: 'img2img',
+      ...input.image,
+      strength: settings.img2imgStrength,
+      noise: settings.img2imgNoise,
+    }),
+  );
+}
+
+export type ResultImg2ImgInput = {
+  record: GenerationRecord;
+  image: ImageInput;
+  width: number;
+  height: number;
+  strength: number;
+  noise: number;
+  count: number;
+  /** source면 원본 seed부터, random이면 장마다 무작위. */
+  seedMode: 'source' | 'random';
+  outputFilenameTemplate: string;
+  projectName: string;
+  now?: () => Date;
+  randomSeed?: () => number;
+};
+
+/**
+ * 결과를 i2i로 다시 그린다(업스케일 우회). 원래 결과의 최종 프롬프트와 설정을 그대로 쓰고 크기와 세기만
+ * 바꾼다. 결과에는 참고 이미지가 없으므로 reference inset 태그는 뺀다. 기록에는 사용자가 쓴 원문이 없어서,
+ * 메타데이터의 원문 자리에도 최종 프롬프트를 넣는다.
+ */
+export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSnapshot[] {
+  const { record } = input;
+  const now = input.now ?? (() => new Date());
+  const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
+  const prompt = removeReferenceInset(record.prompt);
+  const characterPrompt = removeReferenceInset(record.characterPrompt);
+  const jobs: Img2ImgJobSnapshot[] = [];
+  for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
+    const seed =
+      input.seedMode === 'source' ? seedForVariant(record.seed, variantIndex) : randomSeed();
+    const createdAt = now().toISOString();
+    jobs.push({
+      kind: 'img2img',
+      id: `${record.projectId}-${record.id}-i2i-${variantIndex}-${seed}-${createdAt}`,
+      createdAt,
+      projectId: record.projectId,
+      projectName: input.projectName,
+      characterName: record.characterName,
+      emotionId: record.emotionId,
+      emotionName: record.emotionName,
+      emotionPrompt: record.emotionPrompt,
+      presetName: record.presetName,
+      promptSetName: record.promptSetName,
+      emotionSetName: record.emotionSetName,
+      referenceName: record.referenceName,
+      prompt,
+      negativePrompt: record.negativePrompt,
+      characterPrompt,
+      characterNegativePrompt: record.characterNegativePrompt,
+      source: {
+        commonPositive: prompt,
+        commonNegative: record.negativePrompt,
+        characterPositive: characterPrompt,
+      },
+      seed,
+      variantIndex,
+      canvasWidth: input.width,
+      canvasHeight: input.height,
+      outputFilenameTemplate: input.outputFilenameTemplate,
+      settings: { ...normalizeGenerationSettings(record.settings) },
+      warnings: [],
+      sourceRecordId: record.id,
+      ...input.image,
+      strength: input.strength,
+      noise: input.noise,
     });
   }
   return jobs;

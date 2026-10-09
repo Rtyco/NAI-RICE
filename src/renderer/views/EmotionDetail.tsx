@@ -13,7 +13,7 @@ import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
-import { deleteResults } from '../generationOps';
+import { deleteResults, openImg2ImgDialog } from '../generationOps';
 import {
   emotionRecords,
   openEmotion,
@@ -346,6 +346,12 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                   }
                 >
                   폴더에서 보기
+                </button>
+                <button
+                  onClick={() => openImg2ImgDialog(project.id, [selected])}
+                  title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
+                >
+                  i2i로 보내기
                 </button>
                 <button className="danger-quiet" onClick={() => void deleteResults(project.id, [selected])}>
                   결과 삭제

@@ -72,6 +72,14 @@ export function composeSeparatedPrompts(parts: SeparatedPromptParts): {
   return { commonPositive, characterPositive };
 }
 
+export function removeReferenceInset(prompt: string): string {
+  return prompt
+    .split(',')
+    .map((piece) => piece.trim())
+    .filter((piece) => piece && piece.toLowerCase() !== REFERENCE_INSET)
+    .join(', ');
+}
+
 export function referenceInsetCount(prompt: string): number {
   return prompt.split(',').filter((piece) => piece.trim().toLowerCase() === REFERENCE_INSET).length;
 }

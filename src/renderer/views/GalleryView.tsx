@@ -10,7 +10,7 @@ import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
-import { clearEmotionResults } from '../generationOps';
+import { clearEmotionResults, openImg2ImgDialog } from '../generationOps';
 import {
   coverRecord,
   emotionRecords,
@@ -249,6 +249,25 @@ export function GalleryView({
               }
             >
               결과만 삭제
+            </button>
+            <button
+              title="고른 감정마다 대표 이미지(없으면 최신)를 i2i로 다시 그립니다"
+              onClick={() =>
+                openImg2ImgDialog(
+                  project.id,
+                  emotions
+                    .filter((emotion) => selection.isSelected(emotion.id))
+                    .map((emotion) =>
+                      coverRecord(
+                        emotionRecords(records, emotion.id),
+                        project.favorites[emotion.id],
+                      ),
+                    )
+                    .filter((record): record is GenerationSummary => Boolean(record)),
+                )
+              }
+            >
+              대표 이미지 i2i로
             </button>
             <button
               className="with-icon danger-quiet"

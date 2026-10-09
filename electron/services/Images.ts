@@ -60,6 +60,30 @@ export async function withMetadata(
   return { png: Buffer.from(insertPngChunks(generated, textChunks(extraText))), ...size };
 }
 
+/**
+ * i2i 입력을 목표 크기로 맞춘다. 투명한 부분은 흰색으로 채운다. 불투명 입력만 보내 본 0단계 결과와 같게 하고,
+ * 투명 입력에서 NovelAI가 어떻게 동작할지 모르는 경우를 피한다.
+ */
+export async function fitImage(
+  buffer: Buffer,
+  width: number,
+  height: number,
+  fit: 'crop' | 'pad',
+): Promise<Buffer> {
+  return sharp(buffer)
+    .rotate()
+    .resize({
+      width,
+      height,
+      fit: fit === 'crop' ? 'cover' : 'contain',
+      position: fit === 'crop' ? 'north' : 'centre',
+      background: '#ffffff',
+    })
+    .flatten({ background: '#ffffff' })
+    .png()
+    .toBuffer();
+}
+
 export async function makeThumbnail(buffer: Buffer, size = 384): Promise<Buffer> {
   return sharp(buffer)
     .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
