@@ -36,14 +36,17 @@ NAI RICE: NovelAI 인페인트로 캐릭터 감정 이미지 세트를 만드는
 
 - `npm test`, `npm run typecheck`, `npm run lint`: 커밋 전에 모두 통과시킨다.
 - 포맷은 바꾼 줄만 맞춘다. 파일 전체에 `prettier --write`를 돌리면 원래 형식과 달라 diff가 커지는 파일이 있다.
-- `npm run package:win`: `release/`에 설치·포터블 파일과 `SHA256SUMS.txt`를 만든다.
+- `npm run package:win`: `release/`에 설치·포터블 파일과 `SHA256SUMS.txt`를 만든다. **`release/`에는 공개할
+  안정 버전만 둔다.** 릴리스하기로 한 버전일 때만 쓴다.
+- `npm run package:test`: 사용자가 확인할 테스트 빌드는 `release-test/`에 만든다. "패키징해 줘"는 따로 말이
+  없으면 이쪽이다.
 
 ## 환경 (Windows)
 
 - 실행·패키징 전에 `ELECTRON_RUN_AS_NODE`를 해제한다.
 - 패키징 중 EBUSY/EPERM: Windows Defender가 새 exe를 검사하는 중이다. `-c.directories.output=release-new`로
-  따로 빌드한 뒤 `release/`와 바꾼다. 사용자가 `release/`의 앱을 실행 중일 수도 있다.
-- `legacy/`, `ForTest/`, `release/`는 git에 올리지 않는다. 이전 빌드는 `legacy/release-*`에 둔다.
+  따로 빌드한 뒤 `release/`(테스트 빌드면 `release-test/`)와 바꾼다. 사용자가 `release/`의 앱을 실행 중일 수도 있다.
+- `legacy/`, `ForTest/`, `release/`, `release-test/`는 git에 올리지 않는다(`release-*/`로 제외). 이전 빌드는 `legacy/release-*`에 둔다.
 - 실험 스크립트는 `legacy/tools/nai-exp/`, GitHub 릴리스 스크립트는 `legacy/tools/release/`에 있다.
   GitHub 토큰은 `printf 'protocol=https\nhost=github.com\n\n' | git credential fill`로 얻는다.
 - 저장소: `Rtyco/NAI-RICE`. 커밋 작성자는 git 설정(amagi)을 그대로 쓴다.
