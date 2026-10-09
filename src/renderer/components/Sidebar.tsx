@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type { Project } from '../../core/domain/types';
 import {
   createCharacter,
@@ -19,13 +19,15 @@ import {
   run,
   setSettingsOpen,
   toggleSidebar,
+  toggleSidebarSection,
   updateLibrary,
   useLibrary,
   useStore,
+  type SidebarSection,
 } from '../store';
 import { showContextMenu } from './ContextMenu';
 import { Modal, openDialog } from './Dialogs';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { focusAndSelect } from './focusAndSelect';
 import { libraryApi } from '../desktop';
 import { useBoxSelection } from './useBoxSelection';
@@ -299,6 +301,42 @@ function ProjectRow(props: {
   );
 }
 
+/**
+ * 사이드바 카드의 제목 줄. 제목을 누르면 카드가 제목 줄만 남기고 접힌다.
+ * 사이드바 전체를 접은 좁은 막대에서는 아이콘만 보이고 누를 수 없다.
+ */
+function SectionTitle(props: {
+  section: SidebarSection;
+  icon: IconName;
+  label: string;
+  title: string;
+  narrow: boolean;
+  folded: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="sidebar-section-title">
+      {props.narrow ? (
+        <span title={props.title}>
+          <Icon name={props.icon} />
+        </span>
+      ) : (
+        <button
+          className="sidebar-section-toggle"
+          aria-expanded={!props.folded}
+          title={`${props.title} · ${props.folded ? '펼치기' : '접기'}`}
+          onClick={() => toggleSidebarSection(props.section)}
+        >
+          <Icon name="chevron" size={12} className="section-chevron" />
+          <Icon name={props.icon} />
+          <b>{props.label}</b>
+        </button>
+      )}
+      {props.children}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const library = useLibrary();
   const view = useStore((state) => state.view);
@@ -306,7 +344,11 @@ export function Sidebar() {
   const version = useStore((state) => state.version);
   const saveState = useStore((state) => state.saveState);
   const collapsed = useStore((state) => state.sidebarCollapsed);
+  const sections = useStore((state) => state.sidebarSections);
   const update = useStore((state) => state.update);
+  // 좁은 막대에서는 카드 접기를 무시하고 아이콘을 모두 보여 준다.
+  const projectsFolded = !collapsed && sections.projects;
+  const libraryFolded = !collapsed && sections.library;
 
   const active = new Map<string, number>();
   for (const job of queue.jobs) {
@@ -349,18 +391,21 @@ export function Sidebar() {
         )}
       </div>
 
-      <section className="sidebar-card grow">
-        <div className="sidebar-section-title">
-          <span title="생성 결과가 쌓이는 곳 · F1 · Ctrl+Tab으로 다음 작업">
-            <Icon name="project" />
-            {!collapsed && <b>작업</b>}
-          </span>
+      <section className={`sidebar-card ${projectsFolded ? 'folded' : 'grow'}`}>
+        <SectionTitle
+          section="projects"
+          icon="project"
+          label="작업"
+          title="생성 결과가 쌓이는 곳 · F1 · Ctrl+Tab으로 다음 작업"
+          narrow={collapsed}
+          folded={projectsFolded}
+        >
           {!collapsed && (
             <button className="icon-button" title="새 작업 (Ctrl+N)" onClick={newProject}>
               <Icon name="plus" />
             </button>
           )}
-        </div>
+        </SectionTitle>
         <nav
           className={`project-list ${collapsed ? '' : 'selectable'}`}
           aria-label="작업 목록"
@@ -422,13 +467,15 @@ export function Sidebar() {
         )}
       </section>
 
-      <section className="sidebar-card">
-        <div className="sidebar-section-title">
-          <span title="생성 설정·캐릭터·감정 모음·인페인트 보관함">
-            <Icon name="storage" />
-            {!collapsed && <b>라이브러리</b>}
-          </span>
-        </div>
+      <section className={`sidebar-card ${libraryFolded ? 'folded' : ''}`}>
+        <SectionTitle
+          section="library"
+          icon="storage"
+          label="라이브러리"
+          title="생성 설정·캐릭터·감정 모음·인페인트 보관함"
+          narrow={collapsed}
+          folded={libraryFolded}
+        />
         <nav className="library-nav" aria-label="라이브러리">
           {SECTIONS.map((section) => (
             <button

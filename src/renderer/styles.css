@@ -2083,6 +2083,34 @@ textarea.syntax-input::selection {
   align-items: center;
   gap: 7px;
 }
+.sidebar-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: -4px;
+  padding: 2px 4px;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+}
+.sidebar-section-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.section-chevron {
+  color: var(--faint);
+  transition: transform 120ms ease;
+}
+.sidebar-section-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+/* 접힌 카드는 제목 줄만 남기고, 남는 높이는 펼쳐진 카드나 아래 여백이 쓴다. */
+.sidebar-card.folded {
+  padding-bottom: 6px;
+}
+.sidebar-card.folded > :not(.sidebar-section-title) {
+  display: none;
+}
 .sidebar-caption {
   margin: 0 10px 6px;
   color: var(--faint);
@@ -2144,6 +2172,7 @@ textarea.syntax-input::selection {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: auto;
   padding: 0 8px;
 }
 .sidebar-footer button {

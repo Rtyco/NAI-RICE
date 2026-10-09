@@ -16,6 +16,9 @@ export type Toast = { id: number; kind: 'info' | 'error'; message: string };
 
 export type PendingReference = { referenceId: string; dataUrl: string; name: string };
 
+/** 사이드바에서 제목을 눌러 접을 수 있는 카드. */
+export type SidebarSection = 'projects' | 'library';
+
 type State = {
   ready: boolean;
   root: string;
@@ -25,6 +28,8 @@ type State = {
   detailEmotionId?: string;
   settingsOpen: boolean;
   sidebarCollapsed: boolean;
+  /** 접힌 사이드바 카드. 사이드바 전체 접기(Ctrl+B)와는 따로 기억한다. */
+  sidebarSections: Record<SidebarSection, boolean>;
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -46,6 +51,17 @@ function readSidebarCollapsed(): boolean {
   }
 }
 
+const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
+
+function readSidebarSections(): Record<SidebarSection, boolean> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SIDEBAR_SECTIONS_KEY) ?? '{}');
+    return { projects: saved?.projects === true, library: saved?.library === true };
+  } catch {
+    return { projects: false, library: false };
+  }
+}
+
 export const useStore = create<State>(() => ({
   ready: false,
   root: '',
@@ -54,6 +70,7 @@ export const useStore = create<State>(() => ({
   view: { kind: 'home' },
   settingsOpen: false,
   sidebarCollapsed: readSidebarCollapsed(),
+  sidebarSections: readSidebarSections(),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -249,6 +266,17 @@ export function toggleSidebar(): void {
   set({ sidebarCollapsed: collapsed });
   try {
     localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+  } catch {
+    // 저장하지 못해도 이번 실행에서는 그대로 동작한다.
+  }
+}
+
+/** 사이드바 카드(작업·라이브러리) 하나를 제목 줄만 남기고 접거나 편다. 다음 실행에도 기억한다. */
+export function toggleSidebarSection(section: SidebarSection): void {
+  const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
+  set({ sidebarSections: sections });
+  try {
+    localStorage.setItem(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
   } catch {
     // 저장하지 못해도 이번 실행에서는 그대로 동작한다.
   }
