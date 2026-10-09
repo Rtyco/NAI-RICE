@@ -24,6 +24,17 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxScale: 10,
   },
   {
+    // NovelAI 웹도 V5 Curated 인페인트는 V4.5 Curated 인페인트 모델로 보낸다(2026-10 웹 코드). 그래서 일반 생성
+    // 전용으로 두고, 저장 값은 일반 생성 모델 ID를 쓴다.
+    id: 'nai-diffusion-5-curated',
+    requestIds: { generate: 'nai-diffusion-5-curated' },
+    label: 'NAI Diffusion V5 Curated',
+    family: 'v5-curated',
+    generation: 'v5',
+    maxSteps: 50,
+    maxScale: 10,
+  },
+  {
     id: 'nai-diffusion-4-5-full-inpainting',
     requestIds: {
       inpaint: 'nai-diffusion-4-5-full-inpainting',
@@ -94,6 +105,10 @@ export function modelInfo(id: string): NaiModelInfo | undefined {
 
 export const INPAINT_MODELS = NAI_MODELS.filter((model) => model.requestIds.inpaint);
 
+export function supportsInpaint(id: string): boolean {
+  return Boolean(modelInfo(id)?.requestIds.inpaint);
+}
+
 /** 생성 방식에 맞는 NovelAI 모델 ID. 그 방식을 지원하지 않는 모델이면 오류를 던진다. */
 export function requestModelId(id: string, use: 'inpaint' | 'generate'): string {
   const model = modelInfo(id);
@@ -127,20 +142,24 @@ const V3_HEAVY =
  * 곳은 웹을 따르고, 예전 문구는 legacy로 남겨 그때 만든 이미지를 불러올 때만 알아본다.
  * 모델에 없는 단계·프리셋은 넣지 않는다.
  */
-export const NAI_TAGS: Record<NaiTagFamily, NaiTagTable> = {
-  v5: {
-    quality: {
-      standard: 'very aesthetic, masterpiece, no text',
-      light: 'very aesthetic, amazing quality, no text',
-    },
-    uc: {
-      heavy: V5_HEAVY,
-      light:
-        'lowres, bad hands, bad anatomy, artistic error, sepia, white haze, worst quality, very displeasing, jpeg artifacts, 0::ai-generated::',
-      human: `${V5_HEAVY}, @_@, mismatched pupils, glowing eyes, bad anatomy`,
-      furry: V5_FURRY,
-    },
+const V5_TAGS: NaiTagTable = {
+  quality: {
+    standard: 'very aesthetic, masterpiece, no text',
+    light: 'very aesthetic, amazing quality, no text',
   },
+  uc: {
+    heavy: V5_HEAVY,
+    light:
+      'lowres, bad hands, bad anatomy, artistic error, sepia, white haze, worst quality, very displeasing, jpeg artifacts, 0::ai-generated::',
+    human: `${V5_HEAVY}, @_@, mismatched pupils, glowing eyes, bad anatomy`,
+    furry: V5_FURRY,
+  },
+};
+
+export const NAI_TAGS: Record<NaiTagFamily, NaiTagTable> = {
+  v5: V5_TAGS,
+  // 웹에서 V5 Full과 같은 품질 태그·UC 프리셋 목록을 쓴다. 다른 점은 nsfw를 자동으로 붙이지 않는 것뿐이다.
+  'v5-curated': V5_TAGS,
   'v4-5-full': {
     quality: { standard: 'very aesthetic, masterpiece, no text' },
     legacyQuality: { standard: 'location, very aesthetic, masterpiece, no text' },
@@ -286,7 +305,7 @@ function clean(value: string): string {
 }
 
 /** NovelAI 웹이 nsfw를 자동으로 붙이지 않는 모델 계열. */
-const NO_AUTO_NSFW = new Set<NaiTagFamily>(['v4-5-curated', 'v4-curated']);
+const NO_AUTO_NSFW = new Set<NaiTagFamily>(['v5-curated', 'v4-5-curated', 'v4-curated']);
 
 /**
  * NovelAI 웹은 UC 프리셋을 쓰면 네거티브 맨 앞에 `nsfw`를 붙인다. Curated 모델과,

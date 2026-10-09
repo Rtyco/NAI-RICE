@@ -289,7 +289,8 @@ function OutputTab() {
 }
 
 const FAMILY_LABELS: Record<NaiTagFamily, string> = {
-  v5: 'V5',
+  v5: 'V5 Full',
+  'v5-curated': 'V5 Curated',
   'v4-5-full': 'V4.5 Full',
   'v4-5-curated': 'V4.5 Curated',
   'v4-full': 'V4 Full',

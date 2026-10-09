@@ -27,6 +27,8 @@ export const generationSettingsSchema = z.object({
     .enum(['common-start', 'common-end', 'character-start', 'character-end'])
     .default('common-start'),
   emotionPosition: z.enum(['character-end', 'common-end']).default('character-end'),
+  width: z.number().int().min(256).max(2048).multipleOf(64).default(832),
+  height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
 });
 
 export const presetSchema = z.object({
@@ -149,6 +151,7 @@ export const referenceSchema = z.object({
 export const projectSchema = z.object({
   id: z.string().regex(FOLDER_ID),
   name: z.string(),
+  mode: z.enum(['reference', 'txt2img']).default('reference'),
   presetId: z.string(),
   characterId: z.string(),
   promptSetId: z.string(),

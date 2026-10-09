@@ -14,7 +14,7 @@ import type {
   Reference,
 } from '../domain/types';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
-import { NAI_MODELS } from '../providers/NaiModels';
+import { NAI_MODELS, supportsInpaint } from '../providers/NaiModels';
 
 export function newId(): string {
   return globalThis.crypto.randomUUID();
@@ -52,6 +52,8 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   referenceInset: true,
   referenceInsetPosition: 'common-start',
   emotionPosition: 'character-end',
+  width: 832,
+  height: 1216,
 };
 
 export function normalizeGenerationSettings(settings: GenerationSettings): GenerationSettings {
@@ -161,6 +163,7 @@ export function createProject(
   return {
     id: readableId(name, 'project'),
     name: name.trim() || '새 작업',
+    mode: 'reference',
     presetId: parts.presetId,
     characterId: parts.character.id,
     promptSetId: parts.character.promptSets[0].id,
@@ -214,12 +217,14 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     character?.promptSets[0];
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
+  const inpaint = project.mode !== 'txt2img';
   const missing = [
     !preset && '생성 설정',
     !character && '캐릭터',
     !emotionSet && '감정 모음',
-    !reference && '인페인트',
-    reference && !reference.image && '참고 이미지',
+    inpaint && !reference && '인페인트',
+    inpaint && reference && !reference.image && '참고 이미지',
+    inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
   ].filter(Boolean) as string[];
   return { project, preset, character, promptSet, emotionSet, reference, missing };
 }

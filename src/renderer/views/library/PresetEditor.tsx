@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   EmotionPosition,
   GenerationSettings,
@@ -6,15 +7,24 @@ import type {
   ReferenceInsetPosition,
   UcPresetId,
 } from '../../../core/domain/types';
+import {
+  CUSTOM_MAX,
+  CUSTOM_MIN,
+  RESOLUTION_PRESETS,
+  snapDimension,
+} from '../../../core/imaging/CanvasLayout';
+import { normalizeGenerationSettings } from '../../../core/model/defaults';
 import { patchItem } from '../../../core/model/mutations';
+import { FREE_MAX_PIXELS } from '../../../core/providers/NaiCost';
 import {
   addsAutoNsfw,
-  INPAINT_MODELS,
   modelInfo,
   modelLabel,
+  NAI_MODELS,
   naiTagText,
   QUALITY_LEVEL_LABELS,
   qualityLevelsFor,
+  supportsInpaint,
   UC_PRESET_LABELS,
   ucPresetsFor,
 } from '../../../core/providers/NaiModels';
@@ -57,6 +67,11 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const ucPresets = ucPresetsFor(g.model);
   const tagText = naiTagText(g.model, g);
   const autoNsfw = addsAutoNsfw(g.model, g.ucPreset);
+  const { width, height } = normalizeGenerationSettings(g);
+  const sizePreset = RESOLUTION_PRESETS.find(
+    (item) => item.width === width && item.height === height,
+  );
+  const [customSize, setCustomSize] = useState(!sizePreset);
 
   // 모델을 바꿀 때 새 모델에 없는 품질 태그 단계·UC 프리셋은 쓸 수 있는 값으로 맞춘다.
   const changeModel = (next: string) => {
@@ -119,6 +134,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           {!g.referenceInset
             ? '넣지 않음'
             : [
+                '레퍼런스 생성에만 붙습니다',
                 g.referenceInsetPosition === 'character-start' && '성별 태그(girl, 1girl 등) 바로 뒤',
                 g.referenceInsetPosition === 'common-end' && '품질 태그를 켰다면 그 바로 앞',
                 '프롬프트에 직접 쓴 reference inset이 있으면 추가하지 않습니다',
@@ -147,15 +163,66 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         <SelectField
           label="모델"
           value={g.model}
-          options={INPAINT_MODELS.map((item) => ({
+          options={NAI_MODELS.map((item) => ({
             value: item.id,
-            label: `${item.label} Inpainting`,
+            label: item.requestIds.inpaint ? item.label : `${item.label} (일반 생성 전용)`,
           }))}
           onChange={changeModel}
         />
+        {!supportsInpaint(g.model) && (
+          <p className="hint">인페인트가 없어 레퍼런스 생성 작업에는 쓸 수 없습니다</p>
+        )}
         {isV3 && <p className="hint">V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합쳐 보냅니다</p>}
         {isV5 && (
           <p className="hint">V5: Noise Schedule karras 고정 · 무료 할당량(%)을 먼저 씁니다</p>
+        )}
+      </Card>
+
+      <Card title="일반 생성 해상도" subtitle="레퍼런스 생성은 인페인트의 캔버스 크기를 씁니다">
+        <SelectField
+          label="해상도"
+          value={customSize || !sizePreset ? 'custom' : sizePreset.id}
+          options={[
+            ...RESOLUTION_PRESETS.map((item) => ({
+              value: item.id,
+              label: `${item.label} (무료)`,
+            })),
+            { value: 'custom' as const, label: '직접 입력' },
+          ]}
+          onChange={(id) => {
+            const preset = RESOLUTION_PRESETS.find((item) => item.id === id);
+            setCustomSize(!preset);
+            if (preset) setting({ width: preset.width, height: preset.height });
+          }}
+        />
+        {(customSize || !sizePreset) && (
+          <div className="two-column-fields">
+            <NumberField
+              label="가로"
+              value={width}
+              min={CUSTOM_MIN}
+              max={CUSTOM_MAX}
+              step={64}
+              integer
+              suffix="px"
+              onChange={(value) => setting({ width: snapDimension(value) })}
+            />
+            <NumberField
+              label="세로"
+              value={height}
+              min={CUSTOM_MIN}
+              max={CUSTOM_MAX}
+              step={64}
+              integer
+              suffix="px"
+              onChange={(value) => setting({ height: snapDimension(value) })}
+            />
+          </div>
+        )}
+        {width * height > FREE_MAX_PIXELS && (
+          <p className="field-error">
+            {width}×{height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
+          </p>
         )}
       </Card>
 

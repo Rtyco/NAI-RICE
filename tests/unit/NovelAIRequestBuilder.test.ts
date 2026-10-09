@@ -19,6 +19,8 @@ const settings: GenerationSettings = {
   referenceInsetPosition: 'common-start',
   emotionPosition: 'character-end',
   ucPreset: 'none',
+  width: 832,
+  height: 1216,
 };
 
 describe('NovelAIRequestBuilder', () => {

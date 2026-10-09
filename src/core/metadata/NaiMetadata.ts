@@ -51,7 +51,8 @@ export function guessModelFromSource(label: string | undefined): string | undefi
   if (!label) return undefined;
   const text = label.toLowerCase();
   const curated = text.includes('curated');
-  if (/v5/.test(text)) return 'nai-diffusion-5-full-inpainting';
+  if (/v5/.test(text))
+    return curated ? 'nai-diffusion-5-curated' : 'nai-diffusion-5-full-inpainting';
   if (/v4\.5/.test(text))
     return curated ? 'nai-diffusion-4-5-curated-inpainting' : 'nai-diffusion-4-5-full-inpainting';
   if (/v4/.test(text))

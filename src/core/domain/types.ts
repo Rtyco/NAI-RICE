@@ -45,6 +45,9 @@ export type GenerationSettings = {
   referenceInset: boolean;
   referenceInsetPosition: ReferenceInsetPosition;
   emotionPosition: EmotionPosition;
+  /** 일반 생성(txt2img)의 결과 크기. 인페인트는 참고 이미지 캔버스 크기를 쓴다. */
+  width: number;
+  height: number;
 };
 
 export type Preset = {
@@ -137,14 +140,19 @@ export type Reference = {
   updatedAt: string;
 };
 
+/** 레퍼런스 생성은 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지 없이 txt2img로 만든다. */
+export type ProjectMode = 'reference' | 'txt2img';
+
 /** 작업: 프리셋 · 캐릭터 · 감정 모음 · 레퍼런스를 하나씩 골라 묶은 조합. 생성 결과는 작업에 쌓인다. */
 export type Project = {
   id: string;
   name: string;
+  mode: ProjectMode;
   presetId: string;
   characterId: string;
   promptSetId: string;
   emotionSetId: string;
+  /** 일반 생성에서는 쓰지 않지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
   referenceId: string;
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
@@ -157,7 +165,7 @@ export type Project = {
 export type ExportFormat = 'png' | 'webp' | 'avif';
 
 export type NaiTagFamily =
-  'v5' | 'v4-5-full' | 'v4-5-curated' | 'v4-full' | 'v4-curated' | 'v3' | 'v3-furry';
+  'v5' | 'v5-curated' | 'v4-5-full' | 'v4-5-curated' | 'v4-full' | 'v4-curated' | 'v3' | 'v3-furry';
 
 export type NaiTagTable = {
   quality: Partial<Record<QualityLevel, string>>;

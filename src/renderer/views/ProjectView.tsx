@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import type { Project } from '../../core/domain/types';
+import type { Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
-import { readableId, type ResolvedProject } from '../../core/model/defaults';
+import {
+  normalizeGenerationSettings,
+  readableId,
+  type ResolvedProject,
+} from '../../core/model/defaults';
 import { uniqueName } from '../../core/model/mutations';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
-import { modelLabel } from '../../core/providers/NaiModels';
+import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -58,6 +62,29 @@ function ChainChip(props: {
   );
 }
 
+const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
+  { value: 'reference', label: '레퍼런스 생성', title: '참고 이미지 옆에 인페인트로 그립니다' },
+  { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
+];
+
+function ModeSwitch({ project }: { project: Project }) {
+  return (
+    <div className="segmented" role="group" aria-label="생성 방식">
+      {MODES.map((mode) => (
+        <button
+          key={mode.value}
+          className={project.mode === mode.value ? 'active blue' : ''}
+          aria-pressed={project.mode === mode.value}
+          title={mode.title}
+          onClick={() => updateProject(project.id, (current) => ({ ...current, mode: mode.value }))}
+        >
+          {mode.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** 작업에 쓰는 라이브러리 항목 네 가지를 한 줄에서 바꾼다. 거의 바꾸지 않는 값이라 작게 둔다. */
 function ChainBar({ resolved }: { resolved: ResolvedProject }) {
   const library = useLibrary();
@@ -71,6 +98,8 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         resolved.reference.updatedAt,
       )
     : undefined;
+  const generation = resolved.preset && normalizeGenerationSettings(resolved.preset.generation);
+  const size = generation && `${generation.width}×${generation.height}`;
 
   return (
     <div className="chain-bar">
@@ -121,25 +150,38 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           </>
         )}
       </ChainChip>
-      <ChainChip
-        section="references"
-        itemId={resolved.reference?.id}
-        missing={!resolved.reference?.image}
-      >
-        {thumb && <img className="chain-thumb" src={thumb} alt="" />}
-        <select
-          value={project.referenceId}
-          onChange={(event) => patch({ referenceId: event.target.value })}
+      {project.mode === 'txt2img' ? (
+        size && (
+          <button
+            className="chain-chip chain-size"
+            title="일반 생성 해상도 · 생성 설정에서 바꿉니다"
+            onClick={() => openLibrary('presets', resolved.preset?.id)}
+          >
+            <span className="chain-chip-label">해상도</span>
+            {size}
+          </button>
+        )
+      ) : (
+        <ChainChip
+          section="references"
+          itemId={resolved.reference?.id}
+          missing={!resolved.reference?.image}
         >
-          {!resolved.reference && <option value={project.referenceId}>(없음)</option>}
-          {library.references.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-              {item.image ? '' : ' (이미지 없음)'}
-            </option>
-          ))}
-        </select>
-      </ChainChip>
+          {thumb && <img className="chain-thumb" src={thumb} alt="" />}
+          <select
+            value={project.referenceId}
+            onChange={(event) => patch({ referenceId: event.target.value })}
+          >
+            {!resolved.reference && <option value={project.referenceId}>(없음)</option>}
+            {library.references.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+                {item.image ? '' : ' (이미지 없음)'}
+              </option>
+            ))}
+          </select>
+        </ChainChip>
+      )}
       <ChainChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
@@ -173,9 +215,13 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
       </Modal>
     );
   }
-  const prompts = composeRequestPrompts(resolved.preset, resolved.promptSet, emotion?.prompt, {
-    sets: library.pieceSets,
-  });
+  const prompts = composeRequestPrompts(
+    resolved.preset,
+    resolved.promptSet,
+    emotion?.prompt,
+    { sets: library.pieceSets },
+    resolved.project.mode === 'txt2img' ? 'txt2img' : 'inpaint',
+  );
   return (
     <Modal title="최종 요청 미리보기" onClose={close} wide>
       {prompts.missingPieces.length > 0 && (
@@ -234,14 +280,22 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const batch = batchEmotionIds(project.id);
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
+  const generation = preset && normalizeGenerationSettings(preset.generation);
   const costJob =
-    preset && reference?.image
-      ? {
-          settings: preset.generation,
-          canvasWidth: reference.image.canvasWidth,
-          canvasHeight: reference.image.canvasHeight,
+    project.mode === 'txt2img'
+      ? generation && {
+          kind: 'txt2img' as const,
+          settings: generation,
+          canvasWidth: generation.width,
+          canvasHeight: generation.height,
         }
-      : undefined;
+      : preset && reference?.image
+        ? {
+            settings: preset.generation,
+            canvasWidth: reference.image.canvasWidth,
+            canvasHeight: reference.image.canvasHeight,
+          }
+        : undefined;
   const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
@@ -278,6 +332,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
             updateProject(project.id, (current) => ({ ...current, name: event.target.value }))
           }
         />
+        <ModeSwitch project={project} />
         <div className="header-spacer" />
         <AccountMeter />
         <Menu
@@ -305,7 +360,14 @@ export function ProjectView({ projectId }: { projectId: string }) {
       {resolved.missing.length > 0 && (
         <div className="missing-banner">
           ⚠ 생성하려면 {resolved.missing.join(', ')}이(가) 필요합니다.
-          {!reference?.image && reference && (
+          {project.mode !== 'txt2img' && preset && !supportsInpaint(preset.generation.model) && (
+            <span>
+              {' '}
+              {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다. 생성 설정에서 모델을
+              바꾸거나 일반 생성으로 전환하십시오.
+            </span>
+          )}
+          {project.mode !== 'txt2img' && !reference?.image && reference && (
             <button className="link-button" onClick={() => openLibrary('references', reference.id)}>
               참고 이미지 설정하기 →
             </button>

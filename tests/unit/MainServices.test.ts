@@ -105,6 +105,8 @@ describe('GenerationRequests', () => {
       referenceInset: true,
       referenceInsetPosition: 'common-start',
       emotionPosition: 'character-end',
+      width: 832,
+      height: 1216,
     },
     warnings: [],
   } satisfies InpaintJobSnapshot;

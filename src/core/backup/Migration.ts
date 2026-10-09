@@ -56,6 +56,7 @@ export function splitV1Character(
   const project: Project = {
     id: projectId,
     name: v1.name,
+    mode: 'reference',
     presetId,
     characterId: character.id,
     promptSetId: v1.promptSets.some((set) => set.id === v1.activePromptSetId) ? v1.activePromptSetId : v1.promptSets[0].id,

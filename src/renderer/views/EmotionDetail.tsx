@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Emotion, GenerationRecord, GenerationSummary } from '../../core/domain/types';
+import type {
+  Emotion,
+  GenerationKind,
+  GenerationRecord,
+  GenerationSummary,
+} from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import type { ResolvedProject } from '../../core/model/defaults';
 import { modelLabel } from '../../core/providers/NaiModels';
@@ -23,6 +28,13 @@ import { fileApi, libraryApi } from '../desktop';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 
+const KIND_LABELS: Record<GenerationKind, string> = {
+  inpaint: '레퍼런스 생성',
+  txt2img: '일반 생성',
+  img2img: 'i2i',
+  augment: '디렉터 툴',
+};
+
 /** 선택한 결과의 생성 정보. 목록에는 프롬프트가 없어서, 열 때 기록 하나를 통째로 받아 온다. */
 function RecordInfo({ projectId, record }: { projectId: string; record: GenerationSummary }) {
   const [full, setFull] = useState<GenerationRecord | null>();
@@ -45,6 +57,8 @@ function RecordInfo({ projectId, record }: { projectId: string; record: Generati
       <dd>{new Date(record.createdAt).toLocaleString()}</dd>
       <dt>Seed</dt>
       <dd>{record.seed}</dd>
+      <dt>방식</dt>
+      <dd>{KIND_LABELS[record.kind]}</dd>
       <dt>모델</dt>
       <dd>{modelLabel(record.model)}</dd>
       <dt>크기</dt>

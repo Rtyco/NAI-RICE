@@ -1,4 +1,4 @@
-import { buildJobs } from '../core/jobs/JobBuilder';
+import { buildJobs, buildTxt2ImgJobs } from '../core/jobs/JobBuilder';
 import { resolveProject } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { flushSaves, run, toast, useStore } from './store';
@@ -24,23 +24,27 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     const templateError = validateOutputFilenameTemplate(library.settings.outputFilenameTemplate);
     if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
 
-    const reference = resolved.reference!;
-    const preset = resolved.preset!;
-    const input = await libraryApi().prepareInputs(project.id, reference);
-    const jobs = buildJobs({
+    const common = {
       project,
-      preset,
+      preset: resolved.preset!,
       characterName: resolved.character!.name,
       promptSet: resolved.promptSet!,
       emotionSet: resolved.emotionSet!,
-      reference,
       emotionIds,
-      input,
       settings: library.settings,
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
       variantsOverride: options.variants,
-    });
+    };
+    const reference = resolved.reference!;
+    const jobs =
+      project.mode === 'txt2img'
+        ? buildTxt2ImgJobs(common)
+        : buildJobs({
+            ...common,
+            reference,
+            input: await libraryApi().prepareInputs(project.id, reference),
+          });
     if (!jobs.length) throw new Error('생성할 감정이 없습니다. 프롬프트가 있는 감정을 선택하십시오.');
 
     const result = await queueApi().enqueueGeneration({ jobs });

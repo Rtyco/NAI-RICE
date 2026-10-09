@@ -2762,6 +2762,11 @@ textarea.syntax-input::selection {
 .chain-chip-edit:focus-visible {
   opacity: 1;
 }
+.chain-size {
+  padding: 4px 12px 4px 10px;
+  color: var(--text);
+  font-weight: 650;
+}
 .chain-thumb {
   width: 20px;
   height: 20px;
