@@ -135,7 +135,7 @@ describe('generation pipeline', () => {
       seedOverride: 42,
       variantsOverride: 2,
     });
-    await queue.enqueue(jobs);
+    await queue.enqueue(jobs, [0, 0]);
     for (let tries = 0; tries < 100 && records.length < 2; tries += 1) {
       await new Promise((resolve) => setTimeout(resolve, 30));
     }
@@ -147,6 +147,8 @@ describe('generation pipeline', () => {
     expect(records.map((record) => record.seed)).toEqual([42, 43]);
     expect(records[0].anlasSpent).toBe(1);
     expect(snapshot?.jobs.every((job) => job.status === 'completed')).toBe(true);
+    // 화면의 큐 항목은 예상값과 실제 차감량을 함께 받는다.
+    expect(snapshot?.jobs[0]).toMatchObject({ anlasEstimate: 0, anlasSpent: 1 });
 
     const record = records[0];
     expect(record.file).toBe('outputs/기쁨/아리아__기쁨__42.png');

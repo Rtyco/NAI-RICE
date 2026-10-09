@@ -88,12 +88,15 @@ export class GenerationQueue {
     return structuredClone(this.snapshot);
   }
 
-  async enqueue(jobs: InpaintJobSnapshot[]): Promise<QueueSnapshot> {
+  /** `anlasEstimates`는 작업마다 메인 프로세스가 계산한 예상 Anlas다(화면 표시용). */
+  async enqueue(jobs: InpaintJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot> {
     const existing = new Set(this.snapshot.jobs.map((job) => job.id));
-    const queued = jobs.map((job) => {
+    const queued = jobs.map((job, index) => {
       const id = existing.has(job.id) ? `${job.id}-${randomUUID()}` : job.id;
       existing.add(id);
-      return createQueuedJob(job, id);
+      const item = createQueuedJob(job, id);
+      if (anlasEstimates?.[index] !== undefined) item.anlasEstimate = anlasEstimates[index];
+      return item;
     });
     this.snapshot.jobs.push(...queued);
     this.snapshot.paused = false;

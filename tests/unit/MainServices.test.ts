@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AccountService } from '../../electron/services/AccountService';
-import { GenerationRequests } from '../../electron/services/GenerationRequests';
+import { GenerationRequests, type CostEstimate } from '../../electron/services/GenerationRequests';
 import type { TokenStore, WorkspaceFolders } from '../../electron/services/ports';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { InpaintJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
@@ -106,23 +106,40 @@ describe('GenerationRequests', () => {
 
   function setup(latest?: TokenStatus, answer = false) {
     const queued: InpaintJobSnapshot[][] = [];
+    const queuedEstimates: (number[] | undefined)[] = [];
     const asked: string[][] = [];
+    const estimates: CostEstimate[] = [];
     const requests = new GenerationRequests(
       {
-        enqueue: async (jobs) => (queued.push(jobs), snapshot),
+        enqueue: async (jobs, anlas) => (queued.push(jobs), queuedEstimates.push(anlas), snapshot),
         getSnapshot: () => snapshot,
       },
       { latest, token: async () => 'token' },
-      async (_count, warnings) => (asked.push(warnings), answer),
+      async (_count, warnings, estimate) => (
+        asked.push(warnings),
+        estimates.push(estimate),
+        answer
+      ),
     );
-    return { requests, queued, asked };
+    return { requests, queued, queuedEstimates, asked, estimates };
   }
 
   it('무료 기준 안이면 묻지 않고 큐에 넣어', async () => {
-    const { requests, queued, asked } = setup();
+    const { requests, queued, queuedEstimates, asked } = setup();
     expect((await requests.enqueue({ jobs: [job] })).cancelled).toBe(false);
     expect(queued).toHaveLength(1);
+    expect(queuedEstimates).toEqual([[0]]);
     expect(asked).toHaveLength(0);
+  });
+
+  it('Anlas가 들면 예상 합계와 함께 묻고, 계속하면 작업마다 예상값을 큐에 넘겨', async () => {
+    const { requests, queuedEstimates, estimates } = setup(
+      { stored: true, secureStorageAvailable: true, tier: 1 },
+      true,
+    );
+    expect((await requests.enqueue({ jobs: [job, { ...job, id: 'j2' }] })).cancelled).toBe(false);
+    expect(estimates).toEqual([{ paidJobs: 2, anlas: 40 }]);
+    expect(queuedEstimates).toEqual([[20, 20]]);
   });
 
   it('렌더러가 경고를 빼도 V5 할당량 소진을 직접 판단해 확인을 받아', async () => {

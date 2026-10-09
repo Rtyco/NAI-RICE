@@ -3,7 +3,7 @@ import type { Project } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import { readableId, type ResolvedProject } from '../../core/model/defaults';
 import { uniqueName } from '../../core/model/mutations';
-import { checkFreeGeneration } from '../../core/providers/NaiCost';
+import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
@@ -228,18 +228,22 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const library = useLibrary();
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
+  const token = useStore((state) => state.token);
   if (!resolved) return null;
   const { project, preset, emotionSet, reference } = resolved;
   const batch = batchEmotionIds(project.id);
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
-  const cost =
+  // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
+  const costJob =
     preset && reference?.image
-      ? checkFreeGeneration(
-          preset.generation,
-          reference.image.canvasWidth,
-          reference.image.canvasHeight,
-        )
+      ? {
+          settings: preset.generation,
+          canvasWidth: reference.image.canvasWidth,
+          canvasHeight: reference.image.canvasHeight,
+        }
       : undefined;
+  const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
+  const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
 
   const duplicateProject = () => {
@@ -316,9 +320,17 @@ export function ProjectView({ projectId }: { projectId: string }) {
             resolved={resolved}
             generate={
               <>
-                {cost && !cost.free && (
-                  <span className="pill warn" title={cost.reasons.join('\n')}>
-                    Anlas 사용
+                {estimate !== undefined && (
+                  <span
+                    className={`pill ${estimate ? 'warn' : ''}`}
+                    title={[
+                      ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
+                      '예상값이며 실제 차감량과 다를 수 있습니다.',
+                    ].join('\n')}
+                  >
+                    {estimate
+                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
+                      : '예상 0 Anlas (무료)'}
                   </span>
                 )}
                 <button

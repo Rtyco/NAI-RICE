@@ -28,6 +28,12 @@ describe('parseNovelAIUserStatus', () => {
     });
   });
 
+  it('구독 등급을 읽고, 정수가 아니면 비워 둬', () => {
+    expect(parseNovelAIUserStatus({ subscription: { tier: 3 } }).tier).toBe(3);
+    expect(parseNovelAIUserStatus({ subscription: { tier: '3' } }).tier).toBeUndefined();
+    expect(parseNovelAIUserStatus({}).tier).toBeUndefined();
+  });
+
   it('서버가 보고한 100% 초과 잔량을 보존하고 불완전한 응답은 미확인으로 둬', () => {
     expect(
       parseNovelAIUserStatus({

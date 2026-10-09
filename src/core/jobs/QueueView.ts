@@ -29,6 +29,7 @@ export function toQueueView(snapshot: QueueSnapshot): QueueView {
       retryable: job.retryable,
       generationId: job.generationId,
       anlasSpent: job.anlasSpent,
+      anlasEstimate: job.anlasEstimate,
     })),
   };
 }

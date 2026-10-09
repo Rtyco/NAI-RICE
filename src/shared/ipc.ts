@@ -53,6 +53,8 @@ export type TokenStatus = {
   secureStorageAvailable: boolean;
   valid?: boolean;
   anlas?: number;
+  /** 구독 등급. 3이 Opus. */
+  tier?: number;
   v5Quota?: {
     percent: number;
     isNegative: boolean;

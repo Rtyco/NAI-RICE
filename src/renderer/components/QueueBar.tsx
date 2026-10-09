@@ -58,8 +58,14 @@ export function QueueBar() {
                     </b>
                     <small>
                       v{job.variantIndex} · seed {job.seed} · 시도 {job.attempts}/{job.maxAttempts}
-                      {job.anlasSpent !== undefined &&
-                        ` · Anlas ${job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)'}`}
+                      {job.anlasSpent !== undefined
+                        ? ` · Anlas ${job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)'}` +
+                          // 무료로 끝났고 예상도 0이면 덧붙일 것이 없다.
+                          (job.anlasEstimate !== undefined && (job.anlasSpent || job.anlasEstimate)
+                            ? ` (예상 ${job.anlasEstimate})`
+                            : '')
+                        : job.anlasEstimate !== undefined &&
+                          ` · 예상 ${job.anlasEstimate ? `약 ${job.anlasEstimate}` : '0'} Anlas`}
                     </small>
                   </button>
                   {job.error && <p>{job.error}</p>}

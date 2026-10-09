@@ -1,14 +1,21 @@
 import type { InpaintJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
 import { toQueueView } from '../../src/core/jobs/QueueView';
-import { generationCostWarnings } from '../../src/core/providers/NaiCost';
+import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
 import type { GenerationEnqueueResult, TokenStatus } from '../../src/shared/ipc';
 
+/** Anlas가 드는 작업 수와 예상 합계. */
+export type CostEstimate = { paidJobs: number; anlas: number };
+
 /** Anlas가 쓰일 수 있을 때 사용자에게 묻는다. 계속하면 true. */
-export type CostConfirmation = (jobCount: number, warnings: string[]) => Promise<boolean>;
+export type CostConfirmation = (
+  jobCount: number,
+  warnings: string[],
+  estimate: CostEstimate,
+) => Promise<boolean>;
 
 type Queue = {
-  enqueue(jobs: InpaintJobSnapshot[]): Promise<QueueSnapshot>;
+  enqueue(jobs: InpaintJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot>;
   getSnapshot(): QueueSnapshot;
 };
 
@@ -32,11 +39,17 @@ export class GenerationRequests {
     const parsed = generationEnqueueRequestSchema.safeParse(request);
     if (!parsed.success) throw new Error('생성 작업 형식이 올바르지 않습니다.');
     const jobs = parsed.data.jobs as InpaintJobSnapshot[];
-    const warnings = generationCostWarnings(jobs, this.account.latest?.v5Quota);
-    if (warnings.length && !(await this.confirmCost(jobs.length, warnings)))
+    const account = this.account.latest;
+    const warnings = generationCostWarnings(jobs, account);
+    const estimates = jobs.map((job) => estimateJobAnlas(job, account));
+    const estimate = {
+      paidJobs: estimates.filter((anlas) => anlas > 0).length,
+      anlas: estimates.reduce((sum, anlas) => sum + anlas, 0),
+    };
+    if (warnings.length && !(await this.confirmCost(jobs.length, warnings, estimate)))
       return { cancelled: true, snapshot: toQueueView(this.queue.getSnapshot()) };
     // 토큰이 없으면 큐에 넣기 전에 알린다.
     await this.account.token();
-    return { cancelled: false, snapshot: toQueueView(await this.queue.enqueue(jobs)) };
+    return { cancelled: false, snapshot: toQueueView(await this.queue.enqueue(jobs, estimates)) };
   }
 }

@@ -298,6 +298,8 @@ export type QueuedInpaintJob = InpaintJobSnapshot & {
   retryable?: boolean;
   generationId?: string;
   anlasSpent?: number;
+  /** 큐에 넣을 때 계산한 예상 Anlas. 이 값이 생기기 전에 넣은 작업에는 없다. */
+  anlasEstimate?: number;
 };
 
 export type QueueSnapshot = {
@@ -338,6 +340,7 @@ export type QueueJobView = Pick<
   | 'retryable'
   | 'generationId'
   | 'anlasSpent'
+  | 'anlasEstimate'
 >;
 
 export type QueueView = {

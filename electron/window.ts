@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, net, protocol, shell } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { imageMime } from './services/fsUtils';
+import type { CostEstimate } from './services/GenerationRequests';
 import type { Library } from './services/Library';
 
 export const MEDIA_SCHEME = 'desk-media';
@@ -45,12 +46,21 @@ export function anyWindowVisible(): boolean {
 }
 
 /** Anlas가 쓰일 수 있는 생성을 계속할지 묻는다. */
-export async function confirmAnlasUse(jobCount: number, warnings: string[]): Promise<boolean> {
+export async function confirmAnlasUse(
+  jobCount: number,
+  warnings: string[],
+  estimate: CostEstimate,
+): Promise<boolean> {
   const options: Electron.MessageBoxOptions = {
     type: 'warning',
     title: 'Anlas 사용 확인',
-    message: `${jobCount}개의 이미지가 무료 생성 기준을 넘어 Anlas가 차감될 수 있습니다.`,
-    detail: warnings.join('\n'),
+    message: `${estimate.paidJobs < jobCount ? `${jobCount}개 중 ` : ''}${estimate.paidJobs}개의 이미지가 무료 생성 기준을 넘어 Anlas가 차감될 수 있습니다.`,
+    detail: [
+      ...warnings,
+      '',
+      `예상 합계: 약 ${estimate.anlas.toLocaleString()} Anlas`,
+      '예상값이며 실제 차감량과 다를 수 있습니다.',
+    ].join('\n'),
     buttons: ['그래도 생성', '취소'],
     defaultId: 1,
     cancelId: 1,

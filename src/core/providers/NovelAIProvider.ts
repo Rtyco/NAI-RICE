@@ -25,6 +25,8 @@ export type NovelAIImageRequest = {
 export type NovelAIUserStatus = {
   valid: boolean;
   anlas?: number;
+  /** 구독 등급. 0 Paper, 1 Tablet, 2 Scroll, 3 Opus. */
+  tier?: number;
   v5Quota?: {
     percent: number;
     isNegative: boolean;
@@ -39,6 +41,7 @@ export function parseNovelAIUserStatus(payload: Record<string, any>): NovelAIUse
   const usage = payload?.subscription?.usage;
   const percent = Number(usage?.percent);
   const timeUntilNextPercent = Number(usage?.timeUntilNextPercent);
+  const tier = payload?.subscription?.tier;
   const hasV5Quota =
     Number.isFinite(percent) &&
     typeof usage?.isNegative === 'boolean' &&
@@ -47,6 +50,7 @@ export function parseNovelAIUserStatus(payload: Record<string, any>): NovelAIUse
   return {
     valid: true,
     ...(Number.isFinite(fixed) && Number.isFinite(purchased) ? { anlas: fixed + purchased } : {}),
+    ...(Number.isInteger(tier) ? { tier } : {}),
     ...(hasV5Quota
       ? {
           v5Quota: {

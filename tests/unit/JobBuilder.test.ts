@@ -10,7 +10,12 @@ import {
   DEFAULT_LAYOUT,
   DEFAULT_SETTINGS,
 } from '../../src/core/model/defaults';
-import { checkFreeGeneration, generationCostWarnings } from '../../src/core/providers/NaiCost';
+import {
+  checkFreeGeneration,
+  estimateJobAnlas,
+  generationCostWarnings,
+  imageAnlasCost,
+} from '../../src/core/providers/NaiCost';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
 
 const reference: Reference = {
@@ -233,7 +238,45 @@ describe('생성 큐 등록 검증', () => {
     expect(generationCostWarnings(jobsFor(28))).toEqual([]);
     expect(generationCostWarnings(jobsFor(40))).toHaveLength(1);
     const v5 = jobsFor(28, 'nai-diffusion-5-full-inpainting');
-    expect(generationCostWarnings(v5, { percent: 50, isNegative: false })).toEqual([]);
-    expect(generationCostWarnings(v5, { percent: 0, isNegative: false })).toHaveLength(1);
+    expect(generationCostWarnings(v5, { v5Quota: { percent: 50, isNegative: false } })).toEqual([]);
+    expect(generationCostWarnings(v5, { v5Quota: { percent: 0, isNegative: false } })).toHaveLength(
+      1,
+    );
+  });
+
+  it('Opus가 아니면 무료 기준 안이어도 경고하고, 등급을 모르면 Opus로 봐', () => {
+    expect(generationCostWarnings(jobsFor(28), { tier: 2 })).toEqual([
+      'Opus 구독이 아니어서 모든 생성에 Anlas가 듭니다.',
+    ]);
+    expect(generationCostWarnings(jobsFor(28), { tier: 3 })).toEqual([]);
+    expect(generationCostWarnings(jobsFor(28), {})).toEqual([]);
+  });
+
+  it('작업의 예상 Anlas: Opus 무료 기준 안이면 0, 넘거나 할당량이 없거나 Opus가 아니면 계산식 값', () => {
+    const [free] = jobsFor(28);
+    expect(estimateJobAnlas(free)).toBe(0);
+    expect(estimateJobAnlas(free, { tier: 3 })).toBe(0);
+    expect(estimateJobAnlas(free, { tier: 1 })).toBe(20);
+    const [steps40] = jobsFor(40);
+    expect(estimateJobAnlas(steps40)).toBe(imageAnlasCost({ width: 1216, height: 832, steps: 40 }));
+    const [v5] = jobsFor(28, 'nai-diffusion-5-full-inpainting');
+    expect(estimateJobAnlas(v5, { v5Quota: { percent: 10, isNegative: false } })).toBe(0);
+    expect(estimateJobAnlas(v5, { v5Quota: { percent: 0, isNegative: true } })).toBe(20);
+  });
+});
+
+describe('예상 Anlas', () => {
+  it('0단계 실측값과 커뮤니티 계산식에 맞춰', () => {
+    // 0단계: 512×512·29스텝 V4.5 일반 생성이 실제로 6 Anlas 차감됐다.
+    expect(imageAnlasCost({ width: 512, height: 512, steps: 29 })).toBe(6);
+    expect(imageAnlasCost({ width: 832, height: 1216, steps: 28 })).toBe(20);
+    // 832×1216보다 크고 1024×1024 이하는 832×1216과 같다.
+    expect(imageAnlasCost({ width: 1024, height: 1024, steps: 28 })).toBe(20);
+    expect(imageAnlasCost({ width: 1024, height: 1536, steps: 28 })).toBe(30);
+  });
+
+  it('i2i strength를 곱하고 최소 2 Anlas야', () => {
+    expect(imageAnlasCost({ width: 832, height: 1216, steps: 28, strength: 0.5 })).toBe(10);
+    expect(imageAnlasCost({ width: 64, height: 64, steps: 1, strength: 0.1 })).toBe(2);
   });
 });
