@@ -3046,9 +3046,21 @@ textarea.syntax-input::selection {
   border: 1px solid var(--line);
   border-radius: 6px;
 }
-.stepper b {
-  min-width: 18px;
+.stepper input {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
   text-align: center;
+}
+.stepper input:focus {
+  outline: none;
+  border-radius: 4px;
+  background: var(--bg-4);
+}
+.chain-chip .stepper {
+  border-color: transparent;
 }
 .stepper .icon-button {
   width: 22px;
@@ -3073,11 +3085,11 @@ textarea.syntax-input::selection {
   margin: 0 4px;
   background: var(--line);
 }
-/* 줄이 넘쳐 아래로 내려가도 오른쪽에 붙고, 앞의 구분 바도 함께 따라간다. */
-.generate-zone {
+/* 카드 크기는 맨 오른쪽. 줄이 넘쳐 아래로 내려가도 오른쪽에 붙고, 앞의 구분 바도 함께 따라간다. */
+.view-zone {
   margin-left: auto;
 }
-.generate-zone::before {
+.view-zone::before {
   content: '';
   width: 1px;
   height: 22px;

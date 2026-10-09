@@ -14,7 +14,7 @@ import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { BottomSlot } from '../components/BottomSlot';
 import { ChainChip, SizeChip } from '../components/ChainChip';
-import { Icon } from '../components/Icon';
+import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
@@ -50,25 +50,14 @@ function VariantsStepper({ preset }: { preset: Preset }) {
       className="zone-field"
       title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
     >
-      <span className="stepper">
-        <button
-          className="icon-button"
-          aria-label="한 장 줄이기"
-          disabled={value <= 1}
-          onClick={() => change(value - 1)}
-        >
-          <Icon name="minus" size={14} />
-        </button>
-        <b>{value}</b>
-        <button
-          className="icon-button"
-          aria-label="한 장 늘리기"
-          disabled={value >= MAX_VARIANTS}
-          onClick={() => change(value + 1)}
-        >
-          <Icon name="plus" size={14} />
-        </button>
-      </span>
+      <Stepper
+        value={value}
+        min={1}
+        max={MAX_VARIANTS}
+        step={1}
+        label="씬마다 만들 장수"
+        onChange={change}
+      />
       장
     </span>
   );

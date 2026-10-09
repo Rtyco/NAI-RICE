@@ -5,6 +5,7 @@ import { patchItem } from '../../core/model/mutations';
 import { sectionInfo } from '../sections';
 import { openLibrary, updateLibrary, type LibrarySection } from '../store';
 import { Icon, type IconName } from './Icon';
+import { Stepper } from './Stepper';
 
 /**
  * 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보이고, 라이브러리의 그
@@ -86,38 +87,39 @@ export function SizeChip({ preset }: { preset: Preset }) {
 
 type PresetNumberField = 'img2imgStrength' | 'img2imgNoise' | 'inpaintStrength';
 
+// 범위는 생성 설정 화면의 같은 입력과 맞춘다.
 const PRESET_NUMBER_CHIPS: Record<
   PresetNumberField,
-  { text: string; icon: IconName; usage: string; choices: number[] }
+  { text: string; icon: IconName; usage: string; min: number; max: number }
 > = {
   img2imgStrength: {
-    text: 'Strength',
+    text: '강도',
     icon: 'refresh',
-    usage: '낮을수록 원본을 많이 남깁니다',
-    choices: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+    usage: 'i2i 강도(Strength) · 낮을수록 원본을 많이 남깁니다',
+    min: 0.01,
+    max: 0.99,
   },
   img2imgNoise: {
-    text: 'Noise',
+    text: '노이즈',
     icon: 'sparkle',
-    usage: '높을수록 원본에 없던 세부를 더 그려 넣습니다',
-    choices: [0, 0.05, 0.1, 0.15, 0.2, 0.3],
+    usage: 'i2i 노이즈(Noise) · 높을수록 원본에 없던 세부를 더 그려 넣습니다',
+    min: 0,
+    max: 0.99,
   },
   // NovelAI 웹 인페인팅의 Strength(inpaintImg2ImgStrength). 기본 1은 칠한 곳을 새로 그린다.
   inpaintStrength: {
-    text: 'Strength',
+    text: '강도',
     icon: 'brush',
-    usage: '낮을수록 칠한 곳의 원래 모습을 많이 남깁니다',
-    choices: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+    usage: '인페인팅 강도(Strength) · 낮을수록 칠한 곳의 원래 모습을 많이 남깁니다',
+    min: 0,
+    max: 1,
   },
 };
 
-/** i2i·인페인팅의 Strength·Noise. 생성 설정에 저장된다. */
+/** i2i·인페인팅의 강도·노이즈. 생성 설정에 저장된다. */
 export function PresetNumberChip({ preset, field }: { preset: Preset; field: PresetNumberField }) {
   const chip = PRESET_NUMBER_CHIPS[field];
   const value = normalizeGenerationSettings(preset.generation)[field];
-  const choices = chip.choices.includes(value)
-    ? chip.choices
-    : [...chip.choices, value].sort((a, b) => a - b);
   return (
     <ChainChip
       section="presets"
@@ -128,24 +130,21 @@ export function PresetNumberChip({ preset, field }: { preset: Preset; field: Pre
         usage: `${chip.usage} · 생성 설정 「${preset.name}」에 저장됩니다`,
       }}
     >
-      <select
+      <Stepper
         value={value}
-        onChange={(event) => {
-          const next = Number(event.target.value);
+        min={chip.min}
+        max={chip.max}
+        step={0.05}
+        label={chip.text}
+        onChange={(next) =>
           updateLibrary((library) =>
             patchItem(library, 'presets', preset.id, (item) => ({
               ...item,
               generation: { ...item.generation, [field]: next },
             })),
-          );
-        }}
-      >
-        {choices.map((choice) => (
-          <option key={choice} value={choice}>
-            {choice}
-          </option>
-        ))}
-      </select>
+          )
+        }
+      />
     </ChainChip>
   );
 }

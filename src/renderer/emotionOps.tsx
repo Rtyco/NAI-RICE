@@ -203,7 +203,7 @@ export function emotionMenu(
         })),
     },
     {
-      label: '대표 이미지 업스케일',
+      label: '대표 이미지 i2i로 보내기',
       hint: '없으면 최신',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),

@@ -264,9 +264,9 @@ export function FreeView() {
         void run('폴더를 여는 중', () => libraryApi().showGeneration(FREE_PROJECT_ID, record.id)),
     },
     {
-      label: '업스케일',
+      label: 'i2i로 보내기',
       icon: 'upscale',
-      title: '이 결과를 더 큰 크기로 i2i해 다시 그립니다(업스케일 우회)',
+      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
     },
     {

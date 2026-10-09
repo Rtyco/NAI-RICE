@@ -207,25 +207,45 @@ export function GalleryView({
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       {/*
-        한 줄을 구분 바로 세 구역으로 나눈다. 카드 크기, 카드 고르기(일괄 작업), 생성할 씬 체크·씬마다 장수·내보내기.
-        생성 버튼과 예상 Anlas는 아래 생성 큐 막대(BottomSlot)에 있다. 체크는 일괄 생성 대상이고, 카드 고르기
-        (Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
+        한 줄을 구분 바로 세 구역으로 나눈다. 생성할 씬 체크·씬마다 장수·내보내기, 카드 고르기(일괄 작업), 맨
+        오른쪽에 카드 크기. 생성 버튼과 예상 Anlas는 아래 생성 큐 막대(BottomSlot)에 있다. 체크는 일괄 생성
+        대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
       */}
       <div className="toolbar gallery-toolbar">
-        <section className="toolbar-zone" aria-label="보기">
-          <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
-            {GALLERY_COLUMN_CHOICES.map((choice) => (
-              <button
-                key={choice}
-                className={choice === columns ? 'active' : ''}
-                aria-pressed={choice === columns}
-                title={`한 줄에 ${choice}장`}
-                onClick={() => setGalleryColumns(choice)}
-              >
-                {choice}
-              </button>
-            ))}
+        <section className="toolbar-zone" aria-label="생성할 씬">
+          <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
+            <span>
+              씬 <b>{included}</b>/{emotionSet.emotions.length}
+            </span>
           </span>
+          <button
+            onClick={() =>
+              updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
+            }
+          >
+            모두 체크
+          </button>
+          <button
+            onClick={() =>
+              updateProject(project.id, (current) => ({
+                ...current,
+                excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
+              }))
+            }
+          >
+            모두 해제
+          </button>
+          {countControl}
+          <button
+            className="with-icon"
+            disabled={!withResults}
+            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
+            onClick={() =>
+              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
+            }
+          >
+            <Icon name="export" size={14} /> 내보내기
+          </button>
         </section>
 
         <span className="zone-divider" />
@@ -295,40 +315,20 @@ export function GalleryView({
           )}
         </section>
 
-        <section className="toolbar-zone generate-zone" aria-label="생성">
-          <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
-            <span>
-              씬 <b>{included}</b>/{emotionSet.emotions.length}
-            </span>
+        <section className="toolbar-zone view-zone" aria-label="보기">
+          <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
+            {GALLERY_COLUMN_CHOICES.map((choice) => (
+              <button
+                key={choice}
+                className={choice === columns ? 'active' : ''}
+                aria-pressed={choice === columns}
+                title={`한 줄에 ${choice}장`}
+                onClick={() => setGalleryColumns(choice)}
+              >
+                {choice}
+              </button>
+            ))}
           </span>
-          <button
-            onClick={() =>
-              updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
-            }
-          >
-            모두 체크
-          </button>
-          <button
-            onClick={() =>
-              updateProject(project.id, (current) => ({
-                ...current,
-                excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
-              }))
-            }
-          >
-            모두 해제
-          </button>
-          {countControl}
-          <button
-            className="with-icon"
-            disabled={!withResults}
-            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
-            onClick={() =>
-              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
-            }
-          >
-            <Icon name="export" size={14} /> 내보내기
-          </button>
         </section>
       </div>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
