@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FreeImageSource, GenerationSummary } from '../../core/domain/types';
+import type { GenerationSummary, Img2ImgSource } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { generateFree } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip, StrengthChip } from '../components/ChainChip';
+import { ChainChip, SizeChip, SourceChip, StrengthChip } from '../components/ChainChip';
 import { Icon } from '../components/Icon';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ExpandTextButton } from '../components/TextEditorDialog';
@@ -13,7 +13,9 @@ import { NumberField } from '../components/ui';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { fileApi, libraryApi } from '../desktop';
 import { deleteResults, openImg2ImgDialog } from '../generationOps';
+import { addSourceFromRecord, sourceMedia } from '../sourceOps';
 import {
+  openSources,
   projectMedia,
   resolveFreeGeneration,
   run,
@@ -26,60 +28,23 @@ import { RecordInfo } from './EmotionDetail';
 
 const NO_RECORDS: GenerationSummary[] = [];
 
-function pickSourceFile(): Promise<void> {
-  return run('이미지를 불러오는 중', async () => {
-    const file = await fileApi().openImageFile();
-    if (!file) return;
-    const stored = await libraryApi().storeImageInput(FREE_PROJECT_ID, file.dataUrl);
-    updateFreeGeneration({
-      mode: 'img2img',
-      source: {
-        kind: 'input',
-        imagePath: stored.imagePath,
-        name: file.name,
-        width: stored.width,
-        height: stored.height,
-      },
-    });
-  }).then(() => undefined);
-}
-
-/** i2i 원본: 고른 파일이나 자유 생성 결과. 결과가 지워졌으면 다시 고르게 한다. */
-function SourcePanel({
-  source,
-  records,
-}: {
-  source: FreeImageSource | undefined;
-  records: GenerationSummary[];
-}) {
-  const record =
-    source?.kind === 'record' ? records.find((item) => item.id === source.generationId) : undefined;
-  const preview =
-    source?.kind === 'input'
-      ? projectMedia(FREE_PROJECT_ID, source.imagePath)
-      : record && projectMedia(FREE_PROJECT_ID, record.thumbFile ?? record.file);
-  const label =
-    source?.kind === 'input'
-      ? `${source.name} · ${source.width}×${source.height}`
-      : record
-        ? `결과 seed ${record.seed} · ${record.width}×${record.height}`
-        : source
-          ? '원본 결과가 지워졌습니다'
-          : '아직 고르지 않았습니다';
+/** 고른 i2i 원본을 크게 보여 준다. 어떤 이미지를 다시 그리는지 바로 알 수 있게 한다. */
+function SourcePanel({ source }: { source: Img2ImgSource | undefined }) {
   return (
     <section className="detail-card i2i-source">
       <div className="detail-card-head">
         <b>i2i 원본</b>
-        <button className="link-button" onClick={() => void pickSourceFile()}>
-          파일에서 고르기
+        <button className="link-button" onClick={openSources}>
+          라이브러리 열기
         </button>
       </div>
       <div className="i2i-source-body">
-        {preview ? <img src={preview} alt="" /> : <span className="i2i-source-empty" />}
+        {source ? <img src={sourceMedia(source)} alt="" /> : <span className="i2i-source-empty" />}
         <span className="hint">
-          {label}
+          {source ? `${source.name} · ${source.width}×${source.height}` : '아직 고르지 않았습니다'}
           <br />
-          결과의 「i2i 원본으로」로도 고를 수 있습니다. 비율이 다르면 위쪽을 남기고 잘라 맞춥니다.
+          위쪽 「i2i 원본」 칩이나 결과의 「i2i 원본으로」로 고릅니다. 비율이 다르면 위쪽을 남기고
+          잘라 맞춥니다.
         </span>
       </div>
     </section>
@@ -90,6 +55,7 @@ function SourcePanel({
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, character, promptSet } = resolveFreeGeneration(library);
+  const source = library.img2imgSources.find((item) => item.id === free.sourceId);
   const allRecords = useStore((state) => state.generations[FREE_PROJECT_ID]) ?? NO_RECORDS;
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
@@ -145,7 +111,7 @@ export function FreeView() {
   const canGenerate =
     Boolean(preset) &&
     Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
-    (free.mode === 'txt2img' || Boolean(free.source));
+    (free.mode === 'txt2img' || Boolean(source));
 
   return (
     <section className="project-view">
@@ -235,6 +201,12 @@ export function FreeView() {
         </ChainChip>
         {preset && <SizeChip preset={preset} />}
         {preset && free.mode === 'img2img' && <StrengthChip preset={preset} />}
+        {free.mode === 'img2img' && (
+          <SourceChip
+            sourceId={free.sourceId}
+            onChange={(sourceId) => updateFreeGeneration({ sourceId })}
+          />
+        )}
       </div>
 
       <div className="project-body animate-in">
@@ -309,7 +281,7 @@ export function FreeView() {
             </section>
 
             <aside className="detail-side">
-              {free.mode === 'img2img' && <SourcePanel source={free.source} records={records} />}
+              {free.mode === 'img2img' && <SourcePanel source={source} />}
               <label className="prompt-field">
                 <span>
                   프롬프트
@@ -416,12 +388,12 @@ export function FreeView() {
                     </button>
                     <button
                       onClick={() =>
-                        updateFreeGeneration({
-                          mode: 'img2img',
-                          source: { kind: 'record', generationId: selected.id },
-                        })
+                        void addSourceFromRecord(FREE_PROJECT_ID, selected).then(
+                          (sourceId) =>
+                            sourceId && updateFreeGeneration({ mode: 'img2img', sourceId }),
+                        )
                       }
-                      title="이 결과를 i2i 원본으로 두고, 프롬프트를 바꿔 여러 장 다시 그립니다"
+                      title="이 결과를 i2i 원본 라이브러리에 넣고 원본으로 고릅니다. 프롬프트를 바꿔 여러 장 다시 그릴 때 씁니다"
                     >
                       i2i 원본으로
                     </button>

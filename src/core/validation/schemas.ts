@@ -159,6 +159,7 @@ export const projectSchema = z.object({
   promptSetId: z.string(),
   emotionSetId: z.string(),
   referenceId: z.string(),
+  img2imgSourceId: z.string().optional(),
   excludedEmotionIds: z.array(z.string()).default([]),
   favorites: z.record(z.string(), z.string()).default({}),
   createdAt: z.string(),
@@ -201,6 +202,19 @@ export const librarySchema = z.object({
   references: z.array(referenceSchema),
   projects: z.array(projectSchema),
   pieceSets: z.array(pieceSetSchema).default([]),
+  img2imgSources: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        file: z.string().regex(/^[0-9a-f]+\.png$/),
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+        createdAt: z.string(),
+        fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
+      }),
+    )
+    .default([]),
   freeGeneration: z
     .object({
       presetId: z.string(),
@@ -209,18 +223,7 @@ export const librarySchema = z.object({
       prompt: z.string(),
       count: z.number().int().min(1).max(20),
       mode: z.enum(['txt2img', 'img2img']).default('txt2img'),
-      source: z
-        .discriminatedUnion('kind', [
-          z.object({ kind: z.literal('record'), generationId: z.string().min(1) }),
-          z.object({
-            kind: z.literal('input'),
-            imagePath: z.string().min(1),
-            name: z.string(),
-            width: z.number().int().positive(),
-            height: z.number().int().positive(),
-          }),
-        ])
-        .optional(),
+      sourceId: z.string().optional(),
     })
     .default({
       presetId: '',
@@ -256,6 +259,7 @@ export const generationRecordSchema = z.object({
   file: z.string(),
   thumbFile: z.string().optional(),
   canvasFile: z.string().optional(),
+  inputFile: z.string().optional(),
   width: z.number(),
   height: z.number(),
   seed: z.number(),

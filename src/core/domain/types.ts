@@ -146,7 +146,7 @@ export type Reference = {
 /**
  * 인페인트(`reference`, 예전 이름 레퍼런스 생성)는 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지
  * 없이 txt2img로 만든다.
- * i2i는 인페인트의 원본 이미지를 생성 설정의 해상도로 맞춰 다시 그린다.
+ * i2i는 i2i 원본 라이브러리의 이미지를 생성 설정의 해상도로 맞춰 다시 그린다.
  */
 export type ProjectMode = 'reference' | 'txt2img' | 'img2img';
 
@@ -159,8 +159,10 @@ export type Project = {
   characterId: string;
   promptSetId: string;
   emotionSetId: string;
-  /** 일반 생성에서는 쓰지 않지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
+  /** 인페인트 방식에서만 쓰지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
   referenceId: string;
+  /** i2i 방식에서 다시 그릴 i2i 원본 라이브러리의 이미지. */
+  img2imgSourceId?: string;
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
   /** 감정별 대표 이미지(생성 기록 ID). */
@@ -221,13 +223,21 @@ export type FreeGeneration = {
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
   mode: 'txt2img' | 'img2img';
-  /** i2i 원본. 자유 생성 결과이거나 파일에서 골라 `projects/free/inputs/`에 넣어 둔 이미지다. */
-  source?: FreeImageSource;
+  /** i2i 원본 라이브러리에서 고른 이미지. */
+  sourceId?: string;
 };
 
-export type FreeImageSource =
-  | { kind: 'record'; generationId: string }
-  | { kind: 'input'; imagePath: string; name: string; width: number; height: number };
+/** i2i 원본 라이브러리의 이미지 하나. 파일은 `sources/<file>`에 있다. */
+export type Img2ImgSource = {
+  id: string;
+  name: string;
+  file: string;
+  width: number;
+  height: number;
+  createdAt: string;
+  /** 생성 결과에서 가져왔으면 그 기록. 같은 곳에서 i2i하면 결과에 `sourceRecordId`로 남긴다. */
+  fromRecord?: { projectId: string; generationId: string };
+};
 
 export type Library = {
   schemaVersion: 2;
@@ -238,6 +248,7 @@ export type Library = {
   references: Reference[];
   projects: Project[];
   pieceSets: PieceSet[];
+  img2imgSources: Img2ImgSource[];
   freeGeneration: FreeGeneration;
   lastProjectId?: string;
 };
@@ -266,6 +277,8 @@ export type GenerationRecord = {
   file: string;
   thumbFile?: string;
   canvasFile?: string;
+  /** i2i·디렉터 툴에 실제로 보낸 입력(목표 크기로 맞춘 것). 작업 폴더의 `inputs/`에 있다. */
+  inputFile?: string;
   width: number;
   height: number;
   seed: number;

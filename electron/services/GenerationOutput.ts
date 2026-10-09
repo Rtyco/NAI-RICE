@@ -105,6 +105,7 @@ export async function saveGenerationOutput(
     file: store.toProjectRelative(job.projectId, outputPath),
     thumbFile: store.toProjectRelative(job.projectId, thumbPath),
     canvasFile: canvasPath ? store.toProjectRelative(job.projectId, canvasPath) : undefined,
+    ...(job.kind === 'img2img' || job.kind === 'augment' ? { inputFile: job.imagePath } : {}),
     width,
     height,
     seed: job.seed,

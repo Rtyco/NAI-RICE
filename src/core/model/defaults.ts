@@ -7,6 +7,7 @@ import type {
   EmotionSet,
   GenerationKind,
   GenerationSettings,
+  Img2ImgSource,
   Library,
   PieceSet,
   Preset,
@@ -202,6 +203,7 @@ export function createDefaultLibrary(): Library {
     references: [],
     projects: [],
     pieceSets: [],
+    img2imgSources: [],
     freeGeneration: {
       presetId: '',
       characterId: '',
@@ -220,6 +222,7 @@ export type ResolvedProject = {
   promptSet?: CharacterPromptSet;
   emotionSet?: EmotionSet;
   reference?: Reference;
+  img2imgSource?: Img2ImgSource;
   missing: string[];
 };
 
@@ -236,16 +239,17 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
   const inpaint = project.mode === 'reference';
-  const needsImage = project.mode !== 'txt2img';
+  const img2imgSource = library.img2imgSources.find((item) => item.id === project.img2imgSourceId);
   const missing = [
     !preset && '생성 설정',
     !character && '캐릭터',
     !emotionSet && '감정 모음',
-    needsImage && !reference && '인페인트',
-    needsImage && reference && !reference.image && '참고 이미지',
+    inpaint && !reference && '인페인트',
+    inpaint && reference && !reference.image && '참고 이미지',
+    project.mode === 'img2img' && !img2imgSource && 'i2i 원본',
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
   ].filter(Boolean) as string[];
-  return { project, preset, character, promptSet, emotionSet, reference, missing };
+  return { project, preset, character, promptSet, emotionSet, reference, img2imgSource, missing };
 }
 
 /** 이 항목을 쓰고 있는 작업 목록. 삭제 전 확인용. */

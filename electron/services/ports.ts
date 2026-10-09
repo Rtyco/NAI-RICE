@@ -53,6 +53,7 @@ export interface WorkspaceFolders {
   readonly root: string;
   projectDir(projectId: string): string;
   referenceDir(referenceId: string): string;
+  sourceFile(file: string): string;
   emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string;
   resolveProject(projectId: string, relative: string): string;
   findGeneration(projectId: string, generationId: string): Promise<GenerationRecord>;

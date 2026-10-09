@@ -5,6 +5,7 @@ import type {
   GenerationKind,
   GenerationRecord,
   Img2ImgJobSnapshot,
+  Img2ImgSource,
   InpaintJobSnapshot,
   PieceSet,
   Preset,
@@ -49,7 +50,7 @@ export type Txt2ImgJobBuildInput = EmotionJobBuildInput;
 export type ImageInput = { imagePath: string; imageSha256: string };
 
 export type Img2ImgJobBuildInput = EmotionJobBuildInput & {
-  reference: Reference;
+  source: Img2ImgSource;
   image: ImageInput;
 };
 
@@ -331,14 +332,17 @@ export function buildFreeJobs(
 /** 감정이 없는 자유 생성 결과는 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다. */
 export const FREE_FILENAME_TEMPLATE = '{date}-{time}__{seed}';
 
-/** i2i 모드: 인페인트의 원본 이미지를 감정마다 다시 그린다. 크기는 생성 설정의 해상도다. */
+/**
+ * i2i 모드: i2i 원본을 감정마다 다시 그린다. 크기는 생성 설정의 해상도다. 원본이 이 작업의 결과였으면
+ * 결과에 `sourceRecordId`를 남긴다.
+ */
 export function buildImg2ImgJobs(input: Img2ImgJobBuildInput): Img2ImgJobSnapshot[] {
   const settings = normalizeGenerationSettings(input.preset.generation);
   return buildEmotionJobs(
     input,
     'img2img',
     {
-      referenceName: input.reference.name,
+      referenceName: input.source.name,
       canvasWidth: settings.width,
       canvasHeight: settings.height,
     },
@@ -346,6 +350,9 @@ export function buildImg2ImgJobs(input: Img2ImgJobBuildInput): Img2ImgJobSnapsho
       ...common,
       kind: 'img2img',
       ...input.image,
+      ...(input.source.fromRecord?.projectId === input.project.id
+        ? { sourceRecordId: input.source.fromRecord.generationId }
+        : {}),
       strength: settings.img2imgStrength,
       noise: settings.img2imgNoise,
     }),

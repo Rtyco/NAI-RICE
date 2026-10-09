@@ -49,11 +49,13 @@ export type PreparedInputs = {
   maskSha256: string;
 };
 
-/** i2i 입력으로 쓸 이미지. 결과, 인페인트의 원본 이미지, 미리 올려 둔 파일 중 하나다. */
+/** i2i 입력으로 쓸 이미지. 결과이거나 i2i 원본 라이브러리(`sources/`)의 이미지다. */
 export type ImageInputSource =
-  | { kind: 'record'; projectId: string; generationId: string }
-  | { kind: 'reference'; referenceId: string; file: string }
-  | { kind: 'input'; projectId: string; imagePath: string };
+  { kind: 'record'; projectId: string; generationId: string } | { kind: 'source'; file: string };
+
+/** i2i 원본 라이브러리에 넣을 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
+export type SourceImageAdd =
+  { kind: 'data'; dataUrl: string } | { kind: 'record'; projectId: string; generationId: string };
 
 /**
  * NovelAI는 i2i 입력을 요청 크기로 비율을 무시하고 늘리므로(0단계), 보내기 전에 목표 크기로 맞춘다.
@@ -69,7 +71,8 @@ export type ImageInputRequest = {
 
 export type PreparedImage = { imagePath: string; imageSha256: string };
 
-export type StoredImage = PreparedImage & { width: number; height: number };
+/** `sources/` 기준 파일 이름. 같은 이미지는 같은 이름이 된다. */
+export type StoredSource = { file: string; width: number; height: number };
 
 export type TokenStatus = {
   stored: boolean;
@@ -117,7 +120,8 @@ export type OpenTarget =
   | { kind: 'emotion'; projectId: string; emotionName: string; method: GenerationKind }
   | { kind: 'reference'; referenceId: string };
 
-export type MediaOwner = { kind: 'project' | 'reference'; id: string };
+/** `source`는 id 없이 `sources/<파일>`을 가리킨다. */
+export type MediaOwner = { kind: 'project' | 'reference'; id: string } | { kind: 'source' };
 
 export type LibraryApi = {
   loadLibrary: () => Promise<LibrarySnapshot>;
@@ -128,8 +132,8 @@ export type LibraryApi = {
   deleteReferenceFiles: (referenceId: string) => Promise<void>;
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
-  /** 파일에서 고른 이미지를 작업의 inputs/에 PNG로 넣어 두고, 나중에 `input` 출처로 쓴다. */
-  storeImageInput: (projectId: string, dataUrl: string) => Promise<StoredImage>;
+  addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
+  deleteSourceImage: (file: string) => Promise<void>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
   /** 화면 목록용 요약. 프롬프트·설정은 getGeneration으로 하나씩 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;

@@ -98,6 +98,7 @@ export function migrateV1(workspace: V1Workspace, characters: V1Character[]): { 
     })),
     references: [],
     projects: [],
+    img2imgSources: [],
     freeGeneration: createDefaultLibrary().freeGeneration,
     lastProjectId: workspace.lastCharacterId,
   };

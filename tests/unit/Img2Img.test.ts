@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Library } from '../../electron/services/Library';
-import type { GenerationRecord, Reference } from '../../src/core/domain/types';
+import type { GenerationRecord, Img2ImgSource, Reference } from '../../src/core/domain/types';
 import {
   buildFreeJobs,
   buildImg2ImgJobs,
@@ -28,6 +28,15 @@ const temporary: string[] = [];
 afterEach(async () => {
   await Promise.all(temporary.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
+
+const source: Img2ImgSource = {
+  id: 'source-1',
+  name: '원본',
+  file: `${'b'.repeat(24)}.png`,
+  width: 608,
+  height: 832,
+  createdAt: '2026-10-10T00:00:00.000Z',
+};
 
 const image = { imagePath: `inputs/${'a'.repeat(64)}.png`, imageSha256: 'a'.repeat(64) };
 
@@ -99,7 +108,7 @@ describe('i2i 작업', () => {
       emotionSet,
       emotionIds: [emotionSet.emotions[0].id],
       settings: DEFAULT_SETTINGS,
-      reference,
+      source: { ...source, fromRecord: { projectId: project.id, generationId: 'rec-0' } },
       image,
     });
     expect(jobs[0]).toMatchObject({
@@ -108,31 +117,28 @@ describe('i2i 작업', () => {
       canvasHeight: 1216,
       strength: 0.35,
       noise: 0.1,
-      referenceName: '아리아',
+      referenceName: '원본',
+      sourceRecordId: 'rec-0',
       ...image,
     });
     expect(jobs[0].prompt).not.toContain('reference inset');
     expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
   });
 
-  it('i2i 모드도 참고 이미지가 있어야 생성할 수 있어', () => {
+  it('i2i 모드는 인페인트 대신 i2i 원본이 있어야 생성할 수 있어', () => {
     const library = createDefaultLibrary();
     const { character, project } = setup();
     const empty = createReference('빈 인페인트');
-    const full = {
-      ...library,
-      characters: [character],
-      references: [empty],
-      projects: [
-        {
-          ...project,
-          presetId: library.presets[0].id,
-          emotionSetId: library.emotionSets[0].id,
-          referenceId: empty.id,
-        },
-      ],
+    const base = {
+      ...project,
+      presetId: library.presets[0].id,
+      emotionSetId: library.emotionSets[0].id,
+      referenceId: empty.id,
     };
-    expect(resolveProject(full, full.projects[0]).missing).toEqual(['참고 이미지']);
+    const full = { ...library, characters: [character], references: [empty], projects: [base] };
+    expect(resolveProject(full, base).missing).toEqual(['i2i 원본']);
+    const withSource = { ...full, img2imgSources: [source] };
+    expect(resolveProject(withSource, { ...base, img2imgSourceId: source.id }).missing).toEqual([]);
   });
 
   it('결과를 i2i로 보내면 원래 프롬프트에서 reference inset만 빼고 원본 seed부터 이어가', () => {
@@ -179,7 +185,7 @@ describe('i2i 작업', () => {
 });
 
 describe('i2i 입력 준비', () => {
-  it('목표 크기로 자르거나 여백을 넣고, 해시 이름으로 inputs에 한 번만 저장해', async () => {
+  it('i2i 원본을 sources에 넣고, 목표 크기로 자르거나 여백을 넣어 작업의 inputs에 저장해', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'desk-'));
     temporary.push(root);
     const library = new Library(root);
@@ -189,13 +195,15 @@ describe('i2i 입력 준비', () => {
     })
       .png()
       .toBuffer();
-    const stored = await library.storeImageInput(
-      'free',
-      `data:image/png;base64,${source.toString('base64')}`,
-    );
+    const dataUrl = `data:image/png;base64,${source.toString('base64')}`;
+    const stored = await library.addSourceImage({ kind: 'data', dataUrl });
     expect(stored).toMatchObject({ width: 300, height: 100 });
+    expect(stored.file).toMatch(/^[0-9a-f]{24}\.png$/);
+    // 같은 이미지는 같은 파일이 된다.
+    expect((await library.addSourceImage({ kind: 'data', dataUrl })).file).toBe(stored.file);
+    await expect(readFile(path.join(root, 'sources', stored.file))).resolves.toBeTruthy();
 
-    const input = { kind: 'input' as const, projectId: 'free', imagePath: stored.imagePath };
+    const input = { kind: 'source' as const, file: stored.file };
     const cropped = await library.prepareImageInput({
       projectId: 'free',
       source: input,

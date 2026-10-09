@@ -13,12 +13,14 @@ import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip, StrengthChip } from '../components/ChainChip';
+import { ChainChip, SizeChip, SourceChip, StrengthChip } from '../components/ChainChip';
 import { Menu } from '../components/ui';
 import { deleteProject } from '../projectOps';
+import { sourceMedia } from '../sourceOps';
 import {
   openLibrary,
   openProject,
+  openSources,
   referenceMedia,
   run,
   toast,
@@ -38,7 +40,7 @@ const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   {
     value: 'img2img',
     label: 'i2i',
-    title: '인페인트의 원본 이미지를 생성 설정의 해상도로 맞춰 감정마다 다시 그립니다',
+    title: 'i2i 원본 라이브러리의 이미지를 생성 설정의 해상도로 맞춰 감정마다 다시 그립니다',
   },
 ];
 
@@ -123,7 +125,13 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           </>
         )}
       </ChainChip>
-      {project.mode !== 'txt2img' && (
+      {project.mode === 'img2img' && (
+        <SourceChip
+          sourceId={project.img2imgSourceId}
+          onChange={(img2imgSourceId) => patch({ img2imgSourceId })}
+        />
+      )}
+      {project.mode === 'reference' && (
         <ChainChip
           section="references"
           itemId={resolved.reference?.id}
@@ -322,6 +330,19 @@ export function ProjectView({ projectId }: { projectId: string }) {
         />
       </header>
       <ChainBar resolved={resolved} />
+      {project.mode === 'img2img' && resolved.img2imgSource && generation && (
+        <div className="i2i-strip">
+          <img src={sourceMedia(resolved.img2imgSource)} alt="" />
+          <span>
+            <b>{resolved.img2imgSource.name}</b> ({resolved.img2imgSource.width}×
+            {resolved.img2imgSource.height})을(를) {generation.width}×{generation.height}로 맞춰
+            감정마다 다시 그립니다 · 세기 {generation.img2imgStrength}
+          </span>
+          <button className="link-button" onClick={openSources}>
+            i2i 원본 라이브러리
+          </button>
+        </div>
+      )}
       {resolved.missing.length > 0 && (
         <div className="missing-banner">
           ⚠ 생성하려면 {resolved.missing.join(', ')}이(가) 필요합니다.
@@ -332,7 +353,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
               바꾸거나 일반 생성으로 전환하십시오.
             </span>
           )}
-          {project.mode !== 'txt2img' && !reference?.image && reference && (
+          {project.mode === 'reference' && !reference?.image && reference && (
             <button className="link-button" onClick={() => openLibrary('references', reference.id)}>
               참고 이미지 설정하기 →
             </button>

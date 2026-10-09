@@ -17,6 +17,7 @@ import {
   openFree,
   openLibrary,
   openProject,
+  openSources,
   referenceMedia,
   run,
   setSettingsOpen,
@@ -528,6 +529,26 @@ export function Sidebar() {
                 )}
               </button>
             ))}
+            <button
+              title={
+                collapsed
+                  ? 'i2i 원본 · i2i로 다시 그릴 이미지'
+                  : '작업의 i2i 방식과 자유 생성 i2i가 여기서 원본을 고릅니다'
+              }
+              className={view.kind === 'sources' ? 'active' : ''}
+              onClick={openSources}
+            >
+              <Icon name="images" />
+              {!collapsed && (
+                <>
+                  <span className="library-nav-text">
+                    <b>i2i 원본</b>
+                    <small>다시 그릴 이미지</small>
+                  </span>
+                  <span className="count">{library.img2imgSources.length}</span>
+                </>
+              )}
+            </button>
           </nav>
         </div>
       </section>

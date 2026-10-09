@@ -14,6 +14,7 @@ import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { deleteResults, openImg2ImgDialog } from '../generationOps';
+import { addSourceFromRecord } from '../sourceOps';
 import {
   emotionRecords,
   openEmotion,
@@ -59,6 +60,19 @@ export function RecordInfo({ projectId, record }: { projectId: string; record: G
       <dd>{record.seed}</dd>
       <dt>방식</dt>
       <dd>{KIND_LABELS[record.kind]}</dd>
+      {record.inputFile && (
+        <>
+          <dt>입력 이미지</dt>
+          <dd>
+            <img
+              className="record-input"
+              src={projectMedia(projectId, record.inputFile)}
+              alt=""
+              title="NovelAI에 실제로 보낸 입력(목표 크기로 맞춘 것)"
+            />
+          </dd>
+        </>
+      )}
       <dt>모델</dt>
       <dd>{modelLabel(record.model)}</dd>
       <dt>크기</dt>
@@ -352,6 +366,12 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                   title="이 결과를 더 큰 크기로 다시 그립니다(업스케일 우회)"
                 >
                   i2i로 보내기
+                </button>
+                <button
+                  onClick={() => void addSourceFromRecord(project.id, selected)}
+                  title="i2i 원본 라이브러리에 넣어 i2i 방식·자유 생성에서 원본으로 고를 수 있게 합니다"
+                >
+                  i2i 원본에 추가
                 </button>
                 <button className="danger-quiet" onClick={() => void deleteResults(project.id, [selected])}>
                   결과 삭제

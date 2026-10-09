@@ -49,19 +49,16 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     let jobs: GenerationJobSnapshot[];
     if (project.mode === 'txt2img') jobs = buildTxt2ImgJobs(common);
     else if (project.mode === 'img2img') {
+      const source = resolved.img2imgSource!;
       const { width, height } = normalizeGenerationSettings(common.preset.generation);
       const image = await libraryApi().prepareImageInput({
         projectId: project.id,
-        source: {
-          kind: 'reference',
-          referenceId: reference.id,
-          file: reference.image!.originalFile,
-        },
+        source: { kind: 'source', file: source.file },
         width,
         height,
         fit: 'crop',
       });
-      jobs = buildImg2ImgJobs({ ...common, reference, image });
+      jobs = buildImg2ImgJobs({ ...common, source, image });
     } else {
       jobs = buildJobs({
         ...common,
@@ -94,21 +91,22 @@ export function generateFree(
 
     let img2img;
     if (free.mode === 'img2img') {
-      if (!free.source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+      const source = library.img2imgSources.find((item) => item.id === free.sourceId);
+      if (!source) throw new Error('i2i로 다시 그릴 i2i 원본을 먼저 고르십시오.');
       const { width, height } = normalizeGenerationSettings(preset.generation);
       const image = await libraryApi().prepareImageInput({
         projectId: FREE_PROJECT_ID,
-        source:
-          free.source.kind === 'record'
-            ? { kind: 'record', projectId: FREE_PROJECT_ID, generationId: free.source.generationId }
-            : { kind: 'input', projectId: FREE_PROJECT_ID, imagePath: free.source.imagePath },
+        source: { kind: 'source', file: source.file },
         width,
         height,
         fit: 'crop',
       });
       img2img = {
         image,
-        sourceRecordId: free.source.kind === 'record' ? free.source.generationId : undefined,
+        sourceRecordId:
+          source.fromRecord?.projectId === FREE_PROJECT_ID
+            ? source.fromRecord.generationId
+            : undefined,
       };
     }
     const jobs = buildFreeJobs({

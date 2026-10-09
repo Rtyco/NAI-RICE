@@ -23,7 +23,8 @@ import type {
   StorageUsage,
   ReferenceImages,
   ReferenceImageSave,
-  StoredImage,
+  SourceImageAdd,
+  StoredSource,
 } from '../../src/shared/ipc';
 import {
   atomicWrite,
@@ -67,6 +68,7 @@ function recordFiles(record: GenerationRecord): string[] {
  *   library.json                 프리셋·캐릭터·감정 모음·레퍼런스·작업 정보
  *   backups/                     library.json 자동 백업
  *   references/<id>/             레퍼런스 원본·캔버스·마스크
+ *   sources/                     i2i 원본 라이브러리 이미지
  *   projects/<id>/               generations.json, inputs/, outputs/<감정>/, thumbs/, diagnostic/
  *   exports/
  */
@@ -256,9 +258,25 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       const record = await this.findGeneration(source.projectId, source.generationId);
       return fs.readFile(await this.resolveProjectReal(source.projectId, record.file));
     }
-    if (source.kind === 'reference')
-      return fs.readFile(await this.resolveReferenceReal(source.referenceId, source.file));
-    return fs.readFile(await this.resolveProjectReal(source.projectId, source.imagePath));
+    return fs.readFile(await this.verifyReal(this.sourceFile(source.file)));
+  }
+
+  /** i2i 원본 라이브러리의 파일. 작업·인페인트와 따로 `sources/`에 둔다. */
+  sourceFile(file: string): string {
+    return resolveInside(path.join(this.root, 'sources'), file);
+  }
+
+  /** 같은 이미지는 해시로 같은 파일 이름이 되어 한 번만 저장된다. 회전 정보는 픽셀에 반영해 둔다. */
+  async addSourceImage(request: SourceImageAdd): Promise<StoredSource> {
+    const original =
+      request.kind === 'data'
+        ? decodeDataUrl(request.dataUrl).buffer
+        : await this.readImageSource(request);
+    const png = await sharp(original).rotate().png().toBuffer();
+    const file = `${sha256(png).slice(0, 24)}.png`;
+    const target = this.sourceFile(file);
+    if (!(await exists(target))) await atomicWrite(target, png);
+    return { file, ...(await imageSize(png)) };
   }
 
   /** 해시 이름으로 저장하므로 같은 입력은 한 번만 쓰고, 대기 중에 원본이 바뀌어도 작업 입력은 그대로다. */
@@ -277,12 +295,6 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     const source = await this.readImageSource(request.source);
     const png = await fitImage(source, request.width, request.height, request.fit);
     return this.writeInput(request.projectId, png);
-  }
-
-  async storeImageInput(projectId: string, dataUrl: string): Promise<StoredImage> {
-    const png = await sharp(decodeDataUrl(dataUrl).buffer).rotate().png().toBuffer();
-    const stored = await this.writeInput(projectId, png);
-    return { ...stored, ...(await imageSize(png)) };
   }
 
   private indexPath(projectId: string): string {

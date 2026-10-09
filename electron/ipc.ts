@@ -5,6 +5,7 @@ import type {
   ImageInputRequest,
   OpenTarget,
   ReferenceImageSave,
+  SourceImageAdd,
 } from '../src/shared/ipc';
 import type { AccountService } from './services/AccountService';
 import type { Exporter } from './services/Exporter';
@@ -55,9 +56,10 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('project:prepare-image-input', (_event, request: ImageInputRequest) =>
     library.prepareImageInput(request),
   );
-  ipcMain.handle('project:store-image-input', (_event, projectId: string, dataUrl: string) =>
-    library.storeImageInput(projectId, dataUrl),
+  ipcMain.handle('source:add', (_event, request: SourceImageAdd) =>
+    library.addSourceImage(request),
   );
+  ipcMain.handle('source:delete', (_event, file: string) => workspace.trashSource(file));
   ipcMain.handle('project:delete-files', async (_event, id: string) => {
     await queue.cancelProject(id);
     await workspace.trashProject(id);

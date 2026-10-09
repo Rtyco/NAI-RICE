@@ -3,20 +3,29 @@ import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
 import { normalizeGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { sectionInfo } from '../sections';
-import { openLibrary, updateLibrary, type LibrarySection } from '../store';
+import { addSourceFromFile, sourceMedia } from '../sourceOps';
+import { openLibrary, openSources, updateLibrary, useLibrary, type LibrarySection } from '../store';
 import { Icon, type IconName } from './Icon';
 
-/** 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보인다. */
+/**
+ * 한 줄짜리 구성 칩: 아이콘 + 이름 + 선택 상자. 편집 버튼은 마우스를 올렸을 때만 보이고, 라이브러리의 그
+ * 칸(`section`) 또는 `edit`이 가리키는 화면을 연다.
+ */
 export function ChainChip(props: {
-  section: LibrarySection;
+  section?: LibrarySection;
   itemId?: string;
   missing?: boolean;
   /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
   label?: { text: string; icon: IconName; usage: string };
+  edit?: { title: string; open: () => void };
   children: React.ReactNode;
 }) {
-  const info = sectionInfo(props.section);
-  const label = props.label ?? { text: info.label, icon: info.icon, usage: info.usage };
+  const info = props.section ? sectionInfo(props.section) : undefined;
+  const label = props.label ?? { text: info!.label, icon: info!.icon, usage: info!.usage };
+  const edit = props.edit ?? {
+    title: `라이브러리에서 ${info!.label} 편집`,
+    open: () => openLibrary(props.section!, props.itemId),
+  };
   return (
     <div
       className={`chain-chip ${props.missing ? 'missing' : ''}`}
@@ -27,11 +36,7 @@ export function ChainChip(props: {
         {label.text}
       </span>
       {props.children}
-      <button
-        className="icon-button chain-chip-edit"
-        title={`라이브러리에서 ${info.label} 편집`}
-        onClick={() => openLibrary(props.section, props.itemId)}
-      >
+      <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
         <Icon name="edit" size={14} />
       </button>
     </div>
@@ -115,6 +120,48 @@ export function StrengthChip({ preset }: { preset: Preset }) {
             {value}
           </option>
         ))}
+      </select>
+    </ChainChip>
+  );
+}
+
+const ADD_SOURCE = '__add__';
+
+/** i2i 원본 라이브러리에서 고른다. 목록 끝의 「파일에서 추가」로 바로 넣을 수도 있다. */
+export function SourceChip({
+  sourceId,
+  onChange,
+}: {
+  sourceId: string | undefined;
+  onChange: (id: string) => void;
+}) {
+  const sources = useLibrary().img2imgSources;
+  const current = sources.find((item) => item.id === sourceId);
+  return (
+    <ChainChip
+      missing={!current}
+      label={{
+        text: 'i2i 원본',
+        icon: 'images',
+        usage: '다시 그릴 이미지 · 생성 설정의 해상도에 맞춰 위쪽을 남기고 자릅니다',
+      }}
+      edit={{ title: 'i2i 원본 라이브러리 열기', open: openSources }}
+    >
+      {current && <img className="chain-thumb" src={sourceMedia(current)} alt="" />}
+      <select
+        value={current?.id ?? ''}
+        onChange={(event) => {
+          if (event.target.value !== ADD_SOURCE) return onChange(event.target.value);
+          void addSourceFromFile().then((id) => id && onChange(id));
+        }}
+      >
+        {!current && <option value="">(고르지 않음)</option>}
+        {sources.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name} ({item.width}×{item.height})
+          </option>
+        ))}
+        <option value={ADD_SOURCE}>+ 파일에서 추가…</option>
       </select>
     </ChainChip>
   );

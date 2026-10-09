@@ -36,6 +36,10 @@ export class WorkspaceShell {
     return this.trash(this.folders.referenceDir(referenceId));
   }
 
+  trashSource(file: string): Promise<void> {
+    return this.trash(this.folders.sourceFile(file));
+  }
+
   trashProject(projectId: string): Promise<void> {
     return this.trash(this.folders.projectDir(projectId));
   }
