@@ -262,7 +262,6 @@ export function GalleryView({
           </span>
         )}
         <div className="header-spacer" />
-        <span className="toolbar-summary">한 줄</span>
         <div
           className="segmented"
           role="group"

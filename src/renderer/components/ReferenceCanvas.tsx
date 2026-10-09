@@ -9,13 +9,13 @@ import {
   maskHasGeneratePixels,
 } from '../../core/imaging/MaskBuilder';
 import { clampRect, contains } from '../../core/imaging/rects';
-import { loadHtmlImage, maskToDataUrl } from '../lib/image';
+import type { CanvasImage } from '../lib/image';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep';
 type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type Props = {
-  imageDataUrl: string;
+  image: CanvasImage;
   width: number;
   height: number;
   backgroundMask: Uint8Array;
@@ -26,7 +26,7 @@ type Props = {
   detectionLabel: string;
   onReferenceRectChange: (rect: Rect) => void;
   onOutputRectChange: (rect: Rect) => void;
-  onMaskChange: (mask: Uint8Array, dataUrl: string) => void;
+  onMaskChange: (mask: Uint8Array) => void;
   onRedetect: () => void;
 };
 
@@ -91,13 +91,11 @@ function resizedRect(original: Rect, handle: RectHandle, dx: number, dy: number)
 
 export function ReferenceCanvas(props: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   /** 붓질 중에는 같은 버퍼를 직접 고치고, 프레임마다 한 번만 다시 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
-  const [dragging, setDragging] = useState(false);
   const [tool, setTool] = useState<Tool>('reference');
   const [zoom, setZoom] = useState(70);
   const [opacity, setOpacity] = useState(42);
@@ -107,7 +105,7 @@ export function ReferenceCanvas(props: Props) {
   );
   const [undoStack, setUndoStack] = useState<Int8Array[]>([]);
   const [redoStack, setRedoStack] = useState<Int8Array[]>([]);
-  const { onMaskChange, width, height } = props;
+  const { onMaskChange } = props;
 
   // 영역·확장 값은 처음 불러올 때의 값으로만 수동 보정을 가려낸다. 이후 바뀌면 자동 계산이 따라간다.
   const baseRef = useRef<OverrideBase>(props);
@@ -116,20 +114,7 @@ export function ReferenceCanvas(props: Props) {
     setOverrides(createOverrides(baseRef.current, props.initialMask));
     setUndoStack([]);
     setRedoStack([]);
-  }, [props.width, props.height, props.imageDataUrl, props.initialMask]);
-
-  useEffect(() => {
-    let active = true;
-    void loadHtmlImage(props.imageDataUrl).then((image) => {
-      if (active) {
-        imageRef.current = image;
-        setOverrides((current) => Int8Array.from(current));
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [props.imageDataUrl]);
+  }, [props.width, props.height, props.image, props.initialMask]);
 
   const mask = useMemo(
     () =>
@@ -157,10 +142,9 @@ export function ReferenceCanvas(props: Props) {
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
-    const image = imageRef.current;
-    if (!canvas || !context || !image) return;
+    if (!canvas || !context) return;
     context.clearRect(0, 0, props.width, props.height);
-    context.drawImage(image, 0, 0, props.width, props.height);
+    context.drawImage(props.image, 0, 0, props.width, props.height);
     // putImageData는 합성 없이 픽셀을 덮어쓰므로 별도 캔버스에 그린 뒤 drawImage로 겹친다.
     let overlayCanvas = overlayRef.current;
     if (!overlayCanvas || overlayCanvas.width !== props.width || overlayCanvas.height !== props.height) {
@@ -172,12 +156,11 @@ export function ReferenceCanvas(props: Props) {
     const overlayContext = overlayCanvas.getContext('2d')!;
     const overlay = overlayContext.createImageData(props.width, props.height);
     const alpha = Math.round((opacity / 100) * 255);
+    // 픽셀마다 네 바이트를 따로 쓰지 않고 한 번에 쓴다. Windows(x86)는 리틀 엔디언이라 RGBA가 ABGR 순서다.
+    const pixels = new Uint32Array(overlay.data.buffer);
+    const color = ((alpha << 24) | (190 << 16) | (208 << 8) | 23) >>> 0;
     for (let pixel = 0; pixel < mask.length; pixel += 1) {
-      if (!mask[pixel]) continue;
-      overlay.data[pixel * 4] = 23;
-      overlay.data[pixel * 4 + 1] = 208;
-      overlay.data[pixel * 4 + 2] = 190;
-      overlay.data[pixel * 4 + 3] = alpha;
+      if (mask[pixel]) pixels[pixel] = color;
     }
     overlayContext.putImageData(overlay, 0, 0);
     context.drawImage(overlayCanvas, 0, 0);
@@ -203,15 +186,20 @@ export function ReferenceCanvas(props: Props) {
     };
     drawRect(props.referenceRect, '#3ee089', tool === 'reference');
     drawRect(props.outputRect, '#36a3ff', tool === 'output');
-  }, [mask, opacity, props.width, props.height, props.referenceRect, props.outputRect, tool]);
+  }, [
+    mask,
+    opacity,
+    props.image,
+    props.width,
+    props.height,
+    props.referenceRect,
+    props.outputRect,
+    tool,
+  ]);
 
   useEffect(draw, [draw]);
 
-  // PNG 인코딩(1216×832에서 약 30ms)은 무거우므로 붓질이나 영역 끌기가 끝난 뒤에만 상위로 알린다.
-  useEffect(() => {
-    if (dragging) return;
-    onMaskChange(mask, maskToDataUrl(mask, width, height));
-  }, [dragging, mask, width, height, onMaskChange]);
+  useEffect(() => onMaskChange(mask), [mask, onMaskChange]);
 
   const pointFromEvent = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -263,7 +251,6 @@ export function ReferenceCanvas(props: Props) {
       beginHistory();
       strokeRef.current = Int8Array.from(overrides);
       dragRef.current = { kind: 'brush', startX: point.x, startY: point.y };
-      setDragging(true);
       paint(point.x, point.y, tool === 'generate' ? 1 : 0);
       return;
     }
@@ -277,7 +264,6 @@ export function ReferenceCanvas(props: Props) {
         originalRect: { ...rect },
         handle,
       };
-      setDragging(true);
     }
   };
 
@@ -314,7 +300,6 @@ export function ReferenceCanvas(props: Props) {
       strokeRef.current = null;
       setOverrides(new Int8Array(stroke.buffer));
     }
-    setDragging(false);
   };
 
   const undo = () => {

@@ -9,10 +9,20 @@ export type PreparedImage = {
   originalHeight: number;
   width: number;
   height: number;
-  canvasDataUrl: string;
+  canvas: HTMLCanvasElement;
   backgroundMask: Uint8Array;
   detection: BackgroundDetection;
 };
+
+/**
+ * 편집 중인 캔버스는 PNG로 바꾸지 않고 그대로 들고 다닌다. PNG 인코딩(1216×832에서 약 30ms)과
+ * 다시 디코딩하는 시간이 슬라이더를 움직일 때마다 끼면 끊겨 보이므로, 저장할 때만 바꾼다.
+ */
+export type CanvasImage = HTMLCanvasElement | HTMLImageElement;
+
+export function canvasImageToDataUrl(image: CanvasImage): string {
+  return image instanceof HTMLCanvasElement ? image.toDataURL('image/png') : image.src;
+}
 
 export function loadHtmlImage(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -24,14 +34,19 @@ export function loadHtmlImage(source: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * willReadFrequently를 켜면 Chromium이 CPU로 그린다. 픽셀을 읽을 캔버스에만 켜고, 화면에 계속 그릴
+ * 캔버스는 꺼서 GPU에 둔다. CPU 캔버스는 화면 캔버스에 그릴 때마다 GPU로 다시 올려 끌기가 버벅인다.
+ */
 function canvas2d(
   width: number,
   height: number,
+  willReadFrequently = true,
 ): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const context = canvas.getContext('2d', { willReadFrequently });
   if (!context) throw new Error('2D 캔버스를 만들 수 없습니다.');
   return { canvas, context };
 }
@@ -49,7 +64,7 @@ export async function prepareImage(dataUrl: string, threshold = 16): Promise<Pre
   );
   const detection = detectBackground(originalPixels as PixelBuffer, threshold);
   const normalized = normalizeCanvasSize(image.naturalWidth, image.naturalHeight, 64);
-  const work = canvas2d(normalized.width, normalized.height);
+  const work = canvas2d(normalized.width, normalized.height, false);
   work.context.fillStyle = '#ffffff';
   work.context.fillRect(0, 0, normalized.width, normalized.height);
   work.context.drawImage(image, 0, 0);
@@ -68,7 +83,7 @@ export async function prepareImage(dataUrl: string, threshold = 16): Promise<Pre
     originalHeight: image.naturalHeight,
     width: normalized.width,
     height: normalized.height,
-    canvasDataUrl: work.canvas.toDataURL('image/png'),
+    canvas: work.canvas,
     backgroundMask,
     detection,
   };
@@ -113,17 +128,24 @@ export function maskToDataUrl(mask: Uint8Array, width: number, height: number): 
 export type ComposedCanvas = {
   width: number;
   height: number;
-  canvasDataUrl: string;
+  canvas: HTMLCanvasElement;
   backgroundMask: Uint8Array;
   referenceRect: Rect;
   outputRect: Rect;
 };
 
+// 비율 슬라이더를 움직이는 동안 같은 원본을 매번 디코딩하지 않도록 마지막 원본 하나만 남긴다.
+let lastOriginal: { dataUrl: string; image: Promise<HTMLImageElement> } | undefined;
+
 /** 캐릭터 이미지 한 장으로 레퍼런스 + 생성 여백 캔버스를 만든다. */
 export async function composeCanvas(originalDataUrl: string, layout: CanvasLayout): Promise<ComposedCanvas> {
-  const image = await loadHtmlImage(originalDataUrl);
+  if (lastOriginal?.dataUrl !== originalDataUrl) {
+    lastOriginal = { dataUrl: originalDataUrl, image: loadHtmlImage(originalDataUrl) };
+    lastOriginal.image.catch(() => (lastOriginal = undefined));
+  }
+  const image = await lastOriginal.image;
   const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
-  const { canvas, context } = canvas2d(composed.width, composed.height);
+  const { canvas, context } = canvas2d(composed.width, composed.height, false);
   context.fillStyle = layout.background || '#ffffff';
   context.fillRect(0, 0, composed.width, composed.height);
   context.save();
@@ -138,7 +160,7 @@ export async function composeCanvas(originalDataUrl: string, layout: CanvasLayou
   return {
     width: composed.width,
     height: composed.height,
-    canvasDataUrl: canvas.toDataURL('image/png'),
+    canvas,
     backgroundMask: layoutBackgroundMask(composed),
     referenceRect: composed.referenceArea,
     outputRect: composed.generationArea,

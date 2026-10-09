@@ -8,14 +8,24 @@ import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { EmptyState, NumberField, PanelHeading, SelectField } from '../components/ui';
-import { composeCanvas, decodeMask, layoutMaskFor, masksEqual, prepareImage } from '../lib/image';
+import type { CanvasImage } from '../lib/image';
+import {
+  canvasImageToDataUrl,
+  composeCanvas,
+  decodeMask,
+  layoutMaskFor,
+  loadHtmlImage,
+  maskToDataUrl,
+  masksEqual,
+  prepareImage,
+} from '../lib/image';
 import { errorMessage, run, scheduleSave, setPendingReference, toast, updateLibrary, useStore } from '../store';
 import { fileApi, libraryApi } from '../desktop';
 
 type Source = { dataUrl: string; name: string; changed: boolean };
 
 type Working = {
-  canvasDataUrl: string;
+  canvas: CanvasImage;
   width: number;
   height: number;
   backgroundMask: Uint8Array;
@@ -28,9 +38,6 @@ const SIDES: Array<{ value: ReferenceSide; label: string }> = [
   { value: 'top', label: '위쪽' },
   { value: 'bottom', label: '아래쪽' },
 ];
-
-/** 레이아웃을 빠르게 바꿀 때(색상 드래그, 슬라이더) 마지막 값만 다시 그린다. */
-const REBUILD_DELAY_MS = 180;
 
 function detectionText(mode: string, confidence: number): string {
   const label = mode === 'transparent' ? '투명 배경' : mode === 'solid' ? '단색 배경' : '수동 확인 필요';
@@ -53,10 +60,11 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   expansionRef.current = expansionPx;
   const [threshold, setThreshold] = useState(reference.backgroundThreshold);
   const [initialMask, setInitialMask] = useState<Uint8Array>();
-  const [mask, setMask] = useState<{ data: Uint8Array; url: string }>();
+  const [mask, setMask] = useState<Uint8Array>();
   const savedMask = useRef<Uint8Array | undefined>(undefined);
   const dirty = useRef(false);
-  const rebuildTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const queuedRebuild = useRef<[Source, CanvasLayout, number] | null>(null);
+  const rebuildRunning = useRef(false);
   const rebuildSeq = useRef(0);
 
   // 저장된 레퍼런스 불러오기
@@ -69,6 +77,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         const images = await libraryApi().readReferenceImages(reference);
         if (!images || !active) return;
         const loadedMask = await decodeMask(images.maskDataUrl, image.canvasWidth, image.canvasHeight);
+        const canvas = await loadHtmlImage(images.canvasDataUrl);
         let backgroundMask: Uint8Array;
         let detectionLabel = '저장된 마스크';
         if (reference.layout.mode === 'auto') {
@@ -82,7 +91,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         savedMask.current = loadedMask;
         setSource({ dataUrl: images.originalDataUrl, name: image.originalName, changed: false });
         setWorking({
-          canvasDataUrl: images.canvasDataUrl,
+          canvas,
           width: image.canvasWidth,
           height: image.canvasHeight,
           backgroundMask,
@@ -117,7 +126,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         const composed = await composeCanvas(nextSource.dataUrl, nextLayout);
         if (sequence !== rebuildSeq.current) return;
         setWorking({
-          canvasDataUrl: composed.canvasDataUrl,
+          canvas: composed.canvas,
           width: composed.width,
           height: composed.height,
           backgroundMask: composed.backgroundMask,
@@ -132,7 +141,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         if (sequence !== rebuildSeq.current) return;
         const rect = prepared.detection.referenceRect;
         setWorking({
-          canvasDataUrl: prepared.canvasDataUrl,
+          canvas: prepared.canvas,
           width: prepared.width,
           height: prepared.height,
           backgroundMask: prepared.backgroundMask,
@@ -151,15 +160,33 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     }
   }, []);
 
+  // 슬라이더나 색상을 움직이는 동안 바로 다시 그리되, 재구성이 겹치지 않게 진행 중이면 마지막 값만 남겼다가
+  // 끝나는 즉시 이어서 한다. 일정 시간 기다리는 방식은 그만큼 늦게 따라와 답답하게 느껴진다.
   const scheduleRebuild = useCallback(
     (nextSource: Source | null, nextLayout: CanvasLayout, nextThreshold: number) => {
-      clearTimeout(rebuildTimer.current);
       if (!nextSource) return;
-      rebuildTimer.current = setTimeout(() => void rebuild(nextSource, nextLayout, nextThreshold), REBUILD_DELAY_MS);
+      queuedRebuild.current = [nextSource, nextLayout, nextThreshold];
+      if (rebuildRunning.current) return;
+      rebuildRunning.current = true;
+      void (async () => {
+        try {
+          for (let next = queuedRebuild.current; next; next = queuedRebuild.current) {
+            queuedRebuild.current = null;
+            await rebuild(...next);
+          }
+        } finally {
+          rebuildRunning.current = false;
+        }
+      })();
     },
     [rebuild],
   );
-  useEffect(() => () => clearTimeout(rebuildTimer.current), []);
+  useEffect(
+    () => () => {
+      queuedRebuild.current = null;
+    },
+    [],
+  );
 
   const applySource = useCallback(
     (dataUrl: string, name: string) => {
@@ -184,8 +211,8 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     scheduleRebuild(source, next, threshold);
   };
 
-  const handleMaskChange = useCallback((data: Uint8Array, url: string) => {
-    setMask({ data, url });
+  const handleMaskChange = useCallback((data: Uint8Array) => {
+    setMask(data);
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
   }, []);
 
@@ -199,15 +226,15 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       `reference:${reference.id}`,
       async () => {
         const value = latest.current;
-        if (value.working && value.mask && value.source && value.mask.data.length === value.working.width * value.working.height) {
+        if (value.working && value.mask && value.source && value.mask.length === value.working.width * value.working.height) {
           const result = await libraryApi().saveReferenceImages({
             referenceId: reference.id,
             originalDataUrl: value.source.changed ? value.source.dataUrl : undefined,
-            canvasDataUrl: value.working.canvasDataUrl,
-            maskDataUrl: value.mask.url,
+            canvasDataUrl: canvasImageToDataUrl(value.working.canvas),
+            maskDataUrl: maskToDataUrl(value.mask, value.working.width, value.working.height),
           });
           if (value.source.changed) setSource({ ...value.source, changed: false });
-          savedMask.current = value.mask.data;
+          savedMask.current = value.mask;
           updateLibrary((library) =>
             patchItem(library, 'references', reference.id, (item) => ({
               ...item,
@@ -249,7 +276,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const free = working
     ? checkFreeGeneration({ steps: Math.min(...presets.map((preset) => preset.generation.steps), 28) }, working.width, working.height)
     : undefined;
-  const maskOk = mask ? maskHasGeneratePixels(mask.data) : false;
+  const maskOk = mask ? maskHasGeneratePixels(mask) : false;
   const auto = layout.mode === 'auto';
 
   return (
@@ -426,7 +453,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         {working ? (
           <ReferenceCanvas
             key={`${working.width}x${working.height}`}
-            imageDataUrl={working.canvasDataUrl}
+            image={working.canvas}
             width={working.width}
             height={working.height}
             backgroundMask={working.backgroundMask}
