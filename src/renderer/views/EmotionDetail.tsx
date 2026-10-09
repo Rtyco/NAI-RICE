@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationRecord, GenerationSummary } from '../../core/domain/types';
+import { isActive } from '../../core/jobs/JobLifecycle';
 import type { ResolvedProject } from '../../core/model/defaults';
 import { modelLabel } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
@@ -93,7 +94,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const excluded = project.excludedEmotionIds.includes(emotion.id);
   const pending = queue.jobs.filter(
     (job) =>
-      job.projectId === project.id && job.emotionId === emotion.id && ['queued', 'generating', 'retry_wait'].includes(job.status),
+      job.projectId === project.id && job.emotionId === emotion.id && isActive(job.status),
   ).length;
   const sharedCount = library.projects.filter((item) => item.emotionSetId === set.id).length;
 

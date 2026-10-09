@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { QueueView } from '../../core/domain/types';
+import type { QueueJobView, QueueView } from '../../core/domain/types';
+import { isActive, isFinished } from '../../core/jobs/JobLifecycle';
 import { openEmotion, openProject, run, useStore } from '../store';
 import { queueApi } from '../desktop';
 
@@ -13,6 +14,18 @@ const STATUS: Record<string, string> = {
   interrupted: '중단',
 };
 
+/** 큐 항목의 Anlas 표시. 끝난 작업은 실제 차감량을, 아직이면 예상값을 보여 준다. */
+function anlasText(job: QueueJobView): string {
+  const estimate = job.anlasEstimate;
+  if (job.anlasSpent === undefined)
+    return estimate === undefined ? '' : ` · 예상 ${estimate ? `약 ${estimate}` : '0'} Anlas`;
+  const spent = job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)';
+  // 무료로 끝났고 예상도 0이면 덧붙일 것이 없다.
+  const expected =
+    estimate !== undefined && (job.anlasSpent || estimate) ? ` (예상 ${estimate})` : '';
+  return ` · Anlas ${spent}${expected}`;
+}
+
 function queueAction(label: string, action: () => Promise<QueueView>) {
   return run(label, async () => useStore.setState({ queue: await action() }));
 }
@@ -22,18 +35,14 @@ export function QueueBar() {
   const [open, setOpen] = useState(false);
   const api = queueApi();
 
-  const active = queue.jobs.filter((job) =>
-    ['queued', 'generating', 'retry_wait'].includes(job.status),
-  );
+  const active = queue.jobs.filter((job) => isActive(job.status));
   const current = queue.jobs.find(
     (job) => job.status === 'generating' || job.status === 'retry_wait',
   );
   const failed = queue.jobs.filter(
     (job) => job.status === 'failed' || job.status === 'interrupted',
   ).length;
-  const finished = queue.jobs.filter(
-    (job) => !['queued', 'generating', 'retry_wait'].includes(job.status),
-  ).length;
+  const finished = queue.jobs.filter((job) => isFinished(job.status)).length;
 
   return (
     <footer className={`queue-bar ${open ? 'open' : ''}`}>
@@ -58,18 +67,11 @@ export function QueueBar() {
                     </b>
                     <small>
                       v{job.variantIndex} · seed {job.seed} · 시도 {job.attempts}/{job.maxAttempts}
-                      {job.anlasSpent !== undefined
-                        ? ` · Anlas ${job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)'}` +
-                          // 무료로 끝났고 예상도 0이면 덧붙일 것이 없다.
-                          (job.anlasEstimate !== undefined && (job.anlasSpent || job.anlasEstimate)
-                            ? ` (예상 ${job.anlasEstimate})`
-                            : '')
-                        : job.anlasEstimate !== undefined &&
-                          ` · 예상 ${job.anlasEstimate ? `약 ${job.anlasEstimate}` : '0'} Anlas`}
+                      {anlasText(job)}
                     </small>
                   </button>
                   {job.error && <p>{job.error}</p>}
-                  {['queued', 'generating', 'retry_wait'].includes(job.status) && (
+                  {isActive(job.status) && (
                     <button
                       className="link-button danger"
                       onClick={() =>

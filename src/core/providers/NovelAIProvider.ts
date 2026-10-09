@@ -66,19 +66,34 @@ function firstPngFromZip(buffer: Uint8Array): Buffer {
   return Buffer.from(entry[1]);
 }
 
+/** NovelAI에 요청하고, 연결 실패와 오류 응답을 NaiApiError로 바꾼다. */
+async function requestNovelAI(
+  url: string,
+  token: string,
+  init: { method: 'GET' | 'POST'; body?: string; signal?: AbortSignal },
+): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    throw naiNetworkError(error);
+  }
+  if (!response.ok) {
+    throw naiHttpError(
+      response.status,
+      await response.text(),
+      response.headers.get('x-correlation-id') ?? undefined,
+    );
+  }
+  return response;
+}
+
 export class NovelAIProvider {
   async validateToken(token: string, signal?: AbortSignal): Promise<NovelAIUserStatus> {
-    let response: Response;
-    try {
-      response = await fetch(NAI_USER_ENDPOINT, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        signal,
-      });
-    } catch (error) {
-      throw naiNetworkError(error);
-    }
-    if (!response.ok) throw naiHttpError(response.status, await response.text());
+    const response = await requestNovelAI(NAI_USER_ENDPOINT, token, { method: 'GET', signal });
     return parseNovelAIUserStatus((await response.json()) as Record<string, any>);
   }
 
@@ -87,24 +102,11 @@ export class NovelAIProvider {
       imageBase64: request.image?.toString('base64'),
       maskBase64: request.mask?.toString('base64'),
     });
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${request.token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: request.signal,
-      });
-    } catch (error) {
-      throw naiNetworkError(error);
-    }
-    if (!response.ok) {
-      throw naiHttpError(
-        response.status,
-        await response.text(),
-        response.headers.get('x-correlation-id') ?? undefined,
-      );
-    }
+    const response = await requestNovelAI(url, request.token, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      signal: request.signal,
+    });
     return firstPngFromZip(new Uint8Array(await response.arrayBuffer()));
   }
 }

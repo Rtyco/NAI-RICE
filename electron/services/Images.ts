@@ -22,6 +22,10 @@ export async function maskHasGeneratePixels(png: Buffer): Promise<boolean> {
   return red.some((value) => value >= 128);
 }
 
+function textChunks(extraText: Record<string, string>): Uint8Array[] {
+  return Object.entries(extraText).map(([key, value]) => makeITextChunk(key, value));
+}
+
 /**
  * 생성 캔버스에서 결과 영역만 잘라 PNG로 만든다. 원본 응답의 NovelAI 텍스트 청크와
  * 이 앱의 보조 메타데이터를 함께 기록해, 결과물을 다시 드래그해 설정을 불러올 수 있게 한다.
@@ -37,7 +41,7 @@ export async function cropWithMetadata(
     .extract({ left: crop.x, top: crop.y, width: crop.width, height: crop.height })
     .png()
     .toBuffer();
-  const extra = Object.entries(extraText).map(([key, value]) => makeITextChunk(key, value));
+  const extra = textChunks(extraText);
   let png: Buffer;
   try {
     png = Buffer.from(copyTextChunks(generated, cropped, extra));
@@ -53,8 +57,7 @@ export async function withMetadata(
   extraText: Record<string, string>,
 ): Promise<{ png: Buffer; width: number; height: number }> {
   const size = await imageSize(generated);
-  const extra = Object.entries(extraText).map(([key, value]) => makeITextChunk(key, value));
-  return { png: Buffer.from(insertPngChunks(generated, extra)), ...size };
+  return { png: Buffer.from(insertPngChunks(generated, textChunks(extraText))), ...size };
 }
 
 export async function makeThumbnail(buffer: Buffer, size = 384): Promise<Buffer> {

@@ -92,10 +92,7 @@ export class GenerationQueue {
       return item;
     });
     this.snapshot.jobs.push(...queued);
-    this.snapshot.paused = false;
-    await this.commit();
-    void this.process();
-    return this.getSnapshot();
+    return this.run();
   }
 
   async pause(): Promise<QueueSnapshot> {
@@ -104,31 +101,22 @@ export class GenerationQueue {
     return this.getSnapshot();
   }
 
-  async resume(): Promise<QueueSnapshot> {
-    this.snapshot.paused = false;
-    await this.commit();
-    void this.process();
-    return this.getSnapshot();
+  resume(): Promise<QueueSnapshot> {
+    return this.run();
   }
 
   async cancel(jobId?: string): Promise<QueueSnapshot> {
     for (const job of this.snapshot.jobs) {
       if (!jobId || job.id === jobId) cancelJob(job);
     }
-    if (!jobId || this.activeJobId === jobId) {
-      this.activeController?.abort();
-      this.wakeRetry?.();
-    }
+    if (!jobId || this.activeJobId === jobId) this.stopActive();
     await this.commit();
     return this.getSnapshot();
   }
 
-  async retryFailed(): Promise<QueueSnapshot> {
+  retryFailed(): Promise<QueueSnapshot> {
     for (const job of this.snapshot.jobs) resetForRetry(job);
-    this.snapshot.paused = false;
-    await this.commit();
-    void this.process();
-    return this.getSnapshot();
+    return this.run();
   }
 
   async clearFinished(): Promise<QueueSnapshot> {
@@ -146,10 +134,7 @@ export class GenerationQueue {
     for (const job of this.snapshot.jobs) {
       if (job.projectId !== projectId) continue;
       touched = true;
-      if (cancelJob(job) && this.activeJobId === job.id) {
-        this.activeController?.abort();
-        this.wakeRetry?.();
-      }
+      if (cancelJob(job) && this.activeJobId === job.id) this.stopActive();
     }
     if (!touched) return;
     // 진행 중이던 작업은 처리 루프가 마무리할 수 있게 남긴다.
@@ -157,6 +142,20 @@ export class GenerationQueue {
       (job) => job.projectId !== projectId || job.id === this.activeJobId,
     );
     await this.commit();
+  }
+
+  /** 일시 중지를 풀고 저장한 뒤, 처리 루프가 돌고 있지 않으면 시작한다. */
+  private async run(): Promise<QueueSnapshot> {
+    this.snapshot.paused = false;
+    await this.commit();
+    void this.process();
+    return this.getSnapshot();
+  }
+
+  /** 진행 중인 요청을 끊고, 다시 시도를 기다리는 중이면 바로 깨운다. */
+  private stopActive(): void {
+    this.activeController?.abort();
+    this.wakeRetry?.();
   }
 
   /**
@@ -203,12 +202,11 @@ export class GenerationQueue {
   private waitForRetry(delay: number): Promise<void> {
     return new Promise<void>((resolve) => {
       const timer = setTimeout(done, delay);
-      const wake = () => done();
       function done() {
         clearTimeout(timer);
         resolve();
       }
-      this.wakeRetry = wake;
+      this.wakeRetry = done;
     }).finally(() => {
       this.wakeRetry = undefined;
     });
@@ -231,13 +229,9 @@ export class GenerationQueue {
   }
 
   /** 입력 파일 하나를 읽고, 등록 뒤에 바뀌지 않았는지 해시로 확인한다. */
-  private async loadInput(
-    job: QueuedGenerationJob,
-    relative: string,
-    hash: string,
-  ): Promise<Buffer> {
+  private async loadInput(projectId: string, relative: string, hash: string): Promise<Buffer> {
     const file = await fs.readFile(
-      await this.dependencies.library.resolveProjectReal(job.projectId, relative),
+      await this.dependencies.library.resolveProjectReal(projectId, relative),
     );
     if (sha256(file) !== hash) {
       throw new Error(
@@ -250,13 +244,18 @@ export class GenerationQueue {
   /** 작업 종류가 쓰는 입력 파일만 읽는다. 일반 생성은 입력이 없다. */
   private async loadInputs(job: QueuedGenerationJob): Promise<{ image?: Buffer; mask?: Buffer }> {
     if (job.kind === 'txt2img') return {};
-    if (job.kind !== 'inpaint')
-      return { image: await this.loadInput(job, job.imagePath, job.imageSha256) };
-    const [image, mask] = await Promise.all([
-      this.loadInput(job, job.imagePath, job.imageSha256),
-      this.loadInput(job, job.maskPath, job.maskSha256),
+    const image = () => this.loadInput(job.projectId, job.imagePath, job.imageSha256);
+    if (job.kind !== 'inpaint') return { image: await image() };
+    const [loaded, mask] = await Promise.all([
+      image(),
+      this.loadInput(job.projectId, job.maskPath, job.maskSha256),
     ]);
-    return { image, mask };
+    return { image: loaded, mask };
+  }
+
+  /** 지금 Anlas. 조회하지 않거나 실패하면 undefined다. */
+  private anlasNow(token: string): Promise<number | undefined> {
+    return this.dependencies.anlas?.(token).catch(() => undefined) ?? Promise.resolve(undefined);
   }
 
   /** 요청 간격을 지켜 이미지를 생성하고, 전후 Anlas를 비교해 실제 차감량을 구한다. */
@@ -266,7 +265,7 @@ export class GenerationQueue {
     signal: AbortSignal,
   ): Promise<{ generated: Buffer; anlasSpent?: number }> {
     const token = await this.dependencies.token();
-    const anlasBefore = await this.dependencies.anlas?.(token).catch(() => undefined);
+    const anlasBefore = await this.anlasNow(token);
     await this.waitRequestDelay(signal);
     this.lastRequestAt = Date.now();
     const generated = await this.dependencies.provider.generate({
@@ -277,7 +276,7 @@ export class GenerationQueue {
     });
     // 간격은 응답을 받은 시점부터 센다.
     this.lastRequestAt = Date.now();
-    const anlasAfter = await this.dependencies.anlas?.(token).catch(() => undefined);
+    const anlasAfter = await this.anlasNow(token);
     const anlasSpent =
       anlasBefore !== undefined && anlasAfter !== undefined
         ? Math.max(0, anlasBefore - anlasAfter)
@@ -292,6 +291,36 @@ export class GenerationQueue {
     const inputs = await this.loadInputs(job);
     const { generated, anlasSpent } = await this.requestImage(job, inputs, signal);
     return saveGenerationOutput(this.dependencies.library, job, generated, anlasSpent);
+  }
+
+  /**
+   * 실패를 기록한다. 다시 시도할 수 있는 오류면 정해진 시간만큼 기다린 뒤, 그사이 취소나 일시 중지가
+   * 없었으면 true를 돌려준다.
+   */
+  private async retryAfterFailure(job: QueuedGenerationJob, error: unknown): Promise<boolean> {
+    if (String(job.status) === 'cancelled') {
+      await this.commit();
+      return false;
+    }
+    const typed = error instanceof NaiApiError ? error : undefined;
+    const delay = RETRY_DELAYS_MS[Math.min(job.attempts - 1, RETRY_DELAYS_MS.length - 1)];
+    const retryAt = fail(
+      job,
+      {
+        message: error instanceof Error ? error.message : String(error),
+        kind: typed?.kind ?? 'local',
+        retryable: typed?.retryable ?? false,
+      },
+      delay,
+    );
+    await this.commit();
+    if (!retryAt) return false;
+    await this.waitForRetry(delay);
+    if (String(job.status) === 'cancelled') return false;
+    if (!this.snapshot.paused) return true;
+    requeueAfterPause(job);
+    await this.commit();
+    return false;
   }
 
   private async processJob(job: QueuedGenerationJob): Promise<void> {
@@ -310,31 +339,9 @@ export class GenerationQueue {
         this.dependencies.onRecord(record);
         return;
       } catch (error) {
-        if (String(job.status) === 'cancelled') {
-          await this.commit();
-          return;
-        }
-        const typed = error instanceof NaiApiError ? error : undefined;
-        const delay = RETRY_DELAYS_MS[Math.min(job.attempts - 1, RETRY_DELAYS_MS.length - 1)];
-        const retryAt = fail(
-          job,
-          {
-            message: error instanceof Error ? error.message : String(error),
-            kind: typed?.kind ?? 'local',
-            retryable: typed?.retryable ?? false,
-          },
-          delay,
-        );
-        await this.commit();
-        if (!retryAt) return;
-        await this.waitForRetry(delay);
-        if (String(job.status) === 'cancelled') return;
-        if (this.snapshot.paused) {
-          requeueAfterPause(job);
-          await this.commit();
-          return;
-        }
-        continue;
+        // 다시 시도를 기다리는 동안에도 취소할 수 있게, 진행 중 표시를 풀기 전에 기다린다.
+        if (await this.retryAfterFailure(job, error)) continue;
+        return;
       } finally {
         clearTimeout(timeout);
         if (this.activeController === controller) {

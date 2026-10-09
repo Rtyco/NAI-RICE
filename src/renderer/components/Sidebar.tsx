@@ -8,6 +8,7 @@ import {
   createReference,
   DEFAULT_EMOTIONS,
 } from '../../core/model/defaults';
+import { isActive } from '../../core/jobs/JobLifecycle';
 import { moveItem } from '../../core/model/mutations';
 import { importJsonFromPicker } from '../importers';
 import { deleteProject, deleteProjects } from '../projectOps';
@@ -352,7 +353,7 @@ export function Sidebar() {
 
   const active = new Map<string, number>();
   for (const job of queue.jobs) {
-    if (['queued', 'generating', 'retry_wait'].includes(job.status)) {
+    if (isActive(job.status)) {
       active.set(job.projectId, (active.get(job.projectId) ?? 0) + 1);
     }
   }

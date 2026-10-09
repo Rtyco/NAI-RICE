@@ -41,26 +41,39 @@ type State = {
   update?: UpdateCheckResult;
 };
 
-const SIDEBAR_KEY = 'sidebar-collapsed';
+// ── 다음 실행에도 기억하는 화면 상태 ──────────────────
+// 저장소를 쓸 수 없으면(읽기·쓰기 실패) 기본값으로 이번 실행만 동작한다.
 
-function readSidebarCollapsed(): boolean {
+function readUiState<T>(key: string, parse: (raw: string | null) => T, fallback: T): T {
   try {
-    return localStorage.getItem(SIDEBAR_KEY) === '1';
+    return parse(localStorage.getItem(key));
   } catch {
-    return false;
+    return fallback;
   }
 }
 
+function saveUiState(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // 저장하지 못해도 이번 실행에서는 그대로 동작한다.
+  }
+}
+
+const SIDEBAR_KEY = 'sidebar-collapsed';
 const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
-function readSidebarSections(): Record<SidebarSection, boolean> {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SIDEBAR_SECTIONS_KEY) ?? '{}');
-    return { projects: saved?.projects === true, library: saved?.library === true };
-  } catch {
-    return { projects: false, library: false };
-  }
-}
+const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
+
+const readSidebarSections = (): Record<SidebarSection, boolean> =>
+  readUiState(
+    SIDEBAR_SECTIONS_KEY,
+    (raw) => {
+      const saved = JSON.parse(raw ?? '{}');
+      return { projects: saved?.projects === true, library: saved?.library === true };
+    },
+    { projects: false, library: false },
+  );
 
 export const useStore = create<State>(() => ({
   ready: false,
@@ -264,22 +277,14 @@ export function setSettingsOpen(open: boolean): void {
 export function toggleSidebar(): void {
   const collapsed = !get().sidebarCollapsed;
   set({ sidebarCollapsed: collapsed });
-  try {
-    localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
-  } catch {
-    // 저장하지 못해도 이번 실행에서는 그대로 동작한다.
-  }
+  saveUiState(SIDEBAR_KEY, collapsed ? '1' : '0');
 }
 
 /** 사이드바 카드(작업·라이브러리) 하나를 제목 줄만 남기고 접거나 편다. 다음 실행에도 기억한다. */
 export function toggleSidebarSection(section: SidebarSection): void {
   const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
   set({ sidebarSections: sections });
-  try {
-    localStorage.setItem(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
-  } catch {
-    // 저장하지 못해도 이번 실행에서는 그대로 동작한다.
-  }
+  saveUiState(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
 }
 
 /** 계정 상태(Anlas·V5 할당량)를 지금 다시 조회한다. */

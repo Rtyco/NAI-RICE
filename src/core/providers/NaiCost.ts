@@ -79,21 +79,22 @@ function augmentAnlas(job: CostJob): number {
   return Math.ceil((BG_REMOVAL_ANLAS_AT_832x1216 * pixels) / (832 * 1216));
 }
 
+/** 등급을 아직 모르면 이 앱의 기본 전제대로 Opus로 본다. */
+function isOpus(account?: CostAccount): boolean {
+  return account?.tier === undefined || account.tier >= OPUS_TIER;
+}
+
 function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   const quota = account?.v5Quota;
-  return (
-    modelInfo(job.settings.model)?.generation === 'v5' &&
-    Boolean(quota) &&
-    (quota!.isNegative || quota!.percent <= 0)
-  );
+  if (!quota || modelInfo(job.settings.model)?.generation !== 'v5') return false;
+  return quota.isNegative || quota.percent <= 0;
 }
 
 /** 작업 한 개(한 장)의 예상 Anlas. 무료 기준 안이면 0이다. */
 export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
   if (job.kind === 'augment') return augmentAnlas(job);
-  const opus = account?.tier === undefined || account.tier >= OPUS_TIER;
   const free =
-    opus &&
+    isOpus(account) &&
     checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight).free &&
     !v5QuotaExhausted(job, account);
   return free
@@ -112,7 +113,7 @@ export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
  */
 export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): string[] {
   const warnings = new Set<string>();
-  if (jobs.length && account?.tier !== undefined && account.tier < OPUS_TIER)
+  if (jobs.length && !isOpus(account))
     warnings.add('Opus 구독이 아니어서 모든 생성에 Anlas가 듭니다.');
   for (const job of jobs) {
     if (job.kind === 'augment') {
