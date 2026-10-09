@@ -357,10 +357,6 @@ textarea {
   gap: 8px;
   margin-bottom: 14px;
 }
-.toolbar-summary {
-  color: var(--muted);
-  margin-right: 6px;
-}
 .emotion-grid {
   display: grid;
   gap: 12px;
@@ -696,8 +692,7 @@ textarea {
   gap: 6px;
 }
 .button-grid button,
-.detail-footer button,
-.toolbar-summary {
+.detail-footer button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1950,28 +1945,6 @@ textarea.syntax-input::selection {
   font-size: 17px;
   font-weight: 700;
 }
-.toolbar-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding-left: 8px;
-  border-left: 1px solid var(--line);
-}
-.toolbar-group:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-.toolbar-label {
-  margin: 0 2px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.emoji-button {
-  min-width: 30px;
-  padding: 3px 6px;
-  font-size: 15px;
-  line-height: 1.2;
-}
 .record-input {
   width: 72px;
   border: 1px solid var(--line);
@@ -2058,6 +2031,17 @@ textarea.syntax-input::selection {
   height: 100%;
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
+}
+.library-view.list-collapsed {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+.library-list.folded {
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+.library-list-toggle {
+  margin: -2px 0 0 -4px;
 }
 .library-list {
   display: flex;
@@ -2997,8 +2981,60 @@ textarea.syntax-input::selection {
 .toolbar .generate-button {
   padding: 7px 14px;
 }
-.toolbar .toolbar-summary {
-  margin-left: 4px;
+.gallery-toolbar {
+  padding-top: 8px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+/* 일 단위로 나눈 칸. 왼쪽 위 작은 제목이 무엇을 하는 칸인지 알려 준다. */
+.toolbar-zone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-1);
+}
+.toolbar-zone.active {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.toolbar-zone > button {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.zone-title {
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--bg-0);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.zone-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.zone-field b,
+.zone-count {
+  color: var(--text);
+}
+.zone-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 0 2px;
+  background: var(--line);
+}
+.generate-zone .pill {
+  font-size: 12px;
 }
 
 /* 카드 아래 ▶·⋯은 마우스를 올렸을 때만 */

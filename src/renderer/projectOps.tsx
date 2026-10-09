@@ -1,7 +1,36 @@
 import type { Project } from '../core/domain/types';
+import { readableId } from '../core/model/defaults';
+import { uniqueName } from '../core/model/mutations';
 import { confirmDialog } from './components/Dialogs';
-import { openProject, run, updateLibrary, useStore } from './store';
+import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { libraryApi } from './desktop';
+
+/** 같은 조합으로 새 작업을 만든다. 생성 결과와 대표 이미지는 가져오지 않는다. */
+export function duplicateProject(project: Project): void {
+  const library = useStore.getState().library!;
+  const name = uniqueName(
+    `${project.name} 복사본`,
+    library.projects.map((item) => item.name),
+  );
+  const now = new Date().toISOString();
+  const copy: Project = {
+    ...structuredClone(project),
+    id: readableId(name, 'project'),
+    name,
+    favorites: {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  updateLibrary((current) => ({ ...current, projects: [...current.projects, copy] }));
+  openProject(copy.id);
+  toast(
+    `${name}을(를) 만들었습니다. 같은 생성 설정·캐릭터·감정 모음·인페인트를 사용하며 생성 결과는 따로 쌓입니다.`,
+  );
+}
+
+export function openProjectFolder(projectId: string): void {
+  void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'project', projectId }));
+}
 
 /** 작업과 그 생성 결과를 삭제한다. 라이브러리 항목은 그대로 둔다. 작업 화면과 사이드바 우클릭이 함께 쓴다. */
 export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Promise<void> {

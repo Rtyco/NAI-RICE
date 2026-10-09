@@ -4,10 +4,8 @@ import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   generationKindFor,
   normalizeGenerationSettings,
-  readableId,
   type ResolvedProject,
 } from '../../core/model/defaults';
-import { uniqueName } from '../../core/model/mutations';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
@@ -15,14 +13,10 @@ import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { Menu } from '../components/ui';
-import { deleteProject } from '../projectOps';
+import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
   openLibrary,
-  openProject,
   referenceMedia,
-  run,
-  toast,
-  updateLibrary,
   updateProject,
   useLibrary,
   useResolvedProject,
@@ -30,7 +24,6 @@ import {
 } from '../store';
 import { EmotionDetail } from './EmotionDetail';
 import { GalleryView } from './GalleryView';
-import { libraryApi } from '../desktop';
 
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   { value: 'reference', label: '인페인트', title: '참고 이미지 옆에 인페인트로 그립니다' },
@@ -229,7 +222,6 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
 
 export function ProjectView({ projectId }: { projectId: string }) {
   const resolved = useResolvedProject(projectId);
-  const library = useLibrary();
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
@@ -258,27 +250,6 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
 
-  const duplicateProject = () => {
-    const name = uniqueName(
-      `${project.name} 복사본`,
-      library.projects.map((item) => item.name),
-    );
-    const now = new Date().toISOString();
-    const copy: Project = {
-      ...structuredClone(project),
-      id: readableId(name, 'project'),
-      name,
-      favorites: {},
-      createdAt: now,
-      updatedAt: now,
-    };
-    updateLibrary((current) => ({ ...current, projects: [...current.projects, copy] }));
-    openProject(copy.id);
-    toast(
-      `${name}을(를) 만들었습니다. 같은 생성 설정·캐릭터·감정 모음·인페인트를 사용하며 생성 결과는 따로 쌓입니다.`,
-    );
-  };
-
   return (
     <section className="project-view">
       <header className="project-header">
@@ -301,15 +272,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
               onSelect: () =>
                 void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />),
             },
-            {
-              label: '작업 폴더 열기',
-              onSelect: () =>
-                void run('폴더를 여는 중', () =>
-                  libraryApi().openInExplorer({ kind: 'project', projectId: project.id }),
-                ),
-            },
+            { label: '작업 폴더 열기', onSelect: () => openProjectFolder(project.id) },
             'divider',
-            { label: '작업 복제 (같은 조합)', onSelect: duplicateProject },
+            { label: '작업 복제 (같은 조합)', onSelect: () => duplicateProject(project) },
             { label: '작업 삭제', danger: true, onSelect: () => void deleteProject(project) },
           ]}
         />

@@ -9,9 +9,9 @@ import {
   DEFAULT_EMOTIONS,
 } from '../../core/model/defaults';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { moveItem } from '../../core/model/mutations';
+import { moveItems } from '../../core/model/mutations';
 import { importJsonFromPicker } from '../importers';
-import { deleteProject, deleteProjects } from '../projectOps';
+import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
 import { SECTIONS } from '../sections';
 import {
   openFree,
@@ -33,6 +33,8 @@ import { Icon, type IconName } from './Icon';
 import { focusAndSelect } from './focusAndSelect';
 import { libraryApi } from '../desktop';
 import { useBoxSelection } from './useBoxSelection';
+import { dragPayload, readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
+import { listMenu } from './listMenu';
 
 const NEW = '__new__';
 const DRAG_TYPE = 'application/x-project';
@@ -168,10 +170,16 @@ function ProjectRow(props: {
   busy?: number;
   avatar?: string;
   subtitle: string;
-  dragging: string | undefined;
-  setDragging: (id: string | undefined) => void;
+  /** 끄는 중인 작업들. */
+  dragging: string[];
+  /** 끌기를 시작할 때 옮길 작업들을 정한다(고른 작업 중 하나를 끌면 고른 것 모두). */
+  startDrag: (id: string) => DragPayload;
+  endDrag: () => void;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
+  /** 지금 고른 작업 수. 고른 작업에서 우클릭하면 삭제를 한꺼번에 한다. */
+  pickedCount: number;
+  removePicked: () => void;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
@@ -210,30 +218,25 @@ function ProjectRow(props: {
 
   return (
     <div
-      className={`library-item project-row ${props.active ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging === project.id ? 'dragging' : ''}`}
+      className={`library-item project-row ${props.active ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging.includes(project.id) ? 'dragging' : ''}`}
       data-select-id={collapsed ? undefined : project.id}
       draggable={!renaming}
       onContextMenu={(event) =>
-        showContextMenu(event, [
-          { label: '열기', onSelect: () => openProject(project.id) },
-          { label: '이름 변경', disabled: collapsed, onSelect: () => setRenaming(true) },
-          {
-            label: '폴더 열기',
-            onSelect: () =>
-              void run('폴더를 여는 중', () =>
-                libraryApi().openInExplorer({ kind: 'project', projectId: project.id }),
-              ),
-          },
-          'divider',
-          { label: '작업 삭제', danger: true, onSelect: () => void deleteProject(project) },
-        ])
+        showContextMenu(
+          event,
+          listMenu({
+            open: () => openProject(project.id),
+            rename: collapsed ? undefined : () => setRenaming(true),
+            duplicate: () => duplicateProject(project),
+            folder: () => openProjectFolder(project.id),
+            remove: () => void deleteProject(project),
+            pickedCount: props.picked ? props.pickedCount : 0,
+            removePicked: props.removePicked,
+          }),
+        )
       }
-      onDragStart={(event) => {
-        event.dataTransfer.setData(DRAG_TYPE, project.id);
-        event.dataTransfer.effectAllowed = 'move';
-        props.setDragging(project.id);
-      }}
-      onDragEnd={() => props.setDragging(undefined)}
+      onDragStart={(event) => writeDragPayload(event, DRAG_TYPE, props.startDrag(project.id))}
+      onDragEnd={props.endDrag}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
         event.preventDefault();
@@ -241,12 +244,14 @@ function ProjectRow(props: {
       }}
       onDragLeave={() => setOver(false)}
       onDrop={(event) => {
-        const id = event.dataTransfer.getData(DRAG_TYPE);
+        const payload = readDragPayload(event, DRAG_TYPE);
         setOver(false);
-        if (!id || id === project.id) return;
+        if (!payload || payload.ids.includes(project.id)) return;
         event.preventDefault();
         event.stopPropagation();
-        updateLibrary((current) => moveItem(current, 'projects', id, props.index));
+        updateLibrary((current) =>
+          moveItems(current, 'projects', payload.ids, payload.grabbed, project.id),
+        );
       }}
     >
       {renaming ? (
@@ -359,7 +364,7 @@ export function Sidebar() {
     }
   }
   const newProject = () => void openDialog((close) => <NewProjectDialog close={close} />);
-  const [dragging, setDragging] = useState<string>();
+  const [dragging, setDragging] = useState<string[]>([]);
   const removeMany = (ids: string[]) =>
     void deleteProjects(library.projects.filter((project) => ids.includes(project.id)));
   const selection = useBoxSelection<HTMLElement>(
@@ -458,8 +463,19 @@ export function Sidebar() {
                   }
                   subtitle={character?.name ?? '캐릭터 없음'}
                   dragging={dragging}
-                  setDragging={setDragging}
+                  startDrag={(id) => {
+                    const payload = dragPayload(
+                      id,
+                      selection.selected,
+                      library.projects.map((item) => item.id),
+                    );
+                    setDragging(payload.ids);
+                    return payload;
+                  }}
+                  endDrag={() => setDragging([])}
                   picked={!collapsed && selection.isSelected(project.id)}
+                  pickedCount={selection.selected.size}
+                  removePicked={() => removeMany([...selection.selected])}
                   onPick={(event) => selection.clickItem(event, project.id)}
                 />
               );

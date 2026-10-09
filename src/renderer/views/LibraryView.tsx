@@ -1,7 +1,7 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Character, EmotionSet, PieceSet, Preset, Reference } from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
-import { moveItem } from '../../core/model/mutations';
+import { moveItems } from '../../core/model/mutations';
 import { showContextMenu } from '../components/ContextMenu';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
@@ -10,8 +10,16 @@ import { sectionInfo } from '../sections';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import {
+  dragPayload,
+  readDragPayload,
+  writeDragPayload,
+  type DragPayload,
+} from '../components/listDrag';
+import { listMenu } from '../components/listMenu';
+import {
   openLibrary,
   referenceMedia,
+  toggleLibraryList,
   updateLibrary,
   useLibrary,
   useStore,
@@ -24,7 +32,6 @@ import {
   deleteItems,
   duplicateItem,
   exportItem,
-  itemMenu,
   openReferenceFolder,
   itemSubtitle,
   LABELS,
@@ -46,10 +53,16 @@ function LibraryRow(props: {
   index: number;
   selected: boolean;
   subtitle: string;
-  dragging: string | undefined;
-  setDragging: (id: string | undefined) => void;
+  /** 끄는 중인 항목들. */
+  dragging: string[];
+  /** 끌기를 시작할 때 옮길 항목들을 정한다(고른 항목 중 하나를 끌면 고른 것 모두). */
+  startDrag: (id: string) => DragPayload;
+  endDrag: () => void;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
+  /** 지금 고른 항목 수. 고른 항목에서 우클릭하면 삭제를 한꺼번에 한다. */
+  pickedCount: number;
+  removePicked: () => void;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
@@ -88,16 +101,25 @@ function LibraryRow(props: {
 
   return (
     <div
-      className={`library-item ${props.selected ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging === item.id ? 'dragging' : ''}`}
+      className={`library-item ${props.selected ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging.includes(item.id) ? 'dragging' : ''}`}
       data-select-id={item.id}
       draggable={!renaming}
-      onContextMenu={(event) => showContextMenu(event, itemMenu(section, item))}
-      onDragStart={(event) => {
-        event.dataTransfer.setData(DRAG_TYPE, item.id);
-        event.dataTransfer.effectAllowed = 'move';
-        props.setDragging(item.id);
-      }}
-      onDragEnd={() => props.setDragging(undefined)}
+      onContextMenu={(event) =>
+        showContextMenu(
+          event,
+          listMenu({
+            open: () => openLibrary(section, item.id),
+            rename: () => setRenaming(true),
+            duplicate: () => void duplicateItem(section, item),
+            exportJson: () => exportItem(section, item),
+            remove: () => void deleteItem(section, item),
+            pickedCount: props.picked ? props.pickedCount : 0,
+            removePicked: props.removePicked,
+          }),
+        )
+      }
+      onDragStart={(event) => writeDragPayload(event, DRAG_TYPE, props.startDrag(item.id))}
+      onDragEnd={props.endDrag}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
         event.preventDefault();
@@ -105,12 +127,14 @@ function LibraryRow(props: {
       }}
       onDragLeave={() => setOver(false)}
       onDrop={(event) => {
-        const id = event.dataTransfer.getData(DRAG_TYPE);
+        const payload = readDragPayload(event, DRAG_TYPE);
         setOver(false);
-        if (!id || id === item.id) return;
+        if (!payload || payload.ids.includes(item.id)) return;
         event.preventDefault();
         event.stopPropagation();
-        updateLibrary((current) => moveItem(current, section, id, props.index));
+        updateLibrary((current) =>
+          moveItems(current, section, payload.ids, payload.grabbed, item.id),
+        );
       }}
     >
       {renaming ? (
@@ -165,7 +189,8 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const items = library[section] as Item[];
   const selected = items.find((item) => item.id === itemId) ?? items[0];
   const label = LABELS[section];
-  const [dragging, setDragging] = useState<string>();
+  const [dragging, setDragging] = useState<string[]>([]);
+  const collapsed = useStore((state) => state.libraryListCollapsed);
   const removeMany = (ids: string[]) =>
     void deleteItems(
       section,
@@ -204,60 +229,95 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   }
 
   return (
-    <div className="library-view">
-      <aside className="library-list">
-        <div className="library-list-head">
-          <span className="chain-icon">
+    <div className={`library-view ${collapsed ? 'list-collapsed' : ''}`}>
+      {collapsed ? (
+        <aside className="library-list folded">
+          <button
+            className="icon-button"
+            title={`${label.title} 목록 펼치기`}
+            aria-label={`${label.title} 목록 펼치기`}
+            onClick={toggleLibraryList}
+          >
+            <Icon name="sidebar" size={18} />
+          </button>
+          <span className="chain-icon" title={label.title}>
             <Icon name={sectionInfo(section).icon} size={18} />
           </span>
-          <div>
-            <small className="eyebrow">라이브러리</small>
-            <b>{label.title}</b>
-            {label.description && <small>{label.description}</small>}
-          </div>
-          <button className="accent" onClick={add}>
-            ＋ 추가
+          <button className="icon-button" title="추가" aria-label="추가" onClick={add}>
+            <Icon name="plus" />
           </button>
-        </div>
-        <nav className="selectable" {...selection.containerProps}>
-          {items.map((item, index) => {
-            const uses = projectsUsing(library, label.kind, item.id).length;
-            return (
-              <LibraryRow
-                key={item.id}
-                section={section}
-                item={item}
-                index={index}
-                selected={item.id === selected?.id}
-                subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
-                dragging={dragging}
-                setDragging={setDragging}
-                picked={selection.isSelected(item.id)}
-                onPick={(event) => selection.clickItem(event, item.id)}
-              />
-            );
-          })}
-          {!items.length && <p className="hint pad-x">아직 없습니다.</p>}
-          {selection.boxElement}
-        </nav>
-        {selection.selected.size > 0 && (
-          <div className="selection-bar">
-            <span>{selection.selected.size}개 선택</span>
+        </aside>
+      ) : (
+        <aside className="library-list">
+          <div className="library-list-head">
             <button
-              className="with-icon danger-quiet"
-              onClick={() => removeMany([...selection.selected])}
+              className="icon-button library-list-toggle"
+              title={`${label.title} 목록 접기`}
+              aria-label={`${label.title} 목록 접기`}
+              onClick={toggleLibraryList}
             >
-              <Icon name="trash" size={14} /> 삭제
+              <Icon name="sidebar" size={18} />
             </button>
-            <button className="link-button" onClick={selection.clear}>
-              선택 취소
+            <div>
+              <small className="eyebrow">라이브러리</small>
+              <b>{label.title}</b>
+              {label.description && <small>{label.description}</small>}
+            </div>
+            <button className="accent" onClick={add}>
+              ＋ 추가
             </button>
           </div>
-        )}
-        <button className="link-button" onClick={() => void importJsonFromPicker()}>
-          JSON 가져오기
-        </button>
-      </aside>
+          <nav className="selectable" {...selection.containerProps}>
+            {items.map((item, index) => {
+              const uses = projectsUsing(library, label.kind, item.id).length;
+              return (
+                <LibraryRow
+                  key={item.id}
+                  section={section}
+                  item={item}
+                  index={index}
+                  selected={item.id === selected?.id}
+                  subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
+                  dragging={dragging}
+                  startDrag={(id) => {
+                    const payload = dragPayload(
+                      id,
+                      selection.selected,
+                      items.map((entry) => entry.id),
+                    );
+                    setDragging(payload.ids);
+                    return payload;
+                  }}
+                  endDrag={() => setDragging([])}
+                  picked={selection.isSelected(item.id)}
+                  pickedCount={selection.selected.size}
+                  removePicked={() => removeMany([...selection.selected])}
+                  onPick={(event) => selection.clickItem(event, item.id)}
+                />
+              );
+            })}
+            {!items.length && <p className="hint pad-x">아직 없습니다.</p>}
+            {selection.boxElement}
+          </nav>
+          {selection.selected.size > 0 && (
+            <div className="selection-bar">
+              <span>{selection.selected.size}개 선택</span>
+              <button
+                className="with-icon danger-quiet"
+                onClick={() => removeMany([...selection.selected])}
+              >
+                <Icon name="trash" size={14} /> 삭제
+              </button>
+              <button className="link-button" onClick={selection.clear}>
+                선택 취소
+              </button>
+            </div>
+          )}
+          <button className="link-button" onClick={() => void importJsonFromPicker()}>
+            JSON 가져오기
+          </button>
+        </aside>
+      )}
       <section className="library-editor animate-in" key={selected?.id ?? 'empty'}>
         {selected ? (
           <>

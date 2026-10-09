@@ -206,23 +206,125 @@ export function GalleryView({
 
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
-      <div className="toolbar">
-        {/* 체크는 일괄 생성 대상이고, 카드 선택(Ctrl·Shift 클릭, 끌기)은 삭제·i2i 같은 일괄 작업 대상이다. */}
-        <span className="toolbar-group">
+      {/*
+        일을 세 칸으로 나눈다. 보기(카드 크기·내보내기), 카드 고르기(일괄 작업), 생성(생성할 감정 체크·비용·생성).
+        체크는 일괄 생성 대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
+      */}
+      <div className="toolbar gallery-toolbar">
+        <section className="toolbar-zone" aria-label="보기">
+          <span className="zone-title">보기</span>
+          <span className="zone-field" title="한 줄에 보일 카드 수">
+            한 줄에
+            <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
+              {GALLERY_COLUMN_CHOICES.map((choice) => (
+                <button
+                  key={choice}
+                  className={choice === columns ? 'active' : ''}
+                  aria-pressed={choice === columns}
+                  onClick={() => setGalleryColumns(choice)}
+                >
+                  {choice}
+                </button>
+              ))}
+            </span>
+            장
+          </span>
           <button
-            className="emoji-button"
-            title="생성 큐에 넣을 감정: 모두 체크"
-            aria-label="생성 대상 모두 체크"
+            className="with-icon"
+            disabled={!withResults}
+            title={`결과가 있는 감정 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
+            onClick={() =>
+              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
+            }
+          >
+            <Icon name="export" size={14} /> 내보내기 ({withResults})
+          </button>
+        </section>
+
+        <section
+          className={`toolbar-zone ${selection.selected.size ? 'active' : ''}`}
+          aria-label="카드 고르기"
+        >
+          <span className="zone-title">카드 고르기</span>
+          {selection.selected.size > 0 ? (
+            <>
+              <b className="zone-count">{selection.selected.size}개</b>
+              <button
+                className="with-icon"
+                title="고른 감정마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
+                onClick={() =>
+                  openImg2ImgDialog(
+                    project.id,
+                    emotions
+                      .filter((emotion) => selection.isSelected(emotion.id))
+                      .map((emotion) =>
+                        coverRecord(
+                          emotionRecords(records, emotion.id),
+                          project.favorites[emotion.id],
+                        ),
+                      )
+                      .filter((record): record is GenerationSummary => Boolean(record)),
+                  )
+                }
+              >
+                <Icon name="upscale" size={14} /> i2i
+              </button>
+              <button
+                className="with-icon"
+                title="감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+                onClick={() =>
+                  void clearEmotionResults(
+                    project.id,
+                    emotions.filter((emotion) => selection.isSelected(emotion.id)),
+                  )
+                }
+              >
+                <Icon name="eraser" size={14} /> 결과만 삭제
+              </button>
+              <button
+                className="with-icon danger-quiet"
+                onClick={() => removeMany([...selection.selected])}
+              >
+                <Icon name="trash" size={14} /> 감정 삭제
+              </button>
+              <button
+                className="icon-button"
+                title="고르기 취소 (Esc)"
+                aria-label="고르기 취소"
+                onClick={selection.clear}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </>
+          ) : (
+            <button
+              className="with-icon"
+              title="고른 카드에 i2i·결과 삭제·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
+              onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
+            >
+              <Icon name="select-all" size={14} /> 모두 고르기
+            </button>
+          )}
+        </section>
+
+        <div className="header-spacer" />
+
+        <section className="toolbar-zone generate-zone" aria-label="생성">
+          <span className="zone-title">생성</span>
+          <span className="zone-field" title="카드 아래 체크박스로 고른 감정만 일괄 생성합니다">
+            생성할 감정{' '}
+            <span>
+              <b>{included}</b>/{emotionSet.emotions.length}
+            </span>
+          </span>
+          <button
             onClick={() =>
               updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
             }
           >
-            <Icon name="check-square" size={16} />
+            모두 체크
           </button>
           <button
-            className="emoji-button"
-            title="생성 큐에 넣을 감정: 모두 체크 해제"
-            aria-label="생성 대상 모두 해제"
             onClick={() =>
               updateProject(project.id, (current) => ({
                 ...current,
@@ -230,109 +332,11 @@ export function GalleryView({
               }))
             }
           >
-            <Icon name="square" size={16} />
+            모두 해제
           </button>
-          <span className="toolbar-label">생성 큐</span>
-        </span>
-        <span className="toolbar-group">
-          <button
-            className="emoji-button"
-            title="카드 모두 고르기: 대표 이미지 i2i·결과 삭제·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
-            aria-label="카드 모두 고르기"
-            onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
-          >
-            <Icon name="select-all" size={16} />
-          </button>
-        </span>
-        <button
-          className="accent with-icon"
-          disabled={!withResults}
-          onClick={() =>
-            void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
-          }
-        >
-          <Icon name="export" size={14} /> 내보내기
-        </button>
-        <span
-          className="toolbar-summary"
-          title={`생성 대상으로 체크한 감정 ${included}/${emotionSet.emotions.length}개 · 결과가 있는 감정 ${withResults}개`}
-        >
-          <Icon name="check-square" size={14} /> {included}/{emotionSet.emotions.length}
-          <Icon name="images" size={14} /> {withResults}
-        </span>
-        {selection.selected.size > 0 && (
-          <span className="selection-bar inline">
-            <span>{selection.selected.size}개 고름</span>
-            <button
-              className="with-icon"
-              title="고른 감정마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
-              onClick={() =>
-                openImg2ImgDialog(
-                  project.id,
-                  emotions
-                    .filter((emotion) => selection.isSelected(emotion.id))
-                    .map((emotion) =>
-                      coverRecord(
-                        emotionRecords(records, emotion.id),
-                        project.favorites[emotion.id],
-                      ),
-                    )
-                    .filter((record): record is GenerationSummary => Boolean(record)),
-                )
-              }
-            >
-              <Icon name="upscale" size={14} /> i2i
-            </button>
-            <button
-              className="emoji-button"
-              title="결과만 삭제: 감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
-              aria-label="결과만 삭제"
-              onClick={() =>
-                void clearEmotionResults(
-                  project.id,
-                  emotions.filter((emotion) => selection.isSelected(emotion.id)),
-                )
-              }
-            >
-              <Icon name="eraser" size={16} />
-            </button>
-            <button
-              className="emoji-button danger-quiet"
-              title="고른 감정 삭제"
-              aria-label="감정 삭제"
-              onClick={() => removeMany([...selection.selected])}
-            >
-              <Icon name="trash" size={16} />
-            </button>
-            <button
-              className="emoji-button"
-              title="고르기 취소 (Esc)"
-              aria-label="고르기 취소"
-              onClick={selection.clear}
-            >
-              <Icon name="close" size={16} />
-            </button>
-          </span>
-        )}
-        <div className="header-spacer" />
-        <div
-          className="segmented"
-          role="group"
-          aria-label="한 줄에 보일 카드 수"
-          title="한 줄에 보일 카드 수"
-        >
-          {GALLERY_COLUMN_CHOICES.map((choice) => (
-            <button
-              key={choice}
-              className={choice === columns ? 'active' : ''}
-              aria-pressed={choice === columns}
-              onClick={() => setGalleryColumns(choice)}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-        {generate}
+          <span className="zone-divider" />
+          {generate}
+        </section>
       </div>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
       <div

@@ -16,6 +16,7 @@ import {
   mergeEmotions,
   moveEmotion,
   moveItem,
+  moveItems,
   removeItemReassigning,
   removePromptSet,
   repairPromptSetRefs,
@@ -140,5 +141,16 @@ describe('removeItemReassigning', () => {
     expect(moveItem(full, 'characters', a.id, 2).characters.map((x) => x.name)).toEqual(['B', 'C', 'A']);
     expect(moveItem(full, 'characters', c.id, 0).characters.map((x) => x.name)).toEqual(['C', 'A', 'B']);
     expect(moveItem(full, 'characters', 'nope', 0)).toBe(full);
+  });
+
+  it('여러 항목을 원래 순서대로 한꺼번에 옮겨', () => {
+    const library = createDefaultLibrary();
+    const [a, b, c, d, e] = ['A', 'B', 'C', 'D', 'E'].map((name) => createCharacter(name));
+    const full = { ...library, characters: [a, b, c, d, e] };
+    const names = (next: typeof full) => next.characters.map((x) => x.name).join('');
+    // 아래로 끌면 대상 뒤에, 위로 끌면 대상 앞에 놓는다.
+    expect(names(moveItems(full, 'characters', [a.id, c.id], a.id, d.id))).toBe('BDACE');
+    expect(names(moveItems(full, 'characters', [b.id, e.id], e.id, a.id))).toBe('BEACD');
+    expect(moveItems(full, 'characters', [a.id, b.id], a.id, b.id)).toBe(full);
   });
 });

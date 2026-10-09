@@ -34,8 +34,7 @@ import {
   uniqueName,
 } from '../../../core/model/mutations';
 import { modelInfo } from '../../../core/providers/NaiModels';
-import { type MenuItem } from '../../components/ContextMenu';
-import { confirmDialog, openDialog, promptDialog } from '../../components/Dialogs';
+import { confirmDialog, openDialog } from '../../components/Dialogs';
 import { DeleteUsedDialog } from './DeleteUsedDialog';
 import { SECTIONS } from '../../sections';
 import { openLibrary, run, toast, updateLibrary, useStore, type LibrarySection } from '../../store';
@@ -62,16 +61,6 @@ export function withName(
 ): Library {
   if (section === 'pieceSets') return renamePieceSet(library, id, name);
   return patchItem(library, section, id, (entry) => ({ ...entry, name }));
-}
-
-async function renameItem(section: LibrarySection, item: Item) {
-  const name = await promptDialog({
-    title: '이름 변경',
-    label: '이름',
-    initial: item.name,
-    confirmLabel: '변경',
-  });
-  if (name) updateLibrary((library) => withName(library, section, item.id, name));
 }
 
 export async function deleteItem(section: LibrarySection, item: Item) {
@@ -256,19 +245,6 @@ export function openReferenceFolder(item: Item) {
   void run('폴더를 여는 중', () =>
     libraryApi().openInExplorer({ kind: 'reference', referenceId: item.id }),
   );
-}
-
-export function itemMenu(section: LibrarySection, item: Item): MenuItem[] {
-  return [
-    { label: '이름 변경', onSelect: () => void renameItem(section, item) },
-    { label: '복제', onSelect: () => void duplicateItem(section, item) },
-    { label: 'JSON 내보내기', onSelect: () => exportItem(section, item) },
-    ...(section === 'references'
-      ? [{ label: '폴더 열기', onSelect: () => openReferenceFolder(item) }]
-      : []),
-    'divider',
-    { label: '삭제', danger: true, onSelect: () => void deleteItem(section, item) },
-  ];
 }
 
 /** 새 항목을 만든다. 감정 모음은 기본 감정 6개로 시작하거나(기본) empty면 빈 채로 시작한다. */

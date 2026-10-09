@@ -39,6 +39,8 @@ type State = {
   galleryColumns: number;
   /** 결과 화면 아래의 이미지 목록을 접었는지. */
   filmstripCollapsed: boolean;
+  /** 라이브러리 화면 왼쪽의 항목 목록을 접었는지. */
+  libraryListCollapsed: boolean;
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -85,6 +87,7 @@ const readGalleryColumns = () =>
   );
 
 const FILMSTRIP_KEY = 'filmstrip-collapsed';
+const LIBRARY_LIST_KEY = 'library-list-collapsed';
 
 const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
 
@@ -109,6 +112,7 @@ export const useStore = create<State>(() => ({
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
   filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
+  libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -351,6 +355,12 @@ export function toggleFilmstrip(): void {
   const collapsed = !get().filmstripCollapsed;
   set({ filmstripCollapsed: collapsed });
   saveUiState(FILMSTRIP_KEY, collapsed ? '1' : '0');
+}
+
+export function toggleLibraryList(): void {
+  const collapsed = !get().libraryListCollapsed;
+  set({ libraryListCollapsed: collapsed });
+  saveUiState(LIBRARY_LIST_KEY, collapsed ? '1' : '0');
 }
 
 export async function refreshAccount(): Promise<void> {

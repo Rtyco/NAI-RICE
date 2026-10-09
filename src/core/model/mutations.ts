@@ -69,6 +69,30 @@ export function moveItem<K extends Collection>(
   return { ...library, [key]: list };
 }
 
+/**
+ * 여러 항목을 한꺼번에 `targetId` 옆으로 옮긴다. 옮기는 항목끼리는 원래 순서를 지킨다. 한 개를 옮길 때와
+ * 같이, 끌어 온 항목(`grabbedId`)이 대상보다 위에 있었으면 대상 뒤에, 아래에 있었으면 앞에 놓는다.
+ */
+export function moveItems<K extends Collection>(
+  library: Library,
+  key: K,
+  ids: string[],
+  grabbedId: string,
+  targetId: string,
+): Library {
+  const list = library[key] as ItemOf<K>[];
+  const moving = new Set(ids);
+  if (moving.has(targetId)) return library;
+  const after =
+    list.findIndex((entry) => entry.id === grabbedId) <
+    list.findIndex((entry) => entry.id === targetId);
+  const rest = list.filter((entry) => !moving.has(entry.id));
+  const at = rest.findIndex((entry) => entry.id === targetId);
+  if (at < 0) return library;
+  rest.splice(at + (after ? 1 : 0), 0, ...list.filter((entry) => moving.has(entry.id)));
+  return { ...library, [key]: rest };
+}
+
 const LINK_KEY = {
   presets: 'presetId',
   characters: 'characterId',
