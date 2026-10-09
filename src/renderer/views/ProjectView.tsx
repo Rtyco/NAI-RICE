@@ -12,7 +12,6 @@ import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { BottomSlot } from '../components/BottomSlot';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
@@ -50,6 +49,7 @@ function VariantsStepper({ preset }: { preset: Preset }) {
       className="zone-field"
       title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
     >
+      ×
       <Stepper
         value={value}
         min={1}
@@ -334,37 +334,39 @@ export function ProjectView({ projectId }: { projectId: string }) {
         {detail && emotionSet ? (
           <EmotionDetail resolved={resolved} emotion={detail} />
         ) : (
-          <>
-            <GalleryView
-              resolved={resolved}
-              countControl={preset && <VariantsStepper preset={preset} />}
-            />
-            <BottomSlot>
-              {estimate !== undefined && (
-                <span
-                  className={`pill ${estimate ? 'warn' : ''}`}
-                  title={[
-                    ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
-                    '예상값이며 실제 차감량과 다를 수 있습니다.',
-                  ].join('\n')}
+          <GalleryView
+            resolved={resolved}
+            countControl={preset && <VariantsStepper preset={preset} />}
+            generate={
+              <>
+                {estimate !== undefined && (
+                  <span
+                    className={`pill ${estimate ? 'warn' : ''}`}
+                    title={[
+                      ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
+                      '예상값이며 실제 차감량과 다를 수 있습니다.',
+                    ].join('\n')}
+                  >
+                    {estimate
+                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
+                      : '예상 0 Anlas (무료)'}
+                  </span>
+                )}
+                <button
+                  className="generate-button"
+                  disabled={!count || Boolean(busy) || resolved.missing.length > 0}
+                  title={
+                    resolved.missing.length
+                      ? `필요: ${resolved.missing.join(', ')}`
+                      : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`
+                  }
+                  onClick={() => void generateEmotions(project.id, batch)}
                 >
-                  {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas (무료)'}
-                </span>
-              )}
-              <button
-                className="generate-button"
-                disabled={!count || Boolean(busy) || resolved.missing.length > 0}
-                title={
-                  resolved.missing.length
-                    ? `필요: ${resolved.missing.join(', ')}`
-                    : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`
-                }
-                onClick={() => void generateEmotions(project.id, batch)}
-              >
-                ▶ {count ? `${count}장 생성` : '생성할 씬 없음'}
-              </button>
-            </BottomSlot>
-          </>
+                  ▶ {count ? `${count}장 생성` : '생성할 씬 없음'}
+                </button>
+              </>
+            }
+          />
         )}
       </div>
     </section>

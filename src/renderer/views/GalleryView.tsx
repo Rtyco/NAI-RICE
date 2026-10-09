@@ -5,6 +5,7 @@ import { moveEmotion } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
 import { showContextMenu } from '../components/ContextMenu';
 import { openDialog } from '../components/Dialogs';
+import { BottomSlot } from '../components/BottomSlot';
 import { ExportDialog } from '../components/ExportDialog';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -154,10 +155,13 @@ function EmotionCard(props: {
 export function GalleryView({
   resolved,
   countControl,
+  generate,
 }: {
   resolved: ResolvedProject;
-  /** 씬마다 만들 장수. 생성할 씬 체크 옆에 둔다(생성 버튼은 아래 생성 큐 막대에 있다). */
+  /** 씬마다 만들 장수. */
   countControl: ReactNode;
+  /** 예상 Anlas와 생성 버튼. 생성할 씬 체크·장수와 함께 아래 생성 큐 막대에 둔다. */
+  generate: ReactNode;
 }) {
   const library = useLibrary();
   const { project, emotionSet } = resolved;
@@ -207,35 +211,71 @@ export function GalleryView({
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       {/*
-        한 줄을 구분 바로 세 구역으로 나눈다. 생성할 씬 체크·씬마다 장수·내보내기, 카드 고르기(일괄 작업), 맨
-        오른쪽에 카드 크기. 생성 버튼과 예상 Anlas는 아래 생성 큐 막대(BottomSlot)에 있다. 체크는 일괄 생성
-        대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
+        위 막대는 카드를 다루는 일(고르기와 고른 카드에 하는 일, 내보내기, 카드 크기), 아래 생성 큐 막대는
+        생성하는 일(생성할 씬 체크, 씬마다 장수, 예상 Anlas, 생성)이다. 체크는 일괄 생성 대상이고, 카드
+        고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이라 둘을 서로 다른 막대에 둔다.
       */}
       <div className="toolbar gallery-toolbar">
-        <section className="toolbar-zone" aria-label="생성할 씬">
-          <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
-            <span>
-              씬 <b>{included}</b>/{emotionSet.emotions.length}
-            </span>
-          </span>
-          <button
-            onClick={() =>
-              updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
-            }
-          >
-            모두 체크
-          </button>
-          <button
-            onClick={() =>
-              updateProject(project.id, (current) => ({
-                ...current,
-                excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
-              }))
-            }
-          >
-            모두 해제
-          </button>
-          {countControl}
+        {selection.selected.size > 0 ? (
+          <section className="toolbar-zone active" aria-label="고른 카드">
+            <b className="zone-count">카드 {selection.selected.size}개</b>
+            <span className="zone-divider" />
+            <button
+              className="with-icon"
+              title="고른 씬마다 대표 이미지(없으면 최신)를 크기·강도를 정해 i2i로 다시 그립니다"
+              onClick={() =>
+                openImg2ImgDialog(
+                  project.id,
+                  emotions
+                    .filter((emotion) => selection.isSelected(emotion.id))
+                    .map((emotion) =>
+                      coverRecord(
+                        emotionRecords(records, emotion.id),
+                        project.favorites[emotion.id],
+                      ),
+                    )
+                    .filter((record): record is GenerationSummary => Boolean(record)),
+                )
+              }
+            >
+              <Icon name="upscale" size={14} /> i2i로 보내기
+            </button>
+            <button
+              className="with-icon"
+              title="씬은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+              onClick={() =>
+                void clearEmotionResults(
+                  project.id,
+                  emotions.filter((emotion) => selection.isSelected(emotion.id)),
+                )
+              }
+            >
+              <Icon name="eraser" size={14} /> 결과만 삭제
+            </button>
+            <button
+              className="with-icon danger-quiet"
+              onClick={() => removeMany([...selection.selected])}
+            >
+              <Icon name="trash" size={14} /> 씬 삭제
+            </button>
+            <div className="header-spacer" />
+            <button className="with-icon" title="고르기 취소 (Esc)" onClick={selection.clear}>
+              <Icon name="close" size={14} /> 고르기 취소
+            </button>
+          </section>
+        ) : (
+          <section className="toolbar-zone" aria-label="카드 고르기">
+            <button
+              className="with-icon"
+              onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
+            >
+              <Icon name="select-all" size={14} /> 모두 고르기
+            </button>
+            <span className="hint">Ctrl·Shift 클릭이나 빈 곳을 끌어 골라 한꺼번에 다룹니다</span>
+          </section>
+        )}
+
+        <section className="toolbar-zone view-zone" aria-label="보기">
           <button
             className="with-icon"
             disabled={!withResults}
@@ -246,76 +286,7 @@ export function GalleryView({
           >
             <Icon name="export" size={14} /> 내보내기
           </button>
-        </section>
-
-        <span className="zone-divider" />
-
-        <section
-          className={`toolbar-zone ${selection.selected.size ? 'active' : ''}`}
-          aria-label="카드 고르기"
-        >
-          {selection.selected.size > 0 ? (
-            <>
-              <b className="zone-count">{selection.selected.size}개</b>
-              <button
-                className="with-icon"
-                title="고른 씬마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
-                onClick={() =>
-                  openImg2ImgDialog(
-                    project.id,
-                    emotions
-                      .filter((emotion) => selection.isSelected(emotion.id))
-                      .map((emotion) =>
-                        coverRecord(
-                          emotionRecords(records, emotion.id),
-                          project.favorites[emotion.id],
-                        ),
-                      )
-                      .filter((record): record is GenerationSummary => Boolean(record)),
-                  )
-                }
-              >
-                <Icon name="upscale" size={14} /> i2i
-              </button>
-              <button
-                className="with-icon"
-                title="씬은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
-                onClick={() =>
-                  void clearEmotionResults(
-                    project.id,
-                    emotions.filter((emotion) => selection.isSelected(emotion.id)),
-                  )
-                }
-              >
-                <Icon name="eraser" size={14} /> 결과만 삭제
-              </button>
-              <button
-                className="with-icon danger-quiet"
-                onClick={() => removeMany([...selection.selected])}
-              >
-                <Icon name="trash" size={14} /> 씬 삭제
-              </button>
-              <button
-                className="icon-button"
-                title="고르기 취소 (Esc)"
-                aria-label="고르기 취소"
-                onClick={selection.clear}
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </>
-          ) : (
-            <button
-              className="with-icon"
-              title="고른 카드에 i2i·결과 삭제·씬 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
-              onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
-            >
-              <Icon name="select-all" size={14} /> 모두 고르기
-            </button>
-          )}
-        </section>
-
-        <section className="toolbar-zone view-zone" aria-label="보기">
+          <span className="zone-divider" />
           <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
             {GALLERY_COLUMN_CHOICES.map((choice) => (
               <button
@@ -331,6 +302,32 @@ export function GalleryView({
           </span>
         </section>
       </div>
+      <BottomSlot>
+        <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
+          <span>
+            생성할 씬 <b>{included}</b>/{emotionSet.emotions.length}
+          </span>
+        </span>
+        <button
+          onClick={() =>
+            updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
+          }
+        >
+          모두 체크
+        </button>
+        <button
+          onClick={() =>
+            updateProject(project.id, (current) => ({
+              ...current,
+              excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
+            }))
+          }
+        >
+          모두 해제
+        </button>
+        {countControl}
+        {generate}
+      </BottomSlot>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
       <div
         className="emotion-grid"

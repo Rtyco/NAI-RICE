@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { FreeGeneration, FreeImage, GenerationSummary } from '../../core/domain/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, PresetNumberChip, SizeChip } from '../components/ChainChip';
-import { ResultButtons, showResultMenu, type ResultAction } from '../components/ResultActions';
+import { ChainChip, SizeChip } from '../components/ChainChip';
+import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
+import { PresetNumberRow } from '../components/PresetNumberRow';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { ExpandTextButton } from '../components/TextEditorDialog';
@@ -37,7 +38,6 @@ import {
   useLibrary,
   useStore,
 } from '../store';
-import { RecordInfo } from './EmotionDetail';
 
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
@@ -110,8 +110,11 @@ function FreeMaskCanvas({ image }: { image: FreeImage }) {
   );
 }
 
-/** i2i로 다시 그릴 이미지와, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅). */
-function FreeImagePanel({ free }: { free: FreeGeneration }) {
+/**
+ * i2i로 다시 그릴 이미지, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅), 그 방식의 강도·노이즈. i2i에만
+ * 쓰는 입력을 한 카드에 모은다.
+ */
+function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Preset }) {
   const { image } = free;
   return (
     <section className="detail-card free-source">
@@ -137,11 +140,14 @@ function FreeImagePanel({ free }: { free: FreeGeneration }) {
           결과의 「자유 생성 i2i」로 보내거나 파일에서 불러옵니다.
         </span>
       </div>
+      <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
+        <Icon name="plus" size={14} /> 파일에서 불러오기
+      </button>
       <div className="segmented free-source-mode" role="group" aria-label="다시 그릴 범위">
         <button
           className={free.inpaint ? '' : 'active'}
           aria-pressed={!free.inpaint}
-          title="이미지 전체를 i2i 세기만큼 다시 그립니다"
+          title="이미지 전체를 강도만큼 다시 그립니다"
           onClick={() => updateFreeGeneration({ inpaint: false })}
         >
           <Icon name="refresh" size={14} /> 전체 다시 그리기
@@ -149,15 +155,21 @@ function FreeImagePanel({ free }: { free: FreeGeneration }) {
         <button
           className={free.inpaint ? 'active' : ''}
           aria-pressed={free.inpaint}
-          title="왼쪽 이미지에 마스크로 칠한 곳만 다시 그립니다"
+          title="가운데 이미지에 마스크로 칠한 곳만 다시 그립니다"
           onClick={() => updateFreeGeneration({ inpaint: true })}
         >
           <Icon name="brush" size={14} /> 인페인팅
         </button>
       </div>
-      <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
-        <Icon name="plus" size={14} /> 파일에서 불러오기
-      </button>
+      {preset &&
+        (free.inpaint ? (
+          <PresetNumberRow preset={preset} field="inpaintStrength" />
+        ) : (
+          <>
+            <PresetNumberRow preset={preset} field="img2imgStrength" />
+            <PresetNumberRow preset={preset} field="img2imgNoise" />
+          </>
+        ))}
     </section>
   );
 }
@@ -177,7 +189,6 @@ export function FreeView() {
     [allRecords],
   );
   const [selectedId, setSelectedId] = useState<string>();
-  const [showInfo, setShowInfo] = useState(false);
   const [stage, setStage] = useState<'source' | 'result'>('source');
   const showSource = Boolean(image) && stage === 'source';
   const selected = records.find((record) => record.id === selectedId) ?? records[0];
@@ -186,8 +197,12 @@ export function FreeView() {
   ).length;
 
   const newestId = records[0]?.id;
+  // 새 결과가 생기면 결과(원본과 나란히)로 넘어간다. 처음 열 때 이미 있던 결과로는 넘어가지 않는다.
+  const seenNewest = useRef(newestId);
   useEffect(() => {
     setSelectedId(undefined);
+    if (seenNewest.current && newestId && newestId !== seenNewest.current) setStage('result');
+    seenNewest.current = newestId;
   }, [newestId]);
 
   const removeMany = (ids: string[]) =>
@@ -233,19 +248,45 @@ export function FreeView() {
     {
       label: '이 seed로 다시',
       icon: 'refresh',
+      group: 'main',
       title: '지금 프롬프트와 이 결과의 seed로 다시 생성',
       onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
     },
     {
       label: '프롬프트 복원',
       icon: 'undo',
+      group: 'main',
       title: '이 결과를 만들 때 입력한 프롬프트로 되돌립니다',
       disabled: record.emotionPrompt === free.prompt,
       onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
     },
     {
+      label: 'i2i로 보내기',
+      icon: 'upscale',
+      group: 'send',
+      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
+      onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
+    },
+    {
+      label: '이 결과로 i2i',
+      icon: 'sparkle',
+      group: 'send',
+      title: '이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다',
+      onSelect: () =>
+        void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
+    },
+    {
+      label: '인페인트 만들기',
+      icon: 'reference',
+      group: 'send',
+      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
+      onSelect: () => void makeReferenceFromRecord(FREE_PROJECT_ID, record),
+    },
+    {
       label: '다른 이름으로 저장',
       icon: 'save',
+      group: 'file',
+      iconOnly: true,
       onSelect: () =>
         void run('이미지를 저장하는 중', async () => {
           const saved = await fileApi().saveImageAs(
@@ -260,32 +301,16 @@ export function FreeView() {
     {
       label: '폴더에서 보기',
       icon: 'folder',
+      group: 'file',
+      iconOnly: true,
       onSelect: () =>
         void run('폴더를 여는 중', () => libraryApi().showGeneration(FREE_PROJECT_ID, record.id)),
     },
     {
-      label: 'i2i로 보내기',
-      icon: 'upscale',
-      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
-      onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
-    },
-    {
-      label: '이 결과로 i2i',
-      icon: 'sparkle',
-      title: '이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다',
-      onSelect: () =>
-        void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
-    },
-    {
-      label: '인페인트 만들기',
-      icon: 'reference',
-      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
-      onSelect: () => void makeReferenceFromRecord(FREE_PROJECT_ID, record),
-    },
-    {
       label: '결과 삭제',
       icon: 'trash',
-      danger: true,
+      group: 'delete',
+      iconOnly: true,
       onSelect: () => void deleteResults(FREE_PROJECT_ID, [record]),
     },
   ];
@@ -301,7 +326,12 @@ export function FreeView() {
         </div>
       }
       overlay={
-        pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>
+        <>
+          {image && <span className="stage-label">결과</span>}
+          {pending > 0 && (
+            <span className="card-status busy stage-status">생성 대기 {pending}</span>
+          )}
+        </>
       }
       onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
@@ -394,13 +424,6 @@ export function FreeView() {
           )}
         </ChainChip>
         {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
-        {preset && free.mode === 'img2img' && !free.inpaint && (
-          <>
-            <PresetNumberChip preset={preset} field="img2imgStrength" />
-            <PresetNumberChip preset={preset} field="img2imgNoise" />
-          </>
-        )}
-        {preset && inpainting && <PresetNumberChip preset={preset} field="inpaintStrength" />}
       </div>
       {inpaintModelMissing && (
         <div className="missing-banner">
@@ -428,7 +451,7 @@ export function FreeView() {
                     aria-pressed={stage === 'result'}
                     onClick={() => setStage('result')}
                   >
-                    <Icon name="images" size={14} /> 결과
+                    <Icon name="images" size={14} /> 원본과 결과
                   </button>
                 </div>
               )}
@@ -440,8 +463,24 @@ export function FreeView() {
                 ) : (
                   <ImageStage src={sourceMedia(image.file)} filmstrip={records.length > 0} />
                 )
+              ) : image ? (
+                <div className="compare-stage">
+                  <ImageStage
+                    src={sourceMedia(image.file)}
+                    alt="i2i 이미지"
+                    overlay={<span className="stage-label">i2i 이미지</span>}
+                  />
+                  {resultStage}
+                </div>
               ) : (
                 resultStage
+              )}
+              {!showSource && selected && (
+                <ResultBar
+                  projectId={FREE_PROJECT_ID}
+                  record={selected}
+                  actions={resultActions(selected)}
+                />
               )}
               {records.length > 0 && !filmstripCollapsed && (
                 <div
@@ -504,7 +543,7 @@ export function FreeView() {
             </section>
 
             <aside className="detail-side">
-              {free.mode === 'img2img' && <FreeImagePanel free={free} />}
+              {free.mode === 'img2img' && <FreeImagePanel free={free} preset={preset} />}
               <label className="prompt-field">
                 <span>
                   프롬프트
@@ -530,7 +569,7 @@ export function FreeView() {
                 에 더해 보냅니다.
               </p>
 
-              <div className="generate-row">
+              <div className="generate-dock">
                 <NumberField
                   label="장수"
                   value={free.count}
@@ -546,28 +585,19 @@ export function FreeView() {
                 >
                   ▶ {free.count}장 생성
                 </button>
+                {estimate !== undefined && (
+                  <p
+                    className="hint"
+                    title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join(
+                      '\n',
+                    )}
+                  >
+                    {estimate
+                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
+                      : '예상 0 Anlas (무료)'}
+                  </p>
+                )}
               </div>
-              {estimate !== undefined && (
-                <p
-                  className="hint"
-                  title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
-                >
-                  {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas (무료)'}
-                </p>
-              )}
-
-              {selected && (
-                <section className="detail-card">
-                  <div className="detail-card-head">
-                    <b>선택한 결과</b>
-                    <button className="link-button" onClick={() => setShowInfo((value) => !value)}>
-                      {showInfo ? '정보 접기' : '생성 정보'}
-                    </button>
-                  </div>
-                  {showInfo && <RecordInfo projectId={FREE_PROJECT_ID} record={selected} />}
-                  <ResultButtons actions={resultActions(selected)} />
-                </section>
-              )}
             </aside>
           </div>
         </div>

@@ -1,17 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type {
-  Emotion,
-  GenerationKind,
-  GenerationRecord,
-  GenerationSummary,
-} from '../../core/domain/types';
+import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import type { ResolvedProject } from '../../core/model/defaults';
-import { modelLabel } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
-import { ResultButtons, showResultMenu, type ResultAction } from '../components/ResultActions';
+import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
@@ -31,80 +25,6 @@ import { fileApi, libraryApi } from '../desktop';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 
-const KIND_LABELS: Record<GenerationKind, string> = {
-  inpaint: '인페인트',
-  txt2img: '일반 생성',
-  img2img: 'i2i',
-  augment: '디렉터 툴',
-};
-
-/** 선택한 결과의 생성 정보. 목록에는 프롬프트가 없어서, 열 때 기록 하나를 통째로 받아 온다. */
-export function RecordInfo({ projectId, record }: { projectId: string; record: GenerationSummary }) {
-  const [full, setFull] = useState<GenerationRecord | null>();
-  useEffect(() => {
-    let alive = true;
-    setFull(undefined);
-    libraryApi()
-      .getGeneration(projectId, record.id)
-      .then((value) => alive && setFull(value))
-      .catch(() => alive && setFull(null));
-    return () => {
-      alive = false;
-    };
-  }, [projectId, record.id]);
-  const prompt = (pick: (value: GenerationRecord) => string) =>
-    full === undefined ? '불러오는 중…' : full === null ? '읽을 수 없습니다' : pick(full);
-  return (
-    <dl className="record-info">
-      <dt>생성 시각</dt>
-      <dd>{new Date(record.createdAt).toLocaleString()}</dd>
-      <dt>Seed</dt>
-      <dd>{record.seed}</dd>
-      <dt>방식</dt>
-      <dd>{KIND_LABELS[record.kind]}</dd>
-      {record.inputFile && (
-        <>
-          <dt>입력 이미지</dt>
-          <dd>
-            <img
-              className="record-input"
-              src={projectMedia(projectId, record.inputFile)}
-              alt=""
-              title="NovelAI에 실제로 보낸 입력(목표 크기로 맞춘 것)"
-            />
-          </dd>
-        </>
-      )}
-      <dt>모델</dt>
-      <dd>{modelLabel(record.model)}</dd>
-      <dt>크기</dt>
-      <dd>
-        {record.width}×{record.height}
-      </dd>
-      {record.anlasSpent !== undefined && (
-        <>
-          <dt>사용 Anlas</dt>
-          <dd>{record.anlasSpent}</dd>
-        </>
-      )}
-      <dt>조합</dt>
-      <dd>
-        {[record.presetName, `${record.characterName} / ${record.promptSetName}`, record.emotionSetName, record.referenceName]
-          .filter(Boolean)
-          .join(' → ')}
-      </dd>
-      <dt>씬 프롬프트</dt>
-      <dd className="mono">{record.emotionPrompt || '—'}</dd>
-      <dt>캐릭터 프롬프트</dt>
-      <dd className="mono">{prompt((value) => value.characterPrompt)}</dd>
-      <dt>공통 프롬프트</dt>
-      <dd className="mono">{prompt((value) => value.prompt)}</dd>
-      <dt>공통 네거티브</dt>
-      <dd className="mono">{prompt((value) => value.negativePrompt)}</dd>
-    </dl>
-  );
-}
-
 export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject; emotion: Emotion }) {
   const { project } = resolved;
   const set = resolved.emotionSet!;
@@ -115,7 +35,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [selectedId, setSelectedId] = useState<string>();
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
-  const [showInfo, setShowInfo] = useState(false);
   const favoriteId = project.favorites[emotion.id];
   const selected =
     records.find((record) => record.id === selectedId) ?? records.find((record) => record.id === favoriteId) ?? records[0];
@@ -173,12 +92,52 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     {
       label: favoriteId === record.id ? '대표 해제' : '대표로 지정',
       icon: 'star',
+      group: 'main',
       active: favoriteId === record.id,
       onSelect: () => setFavorite(favoriteId === record.id ? undefined : record.id),
     },
     {
+      label: '이 seed로 다시',
+      icon: 'refresh',
+      group: 'main',
+      title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
+      onSelect: () =>
+        void generateEmotions(project.id, [emotion.id], { seed: record.seed, variants: 1 }),
+    },
+    {
+      label: '프롬프트 복원',
+      icon: 'undo',
+      group: 'main',
+      title: '이 결과를 만들 때의 씬 프롬프트로 되돌립니다',
+      disabled: record.emotionPrompt === emotion.prompt,
+      onSelect: () => patchEmotion(set.id, emotion.id, { prompt: record.emotionPrompt }),
+    },
+    {
+      label: 'i2i로 보내기',
+      icon: 'upscale',
+      group: 'send',
+      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
+      onSelect: () => openImg2ImgDialog(project.id, [record]),
+    },
+    {
+      label: '자유 생성 i2i',
+      icon: 'sparkle',
+      group: 'send',
+      title: '자유 생성의 i2i로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
+      onSelect: () => void sendToFreeImg2Img(project.id, record),
+    },
+    {
+      label: '인페인트 만들기',
+      icon: 'reference',
+      group: 'send',
+      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
+      onSelect: () => void makeReferenceFromRecord(project.id, record),
+    },
+    {
       label: '다른 이름으로 저장',
       icon: 'save',
+      group: 'file',
+      iconOnly: true,
       onSelect: () =>
         void run('이미지를 저장하는 중', async () => {
           const saved = await fileApi().saveImageAs(
@@ -191,47 +150,18 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         }),
     },
     {
-      label: '이 seed로 다시',
-      icon: 'refresh',
-      title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
-      onSelect: () =>
-        void generateEmotions(project.id, [emotion.id], { seed: record.seed, variants: 1 }),
-    },
-    {
-      label: '프롬프트 복원',
-      icon: 'undo',
-      title: '이 결과를 만들 때의 씬 프롬프트로 되돌립니다',
-      disabled: record.emotionPrompt === emotion.prompt,
-      onSelect: () => patchEmotion(set.id, emotion.id, { prompt: record.emotionPrompt }),
-    },
-    {
       label: '폴더에서 보기',
       icon: 'folder',
+      group: 'file',
+      iconOnly: true,
       onSelect: () =>
         void run('폴더를 여는 중', () => libraryApi().showGeneration(project.id, record.id)),
     },
     {
-      label: 'i2i로 보내기',
-      icon: 'upscale',
-      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
-      onSelect: () => openImg2ImgDialog(project.id, [record]),
-    },
-    {
-      label: '인페인트 만들기',
-      icon: 'reference',
-      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
-      onSelect: () => void makeReferenceFromRecord(project.id, record),
-    },
-    {
-      label: '자유 생성 i2i',
-      icon: 'sparkle',
-      title: '자유 생성의 i2i로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
-      onSelect: () => void sendToFreeImg2Img(project.id, record),
-    },
-    {
       label: '결과 삭제',
       icon: 'trash',
-      danger: true,
+      group: 'delete',
+      iconOnly: true,
       onSelect: () => void deleteResults(project.id, [record]),
     },
   ];
@@ -241,6 +171,18 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     <div className="emotion-detail">
       <div className="detail-nav">
         <button onClick={() => openEmotion(undefined)}>← 갤러리</button>
+        <button
+          className="with-icon"
+          onClick={() => {
+            const copy = duplicateEmotionIn(set.id, emotion.id);
+            if (copy) openEmotion(copy);
+          }}
+        >
+          <Icon name="copy" size={14} /> 씬 복제
+        </button>
+        <button className="with-icon danger-quiet" onClick={() => void deleteEmotion(set.id, emotion, project.id)}>
+          <Icon name="trash" size={14} /> 씬 삭제
+        </button>
         <div className="header-spacer" />
         <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="PageUp">
           ‹ {previous?.name ?? '이전'}
@@ -268,6 +210,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             overlay={pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>}
             onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
           />
+          {selected && (
+            <ResultBar projectId={project.id} record={selected} actions={resultActions(selected)} />
+          )}
           {records.length > 0 && !filmstripCollapsed && (
             <div
               className="filmstrip selectable"
@@ -375,44 +320,18 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <span>일괄 생성에 포함 (이 작업만)</span>
           </label>
 
-          <div className="generate-row">
+          <p className="hint">←/→ 결과 이동 · PageUp/PageDown 씬 이동 · Esc 갤러리</p>
+
+          <div className="generate-dock">
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
             <button
               className="generate-button"
               disabled={!emotion.prompt.trim() || resolved.missing.length > 0}
               onClick={() => void generateEmotions(project.id, [emotion.id], { variants })}
             >
-              ▶ 생성
+              ▶ {variants}장 생성
             </button>
           </div>
-
-          {selected && (
-            <section className="detail-card">
-              <div className="detail-card-head">
-                <b>선택한 결과</b>
-                <button className="link-button" onClick={() => setShowInfo((value) => !value)}>
-                  {showInfo ? '정보 접기' : '생성 정보'}
-                </button>
-              </div>
-              {showInfo && <RecordInfo projectId={project.id} record={selected} />}
-              <ResultButtons actions={resultActions(selected)} />
-            </section>
-          )}
-
-          <div className="detail-footer">
-            <button
-              onClick={() => {
-                const copy = duplicateEmotionIn(set.id, emotion.id);
-                if (copy) openEmotion(copy);
-              }}
-            >
-              <Icon name="copy" size={14} /> 씬 복제
-            </button>
-            <button className="danger-quiet" onClick={() => void deleteEmotion(set.id, emotion, project.id)}>
-              <Icon name="trash" size={14} /> 씬 삭제
-            </button>
-          </div>
-          <p className="hint">←/→ 결과 이동 · PageUp/PageDown 씬 이동 · Esc 갤러리</p>
         </aside>
       </div>
     </div>
