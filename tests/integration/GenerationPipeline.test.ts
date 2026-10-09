@@ -276,7 +276,8 @@ describe('generation pipeline', () => {
       ],
       [0],
     );
-    for (let tries = 0; tries < 100 && !records.length; tries += 1)
+    // 다른 작업이 몰려 느릴 때도 버티도록 다른 큐 테스트처럼 5초까지 기다린다.
+    for (let tries = 0; tries < 250 && !records.length; tries += 1)
       await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(sent).toEqual([{ image: undefined, mask: undefined }]);
