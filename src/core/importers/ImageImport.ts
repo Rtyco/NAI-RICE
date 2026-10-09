@@ -92,7 +92,6 @@ export function applyImageImport(
   let emotionSetId = project?.emotionSetId;
   let referenceId = project?.referenceId;
 
-  // ① 프리셋
   const presetChoice = choices.preset;
   if (presetChoice) {
     const overwrite = presetChoice.overwrite;
@@ -126,7 +125,6 @@ export function applyImageImport(
     applied.push(overwrite ? `생성 설정 "${preset.name}" 갱신` : `새 생성 설정 "${preset.name}"`);
   }
 
-  // ② 캐릭터
   const characterChoice = choices.character;
   const characterPrompt = characterChoice ? data.characters[characterChoice.index] : undefined;
   if (characterChoice && characterPrompt) {
@@ -155,7 +153,6 @@ export function applyImageImport(
     }
   }
 
-  // ③ 감정
   if (choices.emotion && desk) {
     const targetSet = choices.emotion.emotionSet;
     if (choices.emotion.target === 'current' && targetSet) {
@@ -175,7 +172,6 @@ export function applyImageImport(
     applied.push(`감정 "${desk.emotion.name}"`);
   }
 
-  // ④ 레퍼런스
   let newReferenceId: string | undefined;
   if (choices.reference) {
     const reference = createReference(name);
@@ -185,7 +181,6 @@ export function applyImageImport(
     applied.push(`새 인페인트 "${reference.name}"`);
   }
 
-  // 새 작업으로 묶거나 현재 작업에 연결
   let openId: string | undefined;
   if (choices.newProject) {
     const character = characterForProject ?? createCharacter(name);

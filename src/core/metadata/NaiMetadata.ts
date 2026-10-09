@@ -63,8 +63,6 @@ export function guessModelFromSource(label: string | undefined): string | undefi
   return undefined;
 }
 
-// ── stealth (알파 채널 LSB) ─────────────────────────────
-
 /** stealth 메타데이터 압축 해제 결과의 상한. 실제 NovelAI 메타데이터는 수 KB다. */
 export const MAX_STEALTH_TEXT_BYTES = 1024 * 1024;
 /** 한 번에 넣는 압축 데이터 크기. deflate 최대 압축률(약 1032:1)로도 한 번의 출력이 1MB 안팎에 그친다. */
@@ -141,8 +139,6 @@ export function readStealthMetadata(
     return null;
   }
 }
-
-// ── 해석 ───────────────────────────────────────────────
 
 function stripReferenceInset(prompt: string): string {
   return prompt

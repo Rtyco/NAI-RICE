@@ -48,7 +48,6 @@ function skipVersion(version: string): void {
   }));
 }
 
-/** 새 버전이 있을 때 띄우는 작은 창. */
 export function UpdateDialog({ update, close }: { update: UpdateCheckResult; close: () => void }) {
   const notes = releaseNotes(update.notes);
   const published = update.publishedAt ? new Date(update.publishedAt).toLocaleDateString() : '';

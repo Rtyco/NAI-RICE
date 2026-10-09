@@ -9,7 +9,6 @@ export type GenerateOptions = {
   variants?: number;
 };
 
-/** 작업의 선택한 감정들을 생성 큐에 등록한다. */
 export function generateEmotions(projectId: string, emotionIds: string[], options: GenerateOptions = {}): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
     await flushSaves();

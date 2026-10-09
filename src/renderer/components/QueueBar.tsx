@@ -14,7 +14,6 @@ const STATUS: Record<string, string> = {
   interrupted: '중단',
 };
 
-/** 큐 항목의 Anlas 표시. 끝난 작업은 실제 차감량을, 아직이면 예상값을 보여 준다. */
 function anlasText(job: QueueJobView): string {
   const estimate = job.anlasEstimate;
   if (job.anlasSpent === undefined)

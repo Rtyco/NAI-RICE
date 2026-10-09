@@ -241,7 +241,6 @@ export class GenerationQueue {
     return file;
   }
 
-  /** 작업 종류가 쓰는 입력 파일만 읽는다. 일반 생성은 입력이 없다. */
   private async loadInputs(job: QueuedGenerationJob): Promise<{ image?: Buffer; mask?: Buffer }> {
     if (job.kind === 'txt2img') return {};
     const image = () => this.loadInput(job.projectId, job.imagePath, job.imageSha256);

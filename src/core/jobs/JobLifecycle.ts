@@ -69,7 +69,6 @@ export function restoreQueuedJob(value: unknown): QueuedGenerationJob | undefine
   }
 }
 
-/** 렌더러가 만든 작업을 큐에 넣을 모양으로 만든다. */
 export function createQueuedJob(snapshot: GenerationJobSnapshot, id: string): QueuedGenerationJob {
   return {
     ...structuredClone(snapshot),

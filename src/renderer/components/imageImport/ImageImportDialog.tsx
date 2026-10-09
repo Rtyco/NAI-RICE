@@ -147,7 +147,6 @@ export function ImageImportDialog({
     firstOf(library.emotionSets, picked('emotionSets'), resolved?.emotionSet?.id),
   );
   const targetEmotionSet = library.emotionSets.find((item) => item.id === emotionSetTargetId);
-  /** 지금 작업이 쓰는 항목에는 표시를 붙인다. */
   const usedMark = (id: string, usedId?: string) => (id === usedId ? ' (현재 작업)' : '');
   const [useReference, setUseReference] = useState(false);
   const [makeProject, setMakeProject] = useState(!project);

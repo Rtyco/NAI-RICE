@@ -4,7 +4,6 @@ import { estimateJobAnlas, generationCostWarnings } from '../../src/core/provide
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
 import type { GenerationEnqueueResult, TokenStatus } from '../../src/shared/ipc';
 
-/** Anlas가 드는 작업 수와 예상 합계. */
 export type CostEstimate = { paidJobs: number; anlas: number };
 
 /** Anlas가 쓰일 수 있을 때 사용자에게 묻는다. 계속하면 true. */

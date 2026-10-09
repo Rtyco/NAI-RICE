@@ -3,9 +3,8 @@ import type { IconName } from './components/Icon';
 import type { LibrarySection } from './store';
 
 /**
- * 라이브러리 항목.  작업은 projectPart를 묶어 사용
- * 프롬프트 조각은 작업에 묶지 않고 프롬프트 안에서 불러 쓴다.
- * 화면 곳곳의 이름·아이콘·설명이 여기서 나온다.
+ * 라이브러리 항목 종류. 작업은 `projectPart`인 항목을 하나씩 골라 묶고, 프롬프트 조각은 프롬프트 안에서
+ * 불러 쓴다. 화면 곳곳의 이름·아이콘·설명이 여기서 나온다.
  */
 export const SECTIONS: Array<{
   id: LibrarySection;

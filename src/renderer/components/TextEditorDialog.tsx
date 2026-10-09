@@ -59,7 +59,6 @@ export function TextEditorDialog({
   );
 }
 
-/** 입력란 옆에 두는 "크게 편집" 버튼. 누르면 같은 내용을 큰 창으로 연다. */
 export function ExpandTextButton(props: EditorOptions) {
   return (
     <button

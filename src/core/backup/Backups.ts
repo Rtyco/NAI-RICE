@@ -94,12 +94,10 @@ function emptyBundle(label: string): ImportBundle {
   };
 }
 
-/** SDStudio 형식(이름 + 조각 목록)을 새 ID의 프롬프트 조각 세트로 바꾼다. */
 function pieceSetFromSDStudio(value: z.infer<typeof sdStudioPieceSetSchema>): PieceSet {
   return createPieceSet(value.name, value.pieces);
 }
 
-/** SDStudio 프로젝트 파일의 library 값에서 프롬프트 조각 세트를 꺼낸다. 형식이 맞지 않는 것은 건너뛴다. */
 function sdStudioLibraryPieceSets(value: unknown): PieceSet[] {
   if (typeof value !== 'object' || value === null) return [];
   return Object.values(value).flatMap((entry) => {
@@ -269,8 +267,6 @@ export function parseImportFile(
     '지원하지 않는 JSON입니다. 이 앱의 백업·내보내기 파일이나 SDStudio 캐릭터·프롬프트 조각 파일을 사용할 수 있습니다.',
   );
 }
-
-// ── 내보내기 ────────────────────────────────────────
 
 const stamp = () => new Date().toISOString();
 

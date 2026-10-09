@@ -19,10 +19,9 @@ export type UcPresetId = 'none' | 'heavy' | 'light' | 'human' | 'furry';
 /** V5의 Quality Tags 단계. 다른 모델은 Standard 하나뿐이다. */
 export type QualityLevel = 'standard' | 'light';
 
-/** reference inset 태그를 넣을 위치. 캐릭터 맨 앞은 성별 태그(girl, boy …) 바로 뒤에 들어간다. */
-/** 감정 프롬프트를 붙일 곳. */
 export type EmotionPosition = 'character-end' | 'common-end';
 
+/** 캐릭터 맨 앞(`character-start`)은 성별 태그(girl, boy …) 바로 뒤에 들어간다. */
 export type ReferenceInsetPosition =
   'common-start' | 'common-end' | 'character-start' | 'character-end';
 
@@ -48,9 +47,6 @@ export type GenerationSettings = {
   emotionPosition: EmotionPosition;
 };
 
-// ── 독립된 네 가지 라이브러리 항목 ─────────────────────
-
-/** 프리셋: 공통 프롬프트와 생성 설정. */
 export type Preset = {
   id: string;
   name: string;
@@ -125,7 +121,6 @@ export type CanvasLayout = {
 export type Reference = {
   id: string;
   name: string;
-  /** 이미지가 아직 없으면 undefined. */
   image?: {
     originalFile: string;
     canvasFile: string;
@@ -184,7 +179,6 @@ export type AppSettings = {
   };
   /** NovelAI 요청 사이에 기다리는 시간(0~1000ms). */
   requestDelayMs: number;
-  /** 프롬프트 칸에서 단부루 태그 후보를 보여 준다. */
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

@@ -20,8 +20,6 @@ export function uniqueName(base: string, taken: string[]): string {
   }
 }
 
-// ── 공통: 목록 항목 교체 ─────────────────────────────
-
 type Collection =
   | 'presets'
   | 'characters'
@@ -116,8 +114,6 @@ export function duplicateName<K extends Collection>(
   );
 }
 
-// ── 감정 모음 ─────────────────────────────────────────
-
 export function addEmotion(set: EmotionSet, name?: string, prompt = ''): EmotionSet {
   const emotion = createEmotion(
     uniqueName(
@@ -193,8 +189,6 @@ export function cloneEmotionSet(set: EmotionSet, name: string): EmotionSet {
     emotions: set.emotions.map((emotion) => ({ ...emotion, id: newId() })),
   };
 }
-
-// ── 프롬프트 조각 ─────────────────────────────────────
 
 export function addPiece(set: PieceSet, name?: string): { set: PieceSet; piece: PromptPiece } {
   const piece = createPiece(
@@ -289,8 +283,6 @@ export function renamePiece(
   );
 }
 
-// ── 캐릭터 ───────────────────────────────────────────
-
 export function addPromptSet(
   character: Character,
   name?: string,
@@ -345,8 +337,6 @@ export function cloneReferenceMeta(reference: Reference, name: string): Referenc
     updatedAt: new Date().toISOString(),
   };
 }
-
-// ── 작업 ─────────────────────────────────────────────
 
 export function touchProject(project: Project): Project {
   return { ...project, updatedAt: new Date().toISOString() };

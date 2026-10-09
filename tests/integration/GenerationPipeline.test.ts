@@ -111,7 +111,7 @@ describe('generation pipeline', () => {
       token: async () => 'token',
       emit: (next) => (snapshot = next),
       onRecord: (record) => records.push(record),
-      // 두 번째 조회(생성 후)에서 2 Anlas가 줄었다고 가정한다.
+      // 조회할 때마다 1씩 줄어, 생성 전후 차이(차감량)는 1이 된다.
       anlas: async () => {
         const value = anlas;
         anlas -= 1;

@@ -328,7 +328,7 @@ export const generationIndexSchema = z.object({
   ),
 });
 
-// ── v1 (마이그레이션·이전 백업 읽기 전용) ─────────────
+// v1 형식: 이전 작업 폴더를 옮기거나 이전 백업을 읽을 때만 쓴다.
 
 export const v1WorkspaceSchema = z.object({
   schemaVersion: z.literal(1),

@@ -196,8 +196,6 @@ export function createDefaultLibrary(): Library {
   };
 }
 
-// ── 조회 ────────────────────────────────────────────
-
 export type ResolvedProject = {
   project: Project;
   preset?: Preset;

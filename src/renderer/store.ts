@@ -16,7 +16,6 @@ export type Toast = { id: number; kind: 'info' | 'error'; message: string };
 
 export type PendingReference = { referenceId: string; dataUrl: string; name: string };
 
-/** 사이드바에서 제목을 눌러 접을 수 있는 카드. */
 export type SidebarSection = 'projects' | 'library';
 
 type State = {
@@ -41,8 +40,7 @@ type State = {
   update?: UpdateCheckResult;
 };
 
-// ── 다음 실행에도 기억하는 화면 상태 ──────────────────
-// 저장소를 쓸 수 없으면(읽기·쓰기 실패) 기본값으로 이번 실행만 동작한다.
+// 다음 실행에도 기억하는 화면 상태. 저장소를 쓸 수 없으면 기본값으로 이번 실행만 동작한다.
 
 function readUiState<T>(key: string, parse: (raw: string | null) => T, fallback: T): T {
   try {
@@ -95,8 +93,6 @@ export const useStore = create<State>(() => ({
 const set = useStore.setState;
 const get = useStore.getState;
 
-// ── 알림 ─────────────────────────────────────────────
-
 let toastSeed = 0;
 
 export function toast(message: string, kind: Toast['kind'] = 'info'): void {
@@ -128,8 +124,6 @@ export async function run<T>(label: string, task: () => Promise<T>): Promise<T |
     set({ busy: '' });
   }
 }
-
-// ── 자동 저장 ─────────────────────────────────────────
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const tasks = new Map<string, () => Promise<void>>();
@@ -167,8 +161,6 @@ export async function flushSaves(): Promise<void> {
 window.addEventListener('beforeunload', () => {
   void flushSaves();
 });
-
-// ── 초기화 ───────────────────────────────────────────
 
 let initializing: Promise<void> | undefined;
 
@@ -234,8 +226,6 @@ export function subscribeToMain(): () => void {
   return () => stops.forEach((stop) => stop());
 }
 
-// ── 라이브러리 ─────────────────────────────────────────
-
 export function updateLibrary(recipe: (library: Library) => Library): void {
   const current = get().library;
   if (!current) return;
@@ -269,8 +259,6 @@ export function currentProject(): Project | undefined {
   return state.library.projects.find((project) => project.id === id);
 }
 
-// ── 화면 이동 ─────────────────────────────────────────
-
 export function openProject(projectId: string): void {
   set({ view: { kind: 'project', projectId }, detailEmotionId: undefined });
   updateLibrary((library) => ({ ...library, lastProjectId: projectId }));
@@ -303,7 +291,6 @@ export function toggleSidebarSection(section: SidebarSection): void {
   saveUiState(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
 }
 
-/** 계정 상태(Anlas·V5 할당량)를 지금 다시 조회한다. */
 export async function refreshAccount(): Promise<void> {
   if (!get().token.stored) return;
   set({ token: await accountApi().validateStoredToken() });
@@ -312,8 +299,6 @@ export async function refreshAccount(): Promise<void> {
 export function setPendingReference(reference: PendingReference | undefined): void {
   set({ pendingReference: reference });
 }
-
-// ── 생성 기록 ─────────────────────────────────────────
 
 export async function loadGenerations(projectId: string): Promise<void> {
   try {

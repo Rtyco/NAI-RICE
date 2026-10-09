@@ -121,8 +121,6 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.verifyReal(this.resolveReference(referenceId, relative));
   }
 
-  // ── 불러오기·저장 ─────────────────────────────────
-
   async load(): Promise<LibrarySnapshot> {
     await fs.mkdir(this.root, { recursive: true });
     const notices: string[] = [];
@@ -170,8 +168,6 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       await fs.rm(path.join(directory, old), { force: true });
     }
   }
-
-  // ── 레퍼런스 파일 ─────────────────────────────────
 
   async saveReferenceImages(
     referenceId: string,
@@ -248,8 +244,6 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     }
     return { imagePath, maskPath, imageSha256, maskSha256 };
   }
-
-  // ── 생성 기록 ─────────────────────────────────────
 
   private indexPath(projectId: string): string {
     return path.join(this.projectDir(projectId), 'generations.json');

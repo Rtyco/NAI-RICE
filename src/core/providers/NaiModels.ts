@@ -92,7 +92,6 @@ export function modelInfo(id: string): NaiModelInfo | undefined {
   return NAI_MODELS.find((model) => model.id === id);
 }
 
-/** 인페인트를 지원하는 모델. 인페인트 생성 설정의 모델 선택에 쓴다. */
 export const INPAINT_MODELS = NAI_MODELS.filter((model) => model.requestIds.inpaint);
 
 /** 생성 방식에 맞는 NovelAI 모델 ID. 그 방식을 지원하지 않는 모델이면 오류를 던진다. */

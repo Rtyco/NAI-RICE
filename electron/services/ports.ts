@@ -12,7 +12,7 @@ import type { TokenVaultStatus } from './TokenVault';
  * 실제 구현은 main.ts가 이어 붙이고, 테스트는 필요한 메서드만 가진 가짜 객체를 넘긴다.
  */
 
-/** 인페인트 이미지를 만드는 쪽. NovelAIProvider가 구현한다. */
+/** 생성 작업의 이미지를 만드는 쪽. NovelAIProvider가 구현한다. */
 export interface ImageGenerator {
   generate(request: NovelAIImageRequest): Promise<Buffer>;
 }

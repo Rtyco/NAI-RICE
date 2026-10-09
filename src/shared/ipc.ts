@@ -96,7 +96,6 @@ export type OpenTarget =
 
 export type MediaOwner = { kind: 'project' | 'reference'; id: string };
 
-/** 작업 폴더의 라이브러리·레퍼런스·생성 기록. */
 export type LibraryApi = {
   loadLibrary: () => Promise<LibrarySnapshot>;
   saveLibrary: (library: Library) => Promise<void>;
@@ -136,7 +135,6 @@ export type FileApi = {
   exportLibrary: (library: Library) => Promise<string | null>;
 };
 
-/** NovelAI 토큰과 계정 상태. */
 export type AccountApi = {
   tokenStatus: () => Promise<TokenStatus>;
   saveAndValidateToken: (token: string) => Promise<TokenStatus>;
@@ -145,7 +143,6 @@ export type AccountApi = {
   onTokenStatus: (listener: (status: TokenStatus) => void) => () => void;
 };
 
-/** 생성 큐와 진행 알림. */
 export type QueueApi = {
   queueSnapshot: () => Promise<QueueView>;
   enqueueGeneration: (request: GenerationEnqueueRequest) => Promise<GenerationEnqueueResult>;
@@ -208,7 +205,6 @@ export type StorageApi = {
   clearAppCache: () => Promise<number>;
 };
 
-/** 앱 정보. */
 export type AppApi = {
   appVersion: () => Promise<string>;
   /** GitHub 최신 릴리스와 지금 버전을 비교한다. */

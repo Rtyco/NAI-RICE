@@ -1,6 +1,5 @@
 import type { GenerationRecord, GenerationSummary } from '../domain/types';
 
-/** 화면 목록에 보낼 요약. 최종 프롬프트와 설정은 빼고 모델 이름만 남긴다. */
 export function toGenerationSummary(record: GenerationRecord): GenerationSummary {
   return {
     id: record.id,

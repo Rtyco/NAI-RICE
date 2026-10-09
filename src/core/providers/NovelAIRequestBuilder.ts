@@ -38,7 +38,6 @@ export type NaiAugmentRequestInput = {
   defry: number;
 };
 
-/** NovelAI에 보낼 요청 한 건. */
 export type NaiHttpRequest = { url: string; body: Record<string, unknown> };
 
 function join(...parts: string[]): string {
@@ -74,7 +73,6 @@ export function buildNovelAIDiffusionRequest(
     ? join(input.negativePrompt, input.characterNegativePrompt)
     : input.negativePrompt;
 
-  // 이미지를 받는 요청(i2i·인페인트)만 강도·노이즈·이미지를 보낸다.
   const imageParams =
     image.action === 'generate'
       ? {}
@@ -84,7 +82,6 @@ export function buildNovelAIDiffusionRequest(
           image: image.imageBase64,
           ...(infill ? { mask: image.maskBase64 } : {}),
         };
-  // 원본을 섞는 옵션은 인페인트에만 있다.
   const infillParams = infill ? { inpaintImg2ImgStrength: strength, add_original_image: true } : {};
 
   const shared = {
@@ -228,7 +225,6 @@ function required(value: string | undefined, label: string): string {
   return value;
 }
 
-/** 작업 하나를 생성 방식에 맞는 NovelAI 요청으로 바꾼다. */
 export function buildNovelAIJobRequest(
   job: GenerationJobSnapshot,
   inputs: NaiJobInputs,
