@@ -167,9 +167,9 @@ export function applyImageImport(
       };
       next = { ...next, emotionSets: [...next.emotionSets, set] };
       emotionSetId = set.id;
-      applied.push(`새 감정 모음 "${set.name}"`);
+      applied.push(`새 씬 모음 "${set.name}"`);
     }
-    applied.push(`감정 "${desk.emotion.name}"`);
+    applied.push(`씬 "${desk.emotion.name}"`);
   }
 
   let newReferenceId: string | undefined;
@@ -187,7 +187,7 @@ export function applyImageImport(
     if (!next.characters.some((item) => item.id === character.id))
       next = { ...next, characters: [...next.characters, character] };
     if (!emotionSetId || !next.emotionSets.some((set) => set.id === emotionSetId)) {
-      const set = createEmotionSet(`${character.name} 감정`);
+      const set = createEmotionSet(`${character.name} 씬`);
       next = { ...next, emotionSets: [...next.emotionSets, set] };
       emotionSetId = set.id;
     }

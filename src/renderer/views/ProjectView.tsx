@@ -12,6 +12,7 @@ import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
+import { BottomSlot } from '../components/BottomSlot';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { Icon } from '../components/Icon';
 import { Menu } from '../components/ui';
@@ -47,9 +48,8 @@ function VariantsStepper({ preset }: { preset: Preset }) {
   return (
     <span
       className="zone-field"
-      title={`감정마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
+      title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
     >
-      감정마다
       <span className="stepper">
         <button
           className="icon-button"
@@ -225,7 +225,7 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
         </p>
       )}
       <label className="stack-field">
-        감정
+        씬
         <select value={emotionId} onChange={(event) => setEmotionId(event.target.value)}>
           {emotions.map((item) => (
             <option key={item.id} value={item.id}>
@@ -244,7 +244,7 @@ function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: 
           <pre className="prompt-code">{prompts.negativePrompt || '(비어 있음)'}</pre>
         </div>
         <div className="prompt-preview">
-          <span>캐릭터 포지티브 + 감정</span>
+          <span>캐릭터 포지티브 + 씬</span>
           <pre className="prompt-code">{prompts.characterPrompt || '(비어 있음)'}</pre>
         </div>
         <div className="prompt-preview negative-preview">
@@ -345,39 +345,37 @@ export function ProjectView({ projectId }: { projectId: string }) {
         {detail && emotionSet ? (
           <EmotionDetail resolved={resolved} emotion={detail} />
         ) : (
-          <GalleryView
-            resolved={resolved}
-            generate={
-              <>
-                {preset && <VariantsStepper preset={preset} />}
-                {estimate !== undefined && (
-                  <span
-                    className={`pill ${estimate ? 'warn' : ''}`}
-                    title={[
-                      ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
-                      '예상값이며 실제 차감량과 다를 수 있습니다.',
-                    ].join('\n')}
-                  >
-                    {estimate
-                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
-                      : '예상 0 Anlas (무료)'}
-                  </span>
-                )}
-                <button
-                  className="generate-button"
-                  disabled={!count || Boolean(busy) || resolved.missing.length > 0}
-                  title={
-                    resolved.missing.length
-                      ? `필요: ${resolved.missing.join(', ')}`
-                      : `체크한 감정 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`
-                  }
-                  onClick={() => void generateEmotions(project.id, batch)}
+          <>
+            <GalleryView
+              resolved={resolved}
+              countControl={preset && <VariantsStepper preset={preset} />}
+            />
+            <BottomSlot>
+              {estimate !== undefined && (
+                <span
+                  className={`pill ${estimate ? 'warn' : ''}`}
+                  title={[
+                    ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
+                    '예상값이며 실제 차감량과 다를 수 있습니다.',
+                  ].join('\n')}
                 >
-                  ▶ {count ? `${count}장 생성` : '생성할 감정 없음'}
-                </button>
-              </>
-            }
-          />
+                  {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas (무료)'}
+                </span>
+              )}
+              <button
+                className="generate-button"
+                disabled={!count || Boolean(busy) || resolved.missing.length > 0}
+                title={
+                  resolved.missing.length
+                    ? `필요: ${resolved.missing.join(', ')}`
+                    : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`
+                }
+                onClick={() => void generateEmotions(project.id, batch)}
+              >
+                ▶ {count ? `${count}장 생성` : '생성할 씬 없음'}
+              </button>
+            </BottomSlot>
+          </>
         )}
       </div>
     </section>

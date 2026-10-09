@@ -19,7 +19,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const others = library.emotionSets.filter((item) => item.id !== set.id);
   return (
     <Card
-      title={`감정 (${set.emotions.length})`}
+      title={`씬 (${set.emotions.length})`}
       subtitle="캐릭터 포지티브 뒤에 붙음 · 이 모음을 쓰는 모든 작업에 반영"
       actions={
         <>
@@ -30,13 +30,13 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                 label: `${other.name} (${other.emotions.length})`,
                 onSelect: () => {
                   save((item) => mergeEmotions(item, other.emotions));
-                  toast(`${other.name}의 감정을 병합했습니다. 같은 이름은 덮어썼습니다.`);
+                  toast(`${other.name}의 씬을 병합했습니다. 같은 이름은 덮어썼습니다.`);
                 },
               }))}
             />
           )}
           <button className="accent" onClick={() => save((item) => addEmotion(item))}>
-            ＋ 감정 추가
+            ＋ 씬 추가
           </button>
         </>
       }
@@ -48,7 +48,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
             <input
               className="emotion-name-input"
               value={emotion.name}
-              aria-label="감정 이름"
+              aria-label="씬 이름"
               onChange={(event) =>
                 save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
               }
@@ -57,14 +57,14 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
               rows={1}
               value={emotion.prompt}
               aria-label={`${emotion.name} 프롬프트`}
-              placeholder="감정 프롬프트"
+              placeholder="씬 프롬프트"
               onChange={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
             />
             <div className="row-actions">
               <ExpandTextButton
-                title={`${emotion.name || '감정'} 프롬프트`}
+                title={`${emotion.name || '씬'} 프롬프트`}
                 value={emotion.prompt}
-                placeholder="감정 프롬프트"
+                placeholder="씬 프롬프트"
                 onApply={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
               />
               <button
@@ -93,7 +93,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
             </div>
           </div>
         ))}
-        {!set.emotions.length && <p className="hint">감정이 없습니다.</p>}
+        {!set.emotions.length && <p className="hint">씬이 없습니다.</p>}
       </div>
     </Card>
   );

@@ -84,39 +84,65 @@ export function SizeChip({ preset }: { preset: Preset }) {
   );
 }
 
-const STRENGTHS = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+type PresetNumberField = 'img2imgStrength' | 'img2imgNoise' | 'inpaintStrength';
 
-/** i2i 세기. 낮을수록 원본을 많이 남긴다. 생성 설정에 저장된다. */
-export function StrengthChip({ preset }: { preset: Preset }) {
-  const { img2imgStrength } = normalizeGenerationSettings(preset.generation);
-  const choices = STRENGTHS.includes(img2imgStrength)
-    ? STRENGTHS
-    : [...STRENGTHS, img2imgStrength].sort((a, b) => a - b);
+const PRESET_NUMBER_CHIPS: Record<
+  PresetNumberField,
+  { text: string; icon: IconName; usage: string; choices: number[] }
+> = {
+  img2imgStrength: {
+    text: 'Strength',
+    icon: 'refresh',
+    usage: '낮을수록 원본을 많이 남깁니다',
+    choices: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+  },
+  img2imgNoise: {
+    text: 'Noise',
+    icon: 'sparkle',
+    usage: '높을수록 원본에 없던 세부를 더 그려 넣습니다',
+    choices: [0, 0.05, 0.1, 0.15, 0.2, 0.3],
+  },
+  // NovelAI 웹 인페인팅의 Strength(inpaintImg2ImgStrength). 기본 1은 칠한 곳을 새로 그린다.
+  inpaintStrength: {
+    text: 'Strength',
+    icon: 'brush',
+    usage: '낮을수록 칠한 곳의 원래 모습을 많이 남깁니다',
+    choices: [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+  },
+};
+
+/** i2i·인페인팅의 Strength·Noise. 생성 설정에 저장된다. */
+export function PresetNumberChip({ preset, field }: { preset: Preset; field: PresetNumberField }) {
+  const chip = PRESET_NUMBER_CHIPS[field];
+  const value = normalizeGenerationSettings(preset.generation)[field];
+  const choices = chip.choices.includes(value)
+    ? chip.choices
+    : [...chip.choices, value].sort((a, b) => a - b);
   return (
     <ChainChip
       section="presets"
       itemId={preset.id}
       label={{
-        text: 'i2i 세기',
-        icon: 'refresh',
-        usage: `낮을수록 원본을 많이 남깁니다 · 생성 설정 「${preset.name}」에 저장됩니다`,
+        text: chip.text,
+        icon: chip.icon,
+        usage: `${chip.usage} · 생성 설정 「${preset.name}」에 저장됩니다`,
       }}
     >
       <select
-        value={img2imgStrength}
+        value={value}
         onChange={(event) => {
-          const value = Number(event.target.value);
+          const next = Number(event.target.value);
           updateLibrary((library) =>
             patchItem(library, 'presets', preset.id, (item) => ({
               ...item,
-              generation: { ...item.generation, img2imgStrength: value },
+              generation: { ...item.generation, [field]: next },
             })),
           );
         }}
       >
-        {choices.map((value) => (
-          <option key={value} value={value}>
-            {value}
+        {choices.map((choice) => (
+          <option key={choice} value={choice}>
+            {choice}
           </option>
         ))}
       </select>

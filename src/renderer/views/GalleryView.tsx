@@ -137,7 +137,7 @@ function EmotionCard(props: {
         </button>
         <button
           className="icon-button card-generate card-hover"
-          title="이 감정만 생성"
+          title="이 씬만 생성"
           disabled={!emotion.prompt.trim() || resolved.missing.length > 0}
           onClick={() => void generateEmotions(project.id, [emotion.id])}
         >
@@ -153,11 +153,11 @@ function EmotionCard(props: {
 
 export function GalleryView({
   resolved,
-  generate,
+  countControl,
 }: {
   resolved: ResolvedProject;
-  /** 생성 버튼. 선택 버튼 옆에 둬서 무엇을 생성할지 한눈에 보이게 한다. */
-  generate: ReactNode;
+  /** 씬마다 만들 장수. 생성할 씬 체크 옆에 둔다(생성 버튼은 아래 생성 큐 막대에 있다). */
+  countControl: ReactNode;
 }) {
   const library = useLibrary();
   const { project, emotionSet } = resolved;
@@ -181,10 +181,10 @@ export function GalleryView({
 
   if (!emotionSet) {
     return (
-      <EmptyState title="감정 모음이 없습니다">
-        <p>위쪽 감정 모음에서 사용할 모음을 고르거나 라이브러리에서 새로 만드십시오.</p>
+      <EmptyState title="씬 모음이 없습니다">
+        <p>위쪽 씬 모음에서 사용할 모음을 고르거나 라이브러리에서 새로 만드십시오.</p>
         <button className="accent" onClick={() => openLibrary('emotionSets')}>
-          감정 모음 관리
+          씬 모음 관리
         </button>
       </EmptyState>
     );
@@ -207,28 +207,24 @@ export function GalleryView({
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       {/*
-        한 줄을 구분 바로 세 구역으로 나눈다. 보기(카드 크기), 카드 고르기(일괄 작업), 생성(생성할 감정 체크·장수·
-        비용·생성·내보내기). 체크는 일괄 생성 대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄
-        작업 대상이다.
+        한 줄을 구분 바로 세 구역으로 나눈다. 카드 크기, 카드 고르기(일괄 작업), 생성할 씬 체크·씬마다 장수·내보내기.
+        생성 버튼과 예상 Anlas는 아래 생성 큐 막대(BottomSlot)에 있다. 체크는 일괄 생성 대상이고, 카드 고르기
+        (Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
       */}
       <div className="toolbar gallery-toolbar">
         <section className="toolbar-zone" aria-label="보기">
-          <span className="zone-title">보기</span>
-          <span className="zone-field" title="한 줄에 보일 카드 수">
-            한 줄에
-            <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
-              {GALLERY_COLUMN_CHOICES.map((choice) => (
-                <button
-                  key={choice}
-                  className={choice === columns ? 'active' : ''}
-                  aria-pressed={choice === columns}
-                  onClick={() => setGalleryColumns(choice)}
-                >
-                  {choice}
-                </button>
-              ))}
-            </span>
-            장
+          <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
+            {GALLERY_COLUMN_CHOICES.map((choice) => (
+              <button
+                key={choice}
+                className={choice === columns ? 'active' : ''}
+                aria-pressed={choice === columns}
+                title={`한 줄에 ${choice}장`}
+                onClick={() => setGalleryColumns(choice)}
+              >
+                {choice}
+              </button>
+            ))}
           </span>
         </section>
 
@@ -238,13 +234,12 @@ export function GalleryView({
           className={`toolbar-zone ${selection.selected.size ? 'active' : ''}`}
           aria-label="카드 고르기"
         >
-          <span className="zone-title">카드 고르기</span>
           {selection.selected.size > 0 ? (
             <>
               <b className="zone-count">{selection.selected.size}개</b>
               <button
                 className="with-icon"
-                title="고른 감정마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
+                title="고른 씬마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
                 onClick={() =>
                   openImg2ImgDialog(
                     project.id,
@@ -264,7 +259,7 @@ export function GalleryView({
               </button>
               <button
                 className="with-icon"
-                title="감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+                title="씬은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
                 onClick={() =>
                   void clearEmotionResults(
                     project.id,
@@ -278,7 +273,7 @@ export function GalleryView({
                 className="with-icon danger-quiet"
                 onClick={() => removeMany([...selection.selected])}
               >
-                <Icon name="trash" size={14} /> 감정 삭제
+                <Icon name="trash" size={14} /> 씬 삭제
               </button>
               <button
                 className="icon-button"
@@ -292,7 +287,7 @@ export function GalleryView({
           ) : (
             <button
               className="with-icon"
-              title="고른 카드에 i2i·결과 삭제·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
+              title="고른 카드에 i2i·결과 삭제·씬 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
               onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
             >
               <Icon name="select-all" size={14} /> 모두 고르기
@@ -301,10 +296,9 @@ export function GalleryView({
         </section>
 
         <section className="toolbar-zone generate-zone" aria-label="생성">
-          <span className="zone-title">생성</span>
-          <span className="zone-field" title="카드 아래 체크박스로 고른 감정만 일괄 생성합니다">
+          <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
             <span>
-              감정 <b>{included}</b>/{emotionSet.emotions.length}
+              씬 <b>{included}</b>/{emotionSet.emotions.length}
             </span>
           </span>
           <button
@@ -324,11 +318,11 @@ export function GalleryView({
           >
             모두 해제
           </button>
-          {generate}
+          {countControl}
           <button
             className="with-icon"
             disabled={!withResults}
-            title={`결과가 있는 감정 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
+            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
             onClick={() =>
               void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
             }
@@ -358,8 +352,7 @@ export function GalleryView({
           />
         ))}
         <button className="emotion-card add-card" onClick={addAndOpen}>
-          <span>＋</span>
-          감정 추가
+          <span>＋</span>씬 추가
         </button>
       </div>
       {selection.boxElement}

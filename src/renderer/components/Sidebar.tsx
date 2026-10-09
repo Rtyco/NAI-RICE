@@ -78,7 +78,7 @@ export function NewProjectDialog({ close }: { close: () => void }) {
         : library.characters.find((item) => item.id === characterId)!;
     const emotionSet =
       emotionSetId === NEW
-        ? createEmotionSet(`${label} 감정`, DEFAULT_EMOTIONS)
+        ? createEmotionSet(`${label} 씬`, DEFAULT_EMOTIONS)
         : library.emotionSets.find((item) => item.id === emotionSetId)!;
     const reference =
       referenceId === NEW
@@ -140,10 +140,10 @@ export function NewProjectDialog({ close }: { close: () => void }) {
           onChange={setCharacterId}
         />
         <PartSelect
-          label="③ 감정 모음"
+          label="③ 씬 모음"
           value={emotionSetId}
           items={library.emotionSets}
-          newLabel="새 감정 모음 (기본 6종)"
+          newLabel="새 씬 모음 (기본 6종)"
           onChange={setEmotionSetId}
         />
         <PartSelect
@@ -402,9 +402,7 @@ export function Sidebar() {
         <nav className="library-nav" aria-label="자유 생성">
           <button
             title={
-              collapsed
-                ? '자유 생성 · 감정 없이 프롬프트로 여러 장'
-                : '감정 없이 프롬프트로 여러 장'
+              collapsed ? '자유 생성 · 씬 없이 프롬프트로 여러 장' : '씬 없이 프롬프트로 여러 장'
             }
             className={view.kind === 'free' ? 'active' : ''}
             onClick={openFree}
@@ -514,7 +512,7 @@ export function Sidebar() {
           section="library"
           icon="storage"
           label="라이브러리"
-          title="생성 설정·캐릭터·감정 모음·인페인트 보관함"
+          title="생성 설정·캐릭터·씬 모음·인페인트 보관함"
           narrow={collapsed}
           folded={libraryFolded}
         />

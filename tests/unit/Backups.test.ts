@@ -129,7 +129,7 @@ describe('migrateV1', () => {
       excludedEmotionIds: ['e2'],
       favorites: { e1: 'g1' },
     });
-    expect(library.emotionSets.map((set) => set.name)).toEqual(['템플릿', '아리아 감정']);
+    expect(library.emotionSets.map((set) => set.name)).toEqual(['템플릿', '아리아 씬']);
     expect(library.emotionSets[1].emotions[0].id).toBe('e1');
     expect(library.references[0].image?.canvasFile).toBe('canvas.png');
   });

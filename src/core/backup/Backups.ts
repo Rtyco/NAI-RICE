@@ -204,10 +204,10 @@ export function parseImportFile(
     };
   }
   if (kind === 'reference-inpaint-emotions') {
-    const data = parse(formats.emotions, value, '감정 모음');
+    const data = parse(formats.emotions, value, '씬 모음');
     const name = data.name || data.character?.name || stem;
     return {
-      ...emptyBundle(`감정 모음 "${name}"`),
+      ...emptyBundle(`씬 모음 "${name}"`),
       emotionSets: [
         {
           id: newId(),
@@ -431,7 +431,7 @@ export function bundleSummary(bundle: ImportBundle): string {
   const parts = [
     bundle.presets.length && `생성 설정 ${bundle.presets.length}`,
     bundle.characters.length && `캐릭터 ${bundle.characters.length}`,
-    bundle.emotionSets.length && `감정 모음 ${bundle.emotionSets.length}`,
+    bundle.emotionSets.length && `씬 모음 ${bundle.emotionSets.length}`,
     bundle.references.length && `인페인트 ${bundle.references.length}`,
     bundle.projects.length && `작업 ${bundle.projects.length}`,
     bundle.pieceSets.length && `프롬프트 조각 ${bundle.pieceSets.length}`,

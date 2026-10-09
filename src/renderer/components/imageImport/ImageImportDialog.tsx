@@ -424,9 +424,9 @@ export function ImageImportDialog({
 
           {desk && (
             <>
-              <h3>③ 감정</h3>
+              <h3>③ 씬</h3>
               <Check checked={useEmotion} onChange={setUseEmotion}>
-                <b>감정 "{desk.emotion.name}"</b>
+                <b>씬 "{desk.emotion.name}"</b>
                 <small>{desk.emotion.prompt}</small>
               </Check>
               {useEmotion && (
@@ -437,12 +437,12 @@ export function ImageImportDialog({
                     disabled={!library.emotionSets.length}
                     onChange={setEmotionTarget}
                   >
-                    기존 감정 모음에 추가 (같은 이름은 덮어쓰기)
+                    기존 씬 모음에 추가 (같은 이름은 덮어쓰기)
                   </Radio>
                   {emotionTarget === 'current' && (
                     <select
                       className="import-name"
-                      aria-label="대상 감정 모음"
+                      aria-label="대상 씬 모음"
                       value={emotionSetTargetId}
                       onChange={(event) => setEmotionSetTargetId(event.target.value)}
                     >
@@ -455,7 +455,7 @@ export function ImageImportDialog({
                     </select>
                   )}
                   <Radio value="new" current={emotionTarget} onChange={setEmotionTarget}>
-                    새 감정 모음으로
+                    새 씬 모음으로
                   </Radio>
                 </div>
               )}

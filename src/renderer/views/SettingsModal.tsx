@@ -214,7 +214,7 @@ function OutputTab() {
     patchSettings((current) => ({ ...current, export: { ...current.export, ...value } }));
   return (
     <>
-      <Card title="결과 파일" subtitle="작업 폴더의 outputs/<감정 이름>/에 저장됩니다">
+      <Card title="결과 파일" subtitle="작업 폴더의 outputs/<씬 이름>/에 저장됩니다">
         <label className="stack-field">
           파일명 규칙
           <input
@@ -518,7 +518,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['F1', '작업 (보던 작업 또는 마지막으로 연 작업)'],
       ['F2', '생성 설정'],
       ['F3', '캐릭터'],
-      ['F4', '감정 모음'],
+      ['F4', '씬 모음'],
       ['F5', '인페인트'],
       ['F6', '프롬프트 조각'],
       ['Ctrl+Tab / Ctrl+Shift+Tab', '다음·이전 작업'],
@@ -549,12 +549,12 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     ],
   },
   {
-    title: '감정 상세',
+    title: '씬 상세',
     keys: [
       ['← / →', '이전·다음 결과'],
       ['Ctrl+클릭 / Shift+클릭', '결과 여러 장 선택'],
       ['Delete', '고른 결과 삭제 (휴지통)'],
-      ['PageUp / PageDown', '이전·다음 감정'],
+      ['PageUp / PageDown', '이전·다음 씬'],
       ['Esc', '갤러리로 돌아가기'],
     ],
   },

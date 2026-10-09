@@ -70,7 +70,7 @@ type NamedGroup =
 const GROUPS: Array<{ key: NamedGroup; label: string }> = [
   { key: 'presets', label: '생성 설정' },
   { key: 'characters', label: '캐릭터' },
-  { key: 'emotionSets', label: '감정 모음' },
+  { key: 'emotionSets', label: '씬 모음' },
   { key: 'references', label: '인페인트' },
   { key: 'projects', label: '작업' },
   { key: 'pieceSets', label: '프롬프트 조각' },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { toggleFilmstrip, useStore } from '../store';
 import { Icon } from './Icon';
@@ -177,6 +177,8 @@ export function ImageStage(props: {
   overlay?: ReactNode;
   /** 아래에 이미지 목록이 있을 때만 접기 버튼을 둔다. */
   filmstrip?: boolean;
+  /** 이미지 위 우클릭. 이미지가 없을 때는 부르지 않는다. */
+  onContextMenu?: (event: MouseEvent) => void;
 }) {
   const [lightbox, setLightbox] = useState(false);
   const collapsed = useStore((state) => state.filmstripCollapsed);
@@ -191,7 +193,12 @@ export function ImageStage(props: {
     </button>
   );
   return (
-    <div className="stage-image">
+    <div
+      className="stage-image"
+      onContextMenu={(event) => {
+        if (props.src && props.onContextMenu) props.onContextMenu(event);
+      }}
+    >
       {props.src ? (
         <ZoomView
           src={props.src}

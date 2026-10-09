@@ -6,7 +6,8 @@ import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/N
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip, StrengthChip } from '../components/ChainChip';
+import { ChainChip, PresetNumberChip, SizeChip } from '../components/ChainChip';
+import { ResultButtons, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
 import { PromptTextarea } from '../components/PromptTextarea';
@@ -228,6 +229,67 @@ export function FreeView() {
     Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
     (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
 
+  const resultActions = (record: GenerationSummary): ResultAction[] => [
+    {
+      label: '이 seed로 다시',
+      icon: 'refresh',
+      title: '지금 프롬프트와 이 결과의 seed로 다시 생성',
+      onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
+    },
+    {
+      label: '프롬프트 복원',
+      icon: 'undo',
+      title: '이 결과를 만들 때 입력한 프롬프트로 되돌립니다',
+      disabled: record.emotionPrompt === free.prompt,
+      onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
+    },
+    {
+      label: '다른 이름으로 저장',
+      icon: 'save',
+      onSelect: () =>
+        void run('이미지를 저장하는 중', async () => {
+          const saved = await fileApi().saveImageAs(
+            FREE_PROJECT_ID,
+            record.id,
+            `자유 생성 ${record.seed}`,
+            library.settings.export.quality,
+          );
+          if (saved) toast(`저장했습니다: ${saved}`);
+        }),
+    },
+    {
+      label: '폴더에서 보기',
+      icon: 'folder',
+      onSelect: () =>
+        void run('폴더를 여는 중', () => libraryApi().showGeneration(FREE_PROJECT_ID, record.id)),
+    },
+    {
+      label: '업스케일',
+      icon: 'upscale',
+      title: '이 결과를 더 큰 크기로 i2i해 다시 그립니다(업스케일 우회)',
+      onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
+    },
+    {
+      label: '이 결과로 i2i',
+      icon: 'sparkle',
+      title: '이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다',
+      onSelect: () =>
+        void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
+    },
+    {
+      label: '인페인트 만들기',
+      icon: 'reference',
+      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
+      onSelect: () => void makeReferenceFromRecord(FREE_PROJECT_ID, record),
+    },
+    {
+      label: '결과 삭제',
+      icon: 'trash',
+      danger: true,
+      onSelect: () => void deleteResults(FREE_PROJECT_ID, [record]),
+    },
+  ];
+
   const resultStage = (
     <ImageStage
       src={selected && projectMedia(FREE_PROJECT_ID, selected.file)}
@@ -241,6 +303,7 @@ export function FreeView() {
       overlay={
         pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>
       }
+      onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
   );
 
@@ -331,7 +394,13 @@ export function FreeView() {
           )}
         </ChainChip>
         {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
-        {preset && free.mode === 'img2img' && !free.inpaint && <StrengthChip preset={preset} />}
+        {preset && free.mode === 'img2img' && !free.inpaint && (
+          <>
+            <PresetNumberChip preset={preset} field="img2imgStrength" />
+            <PresetNumberChip preset={preset} field="img2imgNoise" />
+          </>
+        )}
+        {preset && inpainting && <PresetNumberChip preset={preset} field="inpaintStrength" />}
       </div>
       {inpaintModelMissing && (
         <div className="missing-banner">
@@ -393,6 +462,10 @@ export function FreeView() {
                         if (picking.clickItem(event, record.id)) return;
                         setSelectedId(record.id);
                         setStage('result');
+                      }}
+                      onContextMenu={(event) => {
+                        setSelectedId(record.id);
+                        showResultMenu(event, resultActions(record));
                       }}
                       title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()} · Ctrl·Shift 클릭: 여러 장 선택`}
                     >
@@ -492,73 +565,7 @@ export function FreeView() {
                     </button>
                   </div>
                   {showInfo && <RecordInfo projectId={FREE_PROJECT_ID} record={selected} />}
-                  <div className="button-grid">
-                    <button
-                      onClick={() => void generateFree({ seed: selected.seed, count: 1 })}
-                      title="지금 프롬프트와 이 결과의 seed로 다시 생성"
-                    >
-                      <Icon name="refresh" size={14} /> 이 seed로 다시
-                    </button>
-                    <button
-                      disabled={selected.emotionPrompt === free.prompt}
-                      onClick={() => updateFreeGeneration({ prompt: selected.emotionPrompt })}
-                      title="이 결과를 만들 때 입력한 프롬프트로 되돌립니다"
-                    >
-                      <Icon name="undo" size={14} /> 프롬프트 복원
-                    </button>
-                    <button
-                      onClick={() =>
-                        void run('이미지를 저장하는 중', async () => {
-                          const saved = await fileApi().saveImageAs(
-                            FREE_PROJECT_ID,
-                            selected.id,
-                            `자유 생성 ${selected.seed}`,
-                            library.settings.export.quality,
-                          );
-                          if (saved) toast(`저장했습니다: ${saved}`);
-                        })
-                      }
-                    >
-                      <Icon name="save" size={14} /> 다른 이름으로 저장
-                    </button>
-                    <button
-                      onClick={() =>
-                        void run('폴더를 여는 중', () =>
-                          libraryApi().showGeneration(FREE_PROJECT_ID, selected.id),
-                        )
-                      }
-                    >
-                      <Icon name="folder" size={14} /> 폴더에서 보기
-                    </button>
-                    <button
-                      onClick={() => openImg2ImgDialog(FREE_PROJECT_ID, [selected])}
-                      title="이 결과를 더 큰 크기로 i2i해 다시 그립니다(업스케일 우회)"
-                    >
-                      <Icon name="upscale" size={14} /> 업스케일
-                    </button>
-                    <button
-                      onClick={() =>
-                        void sendToFreeImg2Img(FREE_PROJECT_ID, selected).then(() =>
-                          setStage('source'),
-                        )
-                      }
-                      title="이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다"
-                    >
-                      <Icon name="sparkle" size={14} /> 이 결과로 i2i
-                    </button>
-                    <button
-                      onClick={() => void makeReferenceFromRecord(FREE_PROJECT_ID, selected)}
-                      title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
-                    >
-                      <Icon name="reference" size={14} /> 인페인트 만들기
-                    </button>
-                    <button
-                      className="danger-quiet"
-                      onClick={() => void deleteResults(FREE_PROJECT_ID, [selected])}
-                    >
-                      <Icon name="trash" size={14} /> 결과 삭제
-                    </button>
-                  </div>
+                  <ResultButtons actions={resultActions(selected)} />
                 </section>
               )}
             </aside>

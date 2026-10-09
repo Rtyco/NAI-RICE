@@ -141,7 +141,7 @@ export function duplicateName<K extends Collection>(
 export function addEmotion(set: EmotionSet, name?: string, prompt = ''): EmotionSet {
   const emotion = createEmotion(
     uniqueName(
-      name?.trim() || '새 감정',
+      name?.trim() || '새 씬',
       set.emotions.map((item) => item.name),
     ),
     prompt,

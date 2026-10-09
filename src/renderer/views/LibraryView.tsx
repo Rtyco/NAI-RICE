@@ -221,7 +221,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     }
     showContextMenu(event, [
       {
-        label: '기본 감정 6개로 시작',
+        label: '기본 씬 6개로 시작',
         hint: '중립·기쁨·슬픔·분노·놀람·부끄러움',
         onSelect: () => create(false),
       },

@@ -199,7 +199,7 @@ export function createDefaultLibrary(): Library {
     settings: structuredClone(DEFAULT_SETTINGS),
     presets: [createPreset()],
     characters: [],
-    emotionSets: [createEmotionSet('기본 감정 6종')],
+    emotionSets: [createEmotionSet('기본 씬 6종')],
     references: [],
     projects: [],
     pieceSets: [],
@@ -241,7 +241,7 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const missing = [
     !preset && '생성 설정',
     !character && '캐릭터',
-    !emotionSet && '감정 모음',
+    !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
     inpaint && reference && !reference.image && '참고 이미지',
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',

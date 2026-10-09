@@ -46,9 +46,9 @@ export const SECTIONS: Array<{
     key: 'emotionSets',
     kind: 'emotionSet',
     projectPart: true,
-    label: '감정 모음',
+    label: '씬 모음',
     icon: 'emotion',
-    role: '감정 프롬프트',
+    role: '씬 프롬프트',
     usage: '',
   },
   {

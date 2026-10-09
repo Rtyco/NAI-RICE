@@ -160,7 +160,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     if (!prompt) {
       warnings.push({
         code: 'empty-prompt',
-        message: `${sceneName}: 활성 프롬프트가 비어 있어 이 감정을 비활성화했습니다.`,
+        message: `${sceneName}: 활성 프롬프트가 비어 있어 이 씬을 비활성화했습니다.`,
         path: sourcePath,
       });
     }
@@ -169,7 +169,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   if (variants.length) {
     warnings.push({
       code: 'complex-slots',
-      message: `변형이 여러 개인 감정 ${variants.length}개는 프롬프트 조각 "${variantSetName}"으로 가져왔습니다. 이미지마다 변형 하나를 고릅니다.`,
+      message: `변형이 여러 개인 씬 ${variants.length}개는 프롬프트 조각 "${variantSetName}"으로 가져왔습니다. 이미지마다 변형 하나를 고릅니다.`,
       path: 'scenes',
     });
   }
@@ -235,7 +235,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
 
   return {
     character: createCharacter(root.name, promptSets),
-    emotionSet: { id: newId(), name: `${root.name} 감정`, emotions },
+    emotionSet: { id: newId(), name: `${root.name} 씬`, emotions },
     preset,
     variantSet: variants.length ? createPieceSet(variantSetName, variants) : undefined,
     warnings,

@@ -56,7 +56,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
         input: await libraryApi().prepareInputs(project.id, reference),
       });
     }
-    if (!jobs.length) throw new Error('생성할 감정이 없습니다. 프롬프트가 있는 감정을 선택하십시오.');
+    if (!jobs.length) throw new Error('생성할 씬이 없습니다. 프롬프트가 있는 씬을 선택하십시오.');
 
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });

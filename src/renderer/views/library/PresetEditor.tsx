@@ -143,7 +143,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
                 .join(' · ')}
         </p>
         <div className="inset-row">
-          <span className="inset-label">감정 프롬프트</span>
+          <span className="inset-label">씬 프롬프트</span>
           <SelectField
             label="붙일 위치"
             value={g.emotionPosition}
@@ -389,7 +389,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             <span />
           )}
           <NumberField
-            label="감정별 생성 수"
+            label="씬별 생성 수"
             value={g.variantsPerEmotion}
             min={1}
             max={20}

@@ -28,7 +28,7 @@ export function splitV1Character(
   const character = { id: newId(), name: v1.name, promptSets: v1.promptSets, createdAt: v1.createdAt };
   const emotionSet: EmotionSet = {
     id: newId(),
-    name: `${v1.name} 감정`,
+    name: `${v1.name} 씬`,
     emotions: v1.emotions.map(({ id, name, prompt }) => ({ id, name, prompt })),
   };
   let reference: Reference;

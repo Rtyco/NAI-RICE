@@ -4,6 +4,7 @@ import { isActive, isFinished } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { openEmotion, openFree, openProject, run, useStore } from '../store';
 import { queueApi } from '../desktop';
+import { BottomSlotTarget } from './BottomSlot';
 
 const STATUS: Record<string, string> = {
   queued: '대기',
@@ -138,6 +139,7 @@ export function QueueBar() {
             기록 정리
           </button>
         )}
+        <BottomSlotTarget />
       </div>
     </footer>
   );

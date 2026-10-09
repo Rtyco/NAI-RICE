@@ -265,7 +265,7 @@ export function createItem(
     return item.id;
   }
   if (section === 'emotionSets') {
-    const item = createEmotionSet(uniqueName('새 감정 모음', taken), options.empty ? [] : undefined);
+    const item = createEmotionSet(uniqueName('새 씬 모음', taken), options.empty ? [] : undefined);
     updateLibrary((current) => ({ ...current, emotionSets: [...current.emotionSets, item] }));
     return item.id;
   }
@@ -287,7 +287,7 @@ export function itemSubtitle(section: LibrarySection, item: Item): string {
     return `${modelInfo(preset.generation.model)?.label.replace('NAI Diffusion ', '') ?? preset.generation.model} · ${preset.generation.steps} steps`;
   }
   if (section === 'characters') return `프롬프트 세트 ${(item as Character).promptSets.length}개`;
-  if (section === 'emotionSets') return `감정 ${(item as EmotionSet).emotions.length}개`;
+  if (section === 'emotionSets') return `씬 ${(item as EmotionSet).emotions.length}개`;
   if (section === 'pieceSets') return `조각 ${(item as PieceSet).pieces.length}개`;
   const reference = item as Reference;
   return reference.image

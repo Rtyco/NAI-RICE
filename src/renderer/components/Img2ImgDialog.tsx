@@ -163,7 +163,7 @@ export function Img2ImgDialog(props: {
       </div>
       <p className="hint">
         원래 결과의 프롬프트와 설정을 그대로 쓰고, reference inset 태그는 뺍니다. 세기가 낮을수록
-        원본을 많이 남깁니다(0.3~0.5 권장). 결과는 원래 감정에 새 결과로 쌓입니다.
+        원본을 많이 남깁니다(0.3~0.5 권장). 결과는 원래 씬에 새 결과로 쌓입니다.
         {ratioDiffers && ' 목표 크기와 비율이 다른 결과가 있어 맞춰서 보냅니다.'}
       </p>
     </Modal>

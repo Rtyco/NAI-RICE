@@ -456,7 +456,7 @@ export function StorageTab() {
               })
             }
           >
-            전체 백업 (생성 설정·캐릭터·감정 모음·인페인트·작업)
+            전체 백업 (생성 설정·캐릭터·씬 모음·인페인트·작업)
           </button>
           <button onClick={() => void importJsonFromPicker()}>JSON 가져오기</button>
         </div>

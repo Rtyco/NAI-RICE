@@ -50,12 +50,12 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
 
   return (
     <Modal
-      title={`감정 이미지 내보내기 · ${project.name}`}
+      title={`씬 이미지 내보내기 · ${project.name}`}
       onClose={close}
       wide
       footer={
         <>
-          <span className="hint">파일 이름 = 감정 이름 (예: 기쁨.{format})</span>
+          <span className="hint">파일 이름 = 씬 이름 (예: 기쁨.{format})</span>
           <button onClick={close}>취소</button>
           <button className="accent" disabled={!selected.length} onClick={submit}>
             {selected.length}개 내보내기
@@ -115,7 +115,7 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
         </button>
         에 있습니다
       </p>
-      {missing > 0 && <p className="hint">결과 없는 감정 {missing}개 제외</p>}
+      {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">
         {candidates.map(({ emotion, record }) => (
           <label key={emotion.id} className={`export-item ${excluded.has(emotion.id) ? 'off' : ''}`}>

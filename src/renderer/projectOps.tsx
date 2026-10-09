@@ -24,7 +24,7 @@ export function duplicateProject(project: Project): void {
   updateLibrary((current) => ({ ...current, projects: [...current.projects, copy] }));
   openProject(copy.id);
   toast(
-    `${name}을(를) 만들었습니다. 같은 생성 설정·캐릭터·감정 모음·인페인트를 사용하며 생성 결과는 따로 쌓입니다.`,
+    `${name}을(를) 만들었습니다. 같은 생성 설정·캐릭터·씬 모음·인페인트를 사용하며 생성 결과는 따로 쌓입니다.`,
   );
 }
 
@@ -41,7 +41,7 @@ export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Prom
         <b>{project.name}</b> 작업과 생성 결과를 삭제합니다. 결과 폴더는 Windows 휴지통으로
         이동합니다.
         <br />
-        생성 설정·캐릭터·감정 모음·인페인트는 라이브러리에 그대로 남습니다.
+        생성 설정·캐릭터·씬 모음·인페인트는 라이브러리에 그대로 남습니다.
       </p>
     ),
     confirmLabel: '삭제',
@@ -76,7 +76,7 @@ export async function deleteProjects(projects: Array<Pick<Project, 'id' | 'name'
         {projects.length > names.length ? ` 외 ${projects.length - names.length}개` : ''} 작업과
         생성 결과를 삭제합니다. 결과 폴더는 Windows 휴지통으로 이동합니다.
         <br />
-        생성 설정·캐릭터·감정 모음·인페인트는 라이브러리에 그대로 남습니다.
+        생성 설정·캐릭터·씬 모음·인페인트는 라이브러리에 그대로 남습니다.
       </p>
     ),
     confirmLabel: '삭제',

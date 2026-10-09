@@ -47,7 +47,7 @@ export function addEmotionTo(setId: string): string | undefined {
 
 export async function renameEmotion(setId: string, emotion: Emotion): Promise<void> {
   const name = await promptDialog({
-    title: '감정 이름 변경',
+    title: '씬 이름 변경',
     label: '이름',
     initial: emotion.name,
     confirmLabel: '변경',
@@ -71,7 +71,7 @@ function sharedNotice(setId: string, projectId?: string): string {
     (project) => project.id !== projectId,
   );
   return others.length
-    ? ` 이 감정 모음은 다른 작업 ${others.length}개(${others.map((p) => p.name).join(', ')})에서도 쓰입니다.`
+    ? ` 이 씬 모음은 다른 작업 ${others.length}개(${others.map((p) => p.name).join(', ')})에서도 쓰입니다.`
     : '';
 }
 
@@ -85,10 +85,10 @@ export async function deleteEmotion(
     ? emotionRecords(useStore.getState().generations[projectId], emotion.id)
     : [];
   const ok = await confirmDialog({
-    title: '감정 삭제',
+    title: '씬 삭제',
     message: (
       <p>
-        <b>{emotion.name}</b> 감정을 삭제합니다.
+        <b>{emotion.name}</b> 씬을 삭제합니다.
         {records.length ? ` 이 작업의 생성 결과 ${records.length}장도 함께 삭제됩니다.` : ''}
         {sharedNotice(setId, projectId)}
       </p>
@@ -97,7 +97,7 @@ export async function deleteEmotion(
     danger: true,
   });
   if (!ok) return false;
-  await run('감정을 삭제하는 중', async () => {
+  await run('씬을 삭제하는 중', async () => {
     if (projectId && records.length)
       await deleteGenerations(
         projectId,
@@ -120,14 +120,14 @@ export async function deleteEmotions(
   const generations = projectId ? useStore.getState().generations[projectId] : undefined;
   const records = emotions.flatMap((emotion) => emotionRecords(generations, emotion.id));
   const ok = await confirmDialog({
-    title: `감정 ${emotions.length}개 삭제`,
+    title: `씬 ${emotions.length}개 삭제`,
     message: (
       <p>
         {emotions
           .slice(0, 6)
           .map((emotion) => emotion.name)
           .join(', ')}
-        {emotions.length > 6 ? ` 외 ${emotions.length - 6}개` : ''} 감정을 삭제합니다.
+        {emotions.length > 6 ? ` 외 ${emotions.length - 6}개` : ''} 씬을 삭제합니다.
         {records.length ? ` 이 작업의 생성 결과 ${records.length}장도 함께 삭제됩니다.` : ''}
         {sharedNotice(setId, projectId)}
       </p>
@@ -137,7 +137,7 @@ export async function deleteEmotions(
   });
   if (!ok) return false;
   const ids = new Set(emotions.map((emotion) => emotion.id));
-  await run('감정을 삭제하는 중', async () => {
+  await run('씬을 삭제하는 중', async () => {
     if (projectId && records.length)
       await deleteGenerations(
         projectId,
@@ -170,14 +170,14 @@ export function emotionMenu(
   return [
     { label: '열기', onSelect: () => openEmotion(emotion.id) },
     {
-      label: '이 감정만 생성',
+      label: '이 씬만 생성',
       disabled: !emotion.prompt.trim(),
       onSelect: () => void generateEmotions(projectId, [emotion.id]),
     },
     'divider',
     { label: '이름 변경', onSelect: () => void renameEmotion(set.id, emotion) },
     {
-      label: '감정 복제',
+      label: '씬 복제',
       hint: '같은 프롬프트로 하나 더',
       onSelect: () => {
         duplicateEmotionIn(set.id, emotion.id);
@@ -190,7 +190,7 @@ export function emotionMenu(
       onSelect: () =>
         void navigator.clipboard
           .writeText(emotion.prompt)
-          .then(() => toast('감정 프롬프트를 클립보드에 복사했습니다.')),
+          .then(() => toast('씬 프롬프트를 클립보드에 복사했습니다.')),
     },
     {
       label: excluded ? '일괄 생성에 포함' : '일괄 생성에서 제외',
@@ -243,7 +243,7 @@ export function emotionMenu(
       onSelect: () => void clearEmotionResults(projectId, [emotion]),
     },
     {
-      label: '감정 삭제',
+      label: '씬 삭제',
       danger: true,
       onSelect: () => void deleteEmotion(set.id, emotion, projectId),
     },
