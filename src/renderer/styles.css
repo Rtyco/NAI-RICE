@@ -1815,6 +1815,22 @@ textarea.syntax-input::selection {
   font-size: 17px;
   font-weight: 700;
 }
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+}
+.toolbar-group:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.toolbar-label {
+  margin-right: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .free-title {
   margin: 0;
   padding: 0 8px;

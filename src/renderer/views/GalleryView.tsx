@@ -207,23 +207,39 @@ export function GalleryView({
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       <div className="toolbar">
-        <button
-          onClick={() =>
-            updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
-          }
+        {/* 체크는 일괄 생성 대상이고, 카드 선택(Ctrl·Shift 클릭, 끌기)은 삭제·i2i 같은 일괄 작업 대상이다. */}
+        <span className="toolbar-group" title="체크한 감정만 일괄 생성합니다">
+          <span className="toolbar-label">생성 대상</span>
+          <button
+            onClick={() =>
+              updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
+            }
+          >
+            모두 체크
+          </button>
+          <button
+            onClick={() =>
+              updateProject(project.id, (current) => ({
+                ...current,
+                excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
+              }))
+            }
+          >
+            모두 해제
+          </button>
+        </span>
+        <span
+          className="toolbar-group"
+          title="고른 카드에 결과 삭제·대표 이미지 i2i·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
         >
-          전체 선택
-        </button>
-        <button
-          onClick={() =>
-            updateProject(project.id, (current) => ({
-              ...current,
-              excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
-            }))
-          }
-        >
-          선택 해제
-        </button>
+          <span className="toolbar-label">카드</span>
+          <button onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}>
+            모두 고르기
+          </button>
+          <button disabled={!selection.selected.size} onClick={selection.clear}>
+            고르기 취소
+          </button>
+        </span>
         <button
           className="accent"
           disabled={!withResults}
@@ -238,7 +254,7 @@ export function GalleryView({
         </span>
         {selection.selected.size > 0 && (
           <span className="selection-bar inline">
-            <span>{selection.selected.size}개 선택</span>
+            <span>카드 {selection.selected.size}개</span>
             <button
               title="감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
               onClick={() =>
@@ -274,9 +290,6 @@ export function GalleryView({
               onClick={() => removeMany([...selection.selected])}
             >
               <Icon name="trash" size={14} /> 감정 삭제
-            </button>
-            <button className="link-button" onClick={selection.clear}>
-              선택 취소
             </button>
           </span>
         )}
