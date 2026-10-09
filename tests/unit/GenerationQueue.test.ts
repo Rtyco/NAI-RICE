@@ -1,9 +1,13 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { QueueSnapshot, QueueView } from '../../src/core/domain/types';
+import type { QueueSnapshot, QueueView, Txt2ImgJobSnapshot } from '../../src/core/domain/types';
+import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
+import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { GenerationQueue } from '../../electron/services/GenerationQueue';
+import { Library } from '../../electron/services/Library';
 
 let root: string;
 afterEach(() => rm(root, { recursive: true, force: true }));
@@ -101,4 +105,114 @@ describe('GenerationQueue', () => {
     await queue.cancelProject('a');
     expect(emitted).toHaveLength(0);
   });
+});
+
+describe('GenerationQueue 실패 처리', () => {
+  const textJob = (id: string): Txt2ImgJobSnapshot => ({
+    kind: 'txt2img',
+    id,
+    createdAt: new Date().toISOString(),
+    projectId: 'project-a',
+    projectName: '작업',
+    characterName: '아리아',
+    emotionId: 'e1',
+    emotionName: '기쁨',
+    emotionPrompt: 'smile',
+    presetName: 'P',
+    promptSetName: '기본',
+    emotionSetName: '감정',
+    referenceName: '',
+    prompt: '1girl',
+    negativePrompt: '',
+    characterPrompt: '',
+    characterNegativePrompt: '',
+    source: { commonPositive: '1girl', commonNegative: '', characterPositive: '' },
+    seed: 1,
+    variantIndex: 1,
+    canvasWidth: 64,
+    canvasHeight: 64,
+    outputFilenameTemplate: '',
+    settings: { ...DEFAULT_GENERATION_SETTINGS },
+    warnings: [],
+  });
+
+  /** 실제 작업 폴더에 결과를 쓰는 큐. `outcomes`를 앞에서부터 하나씩 돌려준다(오류면 던진다). */
+  async function runningQueue(outcomes: Array<Error | 'ok'>) {
+    root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
+    const library = new Library(root);
+    await library.load();
+    const png = await sharp({
+      create: { width: 64, height: 64, channels: 4, background: '#00ff00' },
+    })
+      .png()
+      .toBuffer();
+    let calls = 0;
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async () => {
+          const outcome = outcomes[Math.min(calls, outcomes.length - 1)];
+          calls += 1;
+          if (outcome instanceof Error) throw outcome;
+          return png;
+        },
+      },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: () => undefined,
+    });
+    await queue.initialize();
+    const job = () => queue.getSnapshot().jobs[0];
+    return { queue, job, calls: () => calls };
+  }
+
+  async function until(condition: () => boolean, timeoutMs = 5_000) {
+    const started = Date.now();
+    while (!condition()) {
+      if (Date.now() - started > timeoutMs) throw new Error('시간 안에 상태가 바뀌지 않았습니다.');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+
+  const serverError = () => new NaiApiError('server', '잠시 오류');
+
+  it('다시 시도할 수 있는 오류는 기다렸다가 다시 보내 완료해', async () => {
+    const { queue, job, calls } = await runningQueue([serverError(), 'ok']);
+    await queue.enqueue([textJob('a')]);
+    await until(() => job().status === 'completed');
+    expect(calls()).toBe(2);
+    expect(job().attempts).toBe(2);
+  }, 10_000);
+
+  it('다시 시도할 수 없는 오류는 한 번에 실패로 끝내', async () => {
+    const { queue, job, calls } = await runningQueue([
+      new NaiApiError('unsupported-request', '잘못된 요청'),
+    ]);
+    await queue.enqueue([textJob('a')]);
+    await until(() => job().status === 'failed');
+    expect(calls()).toBe(1);
+  });
+
+  it('다시 시도를 기다리는 중에 취소하면 바로 멈추고 더 보내지 않아', async () => {
+    const { queue, job, calls } = await runningQueue([serverError()]);
+    await queue.enqueue([textJob('a')]);
+    await until(() => job().status === 'retry_wait');
+    await queue.cancel('a');
+    expect(job().status).toBe('cancelled');
+    await new Promise((resolve) => setTimeout(resolve, 2_500));
+    expect(calls()).toBe(1);
+  }, 10_000);
+
+  it('다시 시도를 기다리는 중에 일시 중지하면 대기 상태로 돌려 두고 보내지 않아', async () => {
+    const { queue, job, calls } = await runningQueue([serverError(), 'ok']);
+    await queue.enqueue([textJob('a')]);
+    await until(() => job().status === 'retry_wait');
+    await queue.pause();
+    await until(() => job().status === 'queued');
+    expect(calls()).toBe(1);
+    await queue.resume();
+    await until(() => job().status === 'completed');
+    expect(calls()).toBe(2);
+  }, 10_000);
 });
