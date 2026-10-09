@@ -258,7 +258,7 @@ export function GalleryView({
             >
               <Icon name="trash" size={14} /> 씬 삭제
             </button>
-            <div className="header-spacer" />
+            <span className="zone-divider" />
             <button className="with-icon" title="고르기 취소 (Esc)" onClick={selection.clear}>
               <Icon name="close" size={14} /> 고르기 취소
             </button>

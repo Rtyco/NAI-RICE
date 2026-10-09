@@ -2106,7 +2106,7 @@ textarea.syntax-input::selection {
   margin: 0;
 }
 .library-list.collapsed nav {
-  padding: 0 4px;
+  padding: 0;
 }
 .library-list.collapsed .library-item-main {
   justify-content: center;
@@ -2527,11 +2527,22 @@ textarea.syntax-input::selection {
   padding: 8px 0 6px;
 }
 .sidebar.collapsed .project-list {
-  padding: 0 4px;
+  padding: 0;
+}
+/* 접은 목록은 폭이 아바타 하나뿐이라 스크롤 막대(10px)가 생기면 아바타를 밀어내고 오른쪽이 잘린다. 막대는
+   숨기고 휠로만 스크롤한다. */
+.sidebar.collapsed .project-list,
+.library-list.collapsed nav {
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sidebar.collapsed .project-list::-webkit-scrollbar,
+.library-list.collapsed nav::-webkit-scrollbar {
+  display: none;
 }
 .sidebar.collapsed .project-item {
   justify-content: center;
-  padding: 4px;
+  padding: 3px;
   position: relative;
 }
 .sidebar.collapsed .project-item .pill {
@@ -3074,9 +3085,35 @@ textarea.syntax-input::selection {
   margin-right: 4px;
   background: var(--line);
 }
-.queue-summary .bottom-slot .generate-button {
-  padding: 6px 16px;
+/* 생성 묶음은 큐 상태보다 눈에 잘 띄게 한 단계 크게 둔다. */
+.bottom-slot {
+  gap: 10px;
   font-size: 13px;
+}
+.queue-summary .bottom-slot button {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.bottom-slot .zone-field {
+  font-size: 13px;
+}
+.bottom-slot .zone-field b {
+  font-size: 15px;
+}
+.bottom-slot .stepper .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.bottom-slot .stepper input {
+  font-size: 15px;
+}
+.bottom-slot .pill {
+  font-size: 12px;
+}
+.queue-summary .bottom-slot .generate-button {
+  padding: 9px 24px;
+  font-size: 15px;
 }
 .gallery-toolbar {
   flex-wrap: wrap;
@@ -3092,7 +3129,6 @@ textarea.syntax-input::selection {
   border-radius: 8px;
 }
 .toolbar-zone.active {
-  flex: 1;
   background: var(--accent-bg);
 }
 .toolbar-zone > button {
