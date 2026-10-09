@@ -13,14 +13,12 @@ import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip, SourceChip, StrengthChip } from '../components/ChainChip';
+import { ChainChip, SizeChip } from '../components/ChainChip';
 import { Menu } from '../components/ui';
 import { deleteProject } from '../projectOps';
-import { sourceMedia } from '../sourceOps';
 import {
   openLibrary,
   openProject,
-  openSources,
   referenceMedia,
   run,
   toast,
@@ -37,11 +35,6 @@ import { libraryApi } from '../desktop';
 const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   { value: 'reference', label: '인페인트', title: '참고 이미지 옆에 인페인트로 그립니다' },
   { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
-  {
-    value: 'img2img',
-    label: 'i2i',
-    title: 'i2i 원본 라이브러리의 이미지를 생성 설정의 해상도로 맞춰 감정마다 다시 그립니다',
-  },
 ];
 
 function ModeSwitch({ project }: { project: Project }) {
@@ -125,12 +118,6 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           </>
         )}
       </ChainChip>
-      {project.mode === 'img2img' && (
-        <SourceChip
-          sourceId={project.img2imgSourceId}
-          onChange={(img2imgSourceId) => patch({ img2imgSourceId })}
-        />
-      )}
       {project.mode === 'reference' && (
         <ChainChip
           section="references"
@@ -153,7 +140,6 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         </ChainChip>
       )}
       {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
-      {project.mode === 'img2img' && resolved.preset && <StrengthChip preset={resolved.preset} />}
       <ChainChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
@@ -257,7 +243,6 @@ export function ProjectView({ projectId }: { projectId: string }) {
     project.mode !== 'reference'
       ? generation && {
           kind: project.mode,
-          strength: generation.img2imgStrength,
           settings: generation,
           canvasWidth: generation.width,
           canvasHeight: generation.height,
@@ -330,19 +315,6 @@ export function ProjectView({ projectId }: { projectId: string }) {
         />
       </header>
       <ChainBar resolved={resolved} />
-      {project.mode === 'img2img' && resolved.img2imgSource && generation && (
-        <div className="i2i-strip">
-          <img src={sourceMedia(resolved.img2imgSource)} alt="" />
-          <span>
-            <b>{resolved.img2imgSource.name}</b> ({resolved.img2imgSource.width}×
-            {resolved.img2imgSource.height})을(를) {generation.width}×{generation.height}로 맞춰
-            감정마다 다시 그립니다 · 세기 {generation.img2imgStrength}
-          </span>
-          <button className="link-button" onClick={openSources}>
-            i2i 원본 라이브러리
-          </button>
-        </div>
-      )}
       {resolved.missing.length > 0 && (
         <div className="missing-banner">
           ⚠ 생성하려면 {resolved.missing.join(', ')}이(가) 필요합니다.

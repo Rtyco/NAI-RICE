@@ -17,7 +17,6 @@ export type View =
   | { kind: 'home' }
   | { kind: 'project'; projectId: string }
   | { kind: 'free' }
-  | { kind: 'sources' }
   | { kind: 'library'; section: LibrarySection; itemId?: string };
 
 export type Toast = { id: number; kind: 'info' | 'error'; message: string };
@@ -291,10 +290,6 @@ export function openProject(projectId: string): void {
 export function openFree(): void {
   set({ view: { kind: 'free' }, detailEmotionId: undefined });
   if (!get().generations[FREE_PROJECT_ID]) void loadGenerations(FREE_PROJECT_ID);
-}
-
-export function openSources(): void {
-  set({ view: { kind: 'sources' }, detailEmotionId: undefined });
 }
 
 export function updateFreeGeneration(patch: Partial<FreeGeneration>): void {

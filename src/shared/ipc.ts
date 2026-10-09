@@ -6,6 +6,7 @@ import type {
   GenerationJobSnapshot,
   Library,
   QueueView,
+  Rect,
   Reference,
 } from '../core/domain/types';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
@@ -49,13 +50,11 @@ export type PreparedInputs = {
   maskSha256: string;
 };
 
-/** i2i 입력으로 쓸 이미지. 결과이거나 i2i 원본 라이브러리(`sources/`)의 이미지다. */
-export type ImageInputSource =
-  { kind: 'record'; projectId: string; generationId: string } | { kind: 'source'; file: string };
+/** 입력으로 쓸 생성 결과. */
+export type ImageInputSource = { kind: 'record'; projectId: string; generationId: string };
 
-/** i2i 원본 라이브러리에 넣을 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
-export type SourceImageAdd =
-  { kind: 'data'; dataUrl: string } | { kind: 'record'; projectId: string; generationId: string };
+/** 자유 인페인팅에 쓸 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
+export type SourceImageAdd = { kind: 'data'; dataUrl: string } | ImageInputSource;
 
 /**
  * NovelAI는 i2i 입력을 요청 크기로 비율을 무시하고 늘리므로(0단계), 보내기 전에 목표 크기로 맞춘다.
@@ -71,8 +70,14 @@ export type ImageInputRequest = {
 
 export type PreparedImage = { imagePath: string; imageSha256: string };
 
-/** `sources/` 기준 파일 이름. 같은 이미지는 같은 이름이 된다. */
-export type StoredSource = { file: string; width: number; height: number };
+/**
+ * `sources/` 기준 파일 이름과 64의 배수로 맞춘 크기. 같은 이미지는 같은 이름이 된다. `outputRect`는 여백을
+ * 뺀 원래 이미지 영역이다.
+ */
+export type StoredSource = { file: string; width: number; height: number; outputRect: Rect };
+
+/** 자유 인페인팅의 `sources/` 이미지와 마스크를 작업 입력으로 복사해 달라는 요청. */
+export type SourceInpaintRequest = { projectId: string; file: string; maskFile: string };
 
 export type TokenStatus = {
   stored: boolean;
@@ -133,7 +138,11 @@ export type LibraryApi = {
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
+  /** 마스크 PNG를 `sources/`에 넣고 파일 이름을 돌려준다. */
+  addSourceMask: (dataUrl: string) => Promise<string>;
+  /** 이 앱이 만든 사본이라 휴지통을 거치지 않고 지운다. */
   deleteSourceImage: (file: string) => Promise<void>;
+  prepareSourceInpaint: (request: SourceInpaintRequest) => Promise<PreparedInputs>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
   /** 화면 목록용 요약. 프롬프트·설정은 getGeneration으로 하나씩 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;

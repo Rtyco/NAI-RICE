@@ -530,6 +530,15 @@ textarea {
   top: 14px;
   left: 14px;
 }
+.stage-tabs {
+  align-self: center;
+  margin-top: 10px;
+}
+.free-inpaint-stage {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 14px 0;
+}
 .filmstrip {
   display: flex;
   gap: 6px;
@@ -1831,56 +1840,6 @@ textarea.syntax-input::selection {
   color: var(--muted);
   font-size: 12px;
 }
-.sources-body {
-  overflow: auto;
-  padding: 16px;
-}
-.sources-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-.source-card {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg-3);
-}
-.source-card img {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  object-fit: contain;
-  background: var(--bg-1);
-}
-.source-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-  min-width: 0;
-}
-.source-card-body b,
-.source-users {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.source-card-body small {
-  color: var(--muted);
-  font-size: 11px;
-}
-.source-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-top: 6px;
-}
-.source-actions button {
-  padding: 4px 6px;
-  font-size: 12px;
-}
 .record-input {
   width: 72px;
   border: 1px solid var(--line);
@@ -1891,16 +1850,19 @@ textarea.syntax-input::selection {
   padding: 0 8px;
   font-size: 17px;
 }
-.i2i-source {
+.free-inpaint-source {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
 }
-.i2i-source-body {
+.free-inpaint-source-body {
   display: flex;
   gap: 10px;
   align-items: flex-start;
 }
-.i2i-source-body img,
-.i2i-source-empty {
+.free-inpaint-source-body img,
+.free-inpaint-source-empty {
   width: 72px;
   height: 96px;
   flex-shrink: 0;
@@ -1931,24 +1893,6 @@ textarea.syntax-input::selection {
   border-bottom: 1px solid var(--orange-line);
   background: var(--orange-bg);
   color: var(--orange-text);
-}
-.i2i-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-2);
-  color: var(--muted);
-  font-size: 12px;
-}
-.i2i-strip img {
-  height: 48px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-}
-.i2i-strip b {
-  color: var(--text);
 }
 .project-body {
   flex: 1;

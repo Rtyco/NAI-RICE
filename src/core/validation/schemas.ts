@@ -153,13 +153,13 @@ export const referenceSchema = z.object({
 export const projectSchema = z.object({
   id: z.string().regex(FOLDER_ID),
   name: z.string(),
-  mode: z.enum(['reference', 'txt2img', 'img2img']).default('reference'),
+  // 없어진 i2i 방식(img2img)은 인페인트로 읽는다.
+  mode: z.enum(['reference', 'txt2img']).catch('reference'),
   presetId: z.string(),
   characterId: z.string(),
   promptSetId: z.string(),
   emotionSetId: z.string(),
   referenceId: z.string(),
-  img2imgSourceId: z.string().optional(),
   excludedEmotionIds: z.array(z.string()).default([]),
   favorites: z.record(z.string(), z.string()).default({}),
   createdAt: z.string(),
@@ -194,6 +194,9 @@ export const appSettingsSchema = z.object({
     .default({ autoCheck: true, skippedVersion: '' }),
 });
 
+/** `sources/` 안의 파일 이름. 해시로 지어 경로 문자를 넣을 수 없다. */
+const sourceFileSchema = z.string().regex(/^[0-9a-f]+\.png$/);
+
 export const librarySchema = z.object({
   schemaVersion: z.literal(2),
   settings: appSettingsSchema,
@@ -203,19 +206,6 @@ export const librarySchema = z.object({
   references: z.array(referenceSchema),
   projects: z.array(projectSchema),
   pieceSets: z.array(pieceSetSchema).default([]),
-  img2imgSources: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        name: z.string(),
-        file: z.string().regex(/^[0-9a-f]+\.png$/),
-        width: z.number().int().positive(),
-        height: z.number().int().positive(),
-        createdAt: z.string(),
-        fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
-      }),
-    )
-    .default([]),
   freeGeneration: z
     .object({
       presetId: z.string(),
@@ -223,8 +213,19 @@ export const librarySchema = z.object({
       promptSetId: z.string(),
       prompt: z.string(),
       count: z.number().int().min(1).max(20),
-      mode: z.enum(['txt2img', 'img2img']).default('txt2img'),
-      sourceId: z.string().optional(),
+      // 없어진 자유 생성 i2i는 일반 생성으로 읽는다.
+      mode: z.enum(['txt2img', 'inpaint']).catch('txt2img'),
+      inpaint: z
+        .object({
+          name: z.string(),
+          file: sourceFileSchema,
+          width: z.number().int().positive(),
+          height: z.number().int().positive(),
+          outputRect: rectSchema,
+          maskFile: sourceFileSchema.optional(),
+          fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
+        })
+        .optional(),
     })
     .default({
       presetId: '',

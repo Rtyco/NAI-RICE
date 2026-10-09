@@ -6,6 +6,7 @@ import type {
   OpenTarget,
   ReferenceImageSave,
   SourceImageAdd,
+  SourceInpaintRequest,
 } from '../src/shared/ipc';
 import type { AccountService } from './services/AccountService';
 import type { Exporter } from './services/Exporter';
@@ -59,7 +60,11 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('source:add', (_event, request: SourceImageAdd) =>
     library.addSourceImage(request),
   );
-  ipcMain.handle('source:delete', (_event, file: string) => workspace.trashSource(file));
+  ipcMain.handle('source:add-mask', (_event, dataUrl: string) => library.addSourceMask(dataUrl));
+  ipcMain.handle('source:delete', (_event, file: string) => library.deleteSource(file));
+  ipcMain.handle('source:prepare-inpaint', (_event, request: SourceInpaintRequest) =>
+    library.prepareSourceInpaint(request),
+  );
   ipcMain.handle('project:delete-files', async (_event, id: string) => {
     await queue.cancelProject(id);
     await workspace.trashProject(id);

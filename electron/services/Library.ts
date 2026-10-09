@@ -24,6 +24,7 @@ import type {
   ReferenceImages,
   ReferenceImageSave,
   SourceImageAdd,
+  SourceInpaintRequest,
   StoredSource,
 } from '../../src/shared/ipc';
 import {
@@ -42,7 +43,7 @@ import {
   toDataUrl,
   toPosix,
 } from './fsUtils';
-import { fitImage, imageSize, maskHasGeneratePixels } from './Images';
+import { fitImage, imageSize, maskHasGeneratePixels, padToMultiple } from './Images';
 import { migrateV1Workspace } from './LegacyMigration';
 import type { ExportSource, GenerationStore, WorkspaceFolders } from './ports';
 
@@ -68,7 +69,7 @@ function recordFiles(record: GenerationRecord): string[] {
  *   library.json                 프리셋·캐릭터·감정 모음·레퍼런스·작업 정보
  *   backups/                     library.json 자동 백업
  *   references/<id>/             레퍼런스 원본·캔버스·마스크
- *   sources/                     i2i 원본 라이브러리 이미지
+ *   sources/                     자유 인페인팅 이미지·마스크
  *   projects/<id>/               generations.json, inputs/, outputs/<감정>/, thumbs/, diagnostic/
  *   exports/
  */
@@ -239,6 +240,26 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       throw new Error(
         '생성 영역(청록색)이 비어 있어 생성할 수 없습니다. 인페인트 편집에서 생성 마스크를 칠하십시오.',
       );
+    return this.writeInpaintInputs(projectId, canvas, mask);
+  }
+
+  /** 자유 인페인팅의 이미지와 마스크를 작업 폴더에 해시 이름으로 복사한다. */
+  async prepareSourceInpaint(request: SourceInpaintRequest): Promise<PreparedInputs> {
+    const read = async (file: string) => fs.readFile(await this.verifyReal(this.sourceFile(file)));
+    const [canvas, mask] = await Promise.all([read(request.file), read(request.maskFile)]);
+    const [canvasSize, maskSize] = await Promise.all([imageSize(canvas), imageSize(mask)]);
+    if (canvasSize.width !== maskSize.width || canvasSize.height !== maskSize.height)
+      throw new Error('마스크 크기가 이미지와 다릅니다. 마스크를 다시 칠하십시오.');
+    if (!(await maskHasGeneratePixels(mask)))
+      throw new Error('다시 그릴 영역이 비어 있습니다. 이미지에 마스크를 칠하십시오.');
+    return this.writeInpaintInputs(request.projectId, canvas, mask);
+  }
+
+  private async writeInpaintInputs(
+    projectId: string,
+    canvas: Buffer,
+    mask: Buffer,
+  ): Promise<PreparedInputs> {
     const imageSha256 = sha256(canvas);
     const maskSha256 = sha256(mask);
     const imagePath = `inputs/${imageSha256}.png`;
@@ -254,29 +275,38 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
   }
 
   private async readImageSource(source: ImageInputSource): Promise<Buffer> {
-    if (source.kind === 'record') {
-      const record = await this.findGeneration(source.projectId, source.generationId);
-      return fs.readFile(await this.resolveProjectReal(source.projectId, record.file));
-    }
-    return fs.readFile(await this.verifyReal(this.sourceFile(source.file)));
+    const record = await this.findGeneration(source.projectId, source.generationId);
+    return fs.readFile(await this.resolveProjectReal(source.projectId, record.file));
   }
 
-  /** i2i 원본 라이브러리의 파일. 작업·인페인트와 따로 `sources/`에 둔다. */
+  /** 자유 인페인팅의 이미지·마스크. 작업·인페인트와 따로 `sources/`에 둔다. */
   sourceFile(file: string): string {
     return resolveInside(path.join(this.root, 'sources'), file);
   }
 
-  /** 같은 이미지는 해시로 같은 파일 이름이 되어 한 번만 저장된다. 회전 정보는 픽셀에 반영해 둔다. */
+  /** 같은 내용은 해시로 같은 파일 이름이 되어 한 번만 저장된다. */
+  private async writeSource(png: Buffer): Promise<string> {
+    const file = `${sha256(png).slice(0, 24)}.png`;
+    const target = this.sourceFile(file);
+    if (!(await exists(target))) await atomicWrite(target, png);
+    return file;
+  }
+
   async addSourceImage(request: SourceImageAdd): Promise<StoredSource> {
     const original =
       request.kind === 'data'
         ? decodeDataUrl(request.dataUrl).buffer
         : await this.readImageSource(request);
-    const png = await sharp(original).rotate().png().toBuffer();
-    const file = `${sha256(png).slice(0, 24)}.png`;
-    const target = this.sourceFile(file);
-    if (!(await exists(target))) await atomicWrite(target, png);
-    return { file, ...(await imageSize(png)) };
+    const { png, width, height, content } = await padToMultiple(original);
+    return { file: await this.writeSource(png), width, height, outputRect: content };
+  }
+
+  async addSourceMask(dataUrl: string): Promise<string> {
+    return this.writeSource(await sharp(decodeDataUrl(dataUrl).buffer).png().toBuffer());
+  }
+
+  async deleteSource(file: string): Promise<void> {
+    await fs.rm(await this.verifyReal(this.sourceFile(file)), { force: true });
   }
 
   /** 해시 이름으로 저장하므로 같은 입력은 한 번만 쓰고, 대기 중에 원본이 바뀌어도 작업 입력은 그대로다. */

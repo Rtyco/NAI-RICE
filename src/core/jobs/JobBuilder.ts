@@ -5,11 +5,11 @@ import type {
   GenerationKind,
   GenerationRecord,
   Img2ImgJobSnapshot,
-  Img2ImgSource,
   InpaintJobSnapshot,
   PieceSet,
   Preset,
   Project,
+  Rect,
   Reference,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
@@ -39,20 +39,23 @@ type EmotionJobBuildInput = {
   randomSeed?: () => number;
 };
 
+/** 작업 폴더의 inputs/에 해시 이름으로 넣어 둔 인페인트 캔버스와 마스크. */
+export type InpaintInput = {
+  imagePath: string;
+  maskPath: string;
+  imageSha256: string;
+  maskSha256: string;
+};
+
 export type JobBuildInput = EmotionJobBuildInput & {
   reference: Reference;
-  input: { imagePath: string; maskPath: string; imageSha256: string; maskSha256: string };
+  input: InpaintInput;
 };
 
 export type Txt2ImgJobBuildInput = EmotionJobBuildInput;
 
 /** 메인 프로세스가 목표 크기로 맞춰 작업 폴더의 inputs/에 넣어 둔 i2i 입력. */
 export type ImageInput = { imagePath: string; imageSha256: string };
-
-export type Img2ImgJobBuildInput = EmotionJobBuildInput & {
-  source: Img2ImgSource;
-  image: ImageInput;
-};
 
 const UINT32 = 4_294_967_296;
 
@@ -239,8 +242,14 @@ export type FreeJobBuildInput = {
   character?: { name: string; promptSet: CharacterPromptSet };
   prompt: string;
   count: number;
-  /** 주면 i2i로 만든다. 세기는 생성 설정 값을 쓴다. */
-  img2img?: { image: ImageInput; sourceRecordId?: string };
+  /** 주면 자유 인페인팅으로 만든다. 크기는 생성 설정의 해상도 대신 이미지 크기다. */
+  inpaint?: {
+    input: InpaintInput;
+    width: number;
+    height: number;
+    outputRect: Rect;
+    sourceRecordId?: string;
+  };
   pieceSets?: PieceSet[];
   seedOverride?: number;
   now?: () => Date;
@@ -253,7 +262,7 @@ export type FreeJobBuildInput = {
  */
 export function buildFreeJobs(
   input: FreeJobBuildInput,
-): Array<Txt2ImgJobSnapshot | Img2ImgJobSnapshot> {
+): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot> {
   const settings = normalizeGenerationSettings(input.preset.generation);
   const preset: Preset = {
     ...input.preset,
@@ -262,7 +271,7 @@ export function buildFreeJobs(
   const promptSet = input.character?.promptSet ?? createPromptSet('', {});
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
-  const jobs: Array<Txt2ImgJobSnapshot | Img2ImgJobSnapshot> = [];
+  const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot> = [];
   for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
     const seed =
       input.seedOverride !== undefined
@@ -304,24 +313,24 @@ export function buildFreeJobs(
       },
       seed,
       variantIndex,
-      canvasWidth: settings.width,
-      canvasHeight: settings.height,
+      canvasWidth: input.inpaint?.width ?? settings.width,
+      canvasHeight: input.inpaint?.height ?? settings.height,
       // 감정이 없으므로 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다.
       outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
       settings: { ...settings },
       warnings: [],
     };
+    const { inpaint } = input;
     jobs.push(
-      input.img2img
+      inpaint
         ? {
             ...common,
-            kind: 'img2img',
-            ...input.img2img.image,
-            ...(input.img2img.sourceRecordId
-              ? { sourceRecordId: input.img2img.sourceRecordId }
-              : {}),
-            strength: settings.img2imgStrength,
-            noise: settings.img2imgNoise,
+            kind: 'inpaint',
+            ...inpaint.input,
+            ...(inpaint.sourceRecordId ? { sourceRecordId: inpaint.sourceRecordId } : {}),
+            outputRect: { ...inpaint.outputRect },
+            // 캔버스가 원래 이미지와 거의 같아 따로 남길 필요가 없다.
+            keepDiagnosticCanvas: false,
           }
         : { ...common, kind: 'txt2img' },
     );
@@ -331,33 +340,6 @@ export function buildFreeJobs(
 
 /** 감정이 없는 자유 생성 결과는 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다. */
 export const FREE_FILENAME_TEMPLATE = '{date}-{time}__{seed}';
-
-/**
- * i2i 모드: i2i 원본을 감정마다 다시 그린다. 크기는 생성 설정의 해상도다. 원본이 이 작업의 결과였으면
- * 결과에 `sourceRecordId`를 남긴다.
- */
-export function buildImg2ImgJobs(input: Img2ImgJobBuildInput): Img2ImgJobSnapshot[] {
-  const settings = normalizeGenerationSettings(input.preset.generation);
-  return buildEmotionJobs(
-    input,
-    'img2img',
-    {
-      referenceName: input.source.name,
-      canvasWidth: settings.width,
-      canvasHeight: settings.height,
-    },
-    (common) => ({
-      ...common,
-      kind: 'img2img',
-      ...input.image,
-      ...(input.source.fromRecord?.projectId === input.project.id
-        ? { sourceRecordId: input.source.fromRecord.generationId }
-        : {}),
-      strength: settings.img2imgStrength,
-      noise: settings.img2imgNoise,
-    }),
-  );
-}
 
 export type ResultImg2ImgInput = {
   record: GenerationRecord;

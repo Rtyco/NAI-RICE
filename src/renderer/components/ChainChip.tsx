@@ -3,8 +3,7 @@ import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
 import { normalizeGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { sectionInfo } from '../sections';
-import { addSourceFromFile, sourceMedia } from '../sourceOps';
-import { openLibrary, openSources, updateLibrary, useLibrary, type LibrarySection } from '../store';
+import { openLibrary, updateLibrary, type LibrarySection } from '../store';
 import { Icon, type IconName } from './Icon';
 
 /**
@@ -80,88 +79,6 @@ export function SizeChip({ preset }: { preset: Preset }) {
             직접 입력 {width}×{height}
           </option>
         )}
-      </select>
-    </ChainChip>
-  );
-}
-
-const STRENGTHS = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
-
-/** i2i 세기. 낮을수록 원본을 많이 남긴다. 생성 설정에 저장된다. */
-export function StrengthChip({ preset }: { preset: Preset }) {
-  const { img2imgStrength } = normalizeGenerationSettings(preset.generation);
-  const choices = STRENGTHS.includes(img2imgStrength)
-    ? STRENGTHS
-    : [...STRENGTHS, img2imgStrength].sort((a, b) => a - b);
-  return (
-    <ChainChip
-      section="presets"
-      itemId={preset.id}
-      label={{
-        text: 'i2i 세기',
-        icon: 'refresh',
-        usage: `낮을수록 원본을 많이 남깁니다 · 생성 설정 「${preset.name}」에 저장됩니다`,
-      }}
-    >
-      <select
-        value={img2imgStrength}
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          updateLibrary((library) =>
-            patchItem(library, 'presets', preset.id, (item) => ({
-              ...item,
-              generation: { ...item.generation, img2imgStrength: value },
-            })),
-          );
-        }}
-      >
-        {choices.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
-    </ChainChip>
-  );
-}
-
-const ADD_SOURCE = '__add__';
-
-/** i2i 원본 라이브러리에서 고른다. 목록 끝의 「파일에서 추가」로 바로 넣을 수도 있다. */
-export function SourceChip({
-  sourceId,
-  onChange,
-}: {
-  sourceId: string | undefined;
-  onChange: (id: string) => void;
-}) {
-  const sources = useLibrary().img2imgSources;
-  const current = sources.find((item) => item.id === sourceId);
-  return (
-    <ChainChip
-      missing={!current}
-      label={{
-        text: 'i2i 원본',
-        icon: 'images',
-        usage: '다시 그릴 이미지 · 생성 설정의 해상도에 맞춰 위쪽을 남기고 자릅니다',
-      }}
-      edit={{ title: 'i2i 원본 라이브러리 열기', open: openSources }}
-    >
-      {current && <img className="chain-thumb" src={sourceMedia(current)} alt="" />}
-      <select
-        value={current?.id ?? ''}
-        onChange={(event) => {
-          if (event.target.value !== ADD_SOURCE) return onChange(event.target.value);
-          void addSourceFromFile().then((id) => id && onChange(id));
-        }}
-      >
-        {!current && <option value="">(고르지 않음)</option>}
-        {sources.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name} ({item.width}×{item.height})
-          </option>
-        ))}
-        <option value={ADD_SOURCE}>+ 파일에서 추가…</option>
       </select>
     </ChainChip>
   );

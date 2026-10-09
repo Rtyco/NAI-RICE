@@ -19,7 +19,6 @@ import {
 } from './store';
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
-import { SourcesView } from './views/SourcesView';
 import { ProjectView } from './views/ProjectView';
 import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -133,8 +132,6 @@ export default function App() {
                 <ProjectView projectId={view.projectId} />
               ) : view.kind === 'free' ? (
                 <FreeView />
-              ) : view.kind === 'sources' ? (
-                <SourcesView />
               ) : view.kind === 'library' ? (
                 <LibraryView section={view.section} itemId={view.itemId} />
               ) : (

@@ -1,4 +1,4 @@
-import type { Emotion, EmotionSet } from '../core/domain/types';
+import type { Emotion, EmotionSet, GenerationSummary } from '../core/domain/types';
 import { generationKindFor, projectsUsing } from '../core/model/defaults';
 import {
   addEmotion,
@@ -22,6 +22,7 @@ import {
   useStore,
 } from './store';
 import { libraryApi } from './desktop';
+import { makeReferenceFromRecord, sendToFreeInpaint } from './freeInpaintOps';
 import { clearEmotionResults, openImg2ImgDialog } from './generationOps';
 
 export function updateEmotionSet(id: string, recipe: (set: EmotionSet) => EmotionSet): void {
@@ -160,6 +161,12 @@ export function emotionMenu(
   excluded: boolean,
 ): MenuItem[] {
   const records = emotionRecords(useStore.getState().generations[projectId], emotion.id);
+  const withCover = (action: (cover: GenerationSummary) => void) => {
+    const favorite = useStore.getState().library?.projects.find((item) => item.id === projectId)
+      ?.favorites[emotion.id];
+    const cover = coverRecord(records, favorite);
+    if (cover) action(cover);
+  };
   return [
     { label: '열기', onSelect: () => openEmotion(emotion.id) },
     {
@@ -199,12 +206,17 @@ export function emotionMenu(
       label: '대표 이미지 i2i로',
       hint: '없으면 최신',
       disabled: !records.length,
-      onSelect: () => {
-        const favorite = useStore.getState().library?.projects.find((item) => item.id === projectId)
-          ?.favorites[emotion.id];
-        const cover = coverRecord(records, favorite);
-        if (cover) openImg2ImgDialog(projectId, [cover]);
-      },
+      onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
+    },
+    {
+      label: '대표 이미지로 인페인트 만들기',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
+    },
+    {
+      label: '대표 이미지 자유 인페인팅',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => void sendToFreeInpaint(projectId, cover)),
     },
     {
       label: '결과 폴더 열기',

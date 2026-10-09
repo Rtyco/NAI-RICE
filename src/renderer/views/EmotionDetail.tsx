@@ -14,7 +14,7 @@ import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { deleteResults, openImg2ImgDialog } from '../generationOps';
-import { addSourceFromRecord } from '../sourceOps';
+import { makeReferenceFromRecord, sendToFreeInpaint } from '../freeInpaintOps';
 import {
   emotionRecords,
   openEmotion,
@@ -368,10 +368,16 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                   i2i로 보내기
                 </button>
                 <button
-                  onClick={() => void addSourceFromRecord(project.id, selected)}
-                  title="i2i 원본 라이브러리에 넣어 i2i 방식·자유 생성에서 원본으로 고를 수 있게 합니다"
+                  onClick={() => void makeReferenceFromRecord(project.id, selected)}
+                  title="이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다"
                 >
-                  i2i 원본에 추가
+                  인페인트 만들기
+                </button>
+                <button
+                  onClick={() => void sendToFreeInpaint(project.id, selected)}
+                  title="자유 생성에서 이 결과의 일부를 마스크로 칠해 다시 그립니다"
+                >
+                  자유 인페인팅
                 </button>
                 <button className="danger-quiet" onClick={() => void deleteResults(project.id, [selected])}>
                   결과 삭제

@@ -93,6 +93,34 @@ export async function fitImage(
     .toBuffer();
 }
 
+/**
+ * NovelAI는 64의 배수 크기만 받으므로 오른쪽·아래에 흰 여백을 넣어 맞춘다. 늘이거나 자르지 않아 원래 이미지는
+ * 왼쪽 위에 그대로 남는다. 투명한 부분은 fitImage처럼 흰색으로 채운다.
+ */
+export async function padToMultiple(
+  buffer: Buffer,
+  unit = 64,
+): Promise<{ png: Buffer; width: number; height: number; content: Rect }> {
+  const rotated = await sharp(buffer).rotate().png().toBuffer();
+  const { width, height } = await imageSize(rotated);
+  const padded = (side: number) => Math.ceil(side / unit) * unit;
+  const png = await sharp(rotated)
+    .extend({
+      right: padded(width) - width,
+      bottom: padded(height) - height,
+      background: '#ffffff',
+    })
+    .flatten({ background: '#ffffff' })
+    .png()
+    .toBuffer();
+  return {
+    png,
+    width: padded(width),
+    height: padded(height),
+    content: { x: 0, y: 0, width, height },
+  };
+}
+
 export async function makeThumbnail(buffer: Buffer, size = 384): Promise<Buffer> {
   return sharp(buffer)
     .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })

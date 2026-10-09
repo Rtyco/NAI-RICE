@@ -146,9 +146,8 @@ export type Reference = {
 /**
  * 인페인트(`reference`, 예전 이름 레퍼런스 생성)는 참고 이미지 옆에 인페인트하고, 일반 생성은 참고 이미지
  * 없이 txt2img로 만든다.
- * i2i는 i2i 원본 라이브러리의 이미지를 생성 설정의 해상도로 맞춰 다시 그린다.
  */
-export type ProjectMode = 'reference' | 'txt2img' | 'img2img';
+export type ProjectMode = 'reference' | 'txt2img';
 
 /** 작업: 프리셋 · 캐릭터 · 감정 모음 · 레퍼런스를 하나씩 골라 묶은 조합. 생성 결과는 작업에 쌓인다. */
 export type Project = {
@@ -161,8 +160,6 @@ export type Project = {
   emotionSetId: string;
   /** 인페인트 방식에서만 쓰지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
   referenceId: string;
-  /** i2i 방식에서 다시 그릴 i2i 원본 라이브러리의 이미지. */
-  img2imgSourceId?: string;
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
   /** 감정별 대표 이미지(생성 기록 ID). */
@@ -229,20 +226,23 @@ export type FreeGeneration = {
   prompt: string;
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
-  mode: 'txt2img' | 'img2img';
-  /** i2i 원본 라이브러리에서 고른 이미지. */
-  sourceId?: string;
+  mode: 'txt2img' | 'inpaint';
+  inpaint?: FreeInpaint;
 };
 
-/** i2i 원본 라이브러리의 이미지 하나. 파일은 `sources/<file>`에 있다. */
-export type Img2ImgSource = {
-  id: string;
+/**
+ * 자유 인페인팅에서 고쳐 그릴 이미지와 마스크. 파일은 `sources/`에 있다. NovelAI는 64의 배수 크기만
+ * 받으므로 이미지 오른쪽·아래에 여백을 넣어 두고, 결과에서는 `outputRect`(원래 이미지 영역)만 남긴다.
+ */
+export type FreeInpaint = {
   name: string;
   file: string;
   width: number;
   height: number;
-  createdAt: string;
-  /** 생성 결과에서 가져왔으면 그 기록. 같은 곳에서 i2i하면 결과에 `sourceRecordId`로 남긴다. */
+  outputRect: Rect;
+  /** 비어 있으면 아직 마스크를 칠하지 않았다. */
+  maskFile?: string;
+  /** 생성 결과에서 가져왔으면 그 기록. 자유 생성 결과였으면 새 결과에 `sourceRecordId`로 남긴다. */
   fromRecord?: { projectId: string; generationId: string };
 };
 
@@ -255,7 +255,6 @@ export type Library = {
   references: Reference[];
   projects: Project[];
   pieceSets: PieceSet[];
-  img2imgSources: Img2ImgSource[];
   freeGeneration: FreeGeneration;
   lastProjectId?: string;
 };

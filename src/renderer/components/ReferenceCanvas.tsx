@@ -28,6 +28,8 @@ type Props = {
   onOutputRectChange: (rect: Rect) => void;
   onMaskChange: (mask: Uint8Array) => void;
   onRedetect: () => void;
+  /** 자유 인페인팅: 참고 영역·결과 크롭 없이 다시 그릴 곳만 칠한다. */
+  maskOnly?: boolean;
 };
 
 type DragState = {
@@ -96,7 +98,7 @@ export function ReferenceCanvas(props: Props) {
   /** 붓질 중에는 같은 버퍼를 직접 고치고, 프레임마다 한 번만 다시 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
-  const [tool, setTool] = useState<Tool>('reference');
+  const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
   const [zoom, setZoom] = useState(70);
   const [opacity, setOpacity] = useState(42);
   const [brushSize, setBrushSize] = useState(24);
@@ -184,10 +186,12 @@ export function ReferenceCanvas(props: Props) {
       }
       context.restore();
     };
+    if (props.maskOnly) return;
     drawRect(props.referenceRect, '#3ee089', tool === 'reference');
     drawRect(props.outputRect, '#36a3ff', tool === 'output');
   }, [
     mask,
+    props.maskOnly,
     opacity,
     props.image,
     props.width,
@@ -350,26 +354,30 @@ export function ReferenceCanvas(props: Props) {
     <section className="canvas-card">
       <div className="canvas-toolbar">
         <div className="segmented" aria-label="캔버스 도구">
-          <button
-            className={tool === 'reference' ? 'active green' : ''}
-            onClick={() => setTool('reference')}
-          >
-            참고 영역 보호
-          </button>
-          <button
-            className={tool === 'output' ? 'active blue' : ''}
-            onClick={() => setTool('output')}
-          >
-            결과 크롭
-          </button>
+          {!props.maskOnly && (
+            <>
+              <button
+                className={tool === 'reference' ? 'active green' : ''}
+                onClick={() => setTool('reference')}
+              >
+                참고 영역 보호
+              </button>
+              <button
+                className={tool === 'output' ? 'active blue' : ''}
+                onClick={() => setTool('output')}
+              >
+                결과 크롭
+              </button>
+            </>
+          )}
           <button
             className={tool === 'generate' ? 'active teal' : ''}
             onClick={() => setTool('generate')}
           >
-            생성 마스크
+            {props.maskOnly ? '🖌 칠하기' : '생성 마스크'}
           </button>
           <button className={tool === 'keep' ? 'active' : ''} onClick={() => setTool('keep')}>
-            보호 마스크
+            {props.maskOnly ? '🧽 지우기' : '보호 마스크'}
           </button>
         </div>
         <button onClick={undo} disabled={!undoStack.length} title="Ctrl+Z">
@@ -386,13 +394,13 @@ export function ReferenceCanvas(props: Props) {
         >
           마스크 비우기
         </button>
-        <button onClick={props.onRedetect}>영역 재감지</button>
+        {!props.maskOnly && <button onClick={props.onRedetect}>영역 재감지</button>}
       </div>
       <div className="canvas-meta">
         <span>
           {props.width} × {props.height}px
         </span>
-        <span>{props.detectionLabel}</span>
+        {props.detectionLabel && <span>{props.detectionLabel}</span>}
         <label>
           브러시 크기{' '}
           <input
@@ -441,12 +449,16 @@ export function ReferenceCanvas(props: Props) {
         />
       </div>
       <div className="legend">
-        <span>
-          <i className="green-dot" /> 참고 영역 (보호)
-        </span>
-        <span>
-          <i className="blue-dot" /> 최종 결과 크롭
-        </span>
+        {!props.maskOnly && (
+          <>
+            <span>
+              <i className="green-dot" /> 참고 영역 (보호)
+            </span>
+            <span>
+              <i className="blue-dot" /> 최종 결과 크롭
+            </span>
+          </>
+        )}
         <span>
           <i className="teal-dot" /> NovelAI 생성 영역
         </span>
