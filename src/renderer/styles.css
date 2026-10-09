@@ -184,6 +184,16 @@ select {
   padding: 7px 9px;
   outline: none;
 }
+/* 펼친 목록은 select의 배경을 따르는데, 배경이 투명한 select(칩 등)는 흰 바탕에 밝은 글자가 되어
+   마우스가 목록을 벗어나면 글자가 보이지 않는다. */
+option,
+optgroup {
+  background: var(--bg-2);
+  color: var(--text);
+}
+option:disabled {
+  color: var(--faint);
+}
 input[type='checkbox'],
 input[type='radio'] {
   width: auto;

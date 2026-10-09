@@ -401,9 +401,7 @@ export function Sidebar() {
       <section className="sidebar-card free-card">
         <nav className="library-nav" aria-label="자유 생성">
           <button
-            title={
-              collapsed ? '자유 생성 · 씬 없이 프롬프트로 여러 장' : '씬 없이 프롬프트로 여러 장'
-            }
+            title={collapsed ? '자유 생성' : undefined}
             className={view.kind === 'free' ? 'active' : ''}
             onClick={openFree}
           >
@@ -411,7 +409,6 @@ export function Sidebar() {
             {!collapsed && (
               <span className="library-nav-text">
                 <b>자유 생성</b>
-                <small>프롬프트만으로 여러 장</small>
               </span>
             )}
           </button>
