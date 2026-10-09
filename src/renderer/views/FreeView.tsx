@@ -106,7 +106,6 @@ function FreeMaskCanvas({ image }: { image: FreeImage }) {
       onReferenceRectChange={ignore}
       onOutputRectChange={ignore}
       onMaskChange={onMaskChange}
-      onRedetect={ignore}
     />
   );
 }

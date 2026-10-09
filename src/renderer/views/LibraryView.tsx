@@ -329,6 +329,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               />
               <div className="header-spacer" />
               <AccountMeter />
+              <span className="zone-divider" />
               {section === 'references' && (
                 <button className="with-icon" onClick={() => openReferenceFolder(selected)}>
                   <Icon name="folder" /> 폴더 열기
@@ -337,9 +338,11 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               <button className="with-icon" onClick={() => exportItem(section, selected)}>
                 <Icon name="export" /> JSON 내보내기
               </button>
+              <span className="zone-divider" />
               <button className="with-icon" onClick={() => void duplicateItem(section, selected)}>
                 <Icon name="copy" /> 복제
               </button>
+              <span className="zone-divider" />
               <button
                 className="with-icon danger-quiet"
                 onClick={() => void deleteItem(section, selected)}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { CanvasLayout, Rect, Reference, ReferenceSide } from '../../core/domain/types';
 import { computeLayout, CUSTOM_MAX, CUSTOM_MIN, RESOLUTION_PRESETS, snapDimension } from '../../core/imaging/CanvasLayout';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
@@ -7,7 +7,9 @@ import { clampRect, expandRect } from '../../core/imaging/rects';
 import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
-import { EmptyState, NumberField, PanelHeading, SelectField } from '../components/ui';
+import { Icon } from '../components/Icon';
+import { Stepper } from '../components/Stepper';
+import { EmptyState, PanelHeading, SelectField } from '../components/ui';
 import type { CanvasImage } from '../lib/image';
 import {
   canvasImageToDataUrl,
@@ -38,6 +40,13 @@ const SIDES: Array<{ value: ReferenceSide; label: string }> = [
   { value: 'top', label: '위쪽' },
   { value: 'bottom', label: '아래쪽' },
 ];
+
+const CROP_FIELDS = [
+  { key: 'x', label: 'X' },
+  { key: 'y', label: 'Y' },
+  { key: 'width', label: '가로' },
+  { key: 'height', label: '세로' },
+] as const;
 
 function detectionText(mode: string, confidence: number): string {
   const label = mode === 'transparent' ? '투명 배경' : mode === 'solid' ? '단색 배경' : '수동 확인 필요';
@@ -133,7 +142,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           detectionLabel: '자동 구성',
         });
         setReferenceRect(composed.referenceRect);
-        // 보호 영역(레퍼런스 + 확장)을 먼저 정하고, 결과 크롭은 그 바깥만 쓴다.
+        // 참고 영역과 여백을 먼저 정하고, 결과 영역은 그 바깥만 쓴다.
         const blocked = expandRect(composed.referenceRect, expansionRef.current, composed.width, composed.height);
         setOutputRect(cropOutside(composed.outputRect, blocked));
       } else {
@@ -315,28 +324,28 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               }}
             />
             {layout.resolution === 'custom' && (
-              <div className="two-column-fields">
-                <NumberField
-                  label="가로"
-                  value={layout.width}
-                  min={CUSTOM_MIN}
-                  max={CUSTOM_MAX}
-                  step={64}
-                  integer
-                  suffix="px"
-                  onChange={(width) => changeLayout({ width: snapDimension(width) })}
-                />
-                <NumberField
-                  label="세로"
-                  value={layout.height}
-                  min={CUSTOM_MIN}
-                  max={CUSTOM_MAX}
-                  step={64}
-                  integer
-                  suffix="px"
-                  onChange={(height) => changeLayout({ height: snapDimension(height) })}
-                />
-              </div>
+              <>
+                <SettingRow label="가로" unit="px">
+                  <Stepper
+                    label="가로"
+                    value={layout.width}
+                    min={CUSTOM_MIN}
+                    max={CUSTOM_MAX}
+                    step={64}
+                    onChange={(width) => changeLayout({ width: snapDimension(width) })}
+                  />
+                </SettingRow>
+                <SettingRow label="세로" unit="px">
+                  <Stepper
+                    label="세로"
+                    value={layout.height}
+                    min={CUSTOM_MIN}
+                    max={CUSTOM_MAX}
+                    step={64}
+                    onChange={(height) => changeLayout({ height: snapDimension(height) })}
+                  />
+                </SettingRow>
+              </>
             )}
             <SelectField
               label="참고 이미지 위치"
@@ -344,17 +353,20 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               options={SIDES}
               onChange={(referenceSide) => changeLayout({ referenceSide })}
             />
-            <label className="stack-field">
-              참고 영역 비율 · {Math.round(layout.referenceRatio * 100)}% (나머지가 결과 크기)
-              <input
-                type="range"
+            <SettingRow
+              label="참고 영역 비율"
+              unit="%"
+              title="캔버스에서 참고 이미지가 차지하는 몫입니다. 나머지가 결과 쪽 크기입니다."
+            >
+              <Stepper
+                label="참고 영역 비율"
+                value={Math.round(layout.referenceRatio * 100)}
                 min={20}
                 max={80}
                 step={5}
-                value={Math.round(layout.referenceRatio * 100)}
-                onChange={(event) => changeLayout({ referenceRatio: Number(event.target.value) / 100 })}
+                onChange={(percent) => changeLayout({ referenceRatio: percent / 100 })}
               />
-            </label>
+            </SettingRow>
             <div className="two-column-fields">
               <SelectField
                 label="이미지 맞춤"
@@ -375,77 +387,102 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                 ]}
                 onChange={(anchor) => changeLayout({ anchor })}
               />
-              <label className="stack-field">
-                배경색
-                <input type="color" value={layout.background} onChange={(event) => changeLayout({ background: event.target.value })} />
-              </label>
             </div>
+            <SettingRow label="배경색">
+              <input
+                type="color"
+                className="color-swatch"
+                aria-label="배경색"
+                value={layout.background}
+                onChange={(event) => changeLayout({ background: event.target.value })}
+              />
+            </SettingRow>
           </>
         ) : (
           <>
-            <p className="hint">참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 보호할 영역을 찾습니다.</p>
-            <NumberField
-              label="배경 임계값"
-              value={threshold}
-              min={4}
-              max={64}
-              integer
-              onChange={(value) => {
-                setThreshold(value);
-                scheduleRebuild(source, layout, value);
-              }}
-            />
-          </>
-        )}
-
-        <PanelHeading title="마스크·결과" />
-        <NumberField
-          label="보호 영역 확장"
-          value={expansionPx}
-          min={0}
-          max={64}
-          integer
-          suffix="px"
-          onChange={(value) => {
-            setExpansionPx(value);
-            if (working) {
-              // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
-              const base = layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
-              setOutputRect(cropOutside(base, expandRect(referenceRect, value, working.width, working.height)));
-            }
-            dirty.current = true;
-          }}
-        />
-        <p className="hint">참고 그림 둘레를 이만큼 더 보호합니다. 결과(파란 영역)는 그 바깥에서 자릅니다.</p>
-        {working && (
-          <div className="crop-grid">
-            <span>결과 크롭 (파란 영역)</span>
-            {(['x', 'y', 'width', 'height'] as const).map((key) => (
-              <NumberField
-                key={key}
-                label={key.toUpperCase()}
-                value={Math.round(outputRect[key])}
-                min={key === 'width' || key === 'height' ? 16 : 0}
-                max={key === 'x' || key === 'width' ? working.width : working.height}
-                integer
+            <p className="hint">
+              참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 참고 영역을 찾습니다.
+            </p>
+            <SettingRow label="배경 임계값">
+              <Stepper
+                label="배경 임계값"
+                value={threshold}
+                min={4}
+                max={64}
+                step={1}
                 onChange={(value) => {
-                  setOutputRect(clampRect({ ...outputRect, [key]: value }, working.width, working.height, 16));
-                  dirty.current = true;
+                  setThreshold(value);
+                  scheduleRebuild(source, layout, value);
                 }}
               />
-            ))}
-          </div>
+            </SettingRow>
+          </>
         )}
+        <button
+          className="with-icon full-width"
+          disabled={!source || rebuilding}
+          title="참고 영역·결과 영역·생성 영역을 처음 상태로 다시 만듭니다"
+          onClick={() => source && void rebuild(source, layout, threshold)}
+        >
+          <Icon name="refresh" size={14} /> {auto ? '자동 배치로 되돌리기' : '배경 다시 감지'}
+        </button>
 
+        <PanelHeading title="영역" />
+        <SettingRow label="참고 영역 여백" unit="px">
+          <Stepper
+            label="참고 영역 여백"
+            value={expansionPx}
+            min={0}
+            max={64}
+            step={4}
+            onChange={(value) => {
+              setExpansionPx(value);
+              if (working) {
+                // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
+                const base =
+                  layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
+                setOutputRect(
+                  cropOutside(
+                    base,
+                    expandRect(referenceRect, value, working.width, working.height),
+                  ),
+                );
+              }
+              dirty.current = true;
+            }}
+          />
+        </SettingRow>
+        <p className="hint">
+          참고 영역 둘레를 이만큼 더 그대로 남깁니다. 결과 영역은 그 바깥에서 자릅니다.
+        </p>
         {working && (
-          <div className={`info-box ${free?.free ? 'ok' : 'warn'}`}>
-            <b>
-              전송 캔버스 {working.width}×{working.height} → 저장되는 결과 {Math.round(outputRect.width)}×{Math.round(outputRect.height)}
-            </b>
-            <p>NovelAI에는 전체 캔버스를 보내고, 결과는 파란 영역만 잘라 저장합니다.</p>
-            {free?.free ? <p>Opus 무료 크기 기준(1024×1024 이하 면적)을 충족합니다.</p> : free?.reasons.map((reason) => <p key={reason}>⚠ {reason}</p>)}
-            {!maskOk && <p>⚠ 생성 영역(청록색)이 비어 있습니다.</p>}
-          </div>
+          <details className="crop-details">
+            <summary>결과 영역 숫자로 맞추기</summary>
+            <div className="two-column-fields">
+              {CROP_FIELDS.map(({ key, label }) => (
+                <SettingRow key={key} label={label}>
+                  <Stepper
+                    label={`결과 영역 ${label}`}
+                    value={Math.round(outputRect[key])}
+                    min={key === 'width' || key === 'height' ? 16 : 0}
+                    max={key === 'x' || key === 'width' ? working.width : working.height}
+                    step={8}
+                    onChange={(value) => {
+                      setOutputRect(
+                        clampRect(
+                          { ...outputRect, [key]: value },
+                          working.width,
+                          working.height,
+                          16,
+                        ),
+                      );
+                      dirty.current = true;
+                    }}
+                  />
+                </SettingRow>
+              ))}
+            </div>
+          </details>
         )}
       </aside>
 
@@ -462,6 +499,28 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             expansionPx={expansionPx}
             initialMask={initialMask}
             detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
+            status={
+              <>
+                <span title="NovelAI에는 캔버스 전체를 보내고, 결과 영역만 잘라 저장합니다">
+                  저장 {Math.round(outputRect.width)}×{Math.round(outputRect.height)}
+                </span>
+                {free?.free ? (
+                  <span
+                    className="ok"
+                    title="Opus 무료 크기 기준(1024×1024 이하 면적)을 충족합니다"
+                  >
+                    무료 크기
+                  </span>
+                ) : (
+                  free?.reasons.map((reason) => (
+                    <span key={reason} className="warn">
+                      ⚠ {reason}
+                    </span>
+                  ))
+                )}
+                {!maskOk && <span className="warn">⚠ 생성 영역(청록색)이 비어 있습니다</span>}
+              </>
+            }
             onReferenceRectChange={(rect) => {
               setReferenceRect(rect);
               setOutputRect((current) =>
@@ -475,7 +534,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               dirty.current = true;
             }}
             onMaskChange={handleMaskChange}
-            onRedetect={() => source && void rebuild(source, layout, threshold)}
           />
         ) : (
           <EmptyState title="참고 이미지가 필요합니다">
@@ -486,6 +544,18 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           </EmptyState>
         )}
       </section>
+    </div>
+  );
+}
+
+function SettingRow(props: { label: string; unit?: string; title?: string; children: ReactNode }) {
+  return (
+    <div className="setting-row" title={props.title}>
+      <span>{props.label}</span>
+      <span>
+        {props.children}
+        {props.unit}
+      </span>
     </div>
   );
 }

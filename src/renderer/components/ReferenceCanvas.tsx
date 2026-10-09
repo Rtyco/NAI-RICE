@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import type { Rect } from '../../core/domain/types';
 import {
   buildGenerationMask,
@@ -33,11 +33,12 @@ type Props = {
   expansionPx: number;
   initialMask?: Uint8Array;
   detectionLabel: string;
+  /** 캔버스 아래 상태 줄 끝에 덧붙일 내용(저장 크기, 경고 등). */
+  status?: ReactNode;
   onReferenceRectChange: (rect: Rect) => void;
   onOutputRectChange: (rect: Rect) => void;
   onMaskChange: (mask: Uint8Array) => void;
-  onRedetect: () => void;
-  /** 자유 인페인팅: 참고 영역·결과 크롭 없이 다시 그릴 곳만 칠한다. */
+  /** 자유 인페인팅: 참고 영역·결과 영역 없이 다시 그릴 곳만 칠한다. */
   maskOnly?: boolean;
 };
 
@@ -55,7 +56,7 @@ type OverrideBase = Pick<Props, 'width' | 'height' | 'backgroundMask' | 'referen
 
 /**
  * 저장된 마스크에서 붓으로 고친 픽셀만 수동 보정으로 남긴다. 나머지는 자동 계산을 따르므로
- * 보호 영역 확장 값을 바꾸면 바로 반영된다. 예전 버전의 두 배 확장으로 저장된 마스크도 알아본다.
+ * 참고 영역 여백 값을 바꾸면 바로 반영된다. 예전 버전의 두 배 확장으로 저장된 마스크도 알아본다.
  */
 function createOverrides(base: OverrideBase, initialMask?: Uint8Array): Int8Array {
   const length = base.width * base.height;
@@ -430,124 +431,155 @@ export function ReferenceCanvas(props: Props) {
     setOverrides(new Int8Array(props.width * props.height).fill(0));
   };
 
+  const brushing = tool === 'generate' || tool === 'keep';
+
   return (
     <section className="canvas-card">
       <div className="canvas-toolbar">
-        <div className="segmented" aria-label="캔버스 도구">
-          {!props.maskOnly && (
-            <>
+        {!props.maskOnly && (
+          <>
+            <div className="segmented" role="group" aria-label="영역 상자">
               <button
                 className={tool === 'reference' ? 'active green' : ''}
+                aria-pressed={tool === 'reference'}
+                title="참고 그림이 있는 곳입니다. 이 안은 다시 그리지 않습니다. 끌어서 옮기고 모서리로 크기를 바꿉니다."
                 onClick={() => setTool('reference')}
               >
-                참고 영역 보호
+                <i className="green-dot" /> 참고 영역
               </button>
               <button
                 className={tool === 'output' ? 'active blue' : ''}
+                aria-pressed={tool === 'output'}
+                title="생성한 뒤 잘라서 저장할 곳입니다. 끌어서 옮기고 모서리로 크기를 바꿉니다."
                 onClick={() => setTool('output')}
               >
-                결과 크롭
+                <i className="blue-dot" /> 결과 영역
               </button>
-            </>
-          )}
+            </div>
+            <span className="zone-divider" />
+          </>
+        )}
+        <div className="segmented" role="group" aria-label="붓">
           <button
             className={tool === 'generate' ? 'active teal' : ''}
+            aria-pressed={tool === 'generate'}
+            title="생성 영역(청록색)을 칠합니다. NovelAI가 이곳을 새로 그립니다."
             onClick={() => setTool('generate')}
           >
-            <Icon name="brush" size={14} /> {props.maskOnly ? '칠하기' : '생성 마스크'}
-          </button>
-          <button className={tool === 'keep' ? 'active' : ''} onClick={() => setTool('keep')}>
-            <Icon name="eraser" size={14} /> {props.maskOnly ? '지우기' : '보호 마스크'}
-          </button>
-        </div>
-        <div className="segmented brush-shape" aria-label="붓 모양">
-          <button
-            className={brushShape === 'circle' ? 'active' : ''}
-            aria-pressed={brushShape === 'circle'}
-            title="둥근 붓"
-            onClick={() => setBrushShape('circle')}
-          >
-            <Icon name="circle" size={14} />
+            <i className="teal-dot" /> 칠하기
           </button>
           <button
-            className={brushShape === 'square' ? 'active' : ''}
-            aria-pressed={brushShape === 'square'}
-            title="네모 붓"
-            onClick={() => setBrushShape('square')}
+            className={tool === 'keep' ? 'active' : ''}
+            aria-pressed={tool === 'keep'}
+            title="생성 영역을 지웁니다. 지운 곳은 그대로 남습니다."
+            onClick={() => setTool('keep')}
           >
-            <Icon name="square" size={14} />
+            <Icon name="eraser" size={14} /> 지우기
           </button>
         </div>
-        <button onClick={undo} disabled={!undoStack.length} title="Ctrl+Z">
-          실행 취소
+        <div className={`brush-settings ${brushing ? '' : 'idle'}`}>
+          <div className="segmented" role="group" aria-label="붓 모양">
+            <button
+              className={brushShape === 'circle' ? 'active' : ''}
+              aria-pressed={brushShape === 'circle'}
+              title="둥근 붓"
+              onClick={() => setBrushShape('circle')}
+            >
+              <Icon name="circle" size={14} />
+            </button>
+            <button
+              className={brushShape === 'square' ? 'active' : ''}
+              aria-pressed={brushShape === 'square'}
+              title="네모 붓"
+              onClick={() => setBrushShape('square')}
+            >
+              <Icon name="square" size={14} />
+            </button>
+          </div>
+          <label className="range-field" title="NovelAI 웹처럼 8px 칸 단위로 칠합니다">
+            크기
+            <input
+              type="range"
+              min="1"
+              max="32"
+              value={brushSize}
+              onChange={(event) => setBrushSize(Number(event.target.value))}
+            />
+            <b>{brushSize * MASK_CELL}px</b>
+          </label>
+        </div>
+        <span className="zone-divider" />
+        <button onClick={invert} title="생성 영역과 나머지를 맞바꿉니다">
+          반전
         </button>
-        <button onClick={redo} disabled={!redoStack.length} title="Ctrl+Y">
-          다시 실행
-        </button>
-        <button onClick={invert}>반전</button>
         <button
           onClick={clearMask}
           disabled={!hasGeneratePixels}
-          title="생성 마스크(청록색)를 모두 지웁니다. Ctrl+Z로 되돌릴 수 있습니다."
+          title="생성 영역(청록색)을 모두 지웁니다. Ctrl+Z로 되돌릴 수 있습니다."
         >
-          마스크 비우기
+          모두 지우기
         </button>
-        {!props.maskOnly && <button onClick={props.onRedetect}>영역 재감지</button>}
-      </div>
-      <div className="canvas-meta">
-        <span>
-          {props.width} × {props.height}px
-        </span>
-        {props.detectionLabel && <span>{props.detectionLabel}</span>}
-        <label title="NovelAI 웹처럼 8px 칸 단위로 칠합니다">
-          브러시 크기{' '}
-          <input
-            type="range"
-            min="1"
-            max="32"
-            value={brushSize}
-            onChange={(event) => setBrushSize(Number(event.target.value))}
-          />{' '}
-          {brushSize * MASK_CELL}px
-        </label>
-        <label>
-          마스크 불투명도{' '}
-          <input
-            type="range"
-            min="0"
-            max="80"
-            value={opacity}
-            onChange={(event) => setOpacity(Number(event.target.value))}
-          />{' '}
-          {opacity}%
-        </label>
-        <span
-          className="canvas-zoom"
-          title="휠: 확대·축소 · 가운데 버튼(휠)을 누른 채 끌기: 화면 이동"
+        <button
+          className="icon-button"
+          onClick={undo}
+          disabled={!undoStack.length}
+          aria-label="실행 취소"
+          title="실행 취소 (Ctrl+Z)"
         >
-          <button
-            className="icon-button"
-            aria-label="축소"
-            title="축소 (휠)"
-            onClick={() => zoomTo(scale / ZOOM_STEP)}
+          <Icon name="undo" size={15} />
+        </button>
+        <button
+          className="icon-button redo"
+          onClick={redo}
+          disabled={!redoStack.length}
+          aria-label="다시 실행"
+          title="다시 실행 (Ctrl+Y)"
+        >
+          <Icon name="undo" size={15} />
+        </button>
+        <div className="toolbar-zone view-zone">
+          <label
+            className="range-field"
+            title="생성 영역(청록색)을 화면에 얼마나 진하게 보일지 정합니다"
           >
-            <Icon name="zoom-out" size={15} />
-          </button>
-          <button className="zoom-level" title="화면에 맞추기" onClick={() => setZoom('fit')}>
-            {Math.round(scale * 100)}%
-          </button>
-          <button
-            className="icon-button"
-            aria-label="확대"
-            title="확대 (휠)"
-            onClick={() => zoomTo(scale * ZOOM_STEP)}
+            불투명도
+            <input
+              type="range"
+              min="0"
+              max="80"
+              value={opacity}
+              onChange={(event) => setOpacity(Number(event.target.value))}
+            />
+            <b>{opacity}%</b>
+          </label>
+          <span
+            className="canvas-zoom"
+            title="휠: 확대·축소 · 가운데 버튼(휠)을 누른 채 끌기: 화면 이동"
           >
-            <Icon name="zoom-in" size={15} />
-          </button>
-          <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
-            1:1
-          </button>
-        </span>
+            <button
+              className="icon-button"
+              aria-label="축소"
+              title="축소 (휠)"
+              onClick={() => zoomTo(scale / ZOOM_STEP)}
+            >
+              <Icon name="zoom-out" size={15} />
+            </button>
+            <button className="zoom-level" title="화면에 맞추기" onClick={() => setZoom('fit')}>
+              {Math.round(scale * 100)}%
+            </button>
+            <button
+              className="icon-button"
+              aria-label="확대"
+              title="확대 (휠)"
+              onClick={() => zoomTo(scale * ZOOM_STEP)}
+            >
+              <Icon name="zoom-in" size={15} />
+            </button>
+            <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
+              1:1
+            </button>
+          </span>
+        </div>
       </div>
       <div
         ref={scrollRef}
@@ -578,20 +610,12 @@ export function ReferenceCanvas(props: Props) {
           />
         </div>
       </div>
-      <div className="legend">
-        {!props.maskOnly && (
-          <>
-            <span>
-              <i className="green-dot" /> 참고 영역 (보호)
-            </span>
-            <span>
-              <i className="blue-dot" /> 최종 결과 크롭
-            </span>
-          </>
-        )}
+      <div className="canvas-status">
         <span>
-          <i className="teal-dot" /> NovelAI 생성 영역
+          캔버스 {props.width}×{props.height}
         </span>
+        {props.detectionLabel && <span>{props.detectionLabel}</span>}
+        {props.status}
       </div>
     </section>
   );

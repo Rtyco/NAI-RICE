@@ -792,14 +792,16 @@ textarea {
   flex: 1;
   font-size: 12px;
 }
-.preset-number-row {
+.preset-number-row,
+.setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
 }
-.preset-number-row > span {
+.preset-number-row > span,
+.setting-row > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1199,16 +1201,27 @@ textarea.syntax-input::selection {
   gap: 8px;
   margin: 6px 0;
 }
-.crop-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 8px;
+.canvas-settings .setting-row {
+  margin-bottom: 8px;
 }
-.crop-grid > span {
-  grid-column: 1 / -1;
-  margin-bottom: 4px;
+.setting-row > span:first-child {
+  white-space: nowrap;
+}
+.canvas-settings .full-width {
+  width: 100%;
+  justify-content: center;
+  margin-top: 2px;
+}
+.color-swatch {
+  width: 64px;
+  height: 28px;
+  padding: 2px;
+}
+.crop-details summary {
+  margin: 2px 0 8px;
   color: var(--muted);
   font-size: 12px;
+  cursor: pointer;
 }
 .segmented {
   display: flex;
@@ -1247,28 +1260,6 @@ textarea.syntax-input::selection {
   color: var(--teal-text);
   border-color: var(--teal-line);
 }
-.info-box {
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  font-size: 12px;
-}
-.info-box b {
-  display: block;
-  margin-bottom: 4px;
-}
-.info-box p {
-  margin: 2px 0;
-}
-.info-box.ok {
-  border-color: var(--green-line);
-  background: var(--green-bg);
-}
-.info-box.warn {
-  border-color: var(--orange-line);
-  background: var(--orange-bg);
-}
 .warning-box {
   margin-bottom: 10px;
   padding: 9px 10px;
@@ -1297,11 +1288,9 @@ textarea.syntax-input::selection {
 .canvas-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  align-items: center;
+  gap: 6px 4px;
   margin-bottom: 7px;
-}
-.canvas-toolbar > .brush-shape {
-  margin-right: auto;
 }
 .canvas-toolbar .segmented button {
   display: inline-flex;
@@ -1312,25 +1301,39 @@ textarea.syntax-input::selection {
   padding: 5px 9px;
   font-size: 12px;
 }
-.canvas-meta {
-  display: flex;
-  flex-wrap: wrap;
+.canvas-toolbar .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.canvas-toolbar .redo svg {
+  transform: scaleX(-1);
+}
+.brush-settings {
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  min-height: 26px;
-  margin-bottom: 7px;
+  gap: 8px;
+  margin-left: 4px;
+}
+/* 영역 상자 도구를 쓰는 동안 붓 설정은 흐리게 두되, 미리 바꿔 둘 수 있게 막지는 않는다. */
+.brush-settings.idle {
+  opacity: 0.5;
+}
+.range-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--muted);
-  font:
-    11px Consolas,
-    monospace;
+  font-size: 12px;
 }
-.canvas-meta label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.canvas-meta input {
+.range-field input {
   width: 70px;
+}
+.range-field b {
+  min-width: 4ch;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .canvas-scroll {
   min-height: 0;
@@ -1384,18 +1387,27 @@ textarea.syntax-input::selection {
   touch-action: none;
   cursor: crosshair;
 }
-.legend {
+.canvas-status {
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 4px 14px;
   padding-top: 7px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
-.legend i {
+.canvas-status .ok {
+  color: var(--green-text);
+}
+.canvas-status .warn {
+  color: var(--orange-text);
+}
+.green-dot,
+.blue-dot,
+.teal-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 4px;
   border-radius: 50%;
 }
 .green-dot {

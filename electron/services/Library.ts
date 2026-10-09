@@ -240,7 +240,7 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     // 마스크가 비면 다시 그릴 영역이 없으므로, 요청을 보내기 전에 막는다.
     if (!(await maskHasGeneratePixels(mask)))
       throw new Error(
-        '생성 영역(청록색)이 비어 있어 생성할 수 없습니다. 인페인트 편집에서 생성 마스크를 칠하십시오.',
+        '생성 영역(청록색)이 비어 있어 생성할 수 없습니다. 인페인트 편집에서 생성 영역을 칠하십시오.',
       );
     return this.writeInpaintInputs(projectId, canvas, mask);
   }
