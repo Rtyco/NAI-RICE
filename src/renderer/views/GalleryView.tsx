@@ -207,8 +207,9 @@ export function GalleryView({
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       {/*
-        일을 세 칸으로 나눈다. 보기(카드 크기·내보내기), 카드 고르기(일괄 작업), 생성(생성할 감정 체크·비용·생성).
-        체크는 일괄 생성 대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이다.
+        한 줄을 구분 바로 세 구역으로 나눈다. 보기(카드 크기), 카드 고르기(일괄 작업), 생성(생성할 감정 체크·장수·
+        비용·생성·내보내기). 체크는 일괄 생성 대상이고, 카드 고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄
+        작업 대상이다.
       */}
       <div className="toolbar gallery-toolbar">
         <section className="toolbar-zone" aria-label="보기">
@@ -229,17 +230,9 @@ export function GalleryView({
             </span>
             장
           </span>
-          <button
-            className="with-icon"
-            disabled={!withResults}
-            title={`결과가 있는 감정 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
-            onClick={() =>
-              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
-            }
-          >
-            <Icon name="export" size={14} /> 내보내기 ({withResults})
-          </button>
         </section>
+
+        <span className="zone-divider" />
 
         <section
           className={`toolbar-zone ${selection.selected.size ? 'active' : ''}`}
@@ -307,14 +300,11 @@ export function GalleryView({
           )}
         </section>
 
-        <div className="header-spacer" />
-
         <section className="toolbar-zone generate-zone" aria-label="생성">
           <span className="zone-title">생성</span>
           <span className="zone-field" title="카드 아래 체크박스로 고른 감정만 일괄 생성합니다">
-            생성할 감정{' '}
             <span>
-              <b>{included}</b>/{emotionSet.emotions.length}
+              감정 <b>{included}</b>/{emotionSet.emotions.length}
             </span>
           </span>
           <button
@@ -334,8 +324,17 @@ export function GalleryView({
           >
             모두 해제
           </button>
-          <span className="zone-divider" />
           {generate}
+          <button
+            className="with-icon"
+            disabled={!withResults}
+            title={`결과가 있는 감정 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
+            onClick={() =>
+              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
+            }
+          >
+            <Icon name="export" size={14} /> 내보내기
+          </button>
         </section>
       </div>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}

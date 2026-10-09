@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Project, ProjectMode } from '../../core/domain/types';
+import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   generationKindFor,
@@ -7,16 +7,19 @@ import {
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
+import { patchItem } from '../../core/model/mutations';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { ChainChip, SizeChip } from '../components/ChainChip';
+import { Icon } from '../components/Icon';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
   openLibrary,
   referenceMedia,
+  updateLibrary,
   updateProject,
   useLibrary,
   useResolvedProject,
@@ -29,6 +32,47 @@ const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
   { value: 'reference', label: '인페인트', title: '참고 이미지 옆에 인페인트로 그립니다' },
   { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
 ];
+
+const MAX_VARIANTS = 20;
+
+function VariantsStepper({ preset }: { preset: Preset }) {
+  const value = preset.generation.variantsPerEmotion;
+  const change = (next: number) =>
+    updateLibrary((library) =>
+      patchItem(library, 'presets', preset.id, (item) => ({
+        ...item,
+        generation: { ...item.generation, variantsPerEmotion: next },
+      })),
+    );
+  return (
+    <span
+      className="zone-field"
+      title={`감정마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
+    >
+      감정마다
+      <span className="stepper">
+        <button
+          className="icon-button"
+          aria-label="한 장 줄이기"
+          disabled={value <= 1}
+          onClick={() => change(value - 1)}
+        >
+          <Icon name="minus" size={14} />
+        </button>
+        <b>{value}</b>
+        <button
+          className="icon-button"
+          aria-label="한 장 늘리기"
+          disabled={value >= MAX_VARIANTS}
+          onClick={() => change(value + 1)}
+        >
+          <Icon name="plus" size={14} />
+        </button>
+      </span>
+      장
+    </span>
+  );
+}
 
 function ModeSwitch({ project }: { project: Project }) {
   return (
@@ -305,6 +349,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
             resolved={resolved}
             generate={
               <>
+                {preset && <VariantsStepper preset={preset} />}
                 {estimate !== undefined && (
                   <span
                     className={`pill ${estimate ? 'warn' : ''}`}

@@ -6,7 +6,6 @@ import { showContextMenu } from '../components/ContextMenu';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
 import { focusAndSelect } from '../components/focusAndSelect';
-import { sectionInfo } from '../sections';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import {
@@ -46,11 +45,15 @@ import { PieceSetEditor } from './library/PieceSetEditor';
 
 const DRAG_TYPE = 'application/x-library-item';
 
-/** 목록 한 줄. 끌어서 놓으면 순서를 바꾸고, 두 번 클릭하면 그 자리에서 이름을 바꾼다. */
+/**
+ * 목록 한 줄. 끌어서 놓으면 순서를 바꾸고, 두 번 클릭하면 그 자리에서 이름을 바꾼다. 목록을 접으면 사이드바처럼
+ * 아바타만 남고 누르면 바로 그 항목을 연다.
+ */
 function LibraryRow(props: {
   section: LibrarySection;
   item: Item;
   index: number;
+  collapsed: boolean;
   selected: boolean;
   subtitle: string;
   /** 끄는 중인 항목들. */
@@ -66,7 +69,7 @@ function LibraryRow(props: {
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
-  const { section, item } = props;
+  const { section, item, collapsed } = props;
   const [over, setOver] = useState(false);
   const [renaming, setRenamingState] = useState(false);
   // 엔터·Esc로 끝낸 뒤 따라오는 blur가 다시 저장하지 않게 한다.
@@ -77,7 +80,7 @@ function LibraryRow(props: {
   };
   const reference = section === 'references' ? (item as Reference) : undefined;
 
-  const avatar = reference && (
+  const avatar = reference ? (
     <span className="avatar">
       {reference.image ? (
         <img
@@ -89,6 +92,8 @@ function LibraryRow(props: {
         '?'
       )}
     </span>
+  ) : (
+    collapsed && <span className="avatar">{item.name.slice(0, 1) || '?'}</span>
   );
 
   const commitName = (value: string) => {
@@ -102,14 +107,14 @@ function LibraryRow(props: {
   return (
     <div
       className={`library-item ${props.selected ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging.includes(item.id) ? 'dragging' : ''}`}
-      data-select-id={item.id}
+      data-select-id={collapsed ? undefined : item.id}
       draggable={!renaming}
       onContextMenu={(event) =>
         showContextMenu(
           event,
           listMenu({
             open: () => openLibrary(section, item.id),
-            rename: () => setRenaming(true),
+            rename: collapsed ? undefined : () => setRenaming(true),
             duplicate: () => void duplicateItem(section, item),
             exportJson: () => exportItem(section, item),
             remove: () => void deleteItem(section, item),
@@ -158,20 +163,26 @@ function LibraryRow(props: {
       ) : (
         <button
           className="library-item-main"
-          title="두 번 클릭: 이름 변경 · 끌어서 순서 변경 · Ctrl·Shift 클릭: 여러 개 선택"
+          title={
+            collapsed
+              ? item.name
+              : '두 번 클릭: 이름 변경 · 끌어서 순서 변경 · Ctrl·Shift 클릭: 여러 개 선택'
+          }
           onClick={(event) => {
-            if (!props.onPick(event)) openLibrary(section, item.id);
+            if (collapsed || !props.onPick(event)) openLibrary(section, item.id);
           }}
-          onDoubleClick={() => setRenaming(true)}
+          onDoubleClick={() => !collapsed && setRenaming(true)}
         >
           {avatar}
-          <span className="project-meta">
-            <b>{item.name || '(이름 없음)'}</b>
-            <small>{props.subtitle}</small>
-          </span>
+          {!collapsed && (
+            <span className="project-meta">
+              <b>{item.name || '(이름 없음)'}</b>
+              <small>{props.subtitle}</small>
+            </span>
+          )}
         </button>
       )}
-      {!renaming && (
+      {!collapsed && !renaming && (
         <button
           className="icon-button danger item-actions"
           title="삭제"
@@ -230,94 +241,92 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
 
   return (
     <div className={`library-view ${collapsed ? 'list-collapsed' : ''}`}>
-      {collapsed ? (
-        <aside className="library-list folded">
+      <aside className={`library-list ${collapsed ? 'collapsed' : ''}`}>
+        <div className="library-list-head">
           <button
-            className="icon-button"
-            title={`${label.title} 목록 펼치기`}
-            aria-label={`${label.title} 목록 펼치기`}
+            className="icon-button library-list-toggle"
+            title={`${label.title} 목록 ${collapsed ? '펼치기' : '접기'}`}
+            aria-label={`${label.title} 목록 ${collapsed ? '펼치기' : '접기'}`}
             onClick={toggleLibraryList}
           >
             <Icon name="sidebar" size={18} />
           </button>
-          <span className="chain-icon" title={label.title}>
-            <Icon name={sectionInfo(section).icon} size={18} />
-          </span>
-          <button className="icon-button" title="추가" aria-label="추가" onClick={add}>
-            <Icon name="plus" />
-          </button>
-        </aside>
-      ) : (
-        <aside className="library-list">
-          <div className="library-list-head">
-            <button
-              className="icon-button library-list-toggle"
-              title={`${label.title} 목록 접기`}
-              aria-label={`${label.title} 목록 접기`}
-              onClick={toggleLibraryList}
-            >
-              <Icon name="sidebar" size={18} />
+          {!collapsed && (
+            <>
+              <div className="library-list-title">
+                <small className="eyebrow">라이브러리</small>
+                <b>{label.title}</b>
+                {label.description && <small>{label.description}</small>}
+              </div>
+              <button className="accent" onClick={add}>
+                ＋ 추가
+              </button>
+            </>
+          )}
+        </div>
+        <nav
+          className={collapsed ? '' : 'selectable'}
+          {...(collapsed ? {} : selection.containerProps)}
+        >
+          {items.map((item, index) => {
+            const uses = projectsUsing(library, label.kind, item.id).length;
+            return (
+              <LibraryRow
+                key={item.id}
+                section={section}
+                item={item}
+                index={index}
+                collapsed={collapsed}
+                selected={item.id === selected?.id}
+                subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
+                dragging={dragging}
+                startDrag={(id) => {
+                  const payload = dragPayload(
+                    id,
+                    selection.selected,
+                    items.map((entry) => entry.id),
+                  );
+                  setDragging(payload.ids);
+                  return payload;
+                }}
+                endDrag={() => setDragging([])}
+                picked={!collapsed && selection.isSelected(item.id)}
+                pickedCount={selection.selected.size}
+                removePicked={() => removeMany([...selection.selected])}
+                onPick={(event) => selection.clickItem(event, item.id)}
+              />
+            );
+          })}
+          {collapsed && (
+            <button className="library-item-main add" title="추가" onClick={add}>
+              <span className="avatar">
+                <Icon name="plus" />
+              </span>
             </button>
-            <div>
-              <small className="eyebrow">라이브러리</small>
-              <b>{label.title}</b>
-              {label.description && <small>{label.description}</small>}
-            </div>
-            <button className="accent" onClick={add}>
-              ＋ 추가
+          )}
+          {!items.length && !collapsed && <p className="hint pad-x">아직 없습니다.</p>}
+          {!collapsed && selection.boxElement}
+        </nav>
+        {!collapsed && selection.selected.size > 0 && (
+          <div className="selection-bar">
+            <span>{selection.selected.size}개 선택</span>
+            <button
+              className="with-icon danger-quiet"
+              onClick={() => removeMany([...selection.selected])}
+            >
+              <Icon name="trash" size={14} /> 삭제
+            </button>
+            <button className="link-button" onClick={selection.clear}>
+              선택 취소
             </button>
           </div>
-          <nav className="selectable" {...selection.containerProps}>
-            {items.map((item, index) => {
-              const uses = projectsUsing(library, label.kind, item.id).length;
-              return (
-                <LibraryRow
-                  key={item.id}
-                  section={section}
-                  item={item}
-                  index={index}
-                  selected={item.id === selected?.id}
-                  subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
-                  dragging={dragging}
-                  startDrag={(id) => {
-                    const payload = dragPayload(
-                      id,
-                      selection.selected,
-                      items.map((entry) => entry.id),
-                    );
-                    setDragging(payload.ids);
-                    return payload;
-                  }}
-                  endDrag={() => setDragging([])}
-                  picked={selection.isSelected(item.id)}
-                  pickedCount={selection.selected.size}
-                  removePicked={() => removeMany([...selection.selected])}
-                  onPick={(event) => selection.clickItem(event, item.id)}
-                />
-              );
-            })}
-            {!items.length && <p className="hint pad-x">아직 없습니다.</p>}
-            {selection.boxElement}
-          </nav>
-          {selection.selected.size > 0 && (
-            <div className="selection-bar">
-              <span>{selection.selected.size}개 선택</span>
-              <button
-                className="with-icon danger-quiet"
-                onClick={() => removeMany([...selection.selected])}
-              >
-                <Icon name="trash" size={14} /> 삭제
-              </button>
-              <button className="link-button" onClick={selection.clear}>
-                선택 취소
-              </button>
-            </div>
-          )}
+        )}
+        {!collapsed && (
           <button className="link-button" onClick={() => void importJsonFromPicker()}>
             JSON 가져오기
           </button>
-        </aside>
-      )}
+        )}
+      </aside>
       <section className="library-editor animate-in" key={selected?.id ?? 'empty'}>
         {selected ? (
           <>

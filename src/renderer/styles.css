@@ -2033,15 +2033,28 @@ textarea.syntax-input::selection {
   grid-template-columns: 260px minmax(0, 1fr);
 }
 .library-view.list-collapsed {
-  grid-template-columns: 48px minmax(0, 1fr);
-}
-.library-list.folded {
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
+  grid-template-columns: 60px minmax(0, 1fr);
 }
 .library-list-toggle {
   margin: -2px 0 0 -4px;
+}
+.library-list.collapsed .library-list-head {
+  justify-content: center;
+  padding: 12px 0 8px;
+}
+.library-list.collapsed .library-list-toggle {
+  margin: 0;
+}
+.library-list.collapsed nav {
+  padding: 0 4px;
+}
+.library-list.collapsed .library-item-main {
+  justify-content: center;
+  padding: 4px;
+}
+.library-list .library-item-main.add .avatar {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
 }
 .library-list {
   display: flex;
@@ -2693,8 +2706,12 @@ textarea.syntax-input::selection {
 }
 
 /* ── 움직임 ─────────────────────────────────── */
-.app-shell {
+.app-shell,
+.library-view {
   transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.library-list {
+  overflow: hidden;
 }
 .sidebar {
   overflow: hidden;
@@ -2709,7 +2726,10 @@ textarea.syntax-input::selection {
 .sidebar-footer button > span,
 .sidebar-footer small,
 .sidebar-section-title b,
-.sidebar-caption {
+.sidebar-caption,
+.library-list .project-meta,
+.library-list-title,
+.library-list-head > .accent {
   animation: fade-in 220ms ease 120ms both;
 }
 .view-transition {
@@ -2982,23 +3002,19 @@ textarea.syntax-input::selection {
   padding: 7px 14px;
 }
 .gallery-toolbar {
-  padding-top: 8px;
   flex-wrap: wrap;
-  align-items: stretch;
+  row-gap: 6px;
 }
-/* 일 단위로 나눈 칸. 왼쪽 위 작은 제목이 무엇을 하는 칸인지 알려 준다. */
+/* 일 단위로 나눈 구역. 구역 사이는 .zone-divider로 가르고, 앞의 작은 제목이 무엇을 하는 구역인지 알려 준다. */
 .toolbar-zone {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 12px 8px 6px;
-  border: 1px solid var(--line);
+  min-height: 32px;
+  padding: 0 6px;
   border-radius: 8px;
-  background: var(--bg-1);
 }
 .toolbar-zone.active {
-  border-color: var(--accent-line);
   background: var(--accent-bg);
 }
 .toolbar-zone > button {
@@ -3006,15 +3022,30 @@ textarea.syntax-input::selection {
   font-size: 12px;
 }
 .zone-title {
-  position: absolute;
-  top: -8px;
-  left: 8px;
-  padding: 0 4px;
-  border-radius: 4px;
-  background: var(--bg-0);
-  color: var(--muted);
+  margin-right: 2px;
+  color: var(--faint);
   font-size: 11px;
-  line-height: 16px;
+  font-weight: 600;
+}
+.toolbar-zone.active .zone-title {
+  color: var(--accent);
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.stepper b {
+  min-width: 18px;
+  text-align: center;
+}
+.stepper .icon-button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
 }
 .zone-field {
   display: inline-flex;
@@ -3028,9 +3059,21 @@ textarea.syntax-input::selection {
   color: var(--text);
 }
 .zone-divider {
-  align-self: stretch;
+  align-self: center;
   width: 1px;
-  margin: 0 2px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--line);
+}
+/* 줄이 넘쳐 아래로 내려가도 오른쪽에 붙고, 앞의 구분 바도 함께 따라간다. */
+.generate-zone {
+  margin-left: auto;
+}
+.generate-zone::before {
+  content: '';
+  width: 1px;
+  height: 22px;
+  margin-right: 6px;
   background: var(--line);
 }
 .generate-zone .pill {
