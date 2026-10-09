@@ -213,9 +213,22 @@ export type Library = {
   lastProjectId?: string;
 };
 
+/**
+ * 생성 방식. 인페인트는 지금의 레퍼런스 인셋, txt2img는 일반 생성, img2img는 이미지를 다시 그리기,
+ * augment는 NovelAI 디렉터 툴이다. 이 구분이 생기기 전의 기록·큐는 모두 인페인트로 읽는다.
+ */
+export type GenerationKind = 'inpaint' | 'txt2img' | 'img2img' | 'augment';
+
+/** 디렉터 툴 종류. NovelAI `augment-image`의 `req_type` 값이다. */
+export type AugmentTool =
+  'emotion' | 'bg-removal' | 'declutter' | 'lineart' | 'sketch' | 'colorize';
+
 /** 완료된 생성 결과 한 건. 작업 폴더의 generations.json에 누적된다. */
 export type GenerationRecord = {
   id: string;
+  kind: GenerationKind;
+  /** 이전 생성 결과를 입력으로 썼으면(i2i·디렉터 툴) 그 기록 ID. */
+  sourceRecordId?: string;
   projectId: string;
   emotionId: string;
   emotionName: string;
@@ -240,12 +253,15 @@ export type GenerationRecord = {
   settings: GenerationSettings;
   /** 생성 전후 Anlas 차이(조회 가능할 때만). */
   anlasSpent?: number;
+  /** 큐에 넣을 때 계산한 예상 Anlas. */
+  anlasEstimate?: number;
 };
 
 export type JobStatus =
   'queued' | 'generating' | 'retry_wait' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
 
-export type InpaintJobSnapshot = {
+/** 모든 생성 방식에 공통인 작업 내용. 등록한 뒤에는 바뀌지 않는다. */
+type JobSnapshotCommon = {
   id: string;
   createdAt: string;
   projectId: string;
@@ -272,21 +288,57 @@ export type InpaintJobSnapshot = {
   };
   seed: number;
   variantIndex: number;
-  /** 작업 폴더 기준 상대 경로. 해시 이름으로 저장된 불변 입력 파일. */
-  imagePath: string;
-  maskPath: string;
-  imageSha256: string;
-  maskSha256: string;
+  /** NovelAI에 요청하는 크기. 인페인트는 캔버스 크기이고, 나머지는 결과 크기와 같다. */
   canvasWidth: number;
   canvasHeight: number;
-  outputRect: Rect;
   outputFilenameTemplate: string;
-  keepDiagnosticCanvas: boolean;
   settings: GenerationSettings;
   warnings: string[];
+  /** 이전 생성 결과를 입력으로 쓰면 그 기록 ID. */
+  sourceRecordId?: string;
 };
 
-export type QueuedInpaintJob = InpaintJobSnapshot & {
+/** 입력 이미지가 있는 작업. 작업 폴더 기준 상대 경로이고, 해시 이름으로 저장된 불변 입력 파일이다. */
+type SourceImage = {
+  imagePath: string;
+  imageSha256: string;
+};
+
+export type InpaintJobSnapshot = JobSnapshotCommon &
+  SourceImage & {
+    kind: 'inpaint';
+    maskPath: string;
+    maskSha256: string;
+    /** 캔버스에서 결과로 남길 영역. */
+    outputRect: Rect;
+    keepDiagnosticCanvas: boolean;
+  };
+
+export type Txt2ImgJobSnapshot = JobSnapshotCommon & { kind: 'txt2img' };
+
+export type Img2ImgJobSnapshot = JobSnapshotCommon &
+  SourceImage & {
+    kind: 'img2img';
+    strength: number;
+    noise: number;
+  };
+
+export type AugmentJobSnapshot = JobSnapshotCommon &
+  SourceImage & {
+    kind: 'augment';
+    tool: AugmentTool;
+    /** Emotion 툴의 감정 이름(NovelAI 목록의 값). */
+    mood?: string;
+    /** Emotion·Colorize에 덧붙이는 프롬프트. */
+    toolPrompt: string;
+    /** 툴 효과를 약하게 하는 단계. 0이 가장 강하고 5가 가장 약하다. */
+    defry: number;
+  };
+
+export type GenerationJobSnapshot =
+  InpaintJobSnapshot | Txt2ImgJobSnapshot | Img2ImgJobSnapshot | AugmentJobSnapshot;
+
+export type QueuedGenerationJob = GenerationJobSnapshot & {
   status: JobStatus;
   attempts: number;
   maxAttempts: number;
@@ -305,7 +357,7 @@ export type QueuedInpaintJob = InpaintJobSnapshot & {
 export type QueueSnapshot = {
   paused: boolean;
   updatedAt: string;
-  jobs: QueuedInpaintJob[];
+  jobs: QueuedGenerationJob[];
 };
 
 /**
@@ -319,8 +371,9 @@ export type GenerationSummary = Omit<
 
 /** 화면에 보내는 큐 작업. 프롬프트·설정·입력 경로는 뺀다(core/jobs/QueueView). */
 export type QueueJobView = Pick<
-  QueuedInpaintJob,
+  QueuedGenerationJob,
   | 'id'
+  | 'kind'
   | 'createdAt'
   | 'projectId'
   | 'projectName'

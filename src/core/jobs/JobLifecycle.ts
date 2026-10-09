@@ -1,4 +1,4 @@
-import type { InpaintJobSnapshot, JobStatus, QueuedInpaintJob } from '../domain/types';
+import type { GenerationJobSnapshot, JobStatus, QueuedGenerationJob } from '../domain/types';
 
 /**
  * 생성 작업의 상태 변화를 한곳에 모은다. 큐는 상태 문자열을 직접 바꾸지 않고 여기의 함수만 부른다.
@@ -33,7 +33,11 @@ export function canRetry(status: JobStatus): boolean {
   return TRANSITIONS[status].includes('queued') && status !== 'retry_wait';
 }
 
-function move(job: QueuedInpaintJob, to: JobStatus, patch: Partial<QueuedInpaintJob> = {}): void {
+function move(
+  job: QueuedGenerationJob,
+  to: JobStatus,
+  patch: Partial<QueuedGenerationJob> = {},
+): void {
   if (!TRANSITIONS[job.status].includes(to)) {
     throw new Error(`작업 상태를 ${job.status}에서 ${to}(으)로 바꿀 수 없습니다.`);
   }
@@ -42,8 +46,31 @@ function move(job: QueuedInpaintJob, to: JobStatus, patch: Partial<QueuedInpaint
 
 const CLEARED_ERROR = { error: undefined, errorKind: undefined, retryable: undefined };
 
+/**
+ * 저장된 큐 파일의 작업 하나를 되살린다. 생성 방식 구분이 생기기 전의 작업은 인페인트로 읽고,
+ * 그 방식에 필요한 입력 경로가 없는 작업은 버린다.
+ */
+export function restoreQueuedJob(value: unknown): QueuedGenerationJob | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as Record<string, unknown>;
+  const job = { ...raw, kind: raw.kind ?? 'inpaint' } as QueuedGenerationJob;
+  const text = (key: string) => typeof raw[key] === 'string';
+  if (!text('id') || !text('projectId') || !text('status')) return undefined;
+  switch (job.kind) {
+    case 'txt2img':
+      return job;
+    // 마스크가 없는 인페인트 작업도 예전처럼 남겨 두고, 생성할 때 입력 확인에서 실패시킨다.
+    case 'inpaint':
+    case 'img2img':
+    case 'augment':
+      return text('imagePath') ? job : undefined;
+    default:
+      return undefined;
+  }
+}
+
 /** 렌더러가 만든 작업을 큐에 넣을 모양으로 만든다. */
-export function createQueuedJob(snapshot: InpaintJobSnapshot, id: string): QueuedInpaintJob {
+export function createQueuedJob(snapshot: GenerationJobSnapshot, id: string): QueuedGenerationJob {
   return {
     ...structuredClone(snapshot),
     id,
@@ -53,7 +80,7 @@ export function createQueuedJob(snapshot: InpaintJobSnapshot, id: string): Queue
   };
 }
 
-export function startAttempt(job: QueuedInpaintJob, now = new Date()): void {
+export function startAttempt(job: QueuedGenerationJob, now = new Date()): void {
   move(job, 'generating', {
     attempts: job.attempts + 1,
     startedAt: now.toISOString(),
@@ -62,7 +89,7 @@ export function startAttempt(job: QueuedInpaintJob, now = new Date()): void {
 }
 
 export function complete(
-  job: QueuedInpaintJob,
+  job: QueuedGenerationJob,
   result: { generationId: string; anlasSpent?: number },
   now = new Date(),
 ): void {
@@ -78,7 +105,7 @@ export type JobFailure = { message: string; kind: string; retryable: boolean };
 
 /** 실패를 기록한다. 다시 시도할 수 있고 횟수가 남았으면 대기 시각을 돌려준다. */
 export function fail(
-  job: QueuedInpaintJob,
+  job: QueuedGenerationJob,
   failure: JobFailure,
   retryDelayMs: number,
   now = Date.now(),
@@ -93,19 +120,19 @@ export function fail(
   return undefined;
 }
 
-export function cancel(job: QueuedInpaintJob): boolean {
+export function cancel(job: QueuedGenerationJob): boolean {
   if (!isActive(job.status)) return false;
   move(job, 'cancelled', { error: '사용자가 작업을 취소했습니다.' });
   return true;
 }
 
 /** 재시도 대기 중에 큐가 일시 중지되면 대기열로 되돌린다. */
-export function requeueAfterPause(job: QueuedInpaintJob): void {
+export function requeueAfterPause(job: QueuedGenerationJob): void {
   move(job, 'queued');
 }
 
 /** 앱이 꺼져 끝나지 못한 작업. 재시작하면 이렇게 표시한다. */
-export function interruptIfRunning(job: QueuedInpaintJob): QueuedInpaintJob {
+export function interruptIfRunning(job: QueuedGenerationJob): QueuedGenerationJob {
   if (job.status !== 'generating' && job.status !== 'retry_wait') return job;
   const copy = { ...job };
   move(copy, 'interrupted', { error: '앱 종료로 작업이 중단되었습니다.', retryable: true });
@@ -113,7 +140,7 @@ export function interruptIfRunning(job: QueuedInpaintJob): QueuedInpaintJob {
 }
 
 /** 실패·취소·중단된 작업을 처음부터 다시 대기열에 넣는다. */
-export function resetForRetry(job: QueuedInpaintJob): boolean {
+export function resetForRetry(job: QueuedGenerationJob): boolean {
   if (!canRetry(job.status)) return false;
   move(job, 'queued', { ...CLEARED_ERROR, attempts: 0, nextAttemptAt: undefined });
   return true;

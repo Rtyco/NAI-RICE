@@ -105,7 +105,7 @@ describe('NovelAIRequestBuilder', () => {
         seed: 1,
         settings: { ...settings, model: 'unknown-model' },
       }),
-    ).toThrow('지원되지 않는 NovelAI 인페인트 모델');
+    ).toThrow('지원되지 않는 NovelAI 모델');
   });
 
   it('V3는 v4_prompt 없이 캐릭터 프롬프트를 공통 프롬프트에 합쳐 보내', () => {

@@ -9,7 +9,7 @@ import type {
 import { patchItem } from '../../../core/model/mutations';
 import {
   addsAutoNsfw,
-  NAI_MODELS,
+  INPAINT_MODELS,
   modelInfo,
   modelLabel,
   naiTagText,
@@ -147,7 +147,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         <SelectField
           label="모델"
           value={g.model}
-          options={NAI_MODELS.map((item) => ({
+          options={INPAINT_MODELS.map((item) => ({
             value: item.id,
             label: `${item.label} Inpainting`,
           }))}

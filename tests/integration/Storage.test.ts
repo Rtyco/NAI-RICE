@@ -16,6 +16,7 @@ const PROJECT = 'project-a';
 function record(id: string, emotion: string): GenerationRecord {
   return {
     id,
+    kind: 'inpaint',
     projectId: PROJECT,
     emotionId: emotion,
     emotionName: emotion,

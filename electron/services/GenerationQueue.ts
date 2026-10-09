@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import type {
   GenerationRecord,
-  InpaintJobSnapshot,
+  GenerationJobSnapshot,
   QueueSnapshot,
   QueueView,
-  QueuedInpaintJob,
+  QueuedGenerationJob,
 } from '../../src/core/domain/types';
 import {
   cancel as cancelJob,
@@ -16,6 +16,7 @@ import {
   isFinished,
   requeueAfterPause,
   resetForRetry,
+  restoreQueuedJob,
   startAttempt,
 } from '../../src/core/jobs/JobLifecycle';
 import { toQueueView } from '../../src/core/jobs/QueueView';
@@ -42,16 +43,6 @@ type QueueDependencies = {
   requestDelayMs?: () => number;
 };
 
-function isQueuedJob(value: unknown): value is QueuedInpaintJob {
-  const job = value as Partial<QueuedInpaintJob>;
-  return (
-    typeof job?.id === 'string' &&
-    typeof job.projectId === 'string' &&
-    typeof job.imagePath === 'string' &&
-    typeof job.status === 'string'
-  );
-}
-
 export class GenerationQueue {
   private snapshot: QueueSnapshot = {
     paused: false,
@@ -71,7 +62,9 @@ export class GenerationQueue {
       const parsed = JSON.parse(await fs.readFile(this.dependencies.persistencePath, 'utf8')) as {
         jobs?: unknown[];
       };
-      const jobs = (parsed.jobs ?? []).filter(isQueuedJob);
+      const jobs = (parsed.jobs ?? [])
+        .map(restoreQueuedJob)
+        .filter((job): job is QueuedGenerationJob => Boolean(job));
       this.snapshot = {
         // 재시작 직후 의도치 않은 생성(Anlas 사용)을 막기 위해 일시 중지 상태로 복원한다.
         paused: jobs.some((job) => job.status === 'queued'),
@@ -89,7 +82,7 @@ export class GenerationQueue {
   }
 
   /** `anlasEstimates`는 작업마다 메인 프로세스가 계산한 예상 Anlas다(화면 표시용). */
-  async enqueue(jobs: InpaintJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot> {
+  async enqueue(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot> {
     const existing = new Set(this.snapshot.jobs.map((job) => job.id));
     const queued = jobs.map((job, index) => {
       const id = existing.has(job.id) ? `${job.id}-${randomUUID()}` : job.id;
@@ -173,7 +166,7 @@ export class GenerationQueue {
    */
   private pruneFinished(): void {
     let kept = 0;
-    const drop = new Set<QueuedInpaintJob>();
+    const drop = new Set<QueuedGenerationJob>();
     for (let i = this.snapshot.jobs.length - 1; i >= 0; i--) {
       const job = this.snapshot.jobs[i];
       if (job.status !== 'completed' && job.status !== 'cancelled') continue;
@@ -237,26 +230,39 @@ export class GenerationQueue {
     });
   }
 
-  /** 작업 스냅샷의 입력 파일을 읽고, 등록 뒤에 바뀌지 않았는지 해시로 확인한다. */
-  private async loadInputs(job: QueuedInpaintJob): Promise<{ image: Buffer; mask: Buffer }> {
-    const { library } = this.dependencies;
-    const [imagePath, maskPath] = await Promise.all([
-      library.resolveProjectReal(job.projectId, job.imagePath),
-      library.resolveProjectReal(job.projectId, job.maskPath),
-    ]);
-    const [image, mask] = await Promise.all([fs.readFile(imagePath), fs.readFile(maskPath)]);
-    if (sha256(image) !== job.imageSha256 || sha256(mask) !== job.maskSha256) {
+  /** 입력 파일 하나를 읽고, 등록 뒤에 바뀌지 않았는지 해시로 확인한다. */
+  private async loadInput(
+    job: QueuedGenerationJob,
+    relative: string,
+    hash: string,
+  ): Promise<Buffer> {
+    const file = await fs.readFile(
+      await this.dependencies.library.resolveProjectReal(job.projectId, relative),
+    );
+    if (sha256(file) !== hash) {
       throw new Error(
         '입력 이미지 또는 마스크가 작업 스냅샷과 일치하지 않습니다. 다시 생성하십시오.',
       );
     }
+    return file;
+  }
+
+  /** 작업 종류가 쓰는 입력 파일만 읽는다. 일반 생성은 입력이 없다. */
+  private async loadInputs(job: QueuedGenerationJob): Promise<{ image?: Buffer; mask?: Buffer }> {
+    if (job.kind === 'txt2img') return {};
+    if (job.kind !== 'inpaint')
+      return { image: await this.loadInput(job, job.imagePath, job.imageSha256) };
+    const [image, mask] = await Promise.all([
+      this.loadInput(job, job.imagePath, job.imageSha256),
+      this.loadInput(job, job.maskPath, job.maskSha256),
+    ]);
     return { image, mask };
   }
 
   /** 요청 간격을 지켜 이미지를 생성하고, 전후 Anlas를 비교해 실제 차감량을 구한다. */
   private async requestImage(
-    job: QueuedInpaintJob,
-    inputs: { image: Buffer; mask: Buffer },
+    job: QueuedGenerationJob,
+    inputs: { image?: Buffer; mask?: Buffer },
     signal: AbortSignal,
   ): Promise<{ generated: Buffer; anlasSpent?: number }> {
     const token = await this.dependencies.token();
@@ -265,16 +271,8 @@ export class GenerationQueue {
     this.lastRequestAt = Date.now();
     const generated = await this.dependencies.provider.generate({
       token,
-      prompt: job.prompt,
-      negativePrompt: job.negativePrompt,
-      characterPrompt: job.characterPrompt,
-      characterNegativePrompt: job.characterNegativePrompt,
-      image: inputs.image,
-      mask: inputs.mask,
-      width: job.canvasWidth,
-      height: job.canvasHeight,
-      seed: job.seed,
-      settings: job.settings,
+      job,
+      ...inputs,
       signal,
     });
     // 간격은 응답을 받은 시점부터 센다.
@@ -288,7 +286,7 @@ export class GenerationQueue {
   }
 
   private async generateOnce(
-    job: QueuedInpaintJob,
+    job: QueuedGenerationJob,
     signal: AbortSignal,
   ): Promise<GenerationRecord> {
     const inputs = await this.loadInputs(job);
@@ -296,7 +294,7 @@ export class GenerationQueue {
     return saveGenerationOutput(this.dependencies.library, job, generated, anlasSpent);
   }
 
-  private async processJob(job: QueuedInpaintJob): Promise<void> {
+  private async processJob(job: QueuedGenerationJob): Promise<void> {
     while (job.attempts < job.maxAttempts && job.status !== 'cancelled') {
       startAttempt(job);
       await this.commit();

@@ -1,4 +1,4 @@
-import type { InpaintJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
+import type { GenerationJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
@@ -15,7 +15,7 @@ export type CostConfirmation = (
 ) => Promise<boolean>;
 
 type Queue = {
-  enqueue(jobs: InpaintJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot>;
+  enqueue(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot>;
   getSnapshot(): QueueSnapshot;
 };
 
@@ -38,7 +38,7 @@ export class GenerationRequests {
   async enqueue(request: unknown): Promise<GenerationEnqueueResult> {
     const parsed = generationEnqueueRequestSchema.safeParse(request);
     if (!parsed.success) throw new Error('생성 작업 형식이 올바르지 않습니다.');
-    const jobs = parsed.data.jobs as InpaintJobSnapshot[];
+    const jobs = parsed.data.jobs as GenerationJobSnapshot[];
     const account = this.account.latest;
     const warnings = generationCostWarnings(jobs, account);
     const estimates = jobs.map((job) => estimateJobAnlas(job, account));

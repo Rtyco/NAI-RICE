@@ -6,7 +6,11 @@ import { AccountService } from '../../electron/services/AccountService';
 import { GenerationRequests, type CostEstimate } from '../../electron/services/GenerationRequests';
 import type { TokenStore, WorkspaceFolders } from '../../electron/services/ports';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
-import type { InpaintJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
+import type {
+  GenerationJobSnapshot,
+  InpaintJobSnapshot,
+  QueueSnapshot,
+} from '../../src/core/domain/types';
 import type { TokenStatus } from '../../src/shared/ipc';
 
 function memoryVault(initial?: string): TokenStore & { value?: string } {
@@ -56,6 +60,7 @@ describe('AccountService', () => {
 describe('GenerationRequests', () => {
   const snapshot: QueueSnapshot = { paused: false, updatedAt: '', jobs: [] };
   const job = {
+    kind: 'inpaint',
     id: 'j',
     createdAt: '',
     projectId: 'p1',
@@ -105,7 +110,7 @@ describe('GenerationRequests', () => {
   } satisfies InpaintJobSnapshot;
 
   function setup(latest?: TokenStatus, answer = false) {
-    const queued: InpaintJobSnapshot[][] = [];
+    const queued: GenerationJobSnapshot[][] = [];
     const queuedEstimates: (number[] | undefined)[] = [];
     const asked: string[][] = [];
     const estimates: CostEstimate[] = [];

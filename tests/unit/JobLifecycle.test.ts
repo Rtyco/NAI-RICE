@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { InpaintJobSnapshot, QueuedInpaintJob } from '../../src/core/domain/types';
+import type { InpaintJobSnapshot, QueuedGenerationJob } from '../../src/core/domain/types';
 import {
   cancel,
   complete,
@@ -12,7 +12,8 @@ import {
   startAttempt,
 } from '../../src/core/jobs/JobLifecycle';
 
-const queued = (): QueuedInpaintJob => createQueuedJob({ id: 'job' } as InpaintJobSnapshot, 'job');
+const queued = (): QueuedGenerationJob =>
+  createQueuedJob({ id: 'job' } as InpaintJobSnapshot, 'job');
 
 const retryable = { message: '서버 오류', kind: 'server', retryable: true };
 

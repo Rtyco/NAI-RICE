@@ -10,6 +10,7 @@ export function toQueueView(snapshot: QueueSnapshot): QueueView {
     updatedAt: snapshot.updatedAt,
     jobs: snapshot.jobs.map((job): QueueJobView => ({
       id: job.id,
+      kind: job.kind,
       createdAt: job.createdAt,
       projectId: job.projectId,
       projectName: job.projectName,

@@ -81,6 +81,20 @@ describe('GenerationQueue', () => {
     expect(sent).not.toHaveProperty('imagePath');
   });
 
+  it('reads jobs saved before generation kinds as inpaint and drops jobs it cannot run', async () => {
+    const { queue } = await queueWith([
+      job('old', 'a', 'completed'),
+      { id: 'text', projectId: 'a', kind: 'txt2img', status: 'completed' },
+      { id: 'i2i-without-image', projectId: 'a', kind: 'img2img', status: 'completed' },
+      { id: 'unknown', projectId: 'a', kind: 'video', imagePath: 'x.png', status: 'completed' },
+    ]);
+    const jobs = queue.getSnapshot().jobs;
+    expect(jobs.map((item) => [item.id, item.kind])).toEqual([
+      ['old', 'inpaint'],
+      ['text', 'txt2img'],
+    ]);
+  });
+
   it('does not save when the project has no jobs', async () => {
     const { queue, emitted } = await queueWith([job('b-1', 'b', 'completed')]);
     emitted.length = 0;

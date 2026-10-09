@@ -96,7 +96,7 @@ describe('generation pipeline', () => {
     );
     const provider: ImageGenerator = {
       generate: async (request) => {
-        requests.push(request);
+        requests.push(request.job);
         requestTimes.push(Date.now());
         return generated;
       },
@@ -221,6 +221,78 @@ describe('generation pipeline', () => {
     await expect(
       readFile(library.resolveProject('project-a', first.maskPath)),
     ).resolves.toBeTruthy();
+  });
+
+  it('일반 생성 결과는 자르지 않고 그대로 저장하고 기록에 종류를 남겨', async () => {
+    const { root, library } = await setupLibrary();
+    const generated = await png(256, 128, '#00ff00');
+    const records: GenerationRecord[] = [];
+    const sent: Array<{ image?: Buffer; mask?: Buffer }> = [];
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async (request) => {
+          sent.push({ image: request.image, mask: request.mask });
+          return generated;
+        },
+      },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: (record) => records.push(record),
+      requestDelayMs: () => 0,
+    });
+    await queue.initialize();
+    const preset = createPreset('P', { commonPositive: '1girl', commonNegative: '' });
+    await queue.enqueue(
+      [
+        {
+          kind: 'txt2img',
+          id: 'text-1',
+          createdAt: new Date().toISOString(),
+          projectId: 'project-a',
+          projectName: '작업',
+          characterName: '아리아',
+          emotionId: 'e1',
+          emotionName: '기쁨',
+          emotionPrompt: 'smile',
+          presetName: preset.name,
+          promptSetName: '기본',
+          emotionSetName: '감정',
+          referenceName: '',
+          prompt: '1girl',
+          negativePrompt: '',
+          characterPrompt: '',
+          characterNegativePrompt: '',
+          source: { commonPositive: '1girl', commonNegative: '', characterPositive: '' },
+          seed: 3,
+          variantIndex: 1,
+          canvasWidth: 256,
+          canvasHeight: 128,
+          outputFilenameTemplate: '',
+          settings: preset.generation,
+          warnings: [],
+        },
+      ],
+      [0],
+    );
+    for (let tries = 0; tries < 100 && !records.length; tries += 1)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(sent).toEqual([{ image: undefined, mask: undefined }]);
+    expect(records[0]).toMatchObject({
+      kind: 'txt2img',
+      width: 256,
+      height: 128,
+      anlasEstimate: 0,
+    });
+    expect(records[0].canvasFile).toBeUndefined();
+    const output = await readFile(library.resolveProject('project-a', records[0].file));
+    expect(interpretMetadata(readPngText(output))?.desk?.emotion).toEqual({
+      name: '기쁨',
+      prompt: 'smile',
+    });
+    expect((await library.listGenerations('project-a'))[0].kind).toBe('txt2img');
   });
 
   it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {

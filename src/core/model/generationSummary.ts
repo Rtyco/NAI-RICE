@@ -4,6 +4,8 @@ import type { GenerationRecord, GenerationSummary } from '../domain/types';
 export function toGenerationSummary(record: GenerationRecord): GenerationSummary {
   return {
     id: record.id,
+    kind: record.kind,
+    sourceRecordId: record.sourceRecordId,
     projectId: record.projectId,
     emotionId: record.emotionId,
     emotionName: record.emotionName,
@@ -22,6 +24,7 @@ export function toGenerationSummary(record: GenerationRecord): GenerationSummary
     referenceName: record.referenceName,
     emotionPrompt: record.emotionPrompt,
     anlasSpent: record.anlasSpent,
+    anlasEstimate: record.anlasEstimate,
     model: record.settings.model,
   };
 }

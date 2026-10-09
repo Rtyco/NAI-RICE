@@ -143,6 +143,7 @@ export function buildJobs(input: JobBuildInput): InpaintJobSnapshot[] {
       if (insets > 1) warnings.push(`reference inset 태그가 ${insets}번 들어 있습니다.`);
       const createdAt = now().toISOString();
       jobs.push({
+        kind: 'inpaint',
         id: `${input.project.id}-${emotion.id}-${variantIndex}-${seed}-${createdAt}`,
         createdAt,
         projectId: input.project.id,

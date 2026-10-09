@@ -1,7 +1,10 @@
 import type { NaiTagFamily, NaiTagTable, QualityLevel, UcPresetId } from '../domain/types';
 
 export type NaiModelInfo = {
+  /** 생성 설정에 저장하는 값. 이 구분이 생기기 전부터 인페인트 모델 ID를 저장해 왔다. */
   id: string;
+  /** NovelAI에 보내는 모델 ID. 인페인트가 없는 모델은 `inpaint`를 비운다. */
+  requestIds: { inpaint?: string; generate: string };
   label: string;
   family: NaiTagFamily;
   /** V4 이상은 v4_prompt와 캐릭터 프롬프트를 지원한다. V3는 하나의 프롬프트로 합쳐 보낸다. */
@@ -13,6 +16,7 @@ export type NaiModelInfo = {
 export const NAI_MODELS: NaiModelInfo[] = [
   {
     id: 'nai-diffusion-5-full-inpainting',
+    requestIds: { inpaint: 'nai-diffusion-5-full-inpainting', generate: 'nai-diffusion-5-full' },
     label: 'NAI Diffusion V5 Full',
     family: 'v5',
     generation: 'v5',
@@ -21,6 +25,10 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-4-5-full-inpainting',
+    requestIds: {
+      inpaint: 'nai-diffusion-4-5-full-inpainting',
+      generate: 'nai-diffusion-4-5-full',
+    },
     label: 'NAI Diffusion V4.5 Full',
     family: 'v4-5-full',
     generation: 'v4',
@@ -29,6 +37,10 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-4-5-curated-inpainting',
+    requestIds: {
+      inpaint: 'nai-diffusion-4-5-curated-inpainting',
+      generate: 'nai-diffusion-4-5-curated',
+    },
     label: 'NAI Diffusion V4.5 Curated',
     family: 'v4-5-curated',
     generation: 'v4',
@@ -37,6 +49,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-4-full-inpainting',
+    requestIds: { inpaint: 'nai-diffusion-4-full-inpainting', generate: 'nai-diffusion-4-full' },
     label: 'NAI Diffusion V4 Full',
     family: 'v4-full',
     generation: 'v4',
@@ -45,6 +58,10 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-4-curated-inpainting',
+    requestIds: {
+      inpaint: 'nai-diffusion-4-curated-inpainting',
+      generate: 'nai-diffusion-4-curated-preview',
+    },
     label: 'NAI Diffusion V4 Curated',
     family: 'v4-curated',
     generation: 'v4',
@@ -53,6 +70,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-3-inpainting',
+    requestIds: { inpaint: 'nai-diffusion-3-inpainting', generate: 'nai-diffusion-3' },
     label: 'NAI Diffusion Anime V3',
     family: 'v3',
     generation: 'v3',
@@ -61,6 +79,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
   },
   {
     id: 'nai-diffusion-furry-3-inpainting',
+    requestIds: { inpaint: 'nai-diffusion-furry-3-inpainting', generate: 'nai-diffusion-furry-3' },
     label: 'NAI Diffusion Furry V3',
     family: 'v3-furry',
     generation: 'v3',
@@ -71,6 +90,18 @@ export const NAI_MODELS: NaiModelInfo[] = [
 
 export function modelInfo(id: string): NaiModelInfo | undefined {
   return NAI_MODELS.find((model) => model.id === id);
+}
+
+/** 인페인트를 지원하는 모델. 인페인트 생성 설정의 모델 선택에 쓴다. */
+export const INPAINT_MODELS = NAI_MODELS.filter((model) => model.requestIds.inpaint);
+
+/** 생성 방식에 맞는 NovelAI 모델 ID. 그 방식을 지원하지 않는 모델이면 오류를 던진다. */
+export function requestModelId(id: string, use: 'inpaint' | 'generate'): string {
+  const model = modelInfo(id);
+  const requestId = model?.requestIds[use];
+  if (!model) throw new Error(`지원되지 않는 NovelAI 모델입니다: ${id}`);
+  if (!requestId) throw new Error(`${model.label}은(는) 인페인트를 지원하지 않습니다.`);
+  return requestId;
 }
 
 export function modelLabel(id: string): string {

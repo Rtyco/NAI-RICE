@@ -1,4 +1,9 @@
-import type { GenerationSettings, InpaintJobSnapshot } from '../domain/types';
+import type {
+  AugmentTool,
+  GenerationJobSnapshot,
+  GenerationKind,
+  GenerationSettings,
+} from '../domain/types';
 import { modelInfo } from './NaiModels';
 
 /** Opus 구독의 무제한(Anlas 미사용) 생성 기준: 1024×1024 이하 면적, 28 steps 이하, 1장. */
@@ -55,7 +60,24 @@ export function imageAnlasCost(input: {
   return Math.max(Math.ceil(base * (input.strength ?? 1)), 2);
 }
 
-type CostJob = Pick<InpaintJobSnapshot, 'settings' | 'canvasWidth' | 'canvasHeight'>;
+/** 비용을 따지는 데 필요한 작업 내용. 종류가 없으면 인페인트로 본다(작업 화면의 미리 계산). */
+type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasHeight'> & {
+  kind?: GenerationKind;
+  strength?: number;
+  tool?: AugmentTool;
+};
+
+/**
+ * 0단계 실측: 832×1216 배경 제거 한 번에 65 Anlas. 다른 디렉터 툴은 그 크기까지 무료였다.
+ * 크기에 비례한다고 보고 대략 추정한다(5단계에서 크기별 비용을 확인한다).
+ */
+const BG_REMOVAL_ANLAS_AT_832x1216 = 65;
+
+function augmentAnlas(job: CostJob): number {
+  const pixels = job.canvasWidth * job.canvasHeight;
+  if (job.tool !== 'bg-removal' && pixels <= FREE_MAX_PIXELS) return 0;
+  return Math.ceil((BG_REMOVAL_ANLAS_AT_832x1216 * pixels) / (832 * 1216));
+}
 
 function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   const quota = account?.v5Quota;
@@ -68,6 +90,7 @@ function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
 
 /** 작업 한 개(한 장)의 예상 Anlas. 무료 기준 안이면 0이다. */
 export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
+  if (job.kind === 'augment') return augmentAnlas(job);
   const opus = account?.tier === undefined || account.tier >= OPUS_TIER;
   const free =
     opus &&
@@ -79,6 +102,7 @@ export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
         width: job.canvasWidth,
         height: job.canvasHeight,
         steps: job.settings.steps,
+        strength: job.kind === 'img2img' ? job.strength : 1,
       });
 }
 
@@ -91,6 +115,12 @@ export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): 
   if (jobs.length && account?.tier !== undefined && account.tier < OPUS_TIER)
     warnings.add('Opus 구독이 아니어서 모든 생성에 Anlas가 듭니다.');
   for (const job of jobs) {
+    if (job.kind === 'augment') {
+      if (job.tool === 'bg-removal') warnings.add('배경 제거는 Opus여도 Anlas가 듭니다.');
+      else if (augmentAnlas(job))
+        warnings.add('디렉터 툴 입력이 무료 기준 면적을 넘어 Anlas가 들 수 있습니다.');
+      continue;
+    }
     for (const reason of checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight)
       .reasons)
       warnings.add(reason);

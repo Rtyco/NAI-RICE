@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import type { ExportFormat, Rect } from '../../src/core/domain/types';
-import { copyTextChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
+import { copyTextChunks, insertPngChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
 
 export function integerCrop(rect: Rect, width: number, height: number): Rect {
   const x = Math.max(0, Math.min(width - 1, Math.round(rect.x)));
@@ -45,6 +45,16 @@ export async function cropWithMetadata(
     png = cropped;
   }
   return { png, crop, canvas };
+}
+
+/** 받은 PNG는 다시 인코딩하지 않고 이 앱의 보조 메타데이터만 더한다. 자르지 않는 결과에 쓴다. */
+export async function withMetadata(
+  generated: Buffer,
+  extraText: Record<string, string>,
+): Promise<{ png: Buffer; width: number; height: number }> {
+  const size = await imageSize(generated);
+  const extra = Object.entries(extraText).map(([key, value]) => makeITextChunk(key, value));
+  return { png: Buffer.from(insertPngChunks(generated, extra)), ...size };
 }
 
 export async function makeThumbnail(buffer: Buffer, size = 384): Promise<Buffer> {

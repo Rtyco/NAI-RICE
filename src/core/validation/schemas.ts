@@ -199,8 +199,22 @@ export const librarySchema = z.object({
   lastProjectId: z.string().optional(),
 });
 
+export const generationKindSchema = z.enum(['inpaint', 'txt2img', 'img2img', 'augment']);
+
+export const augmentToolSchema = z.enum([
+  'emotion',
+  'bg-removal',
+  'declutter',
+  'lineart',
+  'sketch',
+  'colorize',
+]);
+
 export const generationRecordSchema = z.object({
   id: z.string(),
+  // 생성 방식 구분이 생기기 전의 기록은 모두 인페인트다.
+  kind: generationKindSchema.default('inpaint'),
+  sourceRecordId: z.string().optional(),
   projectId: z.string(),
   emotionId: z.string(),
   emotionName: z.string(),
@@ -224,6 +238,7 @@ export const generationRecordSchema = z.object({
   emotionPrompt: z.string(),
   settings: generationSettingsSchema,
   anlasSpent: z.number().optional(),
+  anlasEstimate: z.number().optional(),
 });
 
 /** 한 번에 큐에 넣을 수 있는 작업 수. 감정 모음 하나를 변형 여러 장으로 돌려도 넉넉하다. */
@@ -232,8 +247,10 @@ export const MAX_ENQUEUE_JOBS = 2000;
 const MAX_CANVAS_SIDE = 8192;
 const canvasSideSchema = z.number().int().positive().max(MAX_CANVAS_SIDE);
 
-/** 렌더러가 보낸 생성 작업. 메인 프로세스가 큐에 넣기 전에 검증한다. */
-export const inpaintJobSnapshotSchema = z.object({
+const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
+
+/** 렌더러가 보낸 생성 작업의 공통 부분. 메인 프로세스가 큐에 넣기 전에 검증한다. */
+const jobSnapshotCommonSchema = z.object({
   id: z.string().min(1).max(200),
   createdAt: z.string(),
   projectId: z.string().regex(FOLDER_ID),
@@ -257,21 +274,45 @@ export const inpaintJobSnapshotSchema = z.object({
   }),
   seed: z.number().int().min(0).max(4_294_967_295),
   variantIndex: z.number().int().nonnegative(),
-  imagePath: z.string().min(1),
-  maskPath: z.string().min(1),
-  imageSha256: z.string().regex(/^[0-9a-f]{64}$/),
-  maskSha256: z.string().regex(/^[0-9a-f]{64}$/),
   canvasWidth: canvasSideSchema,
   canvasHeight: canvasSideSchema,
-  outputRect: rectSchema,
   outputFilenameTemplate: z.string(),
-  keepDiagnosticCanvas: z.boolean(),
   settings: generationSettingsSchema,
   warnings: z.array(z.string()),
+  sourceRecordId: z.string().min(1).optional(),
 });
 
+const sourceImageSchema = { imagePath: z.string().min(1), imageSha256: sha256Schema };
+
+/** 생성 방식마다 필요한 입력이 다르다. `kind`로 나눠 검사한다. */
+export const generationJobSnapshotSchema = z.discriminatedUnion('kind', [
+  jobSnapshotCommonSchema.extend({
+    kind: z.literal('inpaint'),
+    ...sourceImageSchema,
+    maskPath: z.string().min(1),
+    maskSha256: sha256Schema,
+    outputRect: rectSchema,
+    keepDiagnosticCanvas: z.boolean(),
+  }),
+  jobSnapshotCommonSchema.extend({ kind: z.literal('txt2img') }),
+  jobSnapshotCommonSchema.extend({
+    kind: z.literal('img2img'),
+    ...sourceImageSchema,
+    strength: z.number().min(0).max(1),
+    noise: z.number().min(0).max(1),
+  }),
+  jobSnapshotCommonSchema.extend({
+    kind: z.literal('augment'),
+    ...sourceImageSchema,
+    tool: augmentToolSchema,
+    mood: z.string().max(40).optional(),
+    toolPrompt: z.string(),
+    defry: z.number().int().min(0).max(5),
+  }),
+]);
+
 export const generationEnqueueRequestSchema = z.object({
-  jobs: z.array(inpaintJobSnapshotSchema).min(1).max(MAX_ENQUEUE_JOBS),
+  jobs: z.array(generationJobSnapshotSchema).min(1).max(MAX_ENQUEUE_JOBS),
 });
 
 /** v1 기록(characterId)도 읽는다. */

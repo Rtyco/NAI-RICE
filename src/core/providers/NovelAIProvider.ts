@@ -1,24 +1,14 @@
 import { unzipSync } from 'fflate';
-import type { GenerationSettings } from '../domain/types';
+import type { GenerationJobSnapshot } from '../domain/types';
 import { naiHttpError, naiNetworkError, NaiApiError } from './NaiErrors';
-import {
-  buildNovelAIInpaintRequest,
-  NAI_IMAGE_ENDPOINT,
-  NAI_USER_ENDPOINT,
-} from './NovelAIRequestBuilder';
+import { buildNovelAIJobRequest, NAI_USER_ENDPOINT } from './NovelAIRequestBuilder';
 
+/** 작업 하나를 생성하는 요청. 입력 이미지·마스크는 그 작업 종류가 쓰는 것만 넘긴다. */
 export type NovelAIImageRequest = {
   token: string;
-  prompt: string;
-  negativePrompt: string;
-  characterPrompt: string;
-  characterNegativePrompt: string;
-  image: Buffer;
-  mask: Buffer;
-  width: number;
-  height: number;
-  seed: number;
-  settings: GenerationSettings;
+  job: GenerationJobSnapshot;
+  image?: Buffer;
+  mask?: Buffer;
   signal?: AbortSignal;
 };
 
@@ -93,21 +83,13 @@ export class NovelAIProvider {
   }
 
   async generate(request: NovelAIImageRequest): Promise<Buffer> {
-    const body = buildNovelAIInpaintRequest({
-      prompt: request.prompt,
-      negativePrompt: request.negativePrompt,
-      characterPrompt: request.characterPrompt,
-      characterNegativePrompt: request.characterNegativePrompt,
-      imageBase64: request.image.toString('base64'),
-      maskBase64: request.mask.toString('base64'),
-      width: request.width,
-      height: request.height,
-      seed: request.seed,
-      settings: request.settings,
+    const { url, body } = buildNovelAIJobRequest(request.job, {
+      imageBase64: request.image?.toString('base64'),
+      maskBase64: request.mask?.toString('base64'),
     });
     let response: Response;
     try {
-      response = await fetch(NAI_IMAGE_ENDPOINT, {
+      response = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${request.token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
