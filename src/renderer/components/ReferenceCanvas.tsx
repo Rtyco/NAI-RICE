@@ -97,6 +97,9 @@ export function ReferenceCanvas(props: Props) {
   /** 붓질 중에는 같은 버퍼를 직접 고치고, 프레임마다 한 번만 다시 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
+  /** 영역을 끄는 중에 마지막으로 계산한 사각형. 프레임마다 한 번만 상위에 반영한다. */
+  const pendingRectRef = useRef<{ rect: Rect; reference: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [tool, setTool] = useState<Tool>('reference');
   const [zoom, setZoom] = useState(70);
   const [opacity, setOpacity] = useState(42);
@@ -206,11 +209,11 @@ export function ReferenceCanvas(props: Props) {
 
   useEffect(draw, [draw]);
 
-  // PNG 인코딩은 무거우므로 붓질이 끝난 뒤에만 상위로 알린다.
+  // PNG 인코딩(1216×832에서 약 30ms)은 무거우므로 붓질이나 영역 끌기가 끝난 뒤에만 상위로 알린다.
   useEffect(() => {
-    if (strokeRef.current) return;
+    if (dragging) return;
     onMaskChange(mask, maskToDataUrl(mask, width, height));
-  }, [mask, width, height, onMaskChange]);
+  }, [dragging, mask, width, height, onMaskChange]);
 
   const pointFromEvent = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -262,6 +265,7 @@ export function ReferenceCanvas(props: Props) {
       beginHistory();
       strokeRef.current = Int8Array.from(overrides);
       dragRef.current = { kind: 'brush', startX: point.x, startY: point.y };
+      setDragging(true);
       paint(point.x, point.y, tool === 'generate' ? 1 : 0);
       return;
     }
@@ -275,7 +279,16 @@ export function ReferenceCanvas(props: Props) {
         originalRect: { ...rect },
         handle,
       };
+      setDragging(true);
     }
+  };
+
+  const applyPendingRect = () => {
+    const pending = pendingRectRef.current;
+    pendingRectRef.current = null;
+    if (!pending) return;
+    if (pending.reference) props.onReferenceRectChange(pending.rect);
+    else props.onOutputRectChange(pending.rect);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -293,22 +306,32 @@ export function ReferenceCanvas(props: Props) {
       point.x - drag.startX,
       point.y - drag.startY,
     );
-    const next = clampRect(candidate, props.width, props.height, 16);
-    if (tool === 'reference') props.onReferenceRectChange(next);
-    else props.onOutputRectChange(next);
+    pendingRectRef.current = {
+      rect: clampRect(candidate, props.width, props.height, 16),
+      reference: tool === 'reference',
+    };
+    // 포인터 이벤트는 프레임보다 자주 오므로 마지막 위치만 프레임마다 반영한다.
+    if (!frameRef.current) {
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = 0;
+        applyPendingRect();
+      });
+    }
   };
 
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
     dragRef.current = null;
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = 0;
+    applyPendingRect();
     const stroke = strokeRef.current;
     if (stroke) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = 0;
       strokeRef.current = null;
       setOverrides(new Int8Array(stroke.buffer));
     }
+    setDragging(false);
   };
 
   const undo = () => {
