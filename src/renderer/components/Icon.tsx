@@ -139,6 +139,7 @@ const ICONS = {
     </>
   ),
   square: <rect x="3.5" y="3.5" width="17" height="17" rx="3" />,
+  circle: <circle cx="12" cy="12" r="8.5" />,
   'select-all': (
     <>
       <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" />

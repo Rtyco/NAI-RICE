@@ -24,6 +24,11 @@ function ZoomView(props: {
   const [box, setBox] = useState({ width: 0, height: 0 });
   const anchor = useZoomAnchor(viewport, image);
   const pan = usePan(viewport);
+  const [panning, setPanning] = useState(false);
+  const endPan = () => {
+    pan.end();
+    setPanning(false);
+  };
 
   useEffect(() => {
     const node = viewport.current;
@@ -64,13 +69,19 @@ function ZoomView(props: {
     <div className="zoom-view">
       <div
         ref={viewport}
-        className={`zoom-viewport ${zoom === 'fit' ? '' : 'zoomed'}`}
+        className={`zoom-viewport ${zoom === 'fit' ? '' : 'zoomed'} ${panning ? 'panning' : ''}`}
+        onMouseDown={(event) => {
+          // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
+          if (event.button === 1) event.preventDefault();
+        }}
         onPointerDown={(event) => {
-          if (event.button === 0 && zoom !== 'fit') pan.begin(event);
+          if (event.button !== 1) return;
+          pan.begin(event);
+          setPanning(true);
         }}
         onPointerMove={(event) => void pan.move(event)}
-        onPointerUp={() => void pan.end()}
-        onPointerCancel={() => void pan.end()}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
         onDoubleClick={() => setZoom(zoom === 'fit' ? 1 : 'fit')}
       >
         <div className="zoom-content" style={{ padding: PAD }}>

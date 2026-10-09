@@ -8,6 +8,13 @@ import {
   manualOverrides,
   maskHasGeneratePixels,
 } from '../../core/imaging/MaskBuilder';
+import {
+  fillCell,
+  forEachStampCell,
+  MASK_CELL,
+  strokeStamps,
+  type BrushShape,
+} from '../../core/imaging/MaskBrush';
 import { clampRect, contains } from '../../core/imaging/rects';
 import type { CanvasImage } from '../lib/image';
 import { Icon } from './Icon';
@@ -105,9 +112,14 @@ export function ReferenceCanvas(props: Props) {
   /** 원본 픽셀 대비 배율. 처음에는 화면에 맞춘다. */
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const [box, setBox] = useState({ width: 0, height: 0 });
-  const [panReady, setPanReady] = useState(false);
+  /** 붓이 지나간 마지막 위치(칸 좌표). 다음 이벤트까지의 사이를 채운다. */
+  const lastStampRef = useRef<{ x: number; y: number } | null>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const [panning, setPanning] = useState(false);
   const [opacity, setOpacity] = useState(42);
-  const [brushSize, setBrushSize] = useState(24);
+  /** 붓 크기(칸 수). NovelAI 웹 기본값 4칸 = 32px. */
+  const [brushSize, setBrushSize] = useState(4);
+  const [brushShape, setBrushShape] = useState<BrushShape>('circle');
   const [overrides, setOverrides] = useState<Int8Array>(() =>
     createOverrides(props, props.initialMask),
   );
@@ -179,22 +191,6 @@ export function ReferenceCanvas(props: Props) {
       event.clientY,
     );
   });
-
-  // Space를 누르고 있는 동안은 끌어서 화면을 옮긴다(그림 프로그램과 같은 방식).
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== ' ' || (event.target as HTMLElement).closest('input, textarea, select'))
-        return;
-      if (event.type === 'keydown') event.preventDefault();
-      setPanReady(event.type === 'keydown');
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKey);
-    };
-  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -278,16 +274,13 @@ export function ReferenceCanvas(props: Props) {
   const paint = (x: number, y: number, value: 0 | 1) => {
     const buffer = strokeRef.current;
     if (!buffer) return;
-    const radius = brushSize / 2;
-    const minX = Math.max(0, Math.floor(x - radius));
-    const maxX = Math.min(props.width - 1, Math.ceil(x + radius));
-    const minY = Math.max(0, Math.floor(y - radius));
-    const maxY = Math.min(props.height - 1, Math.ceil(y + radius));
-    const radiusSquared = radius * radius;
-    for (let py = minY; py <= maxY; py += 1) {
-      for (let px = minX; px <= maxX; px += 1) {
-        if ((px - x) ** 2 + (py - y) ** 2 <= radiusSquared) buffer[py * props.width + px] = value;
-      }
+    const to = { x: x / MASK_CELL, y: y / MASK_CELL };
+    const from = lastStampRef.current;
+    lastStampRef.current = to;
+    for (const stamp of from ? strokeStamps(from, to, brushSize) : [to]) {
+      forEachStampCell(stamp.x, stamp.y, brushSize, brushShape, (cellX, cellY) =>
+        fillCell(buffer, props.width, props.height, cellX, cellY, value),
+      );
     }
     if (!frameRef.current) {
       frameRef.current = requestAnimationFrame(() => {
@@ -303,15 +296,36 @@ export function ReferenceCanvas(props: Props) {
     setRedoStack([]);
   };
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (event.button === 1 || panReady) {
-      pan.begin(event);
+  /** 붓이 찍힐 칸을 마우스 위치에 겹쳐 보여 준다. 다시 그리지 않도록 상태 대신 스타일을 바로 고친다. */
+  const moveCursor = (event: ReactPointerEvent<HTMLCanvasElement> | null) => {
+    const cursor = cursorRef.current;
+    if (!cursor) return;
+    if (!event || (tool !== 'generate' && tool !== 'keep')) {
+      cursor.style.display = 'none';
       return;
     }
+    const point = pointFromEvent(event);
+    const cell = MASK_CELL * scale;
+    const left = Math.round(point.x / MASK_CELL - brushSize / 2) * cell;
+    const top = Math.round(point.y / MASK_CELL - brushSize / 2) * cell;
+    cursor.style.display = 'block';
+    cursor.style.transform = `translate(${left}px, ${top}px)`;
+    cursor.style.width = cursor.style.height = `${brushSize * cell}px`;
+  };
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button === 1) {
+      pan.begin(event);
+      setPanning(true);
+      moveCursor(null);
+      return;
+    }
+    if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = pointFromEvent(event);
     if (tool === 'generate' || tool === 'keep') {
       beginHistory();
+      lastStampRef.current = null;
       strokeRef.current = Int8Array.from(overrides);
       dragRef.current = { kind: 'brush', startX: point.x, startY: point.y };
       paint(point.x, point.y, tool === 'generate' ? 1 : 0);
@@ -332,6 +346,7 @@ export function ReferenceCanvas(props: Props) {
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (pan.move(event)) return;
+    moveCursor(event);
     const drag = dragRef.current;
     if (!drag) return;
     const point = pointFromEvent(event);
@@ -356,8 +371,12 @@ export function ReferenceCanvas(props: Props) {
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
-    if (pan.end()) return;
+    if (pan.end()) {
+      setPanning(false);
+      return;
+    }
     dragRef.current = null;
+    lastStampRef.current = null;
     const stroke = strokeRef.current;
     if (stroke) {
       cancelAnimationFrame(frameRef.current);
@@ -435,10 +454,28 @@ export function ReferenceCanvas(props: Props) {
             className={tool === 'generate' ? 'active teal' : ''}
             onClick={() => setTool('generate')}
           >
-            {props.maskOnly ? '🖌 칠하기' : '생성 마스크'}
+            <Icon name="brush" size={14} /> {props.maskOnly ? '칠하기' : '생성 마스크'}
           </button>
           <button className={tool === 'keep' ? 'active' : ''} onClick={() => setTool('keep')}>
-            {props.maskOnly ? '🧽 지우기' : '보호 마스크'}
+            <Icon name="eraser" size={14} /> {props.maskOnly ? '지우기' : '보호 마스크'}
+          </button>
+        </div>
+        <div className="segmented brush-shape" aria-label="붓 모양">
+          <button
+            className={brushShape === 'circle' ? 'active' : ''}
+            aria-pressed={brushShape === 'circle'}
+            title="둥근 붓"
+            onClick={() => setBrushShape('circle')}
+          >
+            <Icon name="circle" size={14} />
+          </button>
+          <button
+            className={brushShape === 'square' ? 'active' : ''}
+            aria-pressed={brushShape === 'square'}
+            title="네모 붓"
+            onClick={() => setBrushShape('square')}
+          >
+            <Icon name="square" size={14} />
           </button>
         </div>
         <button onClick={undo} disabled={!undoStack.length} title="Ctrl+Z">
@@ -462,16 +499,16 @@ export function ReferenceCanvas(props: Props) {
           {props.width} × {props.height}px
         </span>
         {props.detectionLabel && <span>{props.detectionLabel}</span>}
-        <label>
+        <label title="NovelAI 웹처럼 8px 칸 단위로 칠합니다">
           브러시 크기{' '}
           <input
             type="range"
-            min="4"
-            max="128"
+            min="1"
+            max="32"
             value={brushSize}
             onChange={(event) => setBrushSize(Number(event.target.value))}
           />{' '}
-          {brushSize}px
+          {brushSize * MASK_CELL}px
         </label>
         <label>
           마스크 불투명도{' '}
@@ -486,7 +523,7 @@ export function ReferenceCanvas(props: Props) {
         </label>
         <span
           className="canvas-zoom"
-          title="휠: 확대·축소 · Space나 가운데 버튼으로 끌기: 화면 이동"
+          title="휠: 확대·축소 · 가운데 버튼(휠)을 누른 채 끌기: 화면 이동"
         >
           <button
             className="icon-button"
@@ -514,23 +551,32 @@ export function ReferenceCanvas(props: Props) {
       </div>
       <div
         ref={scrollRef}
-        className={`canvas-scroll ${panReady ? 'pan-ready' : ''}`}
+        className={`canvas-scroll ${panning ? 'panning' : ''}`}
         onMouseDown={(event) => {
           // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
           if (event.button === 1) event.preventDefault();
         }}
       >
-        <canvas
-          ref={canvasRef}
-          width={props.width}
-          height={props.height}
+        <div
+          className="canvas-stack"
           style={{ width: props.width * scale, height: props.height * scale }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={finishPointer}
-          onPointerCancel={finishPointer}
-          aria-label="참고 이미지와 인페인트 마스크 편집 캔버스"
-        />
+        >
+          <canvas
+            ref={canvasRef}
+            width={props.width}
+            height={props.height}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={finishPointer}
+            onPointerCancel={finishPointer}
+            onPointerLeave={() => moveCursor(null)}
+            aria-label="참고 이미지와 인페인트 마스크 편집 캔버스"
+          />
+          <div
+            ref={cursorRef}
+            className={`brush-cursor ${brushShape} ${tool === 'keep' ? 'erase' : ''}`}
+          />
+        </div>
       </div>
       <div className="legend">
         {!props.maskOnly && (

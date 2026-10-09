@@ -211,7 +211,7 @@ export function GalleryView({
         <span className="toolbar-group">
           <button
             className="emoji-button"
-            title="생성 대상: 모든 감정 체크"
+            title="생성 큐에 넣을 감정: 모두 체크"
             aria-label="생성 대상 모두 체크"
             onClick={() =>
               updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
@@ -221,7 +221,7 @@ export function GalleryView({
           </button>
           <button
             className="emoji-button"
-            title="생성 대상: 모든 감정 체크 해제"
+            title="생성 큐에 넣을 감정: 모두 체크 해제"
             aria-label="생성 대상 모두 해제"
             onClick={() =>
               updateProject(project.id, (current) => ({
@@ -232,9 +232,12 @@ export function GalleryView({
           >
             <Icon name="square" size={16} />
           </button>
+          <span className="toolbar-label">생성 큐</span>
+        </span>
+        <span className="toolbar-group">
           <button
             className="emoji-button"
-            title="카드 모두 고르기: 결과 삭제·대표 이미지 업스케일·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
+            title="카드 모두 고르기: 대표 이미지 i2i·결과 삭제·감정 삭제를 한꺼번에 합니다. Ctrl·Shift 클릭이나 빈 곳을 끌어서도 고릅니다."
             aria-label="카드 모두 고르기"
             onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
           >
@@ -261,19 +264,6 @@ export function GalleryView({
           <span className="selection-bar inline">
             <span>{selection.selected.size}개 고름</span>
             <button
-              className="emoji-button"
-              title="결과만 삭제: 감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
-              aria-label="결과만 삭제"
-              onClick={() =>
-                void clearEmotionResults(
-                  project.id,
-                  emotions.filter((emotion) => selection.isSelected(emotion.id)),
-                )
-              }
-            >
-              <Icon name="eraser" size={16} />
-            </button>
-            <button
               className="with-icon"
               title="고른 감정마다 대표 이미지(없으면 최신)를 더 큰 크기로 i2i해 다시 그립니다"
               onClick={() =>
@@ -291,7 +281,20 @@ export function GalleryView({
                 )
               }
             >
-              <Icon name="upscale" size={14} /> 업스케일
+              <Icon name="upscale" size={14} /> i2i
+            </button>
+            <button
+              className="emoji-button"
+              title="결과만 삭제: 감정은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+              aria-label="결과만 삭제"
+              onClick={() =>
+                void clearEmotionResults(
+                  project.id,
+                  emotions.filter((emotion) => selection.isSelected(emotion.id)),
+                )
+              }
+            >
+              <Icon name="eraser" size={16} />
             </button>
             <button
               className="emoji-button danger-quiet"

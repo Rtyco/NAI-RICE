@@ -528,9 +528,8 @@ textarea {
 }
 .zoom-viewport.zoomed {
   overflow: auto;
-  cursor: grab;
 }
-.zoom-viewport.zoomed:active {
+.zoom-viewport.panning {
   cursor: grabbing;
 }
 .zoom-content {
@@ -586,11 +585,15 @@ textarea {
 .zoom-level:hover {
   border-color: var(--line);
 }
+/* 창 버튼(최소화·닫기)이 있는 제목 표시줄 아래부터 덮는다. 전체 화면에서는 제목 표시줄이 없다. */
 .lightbox {
   position: fixed;
-  inset: 0;
+  inset: 32px 0 0;
   z-index: 200;
   background: #000e;
+}
+:root[data-fullscreen='true'] .lightbox {
+  top: 0;
 }
 .stage-empty {
   text-align: center;
@@ -1217,8 +1220,13 @@ textarea.syntax-input::selection {
   gap: 5px;
   margin-bottom: 7px;
 }
-.canvas-toolbar > .segmented {
+.canvas-toolbar > .brush-shape {
   margin-right: auto;
+}
+.canvas-toolbar .segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .canvas-toolbar > button {
   padding: 5px 9px;
@@ -1256,8 +1264,31 @@ textarea.syntax-input::selection {
   border: 1px solid var(--bg-4);
   background: var(--bg-0);
 }
-.canvas-scroll.pan-ready canvas {
-  cursor: grab;
+.canvas-scroll.panning canvas {
+  cursor: grabbing;
+}
+.canvas-stack {
+  position: relative;
+  flex: none;
+}
+.canvas-stack canvas {
+  width: 100%;
+  height: 100%;
+}
+.brush-cursor {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid #fff;
+  outline: 1px solid #000a;
+  pointer-events: none;
+}
+.brush-cursor.circle {
+  border-radius: 50%;
+}
+.brush-cursor.erase {
+  border-style: dashed;
 }
 .canvas-zoom {
   display: inline-flex;
@@ -1929,6 +1960,11 @@ textarea.syntax-input::selection {
 .toolbar-group:first-child {
   padding-left: 0;
   border-left: 0;
+}
+.toolbar-label {
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: 12px;
 }
 .emoji-button {
   min-width: 30px;
