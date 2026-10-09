@@ -9,7 +9,8 @@ import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { GenerationRecord, QueueView, Reference } from '../../src/core/domain/types';
 import { buildFreeJobs, buildJobs } from '../../src/core/jobs/JobBuilder';
 import { interpretMetadata } from '../../src/core/metadata/NaiMetadata';
-import { insertPngChunks, makeITextChunk, readPngText } from '../../src/core/metadata/PngChunks';
+import { insertPngChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
+import { readImageText } from '../../src/core/metadata/WebpMetadata';
 import {
   createCharacter,
   createEmotion,
@@ -152,7 +153,8 @@ describe('generation pipeline', () => {
     expect(snapshot?.jobs[0]).toMatchObject({ anlasEstimate: 0, anlasSpent: 1 });
 
     const record = records[0];
-    expect(record.file).toBe('outputs/인페인트/기쁨/아리아__기쁨__42.png');
+    // 기본 저장 형식은 WebP 무손실이고, 메타데이터는 XMP에 들어간다.
+    expect(record.file).toBe('outputs/인페인트/기쁨/아리아__기쁨__42.webp');
     expect(record).toMatchObject({
       projectId: project.id,
       width: 128,
@@ -162,7 +164,7 @@ describe('generation pipeline', () => {
     });
 
     const output = await readFile(library.resolveProject(project.id, record.file));
-    const parsed = interpretMetadata(readPngText(output));
+    const parsed = interpretMetadata(readImageText(output));
     expect(parsed?.source).toBe('desk');
     expect(parsed?.desk?.emotion).toEqual({ name: '기쁨', prompt: 'smile' });
     // 품질 태그·UC가 섞이지 않은 원래 프롬프트와 설정을 보존한다.
@@ -290,7 +292,7 @@ describe('generation pipeline', () => {
     });
     expect(records[0].canvasFile).toBeUndefined();
     const output = await readFile(library.resolveProject('project-a', records[0].file));
-    expect(interpretMetadata(readPngText(output))?.desk?.emotion).toEqual({
+    expect(interpretMetadata(readImageText(output))?.desk?.emotion).toEqual({
       name: '기쁨',
       prompt: 'smile',
     });

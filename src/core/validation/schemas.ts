@@ -169,6 +169,7 @@ export const projectSchema = z.object({
 export const appSettingsSchema = z.object({
   outputFilenameTemplate: z.string().min(1).default(DEFAULT_OUTPUT_FILENAME_TEMPLATE),
   keepDiagnosticCanvas: z.boolean().default(true),
+  storageFormat: z.enum(['png', 'webp-lossless']).default('webp-lossless'),
   export: z
     .object({
       format: z.enum(['png', 'webp', 'avif']),

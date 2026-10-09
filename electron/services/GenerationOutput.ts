@@ -7,7 +7,7 @@ import {
   renderOutputFilename,
 } from '../../src/core/output/OutputFilename';
 import { atomicWrite, uniquePath } from './fsUtils';
-import { cropWithMetadata, makeThumbnail, withMetadata } from './Images';
+import { cropWithMetadata, encodeForStorage, makeThumbnail, withMetadata } from './Images';
 import type { GenerationStore } from './ports';
 
 /** 결과 PNG에 함께 남기는 이 앱의 원래 입력. 다시 불러올 때 캐릭터 프롬프트와 감정을 나눠 읽는다. */
@@ -80,18 +80,25 @@ export async function saveGenerationOutput(
   const generationId = randomUUID();
   // 감정이 없는 자유 생성은 만든 날짜(현지 시각)별 폴더에 모은다.
   const folder = job.emotionId ? job.emotionName : localDate(job.createdAt);
+  const format = store.settings?.storageFormat ?? 'png';
+  const output = await encodeForStorage(png, format);
   const outputPath = await uniquePath(
     store.emotionOutputDir(job.projectId, job.kind, folder),
     stem,
-    '.png',
+    output.extension,
   );
   const thumbPath = path.join(projectDir, 'thumbs', `${generationId}.webp`);
-  await atomicWrite(outputPath, png);
+  await atomicWrite(outputPath, output.buffer);
   await atomicWrite(thumbPath, await makeThumbnail(png));
   let canvasPath: string | undefined;
   if (job.kind === 'inpaint' && job.keepDiagnosticCanvas) {
-    canvasPath = await uniquePath(path.join(projectDir, 'diagnostic'), `${stem}__canvas`, '.png');
-    await atomicWrite(canvasPath, generated);
+    const canvas = await encodeForStorage(generated, format);
+    canvasPath = await uniquePath(
+      path.join(projectDir, 'diagnostic'),
+      `${stem}__canvas`,
+      canvas.extension,
+    );
+    await atomicWrite(canvasPath, canvas.buffer);
   }
 
   return {

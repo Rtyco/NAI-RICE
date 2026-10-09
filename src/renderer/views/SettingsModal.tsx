@@ -242,9 +242,24 @@ function OutputTab() {
           <p className="field-error">{error}</p>
         ) : (
           <p className="hint">
-            미리보기: <code>{preview}.png</code>
+            미리보기: <code>
+              {preview}.{settings.storageFormat === 'png' ? 'png' : 'webp'}
+            </code>
           </p>
         )}
+        <SelectField
+          label="저장 형식 (결과·전체 캔버스)"
+          value={settings.storageFormat}
+          options={[
+            { value: 'webp-lossless', label: 'WebP 무손실 (약 40% 작음)' },
+            { value: 'png', label: 'PNG' },
+          ]}
+          onChange={(storageFormat) => patchSettings((current) => ({ ...current, storageFormat }))}
+        />
+        <p className="hint">
+          WebP 무손실은 픽셀이 PNG와 똑같고 프롬프트 메타데이터도 파일 안에 남습니다. 이 앱으로 다시
+          불러오거나 PNG로 내보내면 메타데이터가 그대로 살아납니다. 바꾼 뒤 생성하는 결과부터 적용됩니다.
+        </p>
         <Toggle
           label="생성에 쓴 전체 캔버스도 보관 (diagnostic 폴더)"
           checked={settings.keepDiagnosticCanvas}

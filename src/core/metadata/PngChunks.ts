@@ -110,6 +110,16 @@ export function makeITextChunk(keyword: string, text: string): Uint8Array {
   return makeChunk('iTXt', data);
 }
 
+/** NovelAI처럼 tEXt에 UTF-8을 그대로 쓴다. WebP에 옮겨 둔 텍스트를 PNG로 되돌릴 때 원래 모양을 지킨다. */
+export function makeTextChunk(keyword: string, text: string): Uint8Array {
+  const key = encoder.encode(keyword);
+  const body = encoder.encode(text);
+  const data = new Uint8Array(key.length + 1 + body.length);
+  data.set(key, 0);
+  data.set(body, key.length + 1);
+  return makeChunk('tEXt', data);
+}
+
 /**
  * IEND 앞에 청크를 끼워 넣는다. 원본 응답의 텍스트 청크를 크롭 결과로 옮겨
  * NovelAI 메타데이터가 최종 결과물에도 남도록 할 때 사용한다.

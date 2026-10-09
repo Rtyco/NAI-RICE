@@ -186,9 +186,16 @@ export type NaiTagTable = {
   legacyUc?: Partial<Record<Exclude<UcPresetId, 'none'>, string>>;
 };
 
+/**
+ * 결과·전체 캔버스를 저장할 형식. WebP 무손실은 픽셀이 PNG와 똑같아(NovelAI가 알파 채널에 숨긴 정보도
+ * 남는다) 실측 약 40% 작고, 텍스트 메타데이터는 XMP에 넣는다.
+ */
+export type StorageFormat = 'png' | 'webp-lossless';
+
 export type AppSettings = {
   outputFilenameTemplate: string;
   keepDiagnosticCanvas: boolean;
+  storageFormat: StorageFormat;
   export: {
     format: ExportFormat;
     quality: number;

@@ -1,6 +1,15 @@
 import sharp from 'sharp';
-import type { ExportFormat, Rect } from '../../src/core/domain/types';
-import { copyTextChunks, insertPngChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
+import type { ExportFormat, Rect, StorageFormat } from '../../src/core/domain/types';
+import { DESK_METADATA_KEY } from '../../src/core/metadata/NaiMetadata';
+import {
+  copyTextChunks,
+  insertPngChunks,
+  isPng,
+  makeITextChunk,
+  makeTextChunk,
+  readPngText,
+} from '../../src/core/metadata/PngChunks';
+import { isWebp, readImageText, textToXmp } from '../../src/core/metadata/WebpMetadata';
 
 export function integerCrop(rect: Rect, width: number, height: number): Rect {
   const x = Math.max(0, Math.min(width - 1, Math.round(rect.x)));
@@ -91,13 +100,36 @@ export async function makeThumbnail(buffer: Buffer, size = 384): Promise<Buffer>
     .toBuffer();
 }
 
+/** 저장 형식에 맞춰 바꾼다. WebP는 픽셀을 그대로 두고(무손실, 투명 픽셀의 색까지) 텍스트를 XMP로 옮긴다. */
+export async function encodeForStorage(
+  png: Buffer,
+  format: StorageFormat,
+): Promise<{ buffer: Buffer; extension: '.png' | '.webp' }> {
+  if (format === 'png') return { buffer: png, extension: '.png' };
+  const buffer = await sharp(png)
+    .webp({ lossless: true, exact: true, effort: 4 })
+    .withXmp(textToXmp(readPngText(png)))
+    .toBuffer();
+  return { buffer, extension: '.webp' };
+}
+
+/** WebP로 저장한 결과를 텍스트 청크가 있는 PNG로 되돌린다. PNG면 그대로 돌려준다. */
+export async function toPngWithText(buffer: Buffer): Promise<Buffer> {
+  if (isPng(buffer) || !isWebp(buffer)) return buffer;
+  const png = await sharp(buffer).png().toBuffer();
+  const chunks = Object.entries(readImageText(buffer)).map(([key, text]) =>
+    key === DESK_METADATA_KEY ? makeITextChunk(key, text) : makeTextChunk(key, text),
+  );
+  return Buffer.from(insertPngChunks(png, chunks));
+}
+
 export async function convertImage(
   buffer: Buffer,
   format: ExportFormat,
   quality: number,
 ): Promise<Buffer> {
   // PNG는 메타데이터 보존을 위해 원본 바이트를 그대로 쓴다.
-  if (format === 'png') return buffer;
+  if (format === 'png') return toPngWithText(buffer);
   const pipeline = sharp(buffer);
   if (format === 'webp') return pipeline.webp({ quality }).toBuffer();
   return pipeline.avif({ quality }).toBuffer();

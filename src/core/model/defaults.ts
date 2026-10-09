@@ -186,6 +186,7 @@ export function createProject(
 export const DEFAULT_SETTINGS: AppSettings = {
   outputFilenameTemplate: DEFAULT_OUTPUT_FILENAME_TEMPLATE,
   keepDiagnosticCanvas: true,
+  storageFormat: 'webp-lossless',
   export: { format: 'png', quality: 90, target: 'favorite' },
   requestDelayMs: 300,
   tagAutocomplete: true,

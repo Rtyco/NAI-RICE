@@ -1,5 +1,10 @@
 import type { Dialog, Shell } from 'electron';
-import type { GenerationKind, GenerationRecord, Reference } from '../../src/core/domain/types';
+import type {
+  AppSettings,
+  GenerationKind,
+  GenerationRecord,
+  Reference,
+} from '../../src/core/domain/types';
 import type {
   NovelAIImageRequest,
   NovelAIUserStatus,
@@ -32,6 +37,8 @@ export interface TokenStore {
 
 /** 생성 큐가 입력을 읽고 결과를 쌓는 작업 폴더. Library가 구현한다. */
 export interface GenerationStore {
+  /** 결과 저장 형식을 읽는다. 아직 라이브러리를 읽지 않았으면 비어 있고, 그때는 PNG로 저장한다. */
+  readonly settings?: Pick<AppSettings, 'storageFormat'>;
   resolveProjectReal(projectId: string, relative: string): Promise<string>;
   projectDir(projectId: string): string;
   emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string;

@@ -1,6 +1,6 @@
 import { Gunzip } from 'fflate';
 import type { GenerationSettings, QualityLevel, UcPresetId } from '../domain/types';
-import { isPng, readPngText } from './PngChunks';
+import { readImageText } from './WebpMetadata';
 import { removeReferenceInset } from '../prompts/PromptComposer';
 
 /**
@@ -234,7 +234,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
 }
 
 /**
- * PNG 바이트에서 메타데이터를 읽는다. 텍스트 청크가 없으면 `decodePixels`로 픽셀을 얻어
+ * PNG(텍스트 청크)나 이 앱이 저장한 WebP(XMP)에서 메타데이터를 읽는다. 텍스트 청크가 없으면 `decodePixels`로 픽셀을 얻어
  * stealth 메타데이터를 시도한다. 픽셀 디코딩은 실행 환경(브라우저 캔버스 등)에 맡긴다.
  */
 export async function readImageMetadata(
@@ -245,10 +245,8 @@ export async function readImageMetadata(
     height: number;
   }>,
 ): Promise<ImageImportData | null> {
-  if (isPng(bytes)) {
-    const fromText = interpretMetadata(readPngText(bytes));
-    if (fromText) return fromText;
-  }
+  const fromText = interpretMetadata(readImageText(bytes));
+  if (fromText) return fromText;
   if (!decodePixels) return null;
   const pixels = await decodePixels();
   const stealth = readStealthMetadata(pixels.data, pixels.width, pixels.height);
