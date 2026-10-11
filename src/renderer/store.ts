@@ -91,9 +91,9 @@ const GALLERY_COLUMNS_KEY = 'gallery-columns';
 
 /** NovelAI 웹의 기본 해상도(세로 832×1216, 가로 1216×832, 정사각 1024×1024)와 같은 비율. */
 export const GALLERY_ASPECTS = [
-  { id: 'portrait', label: '세로', title: '세로 832×1216', ratio: '832 / 1216' },
-  { id: 'landscape', label: '가로', title: '가로 1216×832', ratio: '1216 / 832' },
-  { id: 'square', label: '정사각', title: '정사각 1024×1024', ratio: '1 / 1' },
+  { id: 'portrait', icon: 'ratio-portrait', title: '세로 832×1216', ratio: '832 / 1216' },
+  { id: 'landscape', icon: 'ratio-landscape', title: '가로 1216×832', ratio: '1216 / 832' },
+  { id: 'square', icon: 'ratio-square', title: '정사각 1024×1024', ratio: '1 / 1' },
 ] as const;
 export type GalleryAspect = (typeof GALLERY_ASPECTS)[number]['id'];
 const GALLERY_ASPECT_KEY = 'gallery-aspect';

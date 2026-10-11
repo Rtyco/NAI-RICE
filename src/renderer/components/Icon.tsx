@@ -140,6 +140,9 @@ const ICONS = {
     </>
   ),
   square: <rect x="3.5" y="3.5" width="17" height="17" rx="3" />,
+  'ratio-portrait': <rect x="6.5" y="3.5" width="11" height="17" rx="2" />,
+  'ratio-landscape': <rect x="3.5" y="6.5" width="17" height="11" rx="2" />,
+  'ratio-square': <rect x="5" y="5" width="14" height="14" rx="2" />,
   circle: <circle cx="12" cy="12" r="8.5" />,
   'select-all': (
     <>

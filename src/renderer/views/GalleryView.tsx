@@ -317,9 +317,10 @@ export function GalleryView({
                 className={choice.id === aspect ? 'active' : ''}
                 aria-pressed={choice.id === aspect}
                 title={`카드 이미지를 ${choice.title} 비율로 봅니다`}
+                aria-label={choice.title}
                 onClick={() => setGalleryAspect(choice.id)}
               >
-                {choice.label}
+                <Icon name={choice.icon} size={15} />
               </button>
             ))}
           </span>
