@@ -9,7 +9,16 @@ import {
   DEFAULT_EMOTIONS,
 } from '../../core/model/defaults';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { moveItems } from '../../core/model/mutations';
+import {
+  groupIntoFolder,
+  listRows,
+  moveIntoFolder,
+  moveNextTo,
+  newFolderName,
+  renameFolder,
+  setFolder,
+  ungroupFolder,
+} from '../../core/model/folders';
 import { importJsonFromPicker } from '../importers';
 import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
 import { SECTIONS } from '../sections';
@@ -20,6 +29,7 @@ import {
   referenceMedia,
   run,
   setSettingsOpen,
+  toggleFolder,
   toggleSidebar,
   toggleSidebarSection,
   updateLibrary,
@@ -35,6 +45,8 @@ import { libraryApi } from '../desktop';
 import { useBoxSelection } from './useBoxSelection';
 import { dragPayload, readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
 import { listMenu } from './listMenu';
+import { ListFolder } from './ListFolder';
+import { folderKey, useFoldedFolders, useGroupTarget } from './listFolders';
 
 const NEW = '__new__';
 const DRAG_TYPE = 'application/x-project';
@@ -164,7 +176,6 @@ export function NewProjectDialog({ close }: { close: () => void }) {
  */
 function ProjectRow(props: {
   project: Project;
-  index: number;
   collapsed: boolean;
   active: boolean;
   busy?: number;
@@ -180,6 +191,8 @@ function ProjectRow(props: {
   /** 지금 고른 작업 수. 고른 작업에서 우클릭하면 삭제를 한꺼번에 한다. */
   pickedCount: number;
   removePicked: () => void;
+  /** 이 작업(고른 작업 중 하나면 고른 것 모두)을 새 폴더로 묶는다. */
+  group: () => void;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
@@ -232,6 +245,14 @@ function ProjectRow(props: {
             remove: () => void deleteProject(project),
             pickedCount: props.picked ? props.pickedCount : 0,
             removePicked: props.removePicked,
+            group: collapsed ? undefined : props.group,
+            ungroup:
+              collapsed || !project.folder
+                ? undefined
+                : () =>
+                    updateLibrary((current) =>
+                      setFolder(current, 'projects', [project.id], undefined),
+                    ),
           }),
         )
       }
@@ -250,7 +271,14 @@ function ProjectRow(props: {
         event.preventDefault();
         event.stopPropagation();
         updateLibrary((current) =>
-          moveItems(current, 'projects', payload.ids, payload.grabbed, project.id),
+          moveNextTo(
+            current,
+            'projects',
+            payload.ids,
+            payload.grabbed,
+            project.id,
+            Boolean(payload.folder),
+          ),
         );
       }}
     >
@@ -367,10 +395,70 @@ export function Sidebar() {
   const [dragging, setDragging] = useState<string[]>([]);
   const removeMany = (ids: string[]) =>
     void deleteProjects(library.projects.filter((project) => ids.includes(project.id)));
+  const rows = listRows(library.projects);
+  const isFolded = useFoldedFolders('projects');
   const selection = useBoxSelection<HTMLElement>(
-    library.projects.map((project) => project.id),
+    rows.flatMap((row) =>
+      row.kind === 'item'
+        ? [row.item.id]
+        : isFolded(row.name)
+          ? []
+          : row.items.map((item) => item.id),
+    ),
     removeMany,
   );
+  const [renamingFolder, setRenamingFolder] = useState<string>();
+  const group = (ids: string[]) => {
+    const name = newFolderName(useStore.getState().library!.projects);
+    updateLibrary((current) => groupIntoFolder(current, 'projects', ids, name));
+    toggleFolder(folderKey('projects', name), false);
+    selection.clear();
+    setRenamingFolder(name);
+  };
+  const touch = useGroupTarget({
+    picked: () => (collapsed ? [] : [...selection.selected]),
+    current: () => (!collapsed && view.kind === 'project' ? view.projectId : undefined),
+    group,
+  });
+
+  const renderProject = (project: Project) => {
+    const reference = library.references.find((item) => item.id === project.referenceId);
+    const character = library.characters.find(
+      (item) => item.id === project.characters[0]?.characterId,
+    );
+    const picked = !collapsed && selection.isSelected(project.id);
+    return (
+      <ProjectRow
+        key={project.id}
+        project={project}
+        collapsed={collapsed}
+        active={view.kind === 'project' && view.projectId === project.id}
+        busy={active.get(project.id)}
+        avatar={
+          reference?.image
+            ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
+            : undefined
+        }
+        subtitle={character?.name ?? '캐릭터 없음'}
+        dragging={dragging}
+        startDrag={(id) => {
+          const payload = dragPayload(
+            id,
+            selection.selected,
+            library.projects.map((item) => item.id),
+          );
+          setDragging(payload.ids);
+          return payload;
+        }}
+        endDrag={() => setDragging([])}
+        picked={picked}
+        pickedCount={selection.selected.size}
+        removePicked={() => removeMany([...selection.selected])}
+        group={() => group(picked ? [...selection.selected] : [project.id])}
+        onPick={(event) => selection.clickItem(event, project.id)}
+      />
+    );
+  };
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -435,48 +523,59 @@ export function Sidebar() {
             className={`project-list ${collapsed ? '' : 'selectable'}`}
             aria-label="작업 목록"
             {...(collapsed ? {} : selection.containerProps)}
+            onPointerDownCapture={touch}
           >
-            {library.projects.map((project, index) => {
-              const reference = library.references.find((item) => item.id === project.referenceId);
-              const character = library.characters.find(
-                (item) => item.id === project.characters[0]?.characterId,
-              );
-              return (
-                <ProjectRow
-                  key={project.id}
-                  project={project}
-                  index={index}
-                  collapsed={collapsed}
-                  active={view.kind === 'project' && view.projectId === project.id}
-                  busy={active.get(project.id)}
-                  avatar={
-                    reference?.image
-                      ? referenceMedia(
-                          reference.id,
-                          reference.image.originalFile,
-                          reference.updatedAt,
+            {collapsed
+              ? rows
+                  .flatMap((row) => (row.kind === 'item' ? [row.item] : row.items))
+                  .map(renderProject)
+              : rows.map((row) =>
+                  row.kind === 'item' ? (
+                    renderProject(row.item)
+                  ) : (
+                    <ListFolder
+                      key={`folder:${row.name}`}
+                      scope="projects"
+                      name={row.name}
+                      count={row.items.length}
+                      dragType={DRAG_TYPE}
+                      renaming={renamingFolder === row.name}
+                      setRenaming={(on) => setRenamingFolder(on ? row.name : undefined)}
+                      onRename={(name) => {
+                        toggleFolder(folderKey('projects', name), isFolded(row.name));
+                        updateLibrary((current) =>
+                          renameFolder(current, 'projects', row.name, name),
+                        );
+                      }}
+                      onUngroup={() =>
+                        updateLibrary((current) => ungroupFolder(current, 'projects', row.name))
+                      }
+                      onPickAll={() => selection.selectAll(row.items.map((item) => item.id))}
+                      startDrag={() => {
+                        const ids = row.items.map((item) => item.id);
+                        setDragging(ids);
+                        return { ids, grabbed: ids[0], folder: row.name };
+                      }}
+                      endDrag={() => setDragging([])}
+                      onDrop={(payload) =>
+                        updateLibrary((current) =>
+                          payload.folder
+                            ? moveNextTo(
+                                current,
+                                'projects',
+                                payload.ids,
+                                payload.grabbed,
+                                row.items[0].id,
+                                true,
+                              )
+                            : moveIntoFolder(current, 'projects', payload.ids, row.name),
                         )
-                      : undefined
-                  }
-                  subtitle={character?.name ?? '캐릭터 없음'}
-                  dragging={dragging}
-                  startDrag={(id) => {
-                    const payload = dragPayload(
-                      id,
-                      selection.selected,
-                      library.projects.map((item) => item.id),
-                    );
-                    setDragging(payload.ids);
-                    return payload;
-                  }}
-                  endDrag={() => setDragging([])}
-                  picked={!collapsed && selection.isSelected(project.id)}
-                  pickedCount={selection.selected.size}
-                  removePicked={() => removeMany([...selection.selected])}
-                  onPick={(event) => selection.clickItem(event, project.id)}
-                />
-              );
-            })}
+                      }
+                    >
+                      {row.items.map(renderProject)}
+                    </ListFolder>
+                  ),
+                )}
             {collapsed && (
               <button className="project-item add" title="새 작업 (Ctrl+N)" onClick={newProject}>
                 <span className="avatar">
@@ -492,6 +591,13 @@ export function Sidebar() {
           {!collapsed && selection.selected.size > 0 && (
             <div className="selection-bar">
               <span>{selection.selected.size}개 선택</span>
+              <button
+                className="with-icon"
+                title="고른 작업을 새 폴더로 묶습니다 (Ctrl+G)"
+                onClick={() => group([...selection.selected])}
+              >
+                <Icon name="folder" size={14} /> 묶기
+              </button>
               <button
                 className="with-icon danger-quiet"
                 onClick={() => removeMany([...selection.selected])}

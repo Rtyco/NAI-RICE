@@ -1,7 +1,16 @@
 import { useRef, useState, type MouseEvent } from 'react';
 import type { Reference } from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
-import { moveItems } from '../../core/model/mutations';
+import {
+  groupIntoFolder,
+  listRows,
+  moveIntoFolder,
+  moveNextTo,
+  newFolderName,
+  renameFolder,
+  setFolder,
+  ungroupFolder,
+} from '../../core/model/folders';
 import { showContextMenu } from '../components/ContextMenu';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
@@ -16,9 +25,12 @@ import {
   type DragPayload,
 } from '../components/listDrag';
 import { listMenu } from '../components/listMenu';
+import { ListFolder } from '../components/ListFolder';
+import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
 import {
   openLibrary,
   referenceMedia,
+  toggleFolder,
   toggleLibraryList,
   updateLibrary,
   useLibrary,
@@ -49,7 +61,6 @@ const DRAG_TYPE = 'application/x-library-item';
 function LibraryRow(props: {
   section: LibrarySection;
   item: Item;
-  index: number;
   collapsed: boolean;
   selected: boolean;
   subtitle: string;
@@ -63,6 +74,8 @@ function LibraryRow(props: {
   /** 지금 고른 항목 수. 고른 항목에서 우클릭하면 삭제를 한꺼번에 한다. */
   pickedCount: number;
   removePicked: () => void;
+  /** 이 항목(고른 항목 중 하나면 고른 것 모두)을 새 폴더로 묶는다. */
+  group: () => void;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
@@ -117,6 +130,12 @@ function LibraryRow(props: {
             remove: () => void deleteItem(section, item),
             pickedCount: props.picked ? props.pickedCount : 0,
             removePicked: props.removePicked,
+            group: collapsed ? undefined : props.group,
+            ungroup:
+              collapsed || !item.folder
+                ? undefined
+                : () =>
+                    updateLibrary((current) => setFolder(current, section, [item.id], undefined)),
           }),
         )
       }
@@ -135,7 +154,14 @@ function LibraryRow(props: {
         event.preventDefault();
         event.stopPropagation();
         updateLibrary((current) =>
-          moveItems(current, section, payload.ids, payload.grabbed, item.id),
+          moveNextTo(
+            current,
+            section,
+            payload.ids,
+            payload.grabbed,
+            item.id,
+            Boolean(payload.folder),
+          ),
         );
       }}
     >
@@ -204,10 +230,61 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
       section,
       items.filter((item) => ids.includes(item.id)),
     );
+  const rows = listRows(items);
+  const isFolded = useFoldedFolders(section);
   const selection = useBoxSelection<HTMLElement>(
-    items.map((item) => item.id),
+    rows.flatMap((row) =>
+      row.kind === 'item'
+        ? [row.item.id]
+        : isFolded(row.name)
+          ? []
+          : row.items.map((item) => item.id),
+    ),
     removeMany,
   );
+  const [renamingFolder, setRenamingFolder] = useState<string>();
+  const group = (ids: string[]) => {
+    const name = newFolderName(useStore.getState().library![section] as Item[]);
+    updateLibrary((current) => groupIntoFolder(current, section, ids, name));
+    toggleFolder(folderKey(section, name), false);
+    selection.clear();
+    setRenamingFolder(name);
+  };
+  const touch = useGroupTarget({
+    picked: () => (collapsed ? [] : [...selection.selected]),
+    current: () => (collapsed ? undefined : selected?.id),
+    group,
+  });
+  const renderItem = (item: Item) => {
+    const uses = projectsUsing(library, label.kind, item.id).length;
+    const picked = !collapsed && selection.isSelected(item.id);
+    return (
+      <LibraryRow
+        key={item.id}
+        section={section}
+        item={item}
+        collapsed={collapsed}
+        selected={item.id === selected?.id}
+        subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
+        dragging={dragging}
+        startDrag={(id) => {
+          const payload = dragPayload(
+            id,
+            selection.selected,
+            items.map((entry) => entry.id),
+          );
+          setDragging(payload.ids);
+          return payload;
+        }}
+        endDrag={() => setDragging([])}
+        picked={picked}
+        pickedCount={selection.selected.size}
+        removePicked={() => removeMany([...selection.selected])}
+        group={() => group(picked ? [...selection.selected] : [item.id])}
+        onPick={(event) => selection.clickItem(event, item.id)}
+      />
+    );
+  };
   // 감정 모음은 기본 감정 6개로 시작할지 빈 채로 시작할지 고른다.
   const add = (event: MouseEvent) => {
     const create = (empty: boolean) =>
@@ -254,35 +331,59 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
         <nav
           className={collapsed ? '' : 'selectable'}
           {...(collapsed ? {} : selection.containerProps)}
+          onPointerDownCapture={touch}
         >
-          {items.map((item, index) => {
-            const uses = projectsUsing(library, label.kind, item.id).length;
-            return (
-              <LibraryRow
-                key={item.id}
-                section={section}
-                item={item}
-                index={index}
-                collapsed={collapsed}
-                selected={item.id === selected?.id}
-                subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
-                dragging={dragging}
-                startDrag={(id) => {
-                  const payload = dragPayload(
-                    id,
-                    selection.selected,
-                    items.map((entry) => entry.id),
-                  );
-                  setDragging(payload.ids);
-                  return payload;
-                }}
-                endDrag={() => setDragging([])}
-                picked={!collapsed && selection.isSelected(item.id)}
-                pickedCount={selection.selected.size}
-                removePicked={() => removeMany([...selection.selected])}
-                onPick={(event) => selection.clickItem(event, item.id)}
-              />
-            );
+          {(collapsed
+            ? rows.flatMap((row) =>
+                row.kind === 'item'
+                  ? [row]
+                  : row.items.map((item) => ({ kind: 'item' as const, item })),
+              )
+            : rows
+          ).map((row) => {
+            if (row.kind === 'folder')
+              return (
+                <ListFolder
+                  key={`folder:${row.name}`}
+                  scope={section}
+                  name={row.name}
+                  count={row.items.length}
+                  dragType={DRAG_TYPE}
+                  renaming={renamingFolder === row.name}
+                  setRenaming={(on) => setRenamingFolder(on ? row.name : undefined)}
+                  onRename={(name) => {
+                    toggleFolder(folderKey(section, name), isFolded(row.name));
+                    updateLibrary((current) => renameFolder(current, section, row.name, name));
+                  }}
+                  onUngroup={() =>
+                    updateLibrary((current) => ungroupFolder(current, section, row.name))
+                  }
+                  onPickAll={() => selection.selectAll(row.items.map((item) => item.id))}
+                  startDrag={() => {
+                    const ids = row.items.map((item) => item.id);
+                    setDragging(ids);
+                    return { ids, grabbed: ids[0], folder: row.name };
+                  }}
+                  endDrag={() => setDragging([])}
+                  onDrop={(payload) =>
+                    updateLibrary((current) =>
+                      payload.folder
+                        ? moveNextTo(
+                            current,
+                            section,
+                            payload.ids,
+                            payload.grabbed,
+                            row.items[0].id,
+                            true,
+                          )
+                        : moveIntoFolder(current, section, payload.ids, row.name),
+                    )
+                  }
+                >
+                  {row.items.map(renderItem)}
+                </ListFolder>
+              );
+            return renderItem(row.item);
           })}
           {collapsed && (
             <button className="library-item-main add" title="추가" onClick={add}>
@@ -297,6 +398,13 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
         {!collapsed && selection.selected.size > 0 && (
           <div className="selection-bar">
             <span>{selection.selected.size}개 선택</span>
+            <button
+              className="with-icon"
+              title="고른 항목을 새 폴더로 묶습니다 (Ctrl+G)"
+              onClick={() => group([...selection.selected])}
+            >
+              <Icon name="folder" size={14} /> 묶기
+            </button>
             <button
               className="with-icon danger-quiet"
               onClick={() => removeMany([...selection.selected])}

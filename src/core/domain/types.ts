@@ -61,9 +61,13 @@ export type GenerationSettings = {
   effort: Effort;
 };
 
+/** 사이드바 작업 목록과 라이브러리 목록에서 묶어 둔 폴더 이름. 없으면 폴더 밖에 있다. */
+export type FolderName = string;
+
 export type Preset = {
   id: string;
   name: string;
+  folder?: FolderName;
   commonPositive: string;
   commonNegative: string;
   generation: GenerationSettings;
@@ -80,6 +84,7 @@ export type CharacterPromptSet = {
 export type Character = {
   id: string;
   name: string;
+  folder?: FolderName;
   promptSets: CharacterPromptSet[];
   createdAt: string;
 };
@@ -100,6 +105,7 @@ export type Emotion = {
 export type EmotionSet = {
   id: string;
   name: string;
+  folder?: FolderName;
   emotions: Emotion[];
 };
 
@@ -117,6 +123,7 @@ export type PromptPiece = {
 export type PieceSet = {
   id: string;
   name: string;
+  folder?: FolderName;
   pieces: PromptPiece[];
 };
 
@@ -141,6 +148,7 @@ export type CanvasLayout = {
 export type Reference = {
   id: string;
   name: string;
+  folder?: FolderName;
   image?: {
     originalFile: string;
     canvasFile: string;
@@ -183,6 +191,7 @@ export type CharacterPositionMode = 'ai' | 'manual';
 export type Project = {
   id: string;
   name: string;
+  folder?: FolderName;
   mode: ProjectMode;
   presetId: string;
   /** 비어 있으면 생성할 수 없다. 인페인트의 참고 이미지는 첫 캐릭터만 참고가 된다. */

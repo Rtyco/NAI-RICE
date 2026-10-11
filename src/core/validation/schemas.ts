@@ -41,9 +41,13 @@ export const generationSettingsSchema = z.object({
   effort: z.enum(['high', 'medium']).default('high'),
 });
 
+// 빈 이름은 폴더 밖으로 읽는다.
+const folderSchema = z.string().trim().min(1).optional().catch(undefined);
+
 export const presetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
+  folder: folderSchema,
   commonPositive: z.string(),
   commonNegative: z.string(),
   generation: generationSettingsSchema,
@@ -59,6 +63,7 @@ const promptSetSchema = z.object({
 export const characterSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
+  folder: folderSchema,
   promptSets: z.array(promptSetSchema).min(1),
   createdAt: z.string(),
 });
@@ -66,6 +71,7 @@ export const characterSchema = z.object({
 export const emotionSetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
+  folder: folderSchema,
   emotions: z.array(
     z.object({
       id: z.string().min(1),
@@ -86,6 +92,7 @@ export const promptPieceSchema = z.object({
 export const pieceSetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
+  folder: folderSchema,
   pieces: z.array(promptPieceSchema),
 });
 
@@ -147,6 +154,7 @@ export const FOLDER_ID = /^[\p{L}\p{N}-]+$/u;
 export const referenceSchema = z.object({
   id: z.string().regex(FOLDER_ID),
   name: z.string(),
+  folder: folderSchema,
   image: z
     .object({
       originalFile: z.string(),
@@ -191,6 +199,7 @@ export const projectSchema = z.preprocess(
   z.object({
     id: z.string().regex(FOLDER_ID),
     name: z.string(),
+    folder: folderSchema,
     // 없어진 i2i 방식(img2img)은 인페인트로 읽는다.
     mode: z.enum(['reference', 'txt2img']).catch('reference'),
     presetId: z.string(),

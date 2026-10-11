@@ -3,6 +3,7 @@ import { openDialog } from './components/Dialogs';
 import { NewProjectDialog } from './components/Sidebar';
 import { appApi } from './desktop';
 import { importJsonFromPicker } from './importers';
+import { groupFromShortcut } from './components/listFolders';
 import { SECTIONS } from './sections';
 import {
   flushSaves,
@@ -66,6 +67,11 @@ export function useGlobalShortcuts(): void {
         action = () => void importJsonFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = toggleSidebar;
+      const typing = (event.target as HTMLElement | null)?.closest?.(
+        'input, textarea, select, [contenteditable="true"]',
+      );
+      if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
+        action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;
 
       // 저장은 대화상자가 열려 있어도 한다.

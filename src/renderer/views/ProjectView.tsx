@@ -14,12 +14,12 @@ import {
   supportsInpaint,
   usesMedium,
 } from '../../core/providers/NaiModels';
-import { CharacterChips } from '../components/CharacterChips';
+import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChainChip, SizeChip } from '../components/ChainChip';
+import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
@@ -104,64 +104,59 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
 
   return (
     <div className="chain-bar">
-      <ChainChip section="presets" itemId={resolved.preset?.id} missing={!resolved.preset}>
-        <select
-          value={project.presetId}
-          onChange={(event) => patch({ presetId: event.target.value })}
-        >
-          {!resolved.preset && <option value={project.presetId}>(없음)</option>}
-          {library.presets.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      </ChainChip>
-      <CharacterChips
+      <ChecklistChip
+        section="presets"
+        itemId={resolved.preset?.id}
+        missing={!resolved.preset}
+        value={resolved.preset?.name ?? '(없음)'}
+        items={library.presets}
+        checked={[project.presetId]}
+        onPick={(presetId) => patch({ presetId })}
+        editSection="presets"
+      />
+      <CharacterChip
         slots={project.characters}
         max={maxCharactersFor(resolved.preset?.generation.model)}
         onChange={(characters) => patch({ characters })}
       />
       <PositionChip target={{ projectId: project.id }} />
       {project.mode === 'reference' && (
-        <ChainChip
+        <ChecklistChip
           section="references"
           itemId={resolved.reference?.id}
           missing={!resolved.reference?.image}
-        >
-          {thumb && <img className="chain-thumb" src={thumb} alt="" />}
-          <select
-            value={project.referenceId}
-            onChange={(event) => patch({ referenceId: event.target.value })}
-          >
-            {!resolved.reference && <option value={project.referenceId}>(없음)</option>}
-            {library.references.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-                {item.image ? '' : ' (이미지 없음)'}
-              </option>
-            ))}
-          </select>
-        </ChainChip>
+          value={resolved.reference?.name ?? '(없음)'}
+          thumb={thumb}
+          items={library.references.map((item) => ({
+            id: item.id,
+            name: item.name,
+            folder: item.folder,
+            thumb: item.image
+              ? referenceMedia(item.id, item.image.originalFile, item.updatedAt)
+              : '',
+            hint: item.image ? undefined : '이미지 없음',
+          }))}
+          checked={[project.referenceId]}
+          onPick={(referenceId) => patch({ referenceId })}
+          editSection="references"
+        />
       )}
       {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
-      <ChainChip
+      <ChecklistChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
         missing={!resolved.emotionSet}
-      >
-        <select
-          value={project.emotionSetId}
-          onChange={(event) => patch({ emotionSetId: event.target.value })}
-        >
-          {!resolved.emotionSet && <option value={project.emotionSetId}>(없음)</option>}
-          {library.emotionSets.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} ({item.emotions.length})
-            </option>
-          ))}
-        </select>
-      </ChainChip>
+        value={resolved.emotionSet?.name ?? '(없음)'}
+        items={library.emotionSets.map((item) => ({
+          id: item.id,
+          name: item.name,
+          folder: item.folder,
+          hint: `씬 ${item.emotions.length}개`,
+        }))}
+        checked={[project.emotionSetId]}
+        onPick={(emotionSetId) => patch({ emotionSetId })}
+        editSection="emotionSets"
+      />
     </div>
   );
 }

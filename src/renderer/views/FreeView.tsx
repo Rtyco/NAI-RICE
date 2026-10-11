@@ -7,9 +7,9 @@ import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/provid
 import { generateFree } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
-import { CharacterChips } from '../components/CharacterChips';
+import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
-import { ChainChip, SizeChip } from '../components/ChainChip';
+import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
@@ -397,20 +397,17 @@ export function FreeView() {
         </button>
       </header>
       <div className="chain-bar">
-        <ChainChip section="presets" itemId={preset?.id} missing={!preset}>
-          <select
-            value={preset?.id ?? ''}
-            onChange={(event) => updateFreeGeneration({ presetId: event.target.value })}
-          >
-            {!preset && <option value="">(없음)</option>}
-            {library.presets.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </ChainChip>
-        <CharacterChips
+        <ChecklistChip
+          section="presets"
+          itemId={preset?.id}
+          missing={!preset}
+          value={preset?.name ?? '(없음)'}
+          items={library.presets}
+          checked={preset ? [preset.id] : []}
+          onPick={(presetId) => updateFreeGeneration({ presetId })}
+          editSection="presets"
+        />
+        <CharacterChip
           slots={free.characters}
           optional
           max={maxCharactersFor(preset?.generation.model)}

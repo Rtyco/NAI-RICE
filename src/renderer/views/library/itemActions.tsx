@@ -40,7 +40,7 @@ import { SECTIONS } from '../../sections';
 import { openLibrary, run, toast, updateLibrary, useStore, type LibrarySection } from '../../store';
 import { fileApi, libraryApi } from '../../desktop';
 
-export type Item = { id: string; name: string };
+export type Item = { id: string; name: string; folder?: string };
 
 export const LABELS = Object.fromEntries(
   SECTIONS.map((section) => [

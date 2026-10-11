@@ -48,6 +48,10 @@ type State = {
   libraryListCollapsed: boolean;
   /** 작업·자유 생성 화면 왼쪽의 프롬프트 패널을 접었는지. 두 화면이 함께 쓴다. */
   promptPanelCollapsed: boolean;
+  /** 접힌 목록 폴더. `작업` 또는 라이브러리 칸 이름과 폴더 이름을 `/`로 이은 값이다. */
+  foldedFolders: string[];
+  /** 프롬프트 패널에서 접힌 묶음. 생성 설정은 `preset`, 캐릭터는 `character:<ID>`다. */
+  foldedPromptGroups: string[];
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -96,6 +100,18 @@ const readGalleryColumns = () =>
 const FILMSTRIP_KEY = 'filmstrip-collapsed';
 const LIBRARY_LIST_KEY = 'library-list-collapsed';
 const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
+const FOLDED_FOLDERS_KEY = 'folded-folders';
+const FOLDED_PROMPT_GROUPS_KEY = 'folded-prompt-groups';
+
+const readStringList = (key: string) =>
+  readUiState(
+    key,
+    (raw) => {
+      const value: unknown = JSON.parse(raw ?? '[]');
+      return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
+    },
+    [] as string[],
+  );
 
 const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
 
@@ -122,6 +138,8 @@ export const useStore = create<State>(() => ({
   filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
   libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
   promptPanelCollapsed: readUiState(PROMPT_PANEL_KEY, (raw) => raw === '1', false),
+  foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
+  foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -380,6 +398,24 @@ export function togglePromptPanel(): void {
   const collapsed = !get().promptPanelCollapsed;
   set({ promptPanelCollapsed: collapsed });
   saveUiState(PROMPT_PANEL_KEY, collapsed ? '1' : '0');
+}
+
+function toggleIn(list: string[], value: string, folded?: boolean): string[] {
+  const next = folded ?? !list.includes(value);
+  return next ? [...new Set([...list, value])] : list.filter((item) => item !== value);
+}
+
+/** 목록 폴더를 접거나 편다. `folded`를 주면 그 상태로 맞춘다. 다음 실행에도 기억한다. */
+export function toggleFolder(key: string, folded?: boolean): void {
+  const foldedFolders = toggleIn(get().foldedFolders, key, folded);
+  set({ foldedFolders });
+  saveUiState(FOLDED_FOLDERS_KEY, JSON.stringify(foldedFolders));
+}
+
+export function togglePromptGroup(key: string, folded?: boolean): void {
+  const foldedPromptGroups = toggleIn(get().foldedPromptGroups, key, folded);
+  set({ foldedPromptGroups });
+  saveUiState(FOLDED_PROMPT_GROUPS_KEY, JSON.stringify(foldedPromptGroups));
 }
 
 export async function refreshAccount(): Promise<void> {

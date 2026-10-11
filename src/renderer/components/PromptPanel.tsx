@@ -5,6 +5,7 @@ import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
   resolveFreeGeneration,
+  togglePromptGroup,
   togglePromptPanel,
   updateLibrary,
   useLibrary,
@@ -30,6 +31,53 @@ function sharedHint(uses: number, ownUses: number): string | undefined {
   return others > 0 ? `다른 작업 ${others}개에도 함께 반영됩니다.` : undefined;
 }
 
+/** 프롬프트 패널의 접을 수 있는 묶음 하나. 접으면 제목 줄 아래에 포지티브 첫머리만 보인다. */
+function PromptCard(props: {
+  groupKey: string;
+  icon: 'preset' | 'character';
+  order?: number;
+  title: string;
+  peek: string;
+  edit?: { title: string; open: () => void };
+  children: ReactNode;
+}) {
+  const folded = useStore((state) => state.foldedPromptGroups.includes(props.groupKey));
+  return (
+    <section className={`prompt-card ${folded ? 'folded' : ''}`}>
+      <div className="prompt-card-head">
+        <button
+          className="prompt-card-toggle"
+          aria-expanded={!folded}
+          title={folded ? '펼치기' : '접기'}
+          onClick={() => togglePromptGroup(props.groupKey)}
+        >
+          <Icon name="chevron" size={12} className="section-chevron" />
+          {props.order ? (
+            <span className="prompt-panel-order">{props.order}</span>
+          ) : (
+            <Icon name={props.icon} size={14} />
+          )}
+          <span className="prompt-card-title">
+            <b>{props.title}</b>
+            {folded && <small>{props.peek.trim() || '(비어 있음)'}</small>}
+          </span>
+        </button>
+        {props.edit && (
+          <button
+            className="icon-button"
+            title={props.edit.title}
+            aria-label={props.edit.title}
+            onClick={props.edit.open}
+          >
+            <Icon name="edit" size={14} />
+          </button>
+        )}
+      </div>
+      {!folded && <div className="prompt-card-body">{props.children}</div>}
+    </section>
+  );
+}
+
 /**
  * 작업·자유 생성 화면 왼쪽의 프롬프트 패널. 지금 고른 생성 설정의 공통 프롬프트와 캐릭터 프롬프트 세트를
  * 라이브러리로 가지 않고 고친다. 바꾼 값은 라이브러리 항목에 바로 저장된다.
@@ -48,6 +96,7 @@ export function PromptPanel(props: {
   const { preset, characters } = props;
   const library = useLibrary();
   const collapsed = useStore((state) => state.promptPanelCollapsed);
+  const foldedGroups = useStore((state) => state.foldedPromptGroups);
   const own = props.projectId ? 1 : 0;
   const presetShared =
     preset && sharedHint(projectsUsing(library, 'preset', preset.id).length, own);
@@ -124,21 +173,15 @@ export function PromptPanel(props: {
         </div>
       </div>
       <div className="prompt-panel-body">
-        <section className="prompt-panel-section">
-          <div className="prompt-panel-section-head">
-            <Icon name="preset" size={14} />
-            <b>{preset?.name ?? '생성 설정 없음'}</b>
-            {preset && (
-              <button
-                className="icon-button"
-                title="생성 설정 편집"
-                aria-label="생성 설정 편집"
-                onClick={() => editInPopup('presets', preset.id)}
-              >
-                <Icon name="edit" size={14} />
-              </button>
-            )}
-          </div>
+        <PromptCard
+          groupKey="preset"
+          icon="preset"
+          title={preset?.name ?? '생성 설정 없음'}
+          peek={preset?.commonPositive ?? ''}
+          edit={
+            preset && { title: '생성 설정 편집', open: () => editInPopup('presets', preset.id) }
+          }
+        >
           {preset ? (
             <>
               <PromptField
@@ -161,60 +204,75 @@ export function PromptPanel(props: {
           ) : (
             <p className="hint">위쪽에서 생성 설정을 고르십시오.</p>
           )}
-        </section>
+        </PromptCard>
 
-        {characters.map(({ character, promptSet }, index) => {
-          const shared = sharedHint(projectsUsing(library, 'character', character.id).length, own);
-          return (
-            <section key={`${index}-${character.id}`} className="prompt-panel-section">
-              <div className="prompt-panel-section-head">
-                <Icon name="character" size={14} />
-                <b>
-                  {characters.length > 1 && <span className="prompt-panel-order">{index + 1}</span>}
-                  {character.promptSets.length > 1
-                    ? `${character.name} / ${promptSet.name}`
-                    : character.name}
-                </b>
+        <div className="prompt-group">
+          <div className="prompt-group-head">
+            <Icon name="character" size={14} />
+            <b>캐릭터 프롬프트</b>
+            {characters.length > 1 && (
+              <>
+                <small>{characters.length}명</small>
                 <button
-                  className="icon-button"
-                  title="캐릭터 편집"
-                  aria-label="캐릭터 편집"
-                  onClick={() => editInPopup('characters', character.id)}
+                  className="link-button"
+                  onClick={() => {
+                    const keys = characters.map((item) => `character:${item.character.id}`);
+                    const fold = !keys.every((key) => foldedGroups.includes(key));
+                    for (const key of keys) togglePromptGroup(key, fold);
+                  }}
                 >
-                  <Icon name="edit" size={14} />
+                  {characters.every((item) =>
+                    foldedGroups.includes(`character:${item.character.id}`),
+                  )
+                    ? '모두 펴기'
+                    : '모두 접기'}
                 </button>
-              </div>
-              <PromptField
-                label="캐릭터 포지티브"
-                value={promptSet.positive}
-                rows={characters.length > 1 ? 4 : 6}
-                placeholder="외형, 복장, 정체성 등 캐릭터 전용 태그"
-                onChange={(positive) => patchPromptSet(character, promptSet, { positive })}
-              />
-              <PromptField
-                label="캐릭터 네거티브"
-                tone="negative"
-                hint={unusedInMedium}
-                value={promptSet.negative}
-                rows={characters.length > 1 ? 2 : 3}
-                onChange={(negative) => patchPromptSet(character, promptSet, { negative })}
-              />
-              {shared && <p className="hint">{shared}</p>}
-              {index === 0 && characters.length > 1 && props.firstCharacterNote && (
-                <p className="hint">{props.firstCharacterNote}</p>
-              )}
-            </section>
-          );
-        })}
-        {!characters.length && (
-          <section className="prompt-panel-section">
-            <div className="prompt-panel-section-head">
-              <Icon name="character" size={14} />
-              <b>캐릭터 없음</b>
-            </div>
-            <p className="hint">{props.noCharacter}</p>
-          </section>
-        )}
+              </>
+            )}
+          </div>
+          {characters.map(({ character, promptSet }, index) => {
+            const shared = sharedHint(
+              projectsUsing(library, 'character', character.id).length,
+              own,
+            );
+            return (
+              <PromptCard
+                key={`${index}-${character.id}`}
+                groupKey={`character:${character.id}`}
+                icon="character"
+                order={characters.length > 1 ? index + 1 : undefined}
+                title={
+                  character.promptSets.length > 1
+                    ? `${character.name} / ${promptSet.name}`
+                    : character.name
+                }
+                peek={promptSet.positive}
+                edit={{ title: '캐릭터 편집', open: () => editInPopup('characters', character.id) }}
+              >
+                <PromptField
+                  label="캐릭터 포지티브"
+                  value={promptSet.positive}
+                  rows={characters.length > 1 ? 4 : 6}
+                  placeholder="외형, 복장, 정체성 등 캐릭터 전용 태그"
+                  onChange={(positive) => patchPromptSet(character, promptSet, { positive })}
+                />
+                <PromptField
+                  label="캐릭터 네거티브"
+                  tone="negative"
+                  hint={unusedInMedium}
+                  value={promptSet.negative}
+                  rows={characters.length > 1 ? 2 : 3}
+                  onChange={(negative) => patchPromptSet(character, promptSet, { negative })}
+                />
+                {shared && <p className="hint">{shared}</p>}
+                {index === 0 && characters.length > 1 && props.firstCharacterNote && (
+                  <p className="hint">{props.firstCharacterNote}</p>
+                )}
+              </PromptCard>
+            );
+          })}
+          {!characters.length && <p className="hint">{props.noCharacter}</p>}
+        </div>
         {props.footer}
       </div>
     </aside>
