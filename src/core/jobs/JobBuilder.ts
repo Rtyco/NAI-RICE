@@ -1,5 +1,7 @@
 import type {
   AppSettings,
+  AugmentJobSnapshot,
+  AugmentTool,
   CharacterCenter,
   CharacterPositionMode,
   CharacterPromptSet,
@@ -10,6 +12,7 @@ import type {
   GenerationRecord,
   Img2ImgJobSnapshot,
   InpaintJobSnapshot,
+  JobSnapshotCommon,
   PieceSet,
   Preset,
   Project,
@@ -461,67 +464,154 @@ export type ResultImg2ImgInput = {
 };
 
 /**
- * 결과를 i2i로 다시 그린다(업스케일 우회). 원래 결과의 최종 프롬프트와 설정을 그대로 쓰고 크기와 세기만
- * 바꾼다. 결과에는 참고 이미지가 없으므로 reference inset 태그는 뺀다. 기록에는 사용자가 쓴 원문이 없어서,
+ * 결과를 입력으로 쓰는 작업(i2i·디렉터 툴)의 공통 내용. 원래 결과의 최종 프롬프트와 설정을 그대로 쓴다.
+ * 결과에는 참고 이미지가 없으므로 reference inset 태그는 뺀다. 기록에는 사용자가 쓴 원문이 없어서,
  * 메타데이터의 원문 자리에도 최종 프롬프트를 넣는다.
  */
+function resultJobCommon(
+  record: GenerationRecord,
+  job: {
+    id: string;
+    createdAt: string;
+    projectName: string;
+    outputFilenameTemplate: string;
+    seed: number;
+    variantIndex: number;
+    width: number;
+    height: number;
+  },
+): JobSnapshotCommon {
+  const prompt = removeReferenceInset(record.prompt);
+  const characterPrompt = removeReferenceInset(record.characterPrompt);
+  return {
+    id: job.id,
+    createdAt: job.createdAt,
+    projectId: record.projectId,
+    projectName: job.projectName,
+    characterName: record.characterName,
+    emotionId: record.emotionId,
+    emotionName: record.emotionName,
+    emotionPrompt: record.emotionPrompt,
+    presetName: record.presetName,
+    promptSetName: record.promptSetName,
+    emotionSetName: record.emotionSetName,
+    referenceName: record.referenceName,
+    prompt,
+    negativePrompt: record.negativePrompt,
+    characterPrompt,
+    characterNegativePrompt: record.characterNegativePrompt,
+    ...(record.extraCharacters
+      ? {
+          extraCharacters: record.extraCharacters.map((character) => ({
+            ...character,
+            prompt: removeReferenceInset(character.prompt),
+          })),
+        }
+      : {}),
+    ...(record.characterCenters ? { characterCenters: record.characterCenters } : {}),
+    source: {
+      commonPositive: prompt,
+      commonNegative: record.negativePrompt,
+      characterPositive: characterPrompt,
+    },
+    seed: job.seed,
+    variantIndex: job.variantIndex,
+    canvasWidth: job.width,
+    canvasHeight: job.height,
+    outputFilenameTemplate: job.outputFilenameTemplate,
+    settings: { ...effectiveGenerationSettings(record.settings) },
+    warnings: [],
+    sourceRecordId: record.id,
+  };
+}
+
+/** 결과를 i2i로 다시 그린다(업스케일 우회). 원래 결과의 프롬프트와 설정에 크기와 세기만 바꾼다. */
 export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSnapshot[] {
   const { record } = input;
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
-  const prompt = removeReferenceInset(record.prompt);
-  const characterPrompt = removeReferenceInset(record.characterPrompt);
   const jobs: Img2ImgJobSnapshot[] = [];
   for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
     const seed =
       input.seedMode === 'source' ? seedForVariant(record.seed, variantIndex) : randomSeed();
     const createdAt = now().toISOString();
     jobs.push({
+      ...resultJobCommon(record, {
+        ...input,
+        id: `${record.projectId}-${record.id}-i2i-${variantIndex}-${seed}-${createdAt}`,
+        createdAt,
+        seed,
+        variantIndex,
+      }),
       kind: 'img2img',
-      id: `${record.projectId}-${record.id}-i2i-${variantIndex}-${seed}-${createdAt}`,
-      createdAt,
-      projectId: record.projectId,
-      projectName: input.projectName,
-      characterName: record.characterName,
-      emotionId: record.emotionId,
-      emotionName: record.emotionName,
-      emotionPrompt: record.emotionPrompt,
-      presetName: record.presetName,
-      promptSetName: record.promptSetName,
-      emotionSetName: record.emotionSetName,
-      referenceName: record.referenceName,
-      prompt,
-      negativePrompt: record.negativePrompt,
-      characterPrompt,
-      characterNegativePrompt: record.characterNegativePrompt,
-      ...(record.extraCharacters
-        ? {
-            extraCharacters: record.extraCharacters.map((character) => ({
-              ...character,
-              prompt: removeReferenceInset(character.prompt),
-            })),
-          }
-        : {}),
-      ...(record.characterCenters ? { characterCenters: record.characterCenters } : {}),
-      source: {
-        commonPositive: prompt,
-        commonNegative: record.negativePrompt,
-        characterPositive: characterPrompt,
-      },
-      seed,
-      variantIndex,
-      canvasWidth: input.width,
-      canvasHeight: input.height,
-      outputFilenameTemplate: input.outputFilenameTemplate,
-      settings: { ...effectiveGenerationSettings(record.settings) },
-      warnings: [],
-      sourceRecordId: record.id,
       ...input.image,
       strength: input.strength,
       noise: input.noise,
     });
   }
   return jobs;
+}
+
+/** 디렉터 툴 결과를 쌓을 씬. Emotion 툴로 씬 세트를 만들 때는 씬마다 표정이 다르다. */
+export type AugmentTarget = {
+  emotionId: string;
+  emotionName: string;
+  emotionPrompt: string;
+  mood?: string;
+  defry?: number;
+};
+
+export type ResultAugmentInput = {
+  record: GenerationRecord;
+  image: ImageInput;
+  width: number;
+  height: number;
+  tool: AugmentTool;
+  mood?: string;
+  toolPrompt: string;
+  defry: number;
+  /** 비어 있으면 원래 결과의 씬에 한 장을 쌓는다. */
+  targets?: AugmentTarget[];
+  outputFilenameTemplate: string;
+  projectName: string;
+  now?: () => Date;
+};
+
+/**
+ * 결과 하나에 디렉터 툴을 적용한다. 디렉터 툴은 seed를 받지 않아 원래 결과의 seed를 그대로 적는다. 프롬프트와
+ * 설정은 요청에 쓰지 않지만 결과 정보와 메타데이터에 남도록 원래 결과의 것을 옮긴다.
+ */
+export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSnapshot[] {
+  const { record } = input;
+  const now = input.now ?? (() => new Date());
+  const targets = input.targets ?? [
+    {
+      emotionId: record.emotionId,
+      emotionName: record.emotionName,
+      emotionPrompt: record.emotionPrompt,
+    },
+  ];
+  return targets.map((target, index) => {
+    const createdAt = now().toISOString();
+    return {
+      ...resultJobCommon(record, {
+        ...input,
+        id: `${record.projectId}-${record.id}-${input.tool}-${index}-${createdAt}`,
+        createdAt,
+        seed: record.seed,
+        variantIndex: 1,
+      }),
+      emotionId: target.emotionId,
+      emotionName: target.emotionName,
+      emotionPrompt: target.emotionPrompt,
+      kind: 'augment',
+      ...input.image,
+      tool: input.tool,
+      ...(input.tool === 'emotion' ? { mood: target.mood ?? input.mood ?? 'neutral' } : {}),
+      toolPrompt: input.toolPrompt,
+      defry: target.defry ?? input.defry,
+    };
+  });
 }
 
 /** 일반 생성: 참고 이미지 없이 생성 설정의 해상도로 감정마다 txt2img를 한다. */

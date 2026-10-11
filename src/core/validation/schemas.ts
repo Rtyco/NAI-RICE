@@ -78,6 +78,8 @@ export const emotionSetSchema = z.object({
       name: z.string(),
       prompt: z.string(),
       extraPrompts: z.array(z.string()).optional(),
+      augmentMood: z.string().trim().min(1).max(40).optional().catch(undefined),
+      augmentDefry: z.number().int().min(0).max(5).optional().catch(undefined),
     }),
   ),
 });
@@ -321,6 +323,15 @@ export const augmentToolSchema = z.enum([
   'colorize',
 ]);
 
+const augmentInfoSchema = z.object({
+  tool: augmentToolSchema,
+  mood: z.string().optional(),
+  toolPrompt: z.string().optional(),
+  defry: z.number().optional(),
+  part: z.number().int().min(0).optional(),
+  parts: z.number().int().min(1).optional(),
+});
+
 export const generationRecordSchema = z.object({
   id: z.string(),
   // 생성 방식 구분이 생기기 전의 기록은 모두 인페인트다.
@@ -334,6 +345,7 @@ export const generationRecordSchema = z.object({
   thumbFile: z.string().optional(),
   canvasFile: z.string().optional(),
   inputFile: z.string().optional(),
+  augment: augmentInfoSchema.optional().catch(undefined),
   width: z.number(),
   height: z.number(),
   seed: z.number(),

@@ -7,7 +7,7 @@ import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { GenerationRecord, QueueView, Reference } from '../../src/core/domain/types';
-import { buildFreeJobs, buildJobs } from '../../src/core/jobs/JobBuilder';
+import { buildFreeJobs, buildJobs, buildResultAugmentJobs } from '../../src/core/jobs/JobBuilder';
 import { interpretMetadata } from '../../src/core/metadata/NaiMetadata';
 import { insertPngChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
 import { readImageText } from '../../src/core/metadata/WebpMetadata';
@@ -100,7 +100,7 @@ describe('generation pipeline', () => {
       generate: async (request) => {
         requests.push(request.job);
         requestTimes.push(Date.now());
-        return generated;
+        return [generated];
       },
     };
     let anlas = 100;
@@ -236,7 +236,7 @@ describe('generation pipeline', () => {
       provider: {
         generate: async (request) => {
           sent.push({ image: request.image, mask: request.mask });
-          return generated;
+          return [generated];
         },
       },
       token: async () => 'token',
@@ -305,7 +305,7 @@ describe('generation pipeline', () => {
     const queue = new GenerationQueue({
       persistencePath: path.join(root, 'queue.json'),
       library,
-      provider: { generate: async () => generated },
+      provider: { generate: async () => [generated] },
       token: async () => 'token',
       emit: () => undefined,
       onRecord: (record) => records.push(record),
@@ -330,6 +330,67 @@ describe('generation pipeline', () => {
       readFile(library.resolveProject(FREE_PROJECT_ID, records[0].file)),
     ).resolves.toBeTruthy();
     expect(await library.listGenerations(FREE_PROJECT_ID)).toHaveLength(1);
+  });
+
+  it('배경 제거처럼 한 번에 여러 장이 오면 장마다 결과로 쌓고 Anlas는 첫 장에만 적어', async () => {
+    const { root, library } = await setupLibrary();
+    const records: GenerationRecord[] = [];
+    const parts = await Promise.all(['#ff0000', '#00ff00', '#0000ff'].map((c) => png(64, 64, c)));
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async (request) =>
+          request.job.kind === 'augment' ? parts : [await png(64, 64, '#ffffff')],
+      },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: (record) => records.push(record),
+      requestDelayMs: () => 0,
+    });
+    await queue.initialize();
+    const wait = async (count: number) => {
+      for (let tries = 0; tries < 250 && records.length < count; tries += 1)
+        await new Promise((resolve) => setTimeout(resolve, 20));
+    };
+    const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+    await queue.enqueue(buildFreeJobs({ preset, prompt: 'cafe', count: 1 }), [0]);
+    await wait(1);
+    const source = await library.findGeneration(FREE_PROJECT_ID, records[0].id);
+    const image = await library.prepareImageInput({
+      projectId: FREE_PROJECT_ID,
+      source: { kind: 'record', projectId: FREE_PROJECT_ID, generationId: source.id },
+      width: 64,
+      height: 64,
+      fit: 'crop',
+    });
+    const jobs = buildResultAugmentJobs({
+      record: source,
+      image,
+      width: 64,
+      height: 64,
+      tool: 'bg-removal',
+      toolPrompt: '',
+      defry: 0,
+      projectName: '자유 생성',
+      outputFilenameTemplate: '{seed}',
+    });
+    await queue.enqueue(jobs, [65]);
+    await wait(4);
+
+    const results = records.slice(1);
+    expect(results.map((record) => record.augment)).toEqual(
+      [0, 1, 2].map((part) => ({ tool: 'bg-removal', defry: 0, part, parts: 3 })),
+    );
+    expect(results.map((record) => record.sourceRecordId)).toEqual([
+      source.id,
+      source.id,
+      source.id,
+    ]);
+    expect(results.map((record) => record.anlasEstimate)).toEqual([65, undefined, undefined]);
+    expect(new Set(results.map((record) => record.file)).size).toBe(3);
+    expect(results[1].file).toMatch(/__2\.\w+$/);
+    expect(await library.listGenerations(FREE_PROJECT_ID)).toHaveLength(4);
   });
 
   it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {

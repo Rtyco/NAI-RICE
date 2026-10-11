@@ -56,14 +56,18 @@ export function parseNovelAIUserStatus(payload: Record<string, any>): NovelAIUse
 /** 응답 ZIP 안 PNG 한 장의 상한. 실제 결과는 수 MB다. */
 const MAX_RESULT_PNG_BYTES = 64 * 1024 * 1024;
 
-function firstPngFromZip(buffer: Uint8Array): Buffer {
+/** 응답 ZIP의 PNG를 이름 순서(`image_0`, `image_1`…)로 꺼낸다. 배경 제거는 세 장이 온다. */
+function pngsFromZip(buffer: Uint8Array): Buffer[] {
   const files = unzipSync(buffer, {
     filter: (file) =>
       file.name.toLowerCase().endsWith('.png') && file.originalSize <= MAX_RESULT_PNG_BYTES,
   });
-  const entry = Object.entries(files).find(([name]) => name.toLowerCase().endsWith('.png'));
-  if (!entry) throw new NaiApiError('unsupported-request', '응답 ZIP에 PNG 이미지가 없습니다.');
-  return Buffer.from(entry[1]);
+  const entries = Object.entries(files)
+    .filter(([name]) => name.toLowerCase().endsWith('.png'))
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  if (!entries.length)
+    throw new NaiApiError('unsupported-request', '응답 ZIP에 PNG 이미지가 없습니다.');
+  return entries.map(([, data]) => Buffer.from(data));
 }
 
 /** NovelAI에 요청하고, 연결 실패와 오류 응답을 NaiApiError로 바꾼다. */
@@ -97,7 +101,7 @@ export class NovelAIProvider {
     return parseNovelAIUserStatus((await response.json()) as Record<string, any>);
   }
 
-  async generate(request: NovelAIImageRequest): Promise<Buffer> {
+  async generate(request: NovelAIImageRequest): Promise<Buffer[]> {
     const { url, body } = buildNovelAIJobRequest(request.job, {
       imageBase64: request.image?.toString('base64'),
       maskBase64: request.mask?.toString('base64'),
@@ -107,6 +111,6 @@ export class NovelAIProvider {
       body: JSON.stringify(body),
       signal: request.signal,
     });
-    return firstPngFromZip(new Uint8Array(await response.arrayBuffer()));
+    return pngsFromZip(new Uint8Array(await response.arrayBuffer()));
   }
 }

@@ -262,7 +262,7 @@ export class GenerationQueue {
     job: QueuedGenerationJob,
     inputs: { image?: Buffer; mask?: Buffer },
     signal: AbortSignal,
-  ): Promise<{ generated: Buffer; anlasSpent?: number }> {
+  ): Promise<{ generated: Buffer[]; anlasSpent?: number }> {
     const token = await this.dependencies.token();
     const anlasBefore = await this.anlasNow(token);
     await this.waitRequestDelay(signal);
@@ -286,10 +286,19 @@ export class GenerationQueue {
   private async generateOnce(
     job: QueuedGenerationJob,
     signal: AbortSignal,
-  ): Promise<GenerationRecord> {
+  ): Promise<GenerationRecord[]> {
     const inputs = await this.loadInputs(job);
     const { generated, anlasSpent } = await this.requestImage(job, inputs, signal);
-    return saveGenerationOutput(this.dependencies.library, job, generated, anlasSpent);
+    const records: GenerationRecord[] = [];
+    for (const [index, image] of generated.entries()) {
+      records.push(
+        await saveGenerationOutput(this.dependencies.library, job, image, anlasSpent, {
+          index,
+          count: generated.length,
+        }),
+      );
+    }
+    return records;
   }
 
   /**
@@ -331,11 +340,11 @@ export class GenerationQueue {
       this.activeJobId = job.id;
       const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
-        const record = await this.generateOnce(job, controller.signal);
-        await this.dependencies.library.addGeneration(record);
-        complete(job, { generationId: record.id, anlasSpent: record.anlasSpent });
+        const records = await this.generateOnce(job, controller.signal);
+        for (const record of records) await this.dependencies.library.addGeneration(record);
+        complete(job, { generationId: records[0].id, anlasSpent: records[0].anlasSpent });
         await this.commit();
-        this.dependencies.onRecord(record);
+        for (const record of records) this.dependencies.onRecord(record);
         return;
       } catch (error) {
         // 다시 시도를 기다리는 동안에도 취소할 수 있게, 진행 중 표시를 풀기 전에 기다린다.

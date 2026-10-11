@@ -155,7 +155,7 @@ describe('GenerationQueue 실패 처리', () => {
           const outcome = outcomes[Math.min(calls, outcomes.length - 1)];
           calls += 1;
           if (outcome instanceof Error) throw outcome;
-          return png;
+          return [png];
         },
       },
       token: async () => 'token',

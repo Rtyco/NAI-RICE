@@ -60,20 +60,21 @@ async function resultImage(
 
 /**
  * NovelAI가 돌려준 이미지를 감정 폴더에 저장하고, 썸네일·진단 캔버스를 남긴 뒤
- * generations.json에 넣을 기록을 만든다.
+ * generations.json에 넣을 기록을 만든다. 응답 한 번에 여러 장이 오면 장마다 부르고, Anlas는 첫 장에만 적는다.
  */
 export async function saveGenerationOutput(
   store: GenerationStore,
   job: QueuedGenerationJob,
   generated: Buffer,
   anlasSpent: number | undefined,
+  part: { index: number; count: number } = { index: 0, count: 1 },
 ): Promise<GenerationRecord> {
   const { png, width, height } = await resultImage(job, generated, {
     [DESK_METADATA_KEY]: JSON.stringify(deskMetadataFor(job)),
   });
 
   const projectDir = store.projectDir(job.projectId);
-  const stem = renderOutputFilename(
+  const name = renderOutputFilename(
     job.outputFilenameTemplate || DEFAULT_OUTPUT_FILENAME_TEMPLATE,
     {
       character: job.characterName,
@@ -85,6 +86,7 @@ export async function saveGenerationOutput(
       createdAt: job.createdAt,
     },
   );
+  const stem = part.count > 1 ? `${name}__${part.index + 1}` : name;
   const generationId = randomUUID();
   // 감정이 없는 자유 생성은 만든 날짜(현지 시각)별 폴더에 모은다.
   const folder = job.emotionId ? job.emotionName : localDate(job.createdAt);
@@ -121,6 +123,17 @@ export async function saveGenerationOutput(
     thumbFile: store.toProjectRelative(job.projectId, thumbPath),
     canvasFile: canvasPath ? store.toProjectRelative(job.projectId, canvasPath) : undefined,
     ...(job.kind === 'img2img' || job.kind === 'augment' ? { inputFile: job.imagePath } : {}),
+    ...(job.kind === 'augment'
+      ? {
+          augment: {
+            tool: job.tool,
+            ...(job.mood ? { mood: job.mood } : {}),
+            ...(job.toolPrompt ? { toolPrompt: job.toolPrompt } : {}),
+            defry: job.defry,
+            ...(part.count > 1 ? { part: part.index, parts: part.count } : {}),
+          },
+        }
+      : {}),
     width,
     height,
     seed: job.seed,
@@ -138,7 +151,6 @@ export async function saveGenerationOutput(
     ...(job.characterCenters ? { characterCenters: job.characterCenters } : {}),
     emotionPrompt: job.emotionPrompt,
     settings: job.settings,
-    anlasSpent,
-    anlasEstimate: job.anlasEstimate,
+    ...(part.index === 0 ? { anlasSpent, anlasEstimate: job.anlasEstimate } : {}),
   };
 }

@@ -99,6 +99,10 @@ export type Emotion = {
    * 않는다. 씬 모음은 여러 작업이 함께 쓰므로 캐릭터 ID가 아니라 순서로 맞춘다.
    */
   extraPrompts?: string[];
+  /** Emotion 툴로 씬 세트를 만들 때 이 씬에 쓰는 표정(NovelAI 값, 예: happy). 비어 있으면 씬 이름으로 추천한다. */
+  augmentMood?: string;
+  /** 위 표정의 강도(defry). 0이 가장 강하고 5가 가장 약하다. */
+  augmentDefry?: number;
 };
 
 /** 감정 모음: 감정 이름과 프롬프트 목록. 여러 작업에서 공유할 수 있다. */
@@ -314,6 +318,17 @@ export type GenerationKind = 'inpaint' | 'txt2img' | 'img2img' | 'augment';
 export type AugmentTool =
   'emotion' | 'bg-removal' | 'declutter' | 'lineart' | 'sketch' | 'colorize';
 
+/** 디렉터 툴 결과에 남기는 툴 설정. */
+export type AugmentInfo = {
+  tool: AugmentTool;
+  mood?: string;
+  toolPrompt?: string;
+  defry?: number;
+  /** 응답 한 번에 여러 장이 오면(배경 제거는 세 장) 0부터의 순서와 전체 장수. */
+  part?: number;
+  parts?: number;
+};
+
 /** 완료된 생성 결과 한 건. 작업 폴더의 generations.json에 누적된다. */
 export type GenerationRecord = {
   id: string;
@@ -330,6 +345,7 @@ export type GenerationRecord = {
   canvasFile?: string;
   /** i2i·디렉터 툴에 실제로 보낸 입력(목표 크기로 맞춘 것). 작업 폴더의 `inputs/`에 있다. */
   inputFile?: string;
+  augment?: AugmentInfo;
   width: number;
   height: number;
   seed: number;
@@ -359,7 +375,7 @@ export type JobStatus =
   'queued' | 'generating' | 'retry_wait' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
 
 /** 모든 생성 방식에 공통인 작업 내용. 등록한 뒤에는 바뀌지 않는다. */
-type JobSnapshotCommon = {
+export type JobSnapshotCommon = {
   id: string;
   createdAt: string;
   projectId: string;

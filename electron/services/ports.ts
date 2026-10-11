@@ -19,7 +19,8 @@ import type { TokenVaultStatus } from './TokenVault';
 
 /** 생성 작업의 이미지를 만드는 쪽. NovelAIProvider가 구현한다. */
 export interface ImageGenerator {
-  generate(request: NovelAIImageRequest): Promise<Buffer>;
+  /** 응답에 든 이미지 모두. 보통 한 장이고, 배경 제거는 세 장이다. */
+  generate(request: NovelAIImageRequest): Promise<Buffer[]>;
 }
 
 /** NovelAI 계정 상태를 조회하는 쪽. NovelAIProvider가 구현한다. */

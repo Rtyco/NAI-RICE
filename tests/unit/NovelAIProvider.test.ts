@@ -73,12 +73,28 @@ describe('NovelAIProvider 요청', () => {
       job,
       image: Buffer.from('IMG'),
     });
-    expect([...result]).toEqual([...png]);
+    expect(result.map((image) => [...image])).toEqual([[...png]]);
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(NAI_AUGMENT_ENDPOINT);
     expect(init.method).toBe('POST');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer T');
     expect(JSON.parse(String(init.body))).toMatchObject({ req_type: 'lineart', image: 'SU1H' });
+  });
+
+  it('ZIP에 여러 장이 있으면 이름 순서대로 모두 돌려줘', async () => {
+    const files = Object.fromEntries(
+      [10, 2, 0, 1].map((index) => [`image_${index}.png`, new Uint8Array([index])]),
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(zipSync(files))),
+    );
+    const result = await new NovelAIProvider().generate({
+      token: 'T',
+      job,
+      image: Buffer.from('IMG'),
+    });
+    expect(result.map((image) => image[0])).toEqual([0, 1, 2, 10]);
   });
 
   it('오류 응답과 연결 실패를 종류가 있는 오류로 바꿔', async () => {
