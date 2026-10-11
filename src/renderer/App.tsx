@@ -120,7 +120,6 @@ export default function App() {
 
   return (
     <>
-      <div className="titlebar" />
       <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {library ? <Sidebar /> : <aside className="sidebar" />}
         {!collapsed && <PanelResizer panel="sidebar" />}
@@ -128,9 +127,12 @@ export default function App() {
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>
               {!ready || !library ? (
-                <p className="hint pad">
-                  {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
-                </p>
+                <>
+                  <div className="window-strip" />
+                  <p className="hint pad">
+                    {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
+                  </p>
+                </>
               ) : view.kind === 'project' && projectExists ? (
                 <PromptPanelLayout panel={<ProjectPromptPanel projectId={view.projectId} />}>
                   <ProjectView projectId={view.projectId} />
@@ -142,7 +144,10 @@ export default function App() {
               ) : view.kind === 'library' ? (
                 <LibraryView section={view.section} itemId={view.itemId} />
               ) : (
-                <Welcome />
+                <>
+                  <div className="window-strip" />
+                  <Welcome />
+                </>
               )}
             </div>
           </ErrorBoundary>

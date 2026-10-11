@@ -73,8 +73,11 @@ export async function confirmAnlasUse(
   return confirmation.response === 0;
 }
 
-/** styles.css의 .titlebar(32px)보다 1px 낮게 해서 아래 경계선이 창 버튼 밑까지 이어지게 한다. */
-const TITLE_BAR_HEIGHT = 31;
+/**
+ * 창 버튼은 따로 줄을 두지 않고 화면 머리줄 오른쪽 위에 겹쳐 그린다. 머리줄은 이 폭만큼 오른쪽을 비워 둔다
+ * (styles.css의 --window-controls-width).
+ */
+const TITLE_BAR_HEIGHT = 32;
 
 /** 원격 콘텐츠를 불러오지 않는 격리된 창. 외부 링크와 페이지 이동은 막는다. */
 export function createWindow(title: string, moduleDirectory: string): void {

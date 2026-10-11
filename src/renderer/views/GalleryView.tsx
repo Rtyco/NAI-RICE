@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
@@ -15,10 +15,12 @@ import { clearEmotionResults, openImg2ImgDialog } from '../generationOps';
 import {
   coverRecord,
   emotionRecords,
+  GALLERY_ASPECTS,
   GALLERY_COLUMN_CHOICES,
   openEmotion,
   openLibrary,
   projectMedia,
+  setGalleryAspect,
   setGalleryColumns,
   updateProject,
   useLibrary,
@@ -170,6 +172,7 @@ export function GalleryView({
   const records = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
   const columns = useStore((state) => state.galleryColumns);
+  const aspect = useStore((state) => state.galleryAspect);
   const [dragging, setDragging] = useState<string>();
   const emotions = emotionSet?.emotions ?? [];
   const removeMany = (ids: string[]) => {
@@ -307,6 +310,19 @@ export function GalleryView({
             <Icon name="export" size={14} /> 내보내기
           </button>
           <span className="zone-divider" />
+          <span className="segmented" role="group" aria-label="카드 이미지 비율">
+            {GALLERY_ASPECTS.map((choice) => (
+              <button
+                key={choice.id}
+                className={choice.id === aspect ? 'active' : ''}
+                aria-pressed={choice.id === aspect}
+                title={`카드 이미지를 ${choice.title} 비율로 봅니다`}
+                onClick={() => setGalleryAspect(choice.id)}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </span>
           <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
             {GALLERY_COLUMN_CHOICES.map((choice) => (
               <button
@@ -351,7 +367,12 @@ export function GalleryView({
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
       <div
         className="emotion-grid"
-        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        style={
+          {
+            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            '--thumb-aspect': GALLERY_ASPECTS.find((item) => item.id === aspect)?.ratio,
+          } as CSSProperties
+        }
       >
         {emotionSet.emotions.map((emotion, index) => (
           <EmotionCard

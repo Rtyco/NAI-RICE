@@ -42,6 +42,8 @@ type State = {
   /** 접힌 사이드바 카드. 사이드바 전체 접기(Ctrl+B)와는 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
+  /** 작업 화면 씬 카드의 이미지 비율. */
+  galleryAspect: GalleryAspect;
   /** 결과 화면 아래의 이미지 목록을 접었는지. */
   filmstripCollapsed: boolean;
   /** 라이브러리 화면 왼쪽의 항목 목록을 접었는지. */
@@ -86,6 +88,15 @@ const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
 export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7] as const;
 const GALLERY_COLUMNS_KEY = 'gallery-columns';
+
+/** NovelAI 웹의 기본 해상도(세로 832×1216, 가로 1216×832, 정사각 1024×1024)와 같은 비율. */
+export const GALLERY_ASPECTS = [
+  { id: 'portrait', label: '세로', title: '세로 832×1216', ratio: '832 / 1216' },
+  { id: 'landscape', label: '가로', title: '가로 1216×832', ratio: '1216 / 832' },
+  { id: 'square', label: '정사각', title: '정사각 1024×1024', ratio: '1 / 1' },
+] as const;
+export type GalleryAspect = (typeof GALLERY_ASPECTS)[number]['id'];
+const GALLERY_ASPECT_KEY = 'gallery-aspect';
 
 const readGalleryColumns = () =>
   readUiState(
@@ -135,6 +146,11 @@ export const useStore = create<State>(() => ({
   sidebarCollapsed: readSidebarCollapsed(),
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
+  galleryAspect: readUiState(
+    GALLERY_ASPECT_KEY,
+    (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
+    'portrait' as GalleryAspect,
+  ),
   filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
   libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
   promptPanelCollapsed: readUiState(PROMPT_PANEL_KEY, (raw) => raw === '1', false),
@@ -380,6 +396,11 @@ export function toggleSidebarSection(section: SidebarSection): void {
 export function setGalleryColumns(columns: number): void {
   set({ galleryColumns: columns });
   saveUiState(GALLERY_COLUMNS_KEY, String(columns));
+}
+
+export function setGalleryAspect(aspect: GalleryAspect): void {
+  set({ galleryAspect: aspect });
+  saveUiState(GALLERY_ASPECT_KEY, aspect);
 }
 
 export function toggleFilmstrip(): void {

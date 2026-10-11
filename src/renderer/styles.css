@@ -242,14 +242,54 @@ textarea {
   display: flex;
   flex-direction: column;
 }
-/* 창 제목 표시줄 자리. 끌어서 창을 옮기고, 오른쪽에는 Windows 창 버튼이 겹쳐 그려진다. */
-.titlebar {
+/*
+ * 창 제목 표시줄을 따로 두지 않는다. 화면 맨 위의 머리줄들(사이드바 이름 줄, 왼쪽 패널 머리, 화면 머리줄)을
+ * 끌어 창을 옮기고, Windows 창 버튼은 화면 머리줄 오른쪽 위에 겹쳐 그려진다. 창 버튼 폭은 Electron이 주는
+ * titlebar-area 값으로 구하고(확대 비율을 따라간다), 값이 없으면 버튼 세 개(46px씩) 폭으로 둔다.
+ */
+:root {
+  --window-controls-width: calc(
+    100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px))
+  );
+}
+:root[data-fullscreen='true'] {
+  --window-controls-width: 0px;
+}
+.brand-block,
+.library-list-head,
+.main-area .project-header,
+.main-area .library-editor-head,
+.window-strip {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.brand-block :is(button, input, select, textarea, a, label, .segmented, .account-meter, .menu),
+.library-list-head :is(button, input, select, textarea, a, label),
+.main-area
+  :is(.project-header, .library-editor-head)
+  :is(button, input, select, textarea, a, label, .segmented, .account-meter, .menu),
+.modal-backdrop,
+.menu-popup,
+.context-menu,
+.checklist-popover,
+.lightbox,
+.toast {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.main-area .project-header,
+.main-area .library-editor-head {
+  padding-right: calc(16px + var(--window-controls-width));
+}
+/* 시작 화면처럼 머리줄이 없는 화면에서 창을 끌고 창 버튼이 얹힐 줄. */
+.window-strip {
   flex: none;
   height: 32px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
-  -webkit-app-region: drag;
-  app-region: drag;
+}
+:root[data-fullscreen='true'] .window-strip {
+  display: none;
 }
 .app-shell {
   position: relative;
@@ -398,7 +438,7 @@ textarea {
 }
 .emotion-thumb {
   position: relative;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: var(--thumb-aspect, 832 / 1216);
   padding: 0;
   border: none;
   border-radius: 0;
@@ -534,29 +574,22 @@ textarea {
   position: absolute;
   inset: 0;
 }
+/* 이미지는 가운데를 기준으로 그리고, 끌어서 옮긴 만큼 transform으로 민다. */
 .zoom-viewport {
+  position: relative;
   width: 100%;
   height: 100%;
-  /* 맞춤일 때 소수점 반올림으로 1px 넘쳐 스크롤 막대가 생기지 않게 한다. */
   overflow: hidden;
-}
-.zoom-viewport.zoomed {
-  overflow: auto;
+  cursor: grab;
+  touch-action: none;
 }
 .zoom-viewport.panning {
   cursor: grabbing;
 }
-.zoom-content {
-  box-sizing: border-box;
-  width: max-content;
-  height: max-content;
-  min-width: 100%;
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.zoom-content img {
+.zoom-viewport img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: block;
   max-width: none;
   box-shadow: 0 10px 40px #000c;
@@ -2805,6 +2838,17 @@ textarea.syntax-input::selection {
 .prompt-card-body .hint {
   margin: 0;
 }
+/*
+ * 패널 본문은 세로로 스크롤되므로 카드는 줄어들지 않고 제 높이를 지킨다(flex 기본값이면 캐릭터가 늘 때 카드가
+ * 눌려 공통 프롬프트가 안 보였다). 입력 칸도 최소 높이를 둔다.
+ */
+.prompt-panel-body > *,
+.prompt-group > * {
+  flex: none;
+}
+.prompt-card-body textarea {
+  min-height: 64px;
+}
 .prompt-group {
   display: flex;
   flex-direction: column;
@@ -4031,11 +4075,6 @@ kbd {
 .toggle-field input[type='date'] {
   width: auto;
   margin-left: 4px;
-}
-
-/* 전체 화면(F11)에서는 창 버튼이 사라지므로 위쪽 제목 줄도 숨긴다. */
-:root[data-fullscreen='true'] .titlebar {
-  display: none;
 }
 
 /* ── 업데이트 ──────────────────────────────── */

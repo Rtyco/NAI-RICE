@@ -2,14 +2,18 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 're
 import { createPortal } from 'react-dom';
 import { toggleFilmstrip, useStore } from '../store';
 import { Icon } from './Icon';
-import { clampZoom, usePan, useWheel, useZoomAnchor, ZOOM_STEP } from './zoom';
+import { clampZoom, useWheel, ZOOM_STEP } from './zoom';
 
 /** 화면에 맞출 때 가장자리에 남기는 여백(px). */
 const PAD = 14;
 
+type Offset = { x: number; y: number };
+const CENTER: Offset = { x: 0, y: 0 };
+
 /**
- * 확대·축소할 수 있는 이미지. 휠로 커서 위치를 기준으로 확대하고, 화면보다 크면 끌어서 옮긴다.
- * 처음에는 화면에 맞추며(`fit`), 원본보다 크게 늘리지는 않는다.
+ * 확대·축소할 수 있는 이미지. 휠로 커서 위치를 기준으로 확대하고, 왼쪽(또는 가운데) 버튼으로 끌면 화면 안
+ * 어디로든 옮긴다. 이미지는 화면 가운데에서 `offset`만큼 민 자리에 그린다. 처음에는 화면에 맞추며(`fit`),
+ * 원본보다 크게 늘리지는 않는다. 다른 이미지로 넘겨도 배율과 자리는 그대로 두어 같은 곳을 비교할 수 있다.
  */
 function ZoomView(props: {
   src: string;
@@ -18,17 +22,12 @@ function ZoomView(props: {
   tools?: ReactNode;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
-  const image = useRef<HTMLImageElement>(null);
   const [zoom, setZoom] = useState<'fit' | number>(props.initial ?? 'fit');
+  const [offset, setOffsetState] = useState<Offset>(CENTER);
   const [natural, setNatural] = useState<{ src: string; width: number; height: number }>();
   const [box, setBox] = useState({ width: 0, height: 0 });
-  const anchor = useZoomAnchor(viewport, image);
-  const pan = usePan(viewport);
+  const drag = useRef<{ x: number; y: number; from: Offset; pointerId: number } | null>(null);
   const [panning, setPanning] = useState(false);
-  const endPan = () => {
-    pan.end();
-    setPanning(false);
-  };
 
   useEffect(() => {
     const node = viewport.current;
@@ -40,8 +39,13 @@ function ZoomView(props: {
     return () => observer.disconnect();
   }, []);
 
-  // 렌더 사이에 휠 이벤트가 여러 번 오면 렌더된 값이 아니라 마지막으로 정한 배율에서 이어 간다.
+  // 렌더 사이에 휠 이벤트가 여러 번 오면 렌더된 값이 아니라 마지막으로 정한 값에서 이어 간다.
   const scaleRef = useRef(1);
+  const offsetRef = useRef<Offset>(CENTER);
+  const setOffset = (next: Offset) => {
+    offsetRef.current = next;
+    setOffsetState(next);
+  };
   const size = natural?.src === props.src ? natural : undefined;
   const fitScale =
     size && box.width
@@ -49,10 +53,29 @@ function ZoomView(props: {
       : 1;
   const scale = zoom === 'fit' ? fitScale : zoom;
   scaleRef.current = scale;
-  const zoomTo = (next: number, x?: number, y?: number) => {
-    anchor(x, y);
-    scaleRef.current = clampZoom(next);
-    setZoom(scaleRef.current);
+
+  /** 화면의 한 점(없으면 가운데) 아래에 있던 이미지 지점이 그 자리에 남도록 배율을 바꾼다. */
+  const zoomTo = (next: number, clientX?: number, clientY?: number) => {
+    const rect = viewport.current?.getBoundingClientRect();
+    const target = clampZoom(next);
+    const ratio = target / scaleRef.current;
+    const point = rect
+      ? {
+          x: (clientX ?? rect.left + rect.width / 2) - rect.left - rect.width / 2,
+          y: (clientY ?? rect.top + rect.height / 2) - rect.top - rect.height / 2,
+        }
+      : CENTER;
+    const from = offsetRef.current;
+    setOffset({
+      x: point.x - (point.x - from.x) * ratio,
+      y: point.y - (point.y - from.y) * ratio,
+    });
+    scaleRef.current = target;
+    setZoom(target);
+  };
+  const reset = (next: 'fit' | number) => {
+    setOffset(CENTER);
+    setZoom(next);
   };
 
   useWheel(viewport, (event) => {
@@ -65,45 +88,66 @@ function ZoomView(props: {
     );
   });
 
+  const endPan = () => {
+    drag.current = null;
+    setPanning(false);
+  };
+  const moved = offset.x !== 0 || offset.y !== 0;
+
   return (
     <div className="zoom-view">
       <div
         ref={viewport}
-        className={`zoom-viewport ${zoom === 'fit' ? '' : 'zoomed'} ${panning ? 'panning' : ''}`}
+        className={`zoom-viewport ${panning ? 'panning' : ''}`}
         onMouseDown={(event) => {
           // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
           if (event.button === 1) event.preventDefault();
         }}
         onPointerDown={(event) => {
-          if (event.button !== 1) return;
-          pan.begin(event);
+          if (event.button !== 0 && event.button !== 1) return;
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          drag.current = {
+            x: event.clientX,
+            y: event.clientY,
+            from: offsetRef.current,
+            pointerId: event.pointerId,
+          };
           setPanning(true);
         }}
-        onPointerMove={(event) => void pan.move(event)}
+        onPointerMove={(event) => {
+          const start = drag.current;
+          if (!start || start.pointerId !== event.pointerId) return;
+          setOffset({
+            x: start.from.x + event.clientX - start.x,
+            y: start.from.y + event.clientY - start.y,
+          });
+        }}
         onPointerUp={endPan}
         onPointerCancel={endPan}
-        onDoubleClick={() => setZoom(zoom === 'fit' ? 1 : 'fit')}
+        onDoubleClick={() => reset(zoom === 'fit' ? 1 : 'fit')}
       >
-        <div className="zoom-content" style={{ padding: PAD }}>
-          <img
-            ref={image}
-            src={props.src}
-            alt={props.alt ?? ''}
-            draggable={false}
-            onLoad={(event) =>
-              setNatural({
-                src: props.src,
-                width: event.currentTarget.naturalWidth,
-                height: event.currentTarget.naturalHeight,
-              })
-            }
-            style={
-              size
-                ? { width: size.width * scale, height: size.height * scale }
-                : { visibility: 'hidden' }
-            }
-          />
-        </div>
+        <img
+          src={props.src}
+          alt={props.alt ?? ''}
+          draggable={false}
+          onLoad={(event) =>
+            setNatural({
+              src: props.src,
+              width: event.currentTarget.naturalWidth,
+              height: event.currentTarget.naturalHeight,
+            })
+          }
+          style={
+            size
+              ? {
+                  width: size.width * scale,
+                  height: size.height * scale,
+                  transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+                }
+              : { visibility: 'hidden' }
+          }
+        />
       </div>
       <div className="zoom-toolbar" onDoubleClick={(event) => event.stopPropagation()}>
         <button
@@ -116,8 +160,8 @@ function ZoomView(props: {
         </button>
         <button
           className="zoom-level"
-          title="화면에 맞추기 (더블클릭으로 맞춤과 원본 크기 전환)"
-          onClick={() => setZoom('fit')}
+          title="화면에 맞추고 가운데로 (더블클릭으로 맞춤과 원본 크기 전환)"
+          onClick={() => reset('fit')}
         >
           {Math.round(scale * 100)}%
         </button>
@@ -131,6 +175,15 @@ function ZoomView(props: {
         </button>
         <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
           1:1
+        </button>
+        <button
+          className="icon-button"
+          title="가운데로 (끌어서 옮긴 자리를 되돌립니다)"
+          aria-label="가운데로"
+          disabled={!moved}
+          onClick={() => setOffset(CENTER)}
+        >
+          <Icon name="center" size={16} />
         </button>
         {props.tools}
       </div>
