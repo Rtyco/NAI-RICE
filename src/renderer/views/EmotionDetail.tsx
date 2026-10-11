@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import type { ResolvedProject } from '../../core/model/defaults';
@@ -9,7 +9,7 @@ import { ResultBar, showResultMenu, type ResultAction } from '../components/Resu
 import { useBoxSelection } from '../components/useBoxSelection';
 import { NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
-import { deleteResults, openImg2ImgDialog } from '../generationOps';
+import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
 import {
   emotionRecords,
@@ -48,10 +48,13 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   ).length;
   const sharedCount = library.projects.filter((item) => item.emotionSetId === set.id).length;
 
-  const newestId = records[0]?.id;
+  // 새 결과가 오면 그 결과를 보여 준다. 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니므로 그대로 둔다.
+  const newest = records[0];
+  const seenNewest = useRef(newest?.createdAt);
   useEffect(() => {
-    setSelectedId(undefined);
-  }, [newestId, emotion.id]);
+    if (newest && (!seenNewest.current || newest.createdAt > seenNewest.current)) setSelectedId(undefined);
+    seenNewest.current = newest?.createdAt;
+  }, [newest]);
 
   // 결과 목록에서 Ctrl·Shift 클릭이나 상자로 여러 장을 골라 한꺼번에 지운다.
   const removeMany = (ids: string[]) =>
@@ -75,10 +78,15 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
+      // 여러 장을 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
+      if (event.key === 'Delete' && !pickedCount && selected && !document.querySelector('.modal-backdrop')) {
+        event.preventDefault();
+        void deleteShownResult(project.id, records, selected, setSelectedId);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [records, selected, next, previous, pickedCount]);
+  }, [records, selected, next, previous, pickedCount, project.id]);
 
   const setFavorite = (generationId?: string) =>
     updateProject(project.id, (current) => {
@@ -162,7 +170,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       icon: 'trash',
       group: 'delete',
       iconOnly: true,
-      onSelect: () => void deleteResults(project.id, [record]),
+      onSelect: () => void deleteShownResult(project.id, records, record, setSelectedId),
     },
   ];
 
@@ -320,7 +328,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <span>일괄 생성에 포함 (이 작업만)</span>
           </label>
 
-          <p className="hint">←/→ 결과 이동 · PageUp/PageDown 씬 이동 · Esc 갤러리</p>
+          <p className="hint">←/→ 결과 이동 · Del 결과 삭제 · PageUp/PageDown 씬 이동 · Esc 갤러리</p>
 
           <div className="generate-dock">
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />

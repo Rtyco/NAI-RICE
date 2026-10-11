@@ -28,7 +28,7 @@ import {
   sourceDataUrl,
   sourceMedia,
 } from '../freeImageOps';
-import { deleteResults, openImg2ImgDialog } from '../generationOps';
+import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import { decodeMask, loadHtmlImage } from '../lib/image';
 import {
   projectMedia,
@@ -196,14 +196,17 @@ export function FreeView() {
     (job) => job.projectId === FREE_PROJECT_ID && isActive(job.status),
   ).length;
 
-  const newestId = records[0]?.id;
-  // 새 결과가 생기면 결과(원본과 나란히)로 넘어간다. 처음 열 때 이미 있던 결과로는 넘어가지 않는다.
-  const seenNewest = useRef(newestId);
+  const newest = records[0];
+  // 새 결과가 생기면 그 결과를 원본과 나란히 보여 준다. 처음 열 때 이미 있던 결과나, 최신 결과를 지워 맨
+  // 앞이 바뀐 것으로는 넘어가지 않는다.
+  const seenNewest = useRef(newest?.createdAt);
   useEffect(() => {
-    setSelectedId(undefined);
-    if (seenNewest.current && newestId && newestId !== seenNewest.current) setStage('result');
-    seenNewest.current = newestId;
-  }, [newestId]);
+    if (newest && (!seenNewest.current || newest.createdAt > seenNewest.current)) {
+      setSelectedId(undefined);
+      if (seenNewest.current) setStage('result');
+    }
+    seenNewest.current = newest?.createdAt;
+  }, [newest]);
 
   const removeMany = (ids: string[]) =>
     void deleteResults(
@@ -214,6 +217,7 @@ export function FreeView() {
     records.map((record) => record.id),
     removeMany,
   );
+  const pickedCount = picking.selected.size;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -222,10 +226,21 @@ export function FreeView() {
       if (event.key === 'ArrowRight' && records[position + 1])
         setSelectedId(records[position + 1].id);
       if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
+      // 여러 장을 고른 동안은 useBoxSelection이 고른 것을 지운다. 결과 막대가 보일 때만 그 결과를 지운다.
+      if (
+        event.key === 'Delete' &&
+        !pickedCount &&
+        !showSource &&
+        selected &&
+        !document.querySelector('.modal-backdrop')
+      ) {
+        event.preventDefault();
+        void deleteShownResult(FREE_PROJECT_ID, records, selected, setSelectedId);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [records, selected]);
+  }, [records, selected, pickedCount, showSource]);
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
   // 캐릭터 프롬프트가 없으면 캐릭터 끝을 골라 두었어도 공통 끝에 붙인다(buildFreeJobs와 같은 규칙).
@@ -315,7 +330,7 @@ export function FreeView() {
       icon: 'trash',
       group: 'delete',
       iconOnly: true,
-      onSelect: () => void deleteResults(FREE_PROJECT_ID, [record]),
+      onSelect: () => void deleteShownResult(FREE_PROJECT_ID, records, record, setSelectedId),
     },
   ];
 

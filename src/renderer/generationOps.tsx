@@ -43,6 +43,18 @@ export async function deleteResults(
   return true;
 }
 
+/** 보고 있던 결과를 지우고, 지웠으면 목록에서 바로 다음(없으면 이전) 결과를 보여 준다. */
+export async function deleteShownResult(
+  projectId: string,
+  records: GenerationSummary[],
+  record: GenerationSummary,
+  show: (id: string) => void,
+): Promise<void> {
+  const position = records.findIndex((item) => item.id === record.id);
+  const neighbor = records[position + 1] ?? records[position - 1];
+  if ((await deleteResults(projectId, [record])) && neighbor) show(neighbor.id);
+}
+
 /** 갤러리에서 고른 감정들의 결과만 지운다. 감정 자체와 대표 이미지는 남긴다. */
 export async function clearEmotionResults(
   projectId: string,
