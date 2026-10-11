@@ -121,6 +121,32 @@ describe('NovelAI metadata', () => {
     expect(data?.desk?.emotion.name).toBe('기쁨');
   });
 
+  it('V5 Full은 Effort를 함께 읽어', () => {
+    const desk = (extra: object) =>
+      interpretMetadata({
+        Comment: JSON.stringify(naiComment),
+        [DESK_METADATA_KEY]: JSON.stringify({
+          app: 'reference-inpaint-desk',
+          version: 2,
+          characterName: '아리아',
+          presetName: 'P',
+          commonPositive: '',
+          commonNegative: '',
+          promptSet: { name: '기본', positive: '', negative: '' },
+          emotion: { name: '기쁨', prompt: 'smile' },
+          seed: 42,
+          model: 'nai-diffusion-5-full-inpainting',
+          ...extra,
+        }),
+      });
+    expect(desk({ effort: 'medium' })?.effort).toBe('medium');
+    expect(desk({})?.effort).toBe('high');
+    const fromWeb = (source: string) =>
+      interpretMetadata({ Comment: JSON.stringify(naiComment), Source: source })?.effort;
+    expect(fromWeb('NovelAI Diffusion V5 1A2B3C4D')).toBe('high');
+    expect(fromWeb('NovelAI Diffusion V4.5 4BDE2A90')).toBeUndefined();
+  });
+
   /** payload를 알파 채널 LSB에 열 우선으로 심은 이미지를 만든다. bitLength로 헤더 길이를 바꿀 수 있다. */
   function stealthImage(payload: Uint8Array, bitLength = payload.length * 8) {
     const bytes = [

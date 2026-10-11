@@ -98,7 +98,10 @@ export function applyImageImport(
     const base: Preset = overwrite ?? createPreset(name);
     let generation = { ...base.generation };
     if (presetChoice.settings) generation = { ...generation, ...data.settings };
-    if (presetChoice.model && data.model) generation.model = data.model;
+    if (presetChoice.model && data.model) {
+      generation.model = data.model;
+      if (data.effort) generation.effort = data.effort;
+    }
     if (presetChoice.quality) {
       generation.qualityTags = tags.qualityTags;
       generation.qualityLevel = tags.qualityLevel;

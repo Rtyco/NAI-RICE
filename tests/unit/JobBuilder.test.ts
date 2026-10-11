@@ -162,6 +162,54 @@ describe('buildJobs', () => {
     ).toBe('');
   });
 
+  it('V5 Full Medium은 고정값으로 작업을 만들고 직접 쓴 네거티브는 보내지 않아', () => {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 1);
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-5-full-inpainting',
+      effort: 'medium',
+      steps: 28,
+      sampler: 'k_dpmpp_2m',
+      ucPreset: 'light',
+      cfgRescale: 0.4,
+    };
+    const [job] = buildJobs({
+      project,
+      preset,
+      characterName: character.name,
+      promptSet,
+      emotionSet,
+      reference,
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job.settings).toMatchObject({
+      effort: 'medium',
+      steps: 14,
+      sampler: 'k_euler_ancestral',
+      ucPreset: 'heavy',
+      cfgRescale: 0,
+    });
+    expect(job.negativePrompt).toMatch(/^nsfw, lowres, artistic error/);
+    expect(job.negativePrompt).not.toMatch(/, lowres$/);
+    expect(job.characterNegativePrompt).toBe('');
+    expect(job.source.commonNegative).toBe('lowres');
+  });
+
+  it('V5 Full이 아니면 effort가 medium으로 남아 있어도 무시해', () => {
+    const { promptSet, preset } = setup('fixed');
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-4-5-full-inpainting',
+      effort: 'medium',
+      steps: 28,
+    };
+    const prompts = composeRequestPrompts(preset, promptSet, 'smile');
+    expect(prompts.negativePrompt).toBe('lowres');
+    expect(prompts.characterNegativePrompt).toBe('bad hands');
+  });
+
   it('참고 이미지가 없으면 작업을 만들지 않아', () => {
     const { character, promptSet, emotionSet, preset, project } = setup('fixed');
     expect(() =>

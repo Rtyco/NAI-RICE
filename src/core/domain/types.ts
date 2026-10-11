@@ -21,6 +21,9 @@ export type QualityLevel = 'standard' | 'light';
 
 export type EmotionPosition = 'character-end' | 'common-end';
 
+/** V5 Full의 Effort. NovelAI 웹은 Medium을 별도 모델 ID(`-medium`)로 보낸다. */
+export type Effort = 'high' | 'medium';
+
 /** 캐릭터 맨 앞(`character-start`)은 성별 태그(girl, boy …) 바로 뒤에 들어간다. */
 export type ReferenceInsetPosition =
   'common-start' | 'common-end' | 'character-start' | 'character-end';
@@ -51,6 +54,11 @@ export type GenerationSettings = {
   /** i2i에서 원본을 얼마나 바꿀지(0~1). 0단계에서 0.4가 얼굴·구도를 지키면서 선을 다시 그렸다. */
   img2imgStrength: number;
   img2imgNoise: number;
+  /**
+   * V5 Full이 아닌 모델에서는 무시한다. Medium이면 Steps·Sampler·UC 프리셋·CFG Rescale이 고정되고 네거티브는
+   * 보내지 않는다(`effectiveGenerationSettings`). 저장된 값은 그대로 두어 High로 돌아오면 되살아난다.
+   */
+  effort: Effort;
 };
 
 export type Preset = {

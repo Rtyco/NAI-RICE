@@ -14,14 +14,14 @@ import type {
   Reference,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
-import { createPromptSet, FREE_PROJECT_ID, normalizeGenerationSettings } from '../model/defaults';
+import { createPromptSet, effectiveGenerationSettings, FREE_PROJECT_ID } from '../model/defaults';
 import {
   composeSeparatedPrompts,
   referenceInsetCount,
   removeReferenceInset,
 } from '../prompts/PromptComposer';
 import { expandPieces } from '../prompts/PromptPieces';
-import { applyNaiTags, emptyNegativeFor, naiTagText } from '../providers/NaiModels';
+import { applyNaiTags, emptyNegativeFor, naiTagText, usesMedium } from '../providers/NaiModels';
 
 type EmotionJobBuildInput = {
   project: Project;
@@ -102,7 +102,12 @@ export function composeRequestPrompts(
     negative: expand(rawPromptSet.negative),
   };
   const emotionPrompt = rawEmotionPrompt === undefined ? undefined : expand(rawEmotionPrompt);
-  const settings = normalizeGenerationSettings(preset.generation);
+  const settings = effectiveGenerationSettings(preset.generation);
+  // NovelAI 웹은 Medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10 웹 코드).
+  if (usesMedium(settings)) {
+    preset.commonNegative = '';
+    promptSet.negative = '';
+  }
   // 품질 태그는 reference inset 위치를 정할 수 있도록 따로 넘긴다.
   const prompts = composeSeparatedPrompts({
     commonPositive: preset.commonPositive,
@@ -146,7 +151,7 @@ function buildEmotionJobs<T>(
   extra: { referenceName: string; canvasWidth: number; canvasHeight: number },
   make: (common: EmotionJobCommon) => T,
 ): T[] {
-  const settings = normalizeGenerationSettings(input.preset.generation);
+  const settings = effectiveGenerationSettings(input.preset.generation);
   const wanted = new Set(input.emotionIds);
   const selected = input.emotionSet.emotions.filter(
     (emotion) => wanted.has(emotion.id) && emotion.prompt.trim(),
@@ -267,7 +272,7 @@ export type FreeJobBuildInput = {
 export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
-  const settings = normalizeGenerationSettings(input.preset.generation);
+  const settings = effectiveGenerationSettings(input.preset.generation);
   const promptSet = input.character?.promptSet ?? createPromptSet('', {});
   // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어가 공통과 따로 논다.
   const emotionPosition =
@@ -423,7 +428,7 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
       canvasWidth: input.width,
       canvasHeight: input.height,
       outputFilenameTemplate: input.outputFilenameTemplate,
-      settings: { ...normalizeGenerationSettings(record.settings) },
+      settings: { ...effectiveGenerationSettings(record.settings) },
       warnings: [],
       sourceRecordId: record.id,
       ...input.image,
@@ -436,7 +441,7 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
 
 /** 일반 생성: 참고 이미지 없이 생성 설정의 해상도로 감정마다 txt2img를 한다. */
 export function buildTxt2ImgJobs(input: Txt2ImgJobBuildInput): Txt2ImgJobSnapshot[] {
-  const settings = normalizeGenerationSettings(input.preset.generation);
+  const settings = effectiveGenerationSettings(input.preset.generation);
   return buildEmotionJobs(
     input,
     'txt2img',

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { GenerationSettings } from '../../src/core/domain/types';
-import { buildNovelAIInpaintRequest } from '../../src/core/providers/NovelAIRequestBuilder';
+import {
+  buildNovelAIDiffusionRequest,
+  buildNovelAIInpaintRequest,
+} from '../../src/core/providers/NovelAIRequestBuilder';
 
 const settings: GenerationSettings = {
   model: 'nai-diffusion-5-full-inpainting',
@@ -23,6 +26,7 @@ const settings: GenerationSettings = {
   height: 1216,
   img2imgStrength: 0.4,
   img2imgNoise: 0,
+  effort: 'high',
 };
 
 describe('NovelAIRequestBuilder', () => {
@@ -176,6 +180,35 @@ describe('NovelAIRequestBuilder', () => {
       expect(params.qualityToggle).toBeUndefined();
       expect(params.ucPreset).toBeUndefined();
     }
+  });
+
+  it('Effort Medium이면 V5 Full만 -medium 모델 ID로 보내', () => {
+    const request = (model: string, action: 'generate' | 'infill') =>
+      buildNovelAIDiffusionRequest(
+        {
+          prompt: 'p',
+          negativePrompt: '',
+          characterPrompt: '',
+          characterNegativePrompt: '',
+          width: 832,
+          height: 1216,
+          seed: 1,
+          settings: { ...settings, model, effort: 'medium' },
+        },
+        action === 'infill'
+          ? { action, imageBase64: 'I', maskBase64: 'M', strength: 1 }
+          : { action },
+      ) as any;
+    expect(request('nai-diffusion-5-full-inpainting', 'generate').model).toBe(
+      'nai-diffusion-5-full-medium',
+    );
+    expect(request('nai-diffusion-5-full-inpainting', 'infill').model).toBe(
+      'nai-diffusion-5-full-medium-inpainting',
+    );
+    expect(request('nai-diffusion-5-curated', 'generate').model).toBe('nai-diffusion-5-curated');
+    expect(request('nai-diffusion-4-5-full-inpainting', 'infill').model).toBe(
+      'nai-diffusion-4-5-full-inpainting',
+    );
   });
 
   it('V4 Full과 Curated 인페인트 모델도 v4 형식으로 만들어', () => {

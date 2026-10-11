@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
+  effectiveGenerationSettings,
   generationKindFor,
-  normalizeGenerationSettings,
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
@@ -263,7 +263,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const batch = batchEmotionIds(project.id);
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
-  const generation = preset && normalizeGenerationSettings(preset.generation);
+  const generation = preset && effectiveGenerationSettings(preset.generation);
   const costJob =
     project.mode !== 'reference'
       ? generation && {
@@ -272,9 +272,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
           canvasWidth: generation.width,
           canvasHeight: generation.height,
         }
-      : preset && reference?.image
+      : generation && reference?.image
         ? {
-            settings: preset.generation,
+            settings: generation,
             canvasWidth: reference.image.canvasWidth,
             canvasHeight: reference.image.canvasHeight,
           }

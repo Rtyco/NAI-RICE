@@ -1,10 +1,19 @@
-import type { NaiTagFamily, NaiTagTable, QualityLevel, UcPresetId } from '../domain/types';
+import type {
+  Effort,
+  GenerationSettings,
+  NaiTagFamily,
+  NaiTagTable,
+  QualityLevel,
+  UcPresetId,
+} from '../domain/types';
 
 export type NaiModelInfo = {
   /** 생성 설정에 저장하는 값. 이 구분이 생기기 전부터 인페인트 모델 ID를 저장해 왔다. */
   id: string;
   /** NovelAI에 보내는 모델 ID. 인페인트가 없는 모델은 `inpaint`를 비운다. */
   requestIds: { inpaint?: string; generate: string };
+  /** Effort Medium으로 보낼 때의 모델 ID. 없으면 Effort를 고를 수 없다. */
+  mediumRequestIds?: { inpaint: string; generate: string };
   label: string;
   family: NaiTagFamily;
   /** V4 이상은 v4_prompt와 캐릭터 프롬프트를 지원한다. V3는 하나의 프롬프트로 합쳐 보낸다. */
@@ -17,6 +26,10 @@ export const NAI_MODELS: NaiModelInfo[] = [
   {
     id: 'nai-diffusion-5-full-inpainting',
     requestIds: { inpaint: 'nai-diffusion-5-full-inpainting', generate: 'nai-diffusion-5-full' },
+    mediumRequestIds: {
+      inpaint: 'nai-diffusion-5-full-medium-inpainting',
+      generate: 'nai-diffusion-5-full-medium',
+    },
     label: 'NAI Diffusion V5 Full',
     family: 'v5',
     generation: 'v5',
@@ -109,10 +122,39 @@ export function supportsInpaint(id: string): boolean {
   return Boolean(modelInfo(id)?.requestIds.inpaint);
 }
 
+export function supportsEffort(id: string): boolean {
+  return Boolean(modelInfo(id)?.mediumRequestIds);
+}
+
+/** 모델을 바꿔도 `effort` 값은 남아 있으므로, 실제로 Medium인지는 모델까지 본다. */
+export function usesMedium(settings: Pick<GenerationSettings, 'model' | 'effort'>): boolean {
+  return settings.effort === 'medium' && supportsEffort(settings.model);
+}
+
+export const EFFORT_LABELS: Record<Effort, string> = { high: 'High', medium: 'Medium' };
+
+/**
+ * Medium에서 바꿀 수 없는 값. NovelAI 웹의 `fixedSettings`(Steps·Sampler·UC 프리셋)와, Medium 모델에서 웹이
+ * 감추는 CFG Rescale(2026-10 웹 코드).
+ */
+export const MEDIUM_FIXED = {
+  steps: 14,
+  sampler: 'k_euler_ancestral',
+  ucPreset: 'heavy',
+  cfgRescale: 0,
+} as const satisfies Partial<GenerationSettings>;
+
 /** 생성 방식에 맞는 NovelAI 모델 ID. 그 방식을 지원하지 않는 모델이면 오류를 던진다. */
-export function requestModelId(id: string, use: 'inpaint' | 'generate'): string {
+export function requestModelId(
+  id: string,
+  use: 'inpaint' | 'generate',
+  effort: Effort = 'high',
+): string {
   const model = modelInfo(id);
-  const requestId = model?.requestIds[use];
+  const requestId =
+    effort === 'medium' && model?.mediumRequestIds
+      ? model.mediumRequestIds[use]
+      : model?.requestIds[use];
   if (!model) throw new Error(`지원되지 않는 NovelAI 모델입니다: ${id}`);
   if (!requestId) throw new Error(`${model.label}은(는) 인페인트를 지원하지 않습니다.`);
   return requestId;

@@ -6,6 +6,7 @@ import {
   DEFAULT_OUTPUT_FILENAME_TEMPLATE,
   renderOutputFilename,
 } from '../../src/core/output/OutputFilename';
+import { usesMedium } from '../../src/core/providers/NaiModels';
 import { atomicWrite, uniquePath } from './fsUtils';
 import { cropWithMetadata, encodeForStorage, makeThumbnail, withMetadata } from './Images';
 import type { GenerationStore } from './ports';
@@ -30,6 +31,7 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
     qualityLevel: job.settings.qualityLevel,
     ucPreset: job.settings.ucPreset,
     model: job.settings.model,
+    ...(usesMedium(job.settings) ? { effort: 'medium' as const } : {}),
   };
 }
 

@@ -103,7 +103,7 @@ export function buildNovelAIDiffusionRequest(
   };
   const request = {
     input: prompt,
-    model: requestModelId(model.id, infill ? 'inpaint' : 'generate'),
+    model: requestModelId(model.id, infill ? 'inpaint' : 'generate', input.settings.effort),
     action: image.action,
   };
 

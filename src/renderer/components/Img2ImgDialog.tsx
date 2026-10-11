@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
-import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
+import {
+  effectiveGenerationSettings,
+  FREE_PROJECT_ID,
+  normalizeGenerationSettings,
+} from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
 import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../store';
@@ -54,7 +58,7 @@ export function Img2ImgDialog(props: {
   const costJob = {
     kind: 'img2img' as const,
     strength: options.strength,
-    settings: { ...generation, model: first.model },
+    settings: effectiveGenerationSettings({ ...generation, model: first.model }),
     canvasWidth: target.width,
     canvasHeight: target.height,
   };

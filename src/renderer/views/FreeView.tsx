@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
+import { effectiveGenerationSettings, FREE_PROJECT_ID } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
@@ -248,7 +248,7 @@ export function FreeView() {
   const hasCharacterPrompt = Boolean(promptSet?.positive.trim());
   const promptPosition =
     free.promptPosition === 'character-end' && hasCharacterPrompt ? 'character-end' : 'common-end';
-  const generation = preset && normalizeGenerationSettings(preset.generation);
+  const generation = preset && effectiveGenerationSettings(preset.generation);
   const costJob = generation && {
     kind: inpainting ? ('inpaint' as const) : free.mode,
     strength: generation.img2imgStrength,

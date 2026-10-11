@@ -1,7 +1,8 @@
 import { Gunzip } from 'fflate';
-import type { GenerationSettings, QualityLevel, UcPresetId } from '../domain/types';
+import type { Effort, GenerationSettings, QualityLevel, UcPresetId } from '../domain/types';
 import { readImageText } from './WebpMetadata';
 import { removeReferenceInset } from '../prompts/PromptComposer';
+import { supportsEffort } from '../providers/NaiModels';
 
 /**
  * 이 앱이 결과 PNG에 함께 기록하는 보조 메타데이터 키.
@@ -24,6 +25,8 @@ export type DeskMetadata = {
   qualityLevel?: QualityLevel;
   ucPreset?: UcPresetId;
   model?: string;
+  /** Medium으로 만든 것만 남긴다. */
+  effort?: Effort;
 };
 
 export type ImageImportData = {
@@ -38,6 +41,8 @@ export type ImageImportData = {
   modelLabel?: string;
   /** Source 라벨에서 추정한 인페인트 모델 ID. */
   model?: string;
+  /** V5 Full이면 High인지 Medium인지. */
+  effort?: Effort;
   /** 이 앱의 결과물이면 품질 태그·UC 프리셋 설정을 그대로 알 수 있다. */
   qualityTags?: boolean;
   qualityLevel?: QualityLevel;
@@ -180,6 +185,8 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     model: guessModelFromSource(asString(entries.Source)),
     desk,
   };
+  if (result.model && supportsEffort(result.model))
+    result.effort = /medium/i.test(result.modelLabel ?? '') ? 'medium' : 'high';
 
   if (comment) {
     const v4 = comment.v4_prompt?.caption;
@@ -226,6 +233,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     result.characters = [{ positive: desk.promptSet.positive, negative: desk.promptSet.negative }];
     result.seed = desk.seed;
     if (desk.model) result.model = desk.model;
+    if (desk.model) result.effort = desk.effort ?? 'high';
     if (desk.qualityTags !== undefined) result.qualityTags = desk.qualityTags;
     if (desk.qualityLevel !== undefined) result.qualityLevel = desk.qualityLevel;
     if (desk.ucPreset !== undefined) result.ucPreset = desk.ucPreset;

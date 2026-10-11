@@ -31,6 +31,7 @@ export const generationSettingsSchema = z.object({
   height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
   img2imgStrength: z.number().min(0.01).max(0.99).default(0.4),
   img2imgNoise: z.number().min(0).max(0.99).default(0),
+  effort: z.enum(['high', 'medium']).default('high'),
 });
 
 export const presetSchema = z.object({

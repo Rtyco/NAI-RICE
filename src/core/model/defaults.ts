@@ -15,7 +15,7 @@ import type {
   Reference,
 } from '../domain/types';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
-import { NAI_MODELS, supportsInpaint } from '../providers/NaiModels';
+import { MEDIUM_FIXED, NAI_MODELS, supportsInpaint, usesMedium } from '../providers/NaiModels';
 
 /** 자유 생성 결과가 쌓이는 폴더(`projects/free/`). 작업 ID는 항상 무작위 접미사가 붙어 겹치지 않는다. */
 export const FREE_PROJECT_ID = 'free';
@@ -60,6 +60,7 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   height: 1216,
   img2imgStrength: 0.4,
   img2imgNoise: 0,
+  effort: 'high',
 };
 
 export function normalizeGenerationSettings(settings: GenerationSettings): GenerationSettings {
@@ -70,6 +71,12 @@ export function normalizeGenerationSettings(settings: GenerationSettings): Gener
       ? settings.model
       : DEFAULT_GENERATION_SETTINGS.model,
   };
+}
+
+/** 실제로 생성에 쓰이는 설정. Medium이면 고정값을 덮어쓴다. 작업·비용 계산·미리보기가 이것을 쓴다. */
+export function effectiveGenerationSettings(settings: GenerationSettings): GenerationSettings {
+  const normalized = normalizeGenerationSettings(settings);
+  return usesMedium(normalized) ? { ...normalized, ...MEDIUM_FIXED } : normalized;
 }
 
 export const DEFAULT_LAYOUT: CanvasLayout = {

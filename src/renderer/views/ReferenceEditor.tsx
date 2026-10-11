@@ -4,6 +4,7 @@ import { computeLayout, CUSTOM_MAX, CUSTOM_MIN, RESOLUTION_PRESETS, snapDimensio
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
 import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper';
 import { clampRect, expandRect } from '../../core/imaging/rects';
+import { effectiveGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { PanelResizer } from '../components/PanelResizer';
@@ -284,7 +285,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   if (loading) return <p className="hint pad">인페인트를 불러오는 중…</p>;
 
   const free = working
-    ? checkFreeGeneration({ steps: Math.min(...presets.map((preset) => preset.generation.steps), 28) }, working.width, working.height)
+    ? checkFreeGeneration({ steps: Math.min(...presets.map((preset) => effectiveGenerationSettings(preset.generation).steps), 28) }, working.width, working.height)
     : undefined;
   const maskOk = mask ? maskHasGeneratePixels(mask) : false;
   const auto = layout.mode === 'auto';

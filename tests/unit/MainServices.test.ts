@@ -109,6 +109,7 @@ describe('GenerationRequests', () => {
       height: 1216,
       img2imgStrength: 0.4,
       img2imgNoise: 0,
+      effort: 'high',
     },
     warnings: [],
   } satisfies InpaintJobSnapshot;
