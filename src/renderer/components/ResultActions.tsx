@@ -15,7 +15,10 @@ export type ResultAction = {
   disabled?: boolean;
   /** 켜진 상태(대표 지정)를 버튼에 표시한다. */
   active?: boolean;
-  /** 결과 막대에서 아이콘만 보인다(이름은 마우스를 올리면 보인다). 우클릭 메뉴에는 이름이 나온다. */
+  /**
+   * 결과 막대에서 아이콘만 보인다(마우스를 올리면 `title`, 없으면 이름이 보인다). 우클릭 메뉴에는 이름이
+   * 나온다.
+   */
   iconOnly?: boolean;
 };
 
@@ -57,14 +60,18 @@ export function ResultBar(props: {
       </button>
       {groups(props.actions).map((group) => (
         <Fragment key={group[0].group}>
-          {/* 삭제는 다른 일과 떼어 맨 오른쪽에 둔다. */}
-          <span className={group[0].group === 'delete' ? 'header-spacer' : 'zone-divider'} />
+          {/* 파일 묶음(저장·폴더에서 보기)과 삭제는 오른쪽 끝에 한데 붙인다. */}
+          {group[0].group === 'file' ? (
+            <span className="header-spacer" />
+          ) : (
+            group[0].group !== 'delete' && <span className="zone-divider" />
+          )}
           {group.map((action) => (
             <button
               key={action.label}
               className={`${action.iconOnly ? 'icon-button' : 'with-icon'} ${action.group === 'delete' ? 'danger-quiet' : action.active ? 'active' : ''}`}
               disabled={action.disabled}
-              title={action.iconOnly ? action.label : action.title}
+              title={action.iconOnly ? (action.title ?? action.label) : action.title}
               aria-label={action.label}
               onClick={action.onSelect}
             >

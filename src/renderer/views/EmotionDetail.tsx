@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { useBoxSelection } from '../components/useBoxSelection';
-import { NumberField } from '../components/ui';
+import { Menu, NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
@@ -166,8 +166,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         void run('폴더를 여는 중', () => libraryApi().showGeneration(project.id, record.id)),
     },
     {
-      label: '결과 삭제',
+      label: '이 결과 삭제',
       icon: 'trash',
+      title: '이 결과 삭제 (Del)',
       group: 'delete',
       iconOnly: true,
       onSelect: () => void deleteShownResult(project.id, records, record, setSelectedId),
@@ -179,18 +180,26 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     <div className="emotion-detail">
       <div className="detail-nav">
         <button onClick={() => openEmotion(undefined)}>← 갤러리</button>
-        <button
-          className="with-icon"
-          onClick={() => {
-            const copy = duplicateEmotionIn(set.id, emotion.id);
-            if (copy) openEmotion(copy);
-          }}
-        >
-          <Icon name="copy" size={14} /> 씬 복제
-        </button>
-        <button className="with-icon danger-quiet" onClick={() => void deleteEmotion(set.id, emotion, project.id)}>
-          <Icon name="trash" size={14} /> 씬 삭제
-        </button>
+        {/* 씬 삭제를 결과 막대의 결과 삭제와 헷갈리지 않게 메뉴 안에 둔다. */}
+        <Menu
+          label="씬 ⋯"
+          align="left"
+          items={[
+            {
+              label: '씬 복제',
+              onSelect: () => {
+                const copy = duplicateEmotionIn(set.id, emotion.id);
+                if (copy) openEmotion(copy);
+              },
+            },
+            'divider',
+            {
+              label: '씬 삭제',
+              danger: true,
+              onSelect: () => void deleteEmotion(set.id, emotion, project.id),
+            },
+          ]}
+        />
         <div className="header-spacer" />
         <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="PageUp">
           ‹ {previous?.name ?? '이전'}

@@ -326,8 +326,9 @@ export function FreeView() {
         void run('폴더를 여는 중', () => libraryApi().showGeneration(FREE_PROJECT_ID, record.id)),
     },
     {
-      label: '결과 삭제',
+      label: '이 결과 삭제',
       icon: 'trash',
+      title: '이 결과 삭제 (Del)',
       group: 'delete',
       iconOnly: true,
       onSelect: () => void deleteShownResult(FREE_PROJECT_ID, records, record, setSelectedId),
