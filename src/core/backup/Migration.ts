@@ -64,8 +64,13 @@ export function splitV1Character(
     name: v1.name,
     mode: 'reference',
     presetId,
-    characterId: character.id,
-    promptSetId: v1.promptSets.some((set) => set.id === v1.activePromptSetId) ? v1.activePromptSetId : v1.promptSets[0].id,
+    characters: [
+      {
+        characterId: character.id,
+        promptSetId: v1.promptSets.some((set) => set.id === v1.activePromptSetId) ? v1.activePromptSetId : v1.promptSets[0].id,
+      },
+    ],
+    positionMode: 'ai',
     emotionSetId: emotionSet.id,
     referenceId: reference.id,
     excludedEmotionIds: v1.emotions.filter((emotion) => !emotion.enabled).map((emotion) => emotion.id),

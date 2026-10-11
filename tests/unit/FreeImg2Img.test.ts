@@ -98,7 +98,7 @@ describe('자유 생성 프롬프트 위치', () => {
   const build = (positive: string, promptPosition?: 'character-end' | 'common-end') =>
     buildFreeJobs({
       preset,
-      character: { name: 'C', promptSet: createPromptSet('기본', { positive }) },
+      characters: [{ name: 'C', promptSet: createPromptSet('기본', { positive }) }],
       prompt: 'sitting',
       promptPosition,
       count: 1,

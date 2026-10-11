@@ -87,7 +87,13 @@ export type Character = {
 export type Emotion = {
   id: string;
   name: string;
+  /** 첫 캐릭터의 씬 프롬프트. 생성 설정의 씬 프롬프트 위치(공통 끝·캐릭터 끝)에 붙는다. */
   prompt: string;
+  /**
+   * 두 번째 캐릭터부터의 씬 프롬프트(순서 기준). 그 캐릭터 프롬프트 끝에 붙고, 비어 있으면 그 캐릭터에는 붙이지
+   * 않는다. 씬 모음은 여러 작업이 함께 쓰므로 캐릭터 ID가 아니라 순서로 맞춘다.
+   */
+  extraPrompts?: string[];
 };
 
 /** 감정 모음: 감정 이름과 프롬프트 목록. 여러 작업에서 공유할 수 있다. */
@@ -157,14 +163,31 @@ export type Reference = {
  */
 export type ProjectMode = 'reference' | 'txt2img';
 
-/** 작업: 프리셋 · 캐릭터 · 감정 모음 · 레퍼런스를 하나씩 골라 묶은 조합. 생성 결과는 작업에 쌓인다. */
+/** 0~1의 캔버스 위치. NovelAI 요청의 `centers`와 같다. */
+export type CharacterCenter = { x: number; y: number };
+
+export type ExtraCharacterPrompt = { name: string; prompt: string; negative: string };
+
+/** 작업·자유 생성에 넣은 캐릭터 한 명. */
+export type CharacterSlot = {
+  characterId: string;
+  promptSetId: string;
+  /** 위치를 직접 지정할 때(`positionMode: 'manual'`) 쓴다. V4·V4.5는 5×5 칸의 가운데 값이다. */
+  center?: CharacterCenter;
+};
+
+/** 캐릭터 위치: AI가 정함(`use_coords: false`) 또는 직접 지정. */
+export type CharacterPositionMode = 'ai' | 'manual';
+
+/** 작업: 프리셋 · 캐릭터 · 감정 모음 · 레퍼런스를 골라 묶은 조합. 생성 결과는 작업에 쌓인다. */
 export type Project = {
   id: string;
   name: string;
   mode: ProjectMode;
   presetId: string;
-  characterId: string;
-  promptSetId: string;
+  /** 비어 있으면 생성할 수 없다. 인페인트의 참고 이미지는 첫 캐릭터만 참고가 된다. */
+  characters: CharacterSlot[];
+  positionMode: CharacterPositionMode;
   emotionSetId: string;
   /** 인페인트 방식에서만 쓰지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
   referenceId: string;
@@ -229,8 +252,8 @@ export type FreeGeneration = {
   /** 비어 있거나 지워진 생성 설정이면 첫 생성 설정을 쓴다. */
   presetId: string;
   /** 비어 있으면 캐릭터 없이 생성한다. */
-  characterId: string;
-  promptSetId: string;
+  characters: CharacterSlot[];
+  positionMode: CharacterPositionMode;
   prompt: string;
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
@@ -311,6 +334,10 @@ export type GenerationRecord = {
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
+  /** 두 번째 캐릭터부터의 최종 캐릭터 프롬프트. 첫 캐릭터는 `characterPrompt`다. */
+  extraCharacters?: ExtraCharacterPrompt[];
+  /** 위치를 직접 지정했으면 첫 캐릭터부터의 위치. 없으면 AI가 정했다. */
+  characterCenters?: CharacterCenter[];
   emotionPrompt: string;
   settings: GenerationSettings;
   /** 생성 전후 Anlas 차이(조회 가능할 때만). */
@@ -342,6 +369,10 @@ type JobSnapshotCommon = {
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
+  /** 두 번째 캐릭터부터의 최종 캐릭터 프롬프트. 첫 캐릭터는 `characterPrompt`다. */
+  extraCharacters?: ExtraCharacterPrompt[];
+  /** 위치를 직접 지정하면 첫 캐릭터부터의 위치. 없으면 AI가 정한다(`use_coords: false`). */
+  characterCenters?: CharacterCenter[];
   /** 사용자가 입력한 원문. 결과 메타데이터에 분리 보존한다. */
   source: {
     commonPositive: string;

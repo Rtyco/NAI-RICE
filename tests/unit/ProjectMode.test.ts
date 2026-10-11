@@ -113,8 +113,7 @@ describe('일반 생성 작업', () => {
     const jobs = buildTxt2ImgJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       emotionIds: [emotionSet.emotions[0].id],
       settings: DEFAULT_SETTINGS,
@@ -135,9 +134,9 @@ describe('일반 생성 작업', () => {
 
   it('미리보기도 생성 방식에 맞춰 reference inset을 넣거나 빼', () => {
     const { promptSet, preset } = setup();
-    expect(composeRequestPrompts(preset, promptSet, 'smile').prompt).toContain('reference inset');
+    expect(composeRequestPrompts(preset, [promptSet], 'smile').prompt).toContain('reference inset');
     expect(
-      composeRequestPrompts(preset, promptSet, 'smile', { sets: [] }, 'txt2img').prompt,
+      composeRequestPrompts(preset, [promptSet], 'smile', { sets: [] }, 'txt2img').prompt,
     ).not.toContain('reference inset');
   });
 });
@@ -154,8 +153,7 @@ describe('V5 Curated', () => {
     const [job] = buildTxt2ImgJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       emotionIds: [emotionSet.emotions[0].id],
       settings: DEFAULT_SETTINGS,
@@ -204,7 +202,8 @@ describe('자유 생성 작업', () => {
     const { preset, character, promptSet } = setup();
     const [job] = buildFreeJobs({
       preset,
-      character: { name: character.name, promptSet },
+      characters: [{ name: character.name, promptSet }],
+      positionMode: 'ai',
       prompt: 'cafe',
       count: 1,
       seedOverride: 42,
@@ -223,13 +222,34 @@ describe('자유 생성 작업', () => {
     delete old.freeGeneration;
     expect(librarySchema.parse(old).freeGeneration).toEqual({
       presetId: '',
-      characterId: '',
-      promptSetId: '',
+      characters: [],
+      positionMode: 'ai',
       prompt: '',
       count: 1,
       mode: 'txt2img',
       inpaint: false,
       promptPosition: 'common-end',
     });
+  });
+
+  it('캐릭터가 하나뿐이던 작업·자유 생성은 한 명짜리 목록으로 읽어', () => {
+    const library = createDefaultLibrary();
+    const project: Record<string, unknown> = createProject('P', {
+      presetId: library.presets[0].id,
+      character: createCharacter('A'),
+      emotionSetId: library.emotionSets[0].id,
+      referenceId: 'r',
+    });
+    delete project.characters;
+    delete project.positionMode;
+    const old = {
+      ...library,
+      projects: [{ ...project, characterId: 'c1', promptSetId: 's1' }],
+      freeGeneration: { ...library.freeGeneration, characterId: '', promptSetId: '' },
+    };
+    const parsed = librarySchema.parse(old);
+    expect(parsed.projects[0].characters).toEqual([{ characterId: 'c1', promptSetId: 's1' }]);
+    expect(parsed.projects[0].positionMode).toBe('ai');
+    expect(parsed.freeGeneration.characters).toEqual([]);
   });
 });

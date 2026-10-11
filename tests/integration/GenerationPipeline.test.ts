@@ -127,8 +127,7 @@ describe('generation pipeline', () => {
     const jobs = buildJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
       emotionIds: [emotionSet.emotions[0].id],

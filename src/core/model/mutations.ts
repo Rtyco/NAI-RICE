@@ -1,5 +1,6 @@
 import type {
   Character,
+  CharacterSlot,
   Emotion,
   EmotionSet,
   Library,
@@ -95,7 +96,6 @@ export function moveItems<K extends Collection>(
 
 const LINK_KEY = {
   presets: 'presetId',
-  characters: 'characterId',
   emotionSets: 'emotionSetId',
   references: 'referenceId',
 } as const;
@@ -106,24 +106,38 @@ const LINK_KEY = {
  */
 export function removeItemReassigning(
   library: Library,
-  key: keyof typeof LINK_KEY,
+  key: keyof typeof LINK_KEY | 'characters',
   id: string,
   replacementId?: string,
 ): Library {
   const removed = removeItem(library, key, id);
+  if (key === 'characters') {
+    const character = removed.characters.find((entry) => entry.id === replacementId);
+    const replace = (slots: CharacterSlot[]) =>
+      slots.map((slot) =>
+        slot.characterId === id && character
+          ? { ...slot, characterId: character.id, promptSetId: character.promptSets[0].id }
+          : slot,
+      );
+    return {
+      ...removed,
+      projects: removed.projects.map((project) =>
+        project.characters.some((slot) => slot.characterId === id) && character
+          ? { ...project, characters: replace(project.characters) }
+          : project,
+      ),
+      freeGeneration: {
+        ...removed.freeGeneration,
+        characters: replace(removed.freeGeneration.characters),
+      },
+    };
+  }
   const link = LINK_KEY[key];
-  const character =
-    key === 'characters'
-      ? removed.characters.find((entry) => entry.id === replacementId)
-      : undefined;
   return {
     ...removed,
-    projects: removed.projects.map((project) => {
-      if (project[link] !== id || !replacementId) return project;
-      const next = { ...project, [link]: replacementId };
-      if (character) next.promptSetId = character.promptSets[0].id;
-      return next;
-    }),
+    projects: removed.projects.map((project) =>
+      project[link] !== id || !replacementId ? project : { ...project, [link]: replacementId },
+    ),
   };
 }
 
@@ -369,11 +383,17 @@ export function touchProject(project: Project): Project {
 /** 다른 프로젝트에서 이 항목을 쓰고 있을 때, 지운 프롬프트 세트를 참조하는 작업을 첫 세트로 돌린다. */
 export function repairPromptSetRefs(library: Library, character: Character): Library {
   const ids = new Set(character.promptSets.map((set) => set.id));
+  const broken = (slot: CharacterSlot) =>
+    slot.characterId === character.id && !ids.has(slot.promptSetId);
+  const repair = (slots: CharacterSlot[]) =>
+    slots.map((slot) =>
+      broken(slot) ? { ...slot, promptSetId: character.promptSets[0].id } : slot,
+    );
   return {
     ...library,
     projects: library.projects.map((project) =>
-      project.characterId === character.id && !ids.has(project.promptSetId)
-        ? { ...project, promptSetId: character.promptSets[0].id }
+      project.characters.some(broken)
+        ? { ...project, characters: repair(project.characters) }
         : project,
     ),
   };

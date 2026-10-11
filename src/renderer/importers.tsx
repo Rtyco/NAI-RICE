@@ -96,9 +96,12 @@ function blockedProjects(bundle: ImportBundle, skipped: Set<string>): Set<string
   return new Set(
     bundle.projects
       .filter((project) =>
-        [project.presetId, project.characterId, project.emotionSetId, project.referenceId].some(
-          (id) => skipped.has(id),
-        ),
+        [
+          project.presetId,
+          ...project.characters.map((slot) => slot.characterId),
+          project.emotionSetId,
+          project.referenceId,
+        ].some((id) => skipped.has(id)),
       )
       .map((project) => project.id),
   );

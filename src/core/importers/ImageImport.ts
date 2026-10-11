@@ -88,7 +88,7 @@ export function applyImageImport(
   let next = library;
   let presetId = project?.presetId ?? library.presets[0].id;
   let characterForProject: Character | undefined = context.character;
-  let promptSetId = project?.promptSetId;
+  let promptSetId = project?.characters[0]?.promptSetId;
   let emotionSetId = project?.emotionSetId;
   let referenceId = project?.referenceId;
 
@@ -206,7 +206,7 @@ export function applyImageImport(
       referenceId,
     });
     if (promptSetId && character.promptSets.some((set) => set.id === promptSetId))
-      created.promptSetId = promptSetId;
+      created.characters[0].promptSetId = promptSetId;
     next = { ...next, projects: [...next.projects, created] };
     openId = created.id;
     applied.push(`새 작업 "${created.name}"`);
@@ -214,8 +214,17 @@ export function applyImageImport(
     next = patchItem(next, 'projects', project.id, (item) => ({
       ...item,
       presetId,
-      characterId: characterForProject?.id ?? item.characterId,
-      promptSetId: promptSetId ?? item.promptSetId,
+      // 가져온 캐릭터는 첫 캐릭터 자리에 넣는다. 나머지 캐릭터는 그대로 둔다.
+      characters: characterForProject
+        ? [
+            {
+              ...item.characters[0],
+              characterId: characterForProject.id,
+              promptSetId: promptSetId ?? characterForProject.promptSets[0].id,
+            },
+            ...item.characters.slice(1),
+          ]
+        : item.characters,
       emotionSetId: emotionSetId ?? item.emotionSetId,
       referenceId: referenceId ?? item.referenceId,
     }));

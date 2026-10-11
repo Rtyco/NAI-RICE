@@ -1,6 +1,9 @@
 import type {
   AppSettings,
+  CharacterCenter,
+  CharacterPositionMode,
   CharacterPromptSet,
+  Emotion,
   EmotionPosition,
   EmotionSet,
   GenerationKind,
@@ -21,13 +24,27 @@ import {
   removeReferenceInset,
 } from '../prompts/PromptComposer';
 import { expandPieces } from '../prompts/PromptPieces';
-import { applyNaiTags, emptyNegativeFor, naiTagText, usesMedium } from '../providers/NaiModels';
+import { requestCenters } from '../model/characterPositions';
+import {
+  applyNaiTags,
+  emptyNegativeFor,
+  maxCharactersFor,
+  modelLabel,
+  naiTagText,
+  usesMedium,
+} from '../providers/NaiModels';
+
+/** 프롬프트를 만들 캐릭터 한 명. 첫 캐릭터가 참고 이미지의 캐릭터이고 씬 프롬프트의 첫 칸이 붙는다. */
+export type JobCharacter = {
+  name: string;
+  promptSet: CharacterPromptSet;
+  center?: CharacterCenter;
+};
 
 type EmotionJobBuildInput = {
   project: Project;
   preset: Preset;
-  characterName: string;
-  promptSet: CharacterPromptSet;
+  characters: JobCharacter[];
   emotionSet: EmotionSet;
   emotionIds: string[];
   settings: Pick<AppSettings, 'outputFilenameTemplate' | 'keepDiagnosticCanvas'>;
@@ -70,19 +87,24 @@ export type RequestPrompts = {
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
+  /** 두 번째 캐릭터부터. 이름은 비워 두고 작업을 만들 때 채운다. */
+  extraCharacters: Array<{ prompt: string; negative: string }>;
   /** 찾지 못한 프롬프트 조각 참조. 있으면 생성하지 않는다. */
   missingPieces: string[];
 };
 
+/** 씬 하나의 프롬프트. 자유 생성처럼 입력한 문구 하나뿐이면 문자열로 넘긴다. */
+export type ScenePrompts = string | Pick<Emotion, 'prompt' | 'extraPrompts'>;
+
 /**
- * 프리셋·캐릭터·감정으로 NovelAI에 보낼 최종 프롬프트 4개를 만든다. 미리보기와 생성이 같은 함수를 쓴다.
+ * 프리셋·캐릭터들·씬으로 NovelAI에 보낼 최종 프롬프트를 만든다. 미리보기와 생성이 같은 함수를 쓴다.
  * 프롬프트 조각은 맨 먼저 펼친다. multi 조각은 seed로 줄을 고르며, seed가 없으면(미리보기) 첫 줄이다.
- * reference inset 태그는 참고 이미지를 옆에 두는 인페인트에만 붙인다.
+ * reference inset 태그는 참고 이미지를 옆에 두는 인페인트에만, 첫 캐릭터 쪽에 붙인다.
  */
 export function composeRequestPrompts(
   rawPreset: Preset,
-  rawPromptSet: Pick<CharacterPromptSet, 'positive' | 'negative'>,
-  rawEmotionPrompt: string | undefined,
+  rawCharacters: Array<Pick<CharacterPromptSet, 'positive' | 'negative'>>,
+  scene: ScenePrompts | undefined,
   pieces: { sets: PieceSet[]; seed?: number } = { sets: [] },
   kind: GenerationKind = 'inpaint',
 ): RequestPrompts {
@@ -92,31 +114,37 @@ export function composeRequestPrompts(
     result.missing.forEach((ref) => missing.add(ref));
     return result.text;
   };
-  const preset: Preset = {
-    ...rawPreset,
-    commonPositive: expand(rawPreset.commonPositive),
-    commonNegative: expand(rawPreset.commonNegative),
-  };
-  const promptSet = {
-    positive: expand(rawPromptSet.positive),
-    negative: expand(rawPromptSet.negative),
-  };
-  const emotionPrompt = rawEmotionPrompt === undefined ? undefined : expand(rawEmotionPrompt);
-  const settings = effectiveGenerationSettings(preset.generation);
+  const settings = effectiveGenerationSettings(rawPreset.generation);
   // NovelAI 웹은 Medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10 웹 코드).
-  if (usesMedium(settings)) {
-    preset.commonNegative = '';
-    promptSet.negative = '';
-  }
+  const medium = usesMedium(settings);
+  const commonPositive = expand(rawPreset.commonPositive);
+  const commonNegative = medium ? '' : expand(rawPreset.commonNegative);
+  const characters = rawCharacters.map((set) => ({
+    positive: expand(set.positive),
+    negative: medium ? '' : expand(set.negative),
+  }));
+  const first = characters[0] ?? { positive: '', negative: '' };
+  const firstScene =
+    scene === undefined ? undefined : typeof scene === 'string' ? scene : scene.prompt;
+  const extraScenes = typeof scene === 'object' ? (scene.extraPrompts ?? []) : [];
+  const emotionPrompt = firstScene === undefined ? undefined : expand(firstScene);
+  const extraCharacters = characters.slice(1).map((character, index) => ({
+    prompt: [character.positive, expand(extraScenes[index] ?? '')]
+      .map((text) => text.trim().replace(/^[,\s]+|[,\s]+$/g, ''))
+      .filter(Boolean)
+      .join(', '),
+    negative: character.negative,
+  }));
   // 품질 태그는 reference inset 위치를 정할 수 있도록 따로 넘긴다.
+  const insetWritten = extraCharacters.some((character) => referenceInsetCount(character.prompt));
   const prompts = composeSeparatedPrompts({
-    commonPositive: preset.commonPositive,
+    commonPositive,
     qualityTags: naiTagText(settings.model, settings).quality,
-    characterPositive: promptSet.positive,
+    characterPositive: first.positive,
     emotion: emotionPrompt,
     emotionPosition: settings.emotionPosition,
     referenceInset: {
-      enabled: settings.referenceInset && kind === 'inpaint',
+      enabled: settings.referenceInset && kind === 'inpaint' && !insetWritten,
       position: settings.referenceInsetPosition,
     },
   });
@@ -125,17 +153,54 @@ export function composeRequestPrompts(
     settings.model,
     { ...settings, qualityTags: false },
     prompts.commonPositive,
-    preset.commonNegative,
-    prompts.characterPositive,
+    commonNegative,
+    [prompts.characterPositive, ...extraCharacters.map((character) => character.prompt)].join(', '),
   );
+  const anyCharacterNegative = characters.some((character) => character.negative.trim());
   return {
     prompt: prompts.commonPositive,
     // 네거티브가 모두 비면 NovelAI 웹처럼 모델 기본값(V3의 lowres)을 보낸다.
     negativePrompt:
-      tagged.negative || (promptSet.negative.trim() ? '' : emptyNegativeFor(settings.model)),
+      tagged.negative || (anyCharacterNegative ? '' : emptyNegativeFor(settings.model)),
     characterPrompt: prompts.characterPositive,
-    characterNegativePrompt: promptSet.negative,
+    characterNegativePrompt: first.negative,
+    extraCharacters,
     missingPieces: [...missing],
+  };
+}
+
+/**
+ * 캐릭터들을 작업 필드로 바꾼다. 결과 파일 이름의 `{character}`는 이름을 `+`로 잇는다(사용자 결정).
+ * 모델이 받는 인원을 넘으면 오류를 던진다.
+ */
+function castFields(
+  characters: JobCharacter[],
+  extraPrompts: RequestPrompts['extraCharacters'],
+  model: string,
+  positionMode: CharacterPositionMode,
+) {
+  const max = maxCharactersFor(model);
+  if (characters.length > max)
+    throw new Error(
+      `${modelLabel(model)}은(는) 캐릭터를 ${max}명까지 넣을 수 있습니다. 지금 ${characters.length}명입니다.`,
+    );
+  const centers = requestCenters(
+    model,
+    positionMode,
+    characters.map((character) => character.center),
+  );
+  return {
+    characterName: characters.map((character) => character.name).join('+'),
+    promptSetName: characters.map((character) => character.promptSet.name).join('+'),
+    ...(extraPrompts.length
+      ? {
+          extraCharacters: extraPrompts.map((prompts, index) => ({
+            name: characters[index + 1].name,
+            ...prompts,
+          })),
+        }
+      : {}),
+    ...(centers ? { characterCenters: centers } : {}),
   };
 }
 
@@ -154,8 +219,11 @@ function buildEmotionJobs<T>(
   const settings = effectiveGenerationSettings(input.preset.generation);
   const wanted = new Set(input.emotionIds);
   const selected = input.emotionSet.emotions.filter(
-    (emotion) => wanted.has(emotion.id) && emotion.prompt.trim(),
+    (emotion) =>
+      wanted.has(emotion.id) &&
+      [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim()),
   );
+  const first = input.characters[0];
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
   const variants = input.variantsOverride ?? settings.variantsPerEmotion;
@@ -169,10 +237,10 @@ function buildEmotionJobs<T>(
           : settings.seedMode === 'fixed'
             ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
             : randomSeed();
-      const { missingPieces, ...prompts } = composeRequestPrompts(
+      const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
         input.preset,
-        input.promptSet,
-        emotion.prompt,
+        input.characters.map((character) => character.promptSet),
+        emotion,
         { sets: input.pieceSets ?? [], seed },
         kind,
       );
@@ -182,7 +250,7 @@ function buildEmotionJobs<T>(
         );
       }
       const warnings: string[] = [];
-      if (!input.promptSet.positive.trim())
+      if (!first?.promptSet.positive.trim())
         warnings.push('캐릭터 포지티브 프롬프트가 비어 있습니다.');
       const insets =
         referenceInsetCount(prompts.prompt) + referenceInsetCount(prompts.characterPrompt);
@@ -195,18 +263,22 @@ function buildEmotionJobs<T>(
           createdAt,
           projectId: input.project.id,
           projectName: input.project.name,
-          characterName: input.characterName,
+          ...castFields(
+            input.characters,
+            extraCharacters,
+            settings.model,
+            input.project.positionMode,
+          ),
           emotionId: emotion.id,
           emotionName: emotion.name,
           emotionPrompt: emotion.prompt,
           presetName: input.preset.name,
-          promptSetName: input.promptSet.name,
           emotionSetName: input.emotionSet.name,
           ...prompts,
           source: {
             commonPositive: input.preset.commonPositive,
             commonNegative: input.preset.commonNegative,
-            characterPositive: input.promptSet.positive,
+            characterPositive: first?.promptSet.positive ?? '',
           },
           seed,
           variantIndex,
@@ -245,7 +317,8 @@ export function buildJobs(input: JobBuildInput): InpaintJobSnapshot[] {
 export type FreeJobBuildInput = {
   preset: Preset;
   /** 캐릭터 없이 생성하면 비운다. */
-  character?: { name: string; promptSet: CharacterPromptSet };
+  characters?: JobCharacter[];
+  positionMode?: CharacterPositionMode;
   prompt: string;
   /** 비어 있거나 캐릭터 프롬프트가 없으면 공통 포지티브 끝에 붙인다. */
   promptPosition?: EmotionPosition;
@@ -273,7 +346,8 @@ export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
   const settings = effectiveGenerationSettings(input.preset.generation);
-  const promptSet = input.character?.promptSet ?? createPromptSet('', {});
+  const characters = input.characters ?? [];
+  const promptSet = characters[0]?.promptSet ?? createPromptSet('', {});
   // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어가 공통과 따로 논다.
   const emotionPosition =
     input.promptPosition === 'character-end' && promptSet.positive.trim()
@@ -293,9 +367,9 @@ export function buildFreeJobs(
         : settings.seedMode === 'fixed'
           ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
           : randomSeed();
-    const { missingPieces, ...prompts } = composeRequestPrompts(
+    const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
       preset,
-      promptSet,
+      characters.map((character) => character.promptSet),
       input.prompt,
       { sets: input.pieceSets ?? [], seed },
       'txt2img',
@@ -311,12 +385,11 @@ export function buildFreeJobs(
       createdAt,
       projectId: FREE_PROJECT_ID,
       projectName: '자유 생성',
-      characterName: input.character?.name ?? '',
+      ...castFields(characters, extraCharacters, settings.model, input.positionMode ?? 'ai'),
       emotionId: '',
       emotionName: '',
       emotionPrompt: input.prompt,
       presetName: input.preset.name,
-      promptSetName: input.character?.promptSet.name ?? '',
       emotionSetName: '',
       referenceName: '',
       ...prompts,
@@ -418,6 +491,15 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
       negativePrompt: record.negativePrompt,
       characterPrompt,
       characterNegativePrompt: record.characterNegativePrompt,
+      ...(record.extraCharacters
+        ? {
+            extraCharacters: record.extraCharacters.map((character) => ({
+              ...character,
+              prompt: removeReferenceInset(character.prompt),
+            })),
+          }
+        : {}),
+      ...(record.characterCenters ? { characterCenters: record.characterCenters } : {}),
       source: {
         commonPositive: prompt,
         commonNegative: record.negativePrompt,

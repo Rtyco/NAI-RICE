@@ -101,14 +101,14 @@ describe('library model', () => {
         emotionSetId: library.emotionSets[0].id,
         referenceId: 'r',
       }),
-      promptSetId: added.setId,
+      characters: [{ characterId: added.character.id, promptSetId: added.setId }],
     };
     const character = removePromptSet(added.character, added.setId);
     const repaired = repairPromptSetRefs(
       { ...library, characters: [character], projects: [project] },
       character,
     );
-    expect(repaired.projects[0].promptSetId).toBe(character.promptSets[0].id);
+    expect(repaired.projects[0].characters[0].promptSetId).toBe(character.promptSets[0].id);
     expect(removePromptSet(character, character.promptSets[0].id).promptSets).toHaveLength(1);
   });
 });
@@ -128,9 +128,11 @@ describe('removeItemReassigning', () => {
     const full = { ...library, characters: [a, b], references: [reference], projects: [project] };
     const moved = removeItemReassigning(full, 'characters', a.id, b.id);
     expect(moved.characters.map((item) => item.id)).toEqual([b.id]);
-    expect(moved.projects[0]).toMatchObject({ characterId: b.id, promptSetId: b.promptSets[0].id });
+    expect(moved.projects[0].characters).toEqual([
+      { characterId: b.id, promptSetId: b.promptSets[0].id },
+    ]);
     const emptied = removeItemReassigning(full, 'characters', a.id);
-    expect(emptied.projects[0].characterId).toBe(a.id);
+    expect(emptied.projects[0].characters[0].characterId).toBe(a.id);
     expect(resolveProject(emptied, emptied.projects[0]).missing.length).toBeGreaterThan(0);
   });
 

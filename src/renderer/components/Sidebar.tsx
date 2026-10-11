@@ -438,7 +438,9 @@ export function Sidebar() {
           >
             {library.projects.map((project, index) => {
               const reference = library.references.find((item) => item.id === project.referenceId);
-              const character = library.characters.find((item) => item.id === project.characterId);
+              const character = library.characters.find(
+                (item) => item.id === project.characters[0]?.characterId,
+              );
               return (
                 <ProjectRow
                   key={project.id}

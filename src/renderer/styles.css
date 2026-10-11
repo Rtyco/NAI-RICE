@@ -3218,6 +3218,23 @@ textarea.syntax-input::selection {
 .chain-chip-edit:focus-visible {
   opacity: 1;
 }
+.chain-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chain-add:hover:not(:disabled) {
+  color: var(--text);
+}
+.icon.rotate-left {
+  transform: rotate(180deg);
+}
 .chain-thumb {
   width: 20px;
   height: 20px;

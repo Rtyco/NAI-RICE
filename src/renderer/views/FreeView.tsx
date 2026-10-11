@@ -3,10 +3,11 @@ import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../..
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { effectiveGenerationSettings, FREE_PROJECT_ID } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
-import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
+import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { generateFree } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
+import { CharacterChips } from '../components/CharacterChips';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
@@ -408,42 +409,12 @@ export function FreeView() {
             ))}
           </select>
         </ChainChip>
-        <ChainChip section="characters" itemId={character?.id}>
-          <select
-            value={character?.id ?? ''}
-            onChange={(event) => {
-              const next = library.characters.find((item) => item.id === event.target.value);
-              updateFreeGeneration({
-                characterId: next?.id ?? '',
-                promptSetId: next?.promptSets[0].id ?? '',
-              });
-            }}
-          >
-            <option value="">캐릭터 없음</option>
-            {library.characters.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          {character && character.promptSets.length > 1 && (
-            <>
-              <span className="chain-chip-sep">/</span>
-              <select
-                title="캐릭터 프롬프트 세트"
-                aria-label="캐릭터 프롬프트 세트"
-                value={promptSet?.id}
-                onChange={(event) => updateFreeGeneration({ promptSetId: event.target.value })}
-              >
-                {character.promptSets.map((set) => (
-                  <option key={set.id} value={set.id}>
-                    세트: {set.name}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-        </ChainChip>
+        <CharacterChips
+          slots={free.characters}
+          optional
+          max={maxCharactersFor(preset?.generation.model)}
+          onChange={(characters) => updateFreeGeneration({ characters })}
+        />
         {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
       </div>
       {inpaintModelMissing && (

@@ -124,14 +124,14 @@ describe('라이브러리와 함께', () => {
     const preset = createPreset('p', { commonPositive: 'masterpiece' });
     const prompts = composeRequestPrompts(
       preset,
-      library.characters[0].promptSets[0],
+      [library.characters[0].promptSets[0]],
       '<에셋봇.eyes>, smile',
       { sets: library.pieceSets },
     );
     expect(prompts.characterPrompt).toBe('girl, red eyes, red eyes, smile');
     expect(prompts.missingPieces).toEqual([]);
     expect(
-      composeRequestPrompts(preset, { positive: '<x.y>', negative: '' }, undefined, { sets: [] })
+      composeRequestPrompts(preset, [{ positive: '<x.y>', negative: '' }], undefined, { sets: [] })
         .missingPieces,
     ).toEqual(['<x.y>']);
   });

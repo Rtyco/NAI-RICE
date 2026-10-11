@@ -2,7 +2,9 @@ import type {
   AppSettings,
   CanvasLayout,
   Character,
+  CharacterCenter,
   CharacterPromptSet,
+  CharacterSlot,
   Emotion,
   EmotionSet,
   GenerationKind,
@@ -178,8 +180,10 @@ export function createProject(
     name: name.trim() || '새 작업',
     mode: 'reference',
     presetId: parts.presetId,
-    characterId: parts.character.id,
-    promptSetId: parts.character.promptSets[0].id,
+    characters: [
+      { characterId: parts.character.id, promptSetId: parts.character.promptSets[0].id },
+    ],
+    positionMode: 'ai',
     emotionSetId: parts.emotionSetId,
     referenceId: parts.referenceId,
     excludedEmotionIds: [],
@@ -212,8 +216,8 @@ export function createDefaultLibrary(): Library {
     pieceSets: [],
     freeGeneration: {
       presetId: '',
-      characterId: '',
-      promptSetId: '',
+      characters: [],
+      positionMode: 'ai',
       prompt: '',
       count: 1,
       mode: 'txt2img',
@@ -223,11 +227,30 @@ export function createDefaultLibrary(): Library {
   };
 }
 
+/** 라이브러리에서 찾은 캐릭터 한 명. 지워진 캐릭터는 빠진다. */
+export type ResolvedCharacter = {
+  character: Character;
+  promptSet: CharacterPromptSet;
+  center?: CharacterCenter;
+};
+
+export function resolveCharacters(library: Library, slots: CharacterSlot[]): ResolvedCharacter[] {
+  return slots.flatMap((slot) => {
+    const character = library.characters.find((item) => item.id === slot.characterId);
+    if (!character) return [];
+    const promptSet =
+      character.promptSets.find((item) => item.id === slot.promptSetId) ?? character.promptSets[0];
+    return [{ character, promptSet, center: slot.center }];
+  });
+}
+
 export type ResolvedProject = {
   project: Project;
   preset?: Preset;
+  /** 첫 캐릭터. 참고 이미지가 참고하는 캐릭터이고, 씬 프롬프트의 `prompt`가 붙는다. */
   character?: Character;
   promptSet?: CharacterPromptSet;
+  characters: ResolvedCharacter[];
   emotionSet?: EmotionSet;
   reference?: Reference;
   missing: string[];
@@ -239,22 +262,21 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
 
 export function resolveProject(library: Library, project: Project): ResolvedProject {
   const preset = library.presets.find((item) => item.id === project.presetId);
-  const character = library.characters.find((item) => item.id === project.characterId);
-  const promptSet =
-    character?.promptSets.find((item) => item.id === project.promptSetId) ??
-    character?.promptSets[0];
+  const characters = resolveCharacters(library, project.characters);
+  const character = characters[0]?.character;
+  const promptSet = characters[0]?.promptSet;
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
   const inpaint = project.mode === 'reference';
   const missing = [
     !preset && '생성 설정',
-    !character && '캐릭터',
+    (!project.characters.length || characters.length < project.characters.length) && '캐릭터',
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
     inpaint && reference && !reference.image && '참고 이미지',
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
   ].filter(Boolean) as string[];
-  return { project, preset, character, promptSet, emotionSet, reference, missing };
+  return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }
 
 /** 이 항목을 쓰고 있는 작업 목록. 삭제 전 확인용. */
@@ -264,12 +286,15 @@ export function projectsUsing(
   id: string,
 ): Project[] {
   if (kind === 'pieceSet') return projectsUsingPieceSet(library, id);
+  if (kind === 'character')
+    return library.projects.filter((project) =>
+      project.characters.some((slot) => slot.characterId === id),
+    );
   const key = {
     preset: 'presetId',
-    character: 'characterId',
     emotionSet: 'emotionSetId',
     reference: 'referenceId',
-  }[kind] as 'presetId' | 'characterId' | 'emotionSetId' | 'referenceId';
+  }[kind] as 'presetId' | 'emotionSetId' | 'referenceId';
   return library.projects.filter((project) => project[key] === id);
 }
 
@@ -284,8 +309,14 @@ function projectsUsingPieceSet(library: Library, id: string): Project[] {
     const resolved = resolveProject(library, project);
     return (
       mentions(resolved.preset?.commonPositive, resolved.preset?.commonNegative) ||
-      mentions(resolved.promptSet?.positive, resolved.promptSet?.negative) ||
-      Boolean(resolved.emotionSet?.emotions.some((emotion) => mentions(emotion.prompt)))
+      resolved.characters.some(({ promptSet }) =>
+        mentions(promptSet.positive, promptSet.negative),
+      ) ||
+      Boolean(
+        resolved.emotionSet?.emotions.some((emotion) =>
+          mentions(emotion.prompt, ...(emotion.extraPrompts ?? [])),
+        ),
+      )
     );
   });
 }

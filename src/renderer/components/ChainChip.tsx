@@ -26,6 +26,8 @@ export function ChainChip(props: {
   /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
   label?: { text: string; icon: IconName; usage: string };
   edit?: { title: string; open: () => void };
+  /** 편집 버튼 앞에 붙는 버튼. 편집 버튼처럼 마우스를 올렸을 때만 보인다. */
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
@@ -54,6 +56,7 @@ export function ChainChip(props: {
         {label.text}
       </span>
       {props.children}
+      {props.actions}
       <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
         <Icon name="edit" size={14} />
       </button>

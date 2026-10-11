@@ -142,7 +142,10 @@ function remapLibrary(library: Library, images: Record<string, ReferenceImagesDa
     ...project,
     id: readableId(project.name, 'project'),
     presetId: ids.get(project.presetId) ?? project.presetId,
-    characterId: ids.get(project.characterId) ?? project.characterId,
+    characters: project.characters.map((slot) => ({
+      ...slot,
+      characterId: ids.get(slot.characterId) ?? slot.characterId,
+    })),
     emotionSetId: ids.get(project.emotionSetId) ?? project.emotionSetId,
     referenceId: ids.get(project.referenceId) ?? project.referenceId,
     favorites: {},
@@ -401,18 +404,24 @@ export function mergeBundle(
     const linked = {
       ...project,
       presetId: id(project.presetId),
-      characterId: id(project.characterId),
-      promptSetId: id(project.promptSetId),
+      characters: project.characters.map((slot) => {
+        const next = {
+          ...slot,
+          characterId: id(slot.characterId),
+          promptSetId: id(slot.promptSetId),
+        };
+        // 덮어쓴 캐릭터에 고르던 프롬프트 세트가 없으면 첫 세트로 바꾼다.
+        const character = characters.find((item) => item.id === next.characterId);
+        if (character && !character.promptSets.some((set) => set.id === next.promptSetId))
+          next.promptSetId = character.promptSets[0].id;
+        return next;
+      }),
       emotionSetId: id(project.emotionSetId),
       excludedEmotionIds: project.excludedEmotionIds.map(id),
       favorites: Object.fromEntries(
         Object.entries(project.favorites).map(([emotionId, recordId]) => [id(emotionId), recordId]),
       ),
     };
-    // 덮어쓴 캐릭터에 고르던 프롬프트 세트가 없으면 첫 세트로 바꾼다.
-    const character = characters.find((item) => item.id === linked.characterId);
-    if (character && !character.promptSets.some((set) => set.id === linked.promptSetId))
-      linked.promptSetId = character.promptSets[0].id;
     return linked;
   });
 

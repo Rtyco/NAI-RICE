@@ -4,15 +4,24 @@ import {
   buildResultImg2ImgJobs,
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
+  type JobCharacter,
 } from '../core/jobs/JobBuilder';
 import type { GenerationJobSnapshot, GenerationSummary } from '../core/domain/types';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
-import { resolveProject } from '../core/model/defaults';
+import { resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
 import { saveFreeMask } from './freeImageOps';
+
+function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
+  return characters.map(({ character, promptSet, center }) => ({
+    name: character.name,
+    promptSet,
+    center,
+  }));
+}
 
 export type GenerateOptions = {
   seed?: number;
@@ -37,8 +46,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     const common = {
       project,
       preset: resolved.preset!,
-      characterName: resolved.character!.name,
-      promptSet: resolved.promptSet!,
+      characters: jobCharacters(resolved.characters),
       emotionSet: resolved.emotionSet!,
       emotionIds,
       settings: library.settings,
@@ -74,7 +82,7 @@ export function generateFree(
     const state = useStore.getState();
     const library = state.library;
     if (!library) throw new Error('라이브러리를 읽지 못했습니다.');
-    const { free, preset, character, promptSet } = resolveFreeGeneration(library);
+    const { free, preset, characters, promptSet } = resolveFreeGeneration(library);
     if (!preset) throw new Error('생성 설정이 없습니다. 라이브러리에서 하나 만드십시오.');
     if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
     const prompt = options.prompt ?? free.prompt;
@@ -110,7 +118,8 @@ export function generateFree(
     }
     const jobs = buildFreeJobs({
       preset,
-      character: character && promptSet ? { name: character.name, promptSet } : undefined,
+      characters: jobCharacters(characters),
+      positionMode: free.positionMode,
       prompt,
       promptPosition: free.promptPosition,
       count: options.count ?? free.count,

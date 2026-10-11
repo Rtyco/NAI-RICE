@@ -229,4 +229,50 @@ describe('NovelAIRequestBuilder', () => {
       expect(body.parameters.v4_prompt.caption.char_captions).toHaveLength(1);
     }
   });
+
+  it('여러 캐릭터를 순서대로 보내고, 위치를 지정하면 use_coords를 켜', () => {
+    const input = {
+      prompt: 'p',
+      negativePrompt: 'n',
+      characterPrompt: 'girl, a',
+      characterNegativePrompt: 'x',
+      extraCharacters: [
+        { prompt: 'boy, b', negative: '' },
+        { prompt: '', negative: 'skip' },
+      ],
+      width: 832,
+      height: 1216,
+      seed: 1,
+      settings,
+    };
+    const auto = buildNovelAIDiffusionRequest(input, { action: 'generate' }) as any;
+    expect(auto.parameters.use_coords).toBe(false);
+    expect(auto.parameters.v4_prompt.caption.char_captions).toEqual([
+      { char_caption: 'girl, a', centers: [{ x: 0.5, y: 0.5 }] },
+      { char_caption: 'boy, b', centers: [{ x: 0.5, y: 0.5 }] },
+    ]);
+    const placed = buildNovelAIDiffusionRequest(
+      {
+        ...input,
+        characterCenters: [
+          { x: 0.3, y: 0.5 },
+          { x: 0.7, y: 0.5 },
+          { x: 0.5, y: 0.5 },
+        ],
+      },
+      { action: 'generate' },
+    ) as any;
+    expect(placed.parameters.use_coords).toBe(true);
+    expect(placed.parameters.v4_prompt.use_coords).toBe(true);
+    expect(placed.parameters.v4_negative_prompt.caption.char_captions).toEqual([
+      { char_caption: 'x', centers: [{ x: 0.3, y: 0.5 }] },
+      { char_caption: '', centers: [{ x: 0.7, y: 0.5 }] },
+    ]);
+    const v3 = buildNovelAIDiffusionRequest(
+      { ...input, settings: { ...settings, model: 'nai-diffusion-3-inpainting' } },
+      { action: 'generate' },
+    ) as any;
+    expect(v3.input).toBe('p, girl, a, boy, b');
+    expect(v3.parameters.negative_prompt).toBe('n, x, skip');
+  });
 });

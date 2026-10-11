@@ -7,7 +7,12 @@ import type {
   QueueView,
 } from '../core/domain/types';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
-import { FREE_PROJECT_ID, resolveProject, type ResolvedProject } from '../core/model/defaults';
+import {
+  FREE_PROJECT_ID,
+  resolveCharacters,
+  resolveProject,
+  type ResolvedProject,
+} from '../core/model/defaults';
 import type { TokenStatus } from '../shared/ipc';
 import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
@@ -317,10 +322,14 @@ export function resolveFreeGeneration(library: Library) {
   const free = library.freeGeneration;
   const preset =
     library.presets.find((item) => item.id === free.presetId) ?? library.presets[0];
-  const character = library.characters.find((item) => item.id === free.characterId);
-  const promptSet =
-    character?.promptSets.find((item) => item.id === free.promptSetId) ?? character?.promptSets[0];
-  return { free, preset, character, promptSet };
+  const characters = resolveCharacters(library, free.characters);
+  return {
+    free,
+    preset,
+    characters,
+    character: characters[0]?.character,
+    promptSet: characters[0]?.promptSet,
+  };
 }
 
 export function openLibrary(section: LibrarySection, itemId?: string): void {

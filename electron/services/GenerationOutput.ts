@@ -32,6 +32,7 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
     ucPreset: job.settings.ucPreset,
     model: job.settings.model,
     ...(usesMedium(job.settings) ? { effort: 'medium' as const } : {}),
+    ...(job.extraCharacters ? { extraCharacters: job.extraCharacters } : {}),
   };
 }
 
@@ -133,6 +134,8 @@ export async function saveGenerationOutput(
     negativePrompt: job.negativePrompt,
     characterPrompt: job.characterPrompt,
     characterNegativePrompt: job.characterNegativePrompt,
+    ...(job.extraCharacters ? { extraCharacters: job.extraCharacters } : {}),
+    ...(job.characterCenters ? { characterCenters: job.characterCenters } : {}),
     emotionPrompt: job.emotionPrompt,
     settings: job.settings,
     anlasSpent,

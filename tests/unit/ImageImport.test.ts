@@ -59,7 +59,9 @@ describe('applyImageImport', () => {
     });
     const project = result.library.projects.find((item) => item.id === result.projectId)!;
     expect(project.presetId).toBe(preset.id);
-    const character = result.library.characters.find((item) => item.id === project.characterId)!;
+    const character = result.library.characters.find(
+      (item) => item.id === project.characters[0].characterId,
+    )!;
     expect(character.promptSets[0]).toMatchObject({
       positive: 'silver hair',
       negative: 'bad hands',

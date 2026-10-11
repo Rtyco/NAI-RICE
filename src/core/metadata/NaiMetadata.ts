@@ -1,5 +1,11 @@
 import { Gunzip } from 'fflate';
-import type { Effort, GenerationSettings, QualityLevel, UcPresetId } from '../domain/types';
+import type {
+  Effort,
+  ExtraCharacterPrompt,
+  GenerationSettings,
+  QualityLevel,
+  UcPresetId,
+} from '../domain/types';
 import { readImageText } from './WebpMetadata';
 import { removeReferenceInset } from '../prompts/PromptComposer';
 import { supportsEffort } from '../providers/NaiModels';
@@ -27,6 +33,8 @@ export type DeskMetadata = {
   model?: string;
   /** Medium으로 만든 것만 남긴다. */
   effort?: Effort;
+  /** 두 번째 캐릭터부터. 씬 프롬프트가 섞인 최종 프롬프트다. */
+  extraCharacters?: ExtraCharacterPrompt[];
 };
 
 export type ImageImportData = {
@@ -250,7 +258,13 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     // 이 앱의 결과물이면 분리 저장해 둔 원래 값을 우선한다. 캐릭터 프롬프트에 감정이 섞이지 않는다.
     result.commonPositive = desk.commonPositive;
     result.commonNegative = desk.commonNegative;
-    result.characters = [{ positive: desk.promptSet.positive, negative: desk.promptSet.negative }];
+    result.characters = [
+      { positive: desk.promptSet.positive, negative: desk.promptSet.negative },
+      ...(desk.extraCharacters ?? []).map((character) => ({
+        positive: removeReferenceInset(character.prompt),
+        negative: character.negative,
+      })),
+    ];
     result.seed = desk.seed;
     if (desk.model) result.model = desk.model;
     if (desk.model) result.effort = desk.effort ?? 'high';

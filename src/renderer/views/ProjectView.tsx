@@ -8,7 +8,13 @@ import {
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
-import { modelLabel, supportsInpaint, usesMedium } from '../../core/providers/NaiModels';
+import {
+  maxCharactersFor,
+  modelLabel,
+  supportsInpaint,
+  usesMedium,
+} from '../../core/providers/NaiModels';
+import { CharacterChips } from '../components/CharacterChips';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -110,40 +116,11 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           ))}
         </select>
       </ChainChip>
-      <ChainChip section="characters" itemId={resolved.character?.id} missing={!resolved.character}>
-        <select
-          value={project.characterId}
-          onChange={(event) => {
-            const character = library.characters.find((item) => item.id === event.target.value);
-            if (character)
-              patch({ characterId: character.id, promptSetId: character.promptSets[0].id });
-          }}
-        >
-          {!resolved.character && <option value={project.characterId}>(없음)</option>}
-          {library.characters.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-        {resolved.character && resolved.character.promptSets.length > 1 && (
-          <>
-            <span className="chain-chip-sep">/</span>
-            <select
-              title="캐릭터 프롬프트 세트"
-              aria-label="캐릭터 프롬프트 세트"
-              value={resolved.promptSet?.id}
-              onChange={(event) => patch({ promptSetId: event.target.value })}
-            >
-              {resolved.character.promptSets.map((set) => (
-                <option key={set.id} value={set.id}>
-                  세트: {set.name}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-      </ChainChip>
+      <CharacterChips
+        slots={project.characters}
+        max={maxCharactersFor(resolved.preset?.generation.model)}
+        onChange={(characters) => patch({ characters })}
+      />
       {project.mode === 'reference' && (
         <ChainChip
           section="references"
@@ -201,8 +178,8 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
   }
   const prompts = composeRequestPrompts(
     resolved.preset,
-    resolved.promptSet,
-    emotion?.prompt,
+    resolved.characters.map((item) => item.promptSet),
+    emotion,
     { sets: library.pieceSets },
     generationKindFor(resolved.project.mode),
   );

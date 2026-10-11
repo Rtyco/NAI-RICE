@@ -1,4 +1,9 @@
-import type { AugmentTool, GenerationJobSnapshot, GenerationSettings } from '../domain/types';
+import type {
+  AugmentTool,
+  CharacterCenter,
+  GenerationJobSnapshot,
+  GenerationSettings,
+} from '../domain/types';
 import { modelInfo, NAI_MODELS, naiTagHints, requestModelId } from './NaiModels';
 
 export const NAI_IMAGE_ENDPOINT = 'https://image.novelai.net/ai/generate-image';
@@ -14,6 +19,10 @@ export type NaiPromptInput = {
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
+  /** 두 번째 캐릭터부터. */
+  extraCharacters?: Array<{ prompt: string; negative: string }>;
+  /** 주면 첫 캐릭터부터 이 위치로 보낸다(`use_coords: true`). */
+  characterCenters?: CharacterCenter[];
   width: number;
   height: number;
   seed: number;
@@ -67,10 +76,16 @@ export function buildNovelAIDiffusionRequest(
   const strength = image.action === 'generate' ? 0 : clamp(image.strength, 0, 1);
   const noise = image.action === 'img2img' ? clamp(image.noise, 0, 1) : 0;
 
+  const characters = [
+    { prompt: input.characterPrompt, negative: input.characterNegativePrompt },
+    ...(input.extraCharacters ?? []),
+  ];
   // V3는 캐릭터 프롬프트를 지원하지 않으므로 공통 프롬프트 뒤에 합친다.
-  const prompt = isV3 ? join(input.prompt, input.characterPrompt) : input.prompt;
+  const prompt = isV3
+    ? join(input.prompt, ...characters.map((character) => character.prompt))
+    : input.prompt;
   const negativePrompt = isV3
-    ? join(input.negativePrompt, input.characterNegativePrompt)
+    ? join(input.negativePrompt, ...characters.map((character) => character.negative))
     : input.negativePrompt;
 
   const imageParams =
@@ -124,19 +139,19 @@ export function buildNovelAIDiffusionRequest(
     };
   }
 
-  const characterEntries = input.characterPrompt.trim()
-    ? [
-        {
-          prompt: input.characterPrompt,
-          uc: input.characterNegativePrompt,
-          center: { x: 0.5, y: 0.5 },
-        },
-      ]
-    : [];
+  const useCoords = Boolean(input.characterCenters);
+  // 위치를 AI에 맡길 때도 웹처럼 가운데를 넣어 보낸다. 프롬프트가 빈 캐릭터는 웹처럼 뺀다.
+  const characterEntries = characters
+    .map((character, index) => ({
+      prompt: character.prompt,
+      uc: character.negative,
+      center: input.characterCenters?.[index] ?? { x: 0.5, y: 0.5 },
+    }))
+    .filter((entry) => entry.prompt.trim());
   const v4 = {
     params_version: isV5 ? 4 : 3,
     characterPrompts: characterEntries,
-    use_coords: false,
+    use_coords: useCoords,
     prefer_brownian: sampler === 'k_euler_ancestral',
     deliberate_euler_ancestral_bug: false,
     ...(image.action === 'generate'
@@ -160,7 +175,7 @@ export function buildNovelAIDiffusionRequest(
           centers: [entry.center],
         })),
       },
-      use_coords: false,
+      use_coords: useCoords,
       use_order: true,
     },
     v4_negative_prompt: {
@@ -234,6 +249,8 @@ export function buildNovelAIJobRequest(
     negativePrompt: job.negativePrompt,
     characterPrompt: job.characterPrompt,
     characterNegativePrompt: job.characterNegativePrompt,
+    extraCharacters: job.extraCharacters,
+    characterCenters: job.characterCenters,
     width: job.canvasWidth,
     height: job.canvasHeight,
     seed: job.seed,

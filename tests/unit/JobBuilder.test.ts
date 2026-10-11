@@ -77,8 +77,7 @@ describe('buildJobs', () => {
     const jobs = buildJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
       emotionIds: emotionSet.emotions.map((emotion) => emotion.id),
@@ -104,8 +103,7 @@ describe('buildJobs', () => {
     const jobs = buildJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
       emotionIds: [emotionSet.emotions[0].id],
@@ -126,7 +124,7 @@ describe('buildJobs', () => {
       qualityTags: true,
       ucPreset: 'light',
     };
-    const prompts = composeRequestPrompts(preset, promptSet, 'smile');
+    const prompts = composeRequestPrompts(preset, [promptSet], 'smile');
     expect(prompts.prompt).toBe(
       'reference inset, masterpiece, very aesthetic, masterpiece, no text',
     );
@@ -139,10 +137,10 @@ describe('buildJobs', () => {
   it('포지티브나 감정에 nsfw가 있으면 UC 프리셋 앞에 nsfw를 붙이지 않아', () => {
     const { promptSet, preset } = setup('fixed');
     preset.generation = { ...preset.generation, ucPreset: 'heavy' };
-    expect(composeRequestPrompts(preset, promptSet, 'nsfw, smile').negativePrompt).not.toMatch(
+    expect(composeRequestPrompts(preset, [promptSet], 'nsfw, smile').negativePrompt).not.toMatch(
       /^nsfw/,
     );
-    expect(composeRequestPrompts(preset, promptSet, 'smile').negativePrompt).toMatch(/^nsfw, /);
+    expect(composeRequestPrompts(preset, [promptSet], 'smile').negativePrompt).toMatch(/^nsfw, /);
   });
 
   it('V3는 네거티브가 모두 비면 NovelAI 웹처럼 lowres를 보내', () => {
@@ -151,14 +149,14 @@ describe('buildJobs', () => {
     for (const model of ['nai-diffusion-3-inpainting', 'nai-diffusion-furry-3-inpainting']) {
       preset.generation = { ...preset.generation, model, ucPreset: 'none' };
       expect(
-        composeRequestPrompts(preset, { ...promptSet, negative: '' }, undefined).negativePrompt,
+        composeRequestPrompts(preset, [{ ...promptSet, negative: '' }], undefined).negativePrompt,
       ).toBe('lowres');
       // 캐릭터 네거티브가 있으면 V3 요청에서 그것과 합쳐지므로 기본값은 넣지 않는다.
-      expect(composeRequestPrompts(preset, promptSet, undefined).negativePrompt).toBe('');
+      expect(composeRequestPrompts(preset, [promptSet], undefined).negativePrompt).toBe('');
     }
     preset.generation = { ...preset.generation, model: 'nai-diffusion-5-full-inpainting' };
     expect(
-      composeRequestPrompts(preset, { ...promptSet, negative: '' }, undefined).negativePrompt,
+      composeRequestPrompts(preset, [{ ...promptSet, negative: '' }], undefined).negativePrompt,
     ).toBe('');
   });
 
@@ -176,8 +174,7 @@ describe('buildJobs', () => {
     const [job] = buildJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
       emotionIds: [emotionSet.emotions[0].id],
@@ -205,7 +202,7 @@ describe('buildJobs', () => {
       effort: 'medium',
       steps: 28,
     };
-    const prompts = composeRequestPrompts(preset, promptSet, 'smile');
+    const prompts = composeRequestPrompts(preset, [promptSet], 'smile');
     expect(prompts.negativePrompt).toBe('lowres');
     expect(prompts.characterNegativePrompt).toBe('bad hands');
   });
@@ -216,8 +213,7 @@ describe('buildJobs', () => {
       buildJobs({
         project,
         preset,
-        characterName: character.name,
-        promptSet,
+        characters: [{ name: character.name, promptSet }],
         emotionSet,
         reference: { ...reference, image: undefined },
         emotionIds: [],
@@ -255,8 +251,7 @@ describe('생성 큐 등록 검증', () => {
     return buildJobs({
       project,
       preset,
-      characterName: character.name,
-      promptSet,
+      characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
       emotionIds: [emotionSet.emotions[0].id],
@@ -326,5 +321,117 @@ describe('예상 Anlas', () => {
   it('i2i strength를 곱하고 최소 2 Anlas야', () => {
     expect(imageAnlasCost({ width: 832, height: 1216, steps: 28, strength: 0.5 })).toBe(10);
     expect(imageAnlasCost({ width: 64, height: 64, steps: 1, strength: 0.1 })).toBe(2);
+  });
+});
+
+describe('여러 캐릭터', () => {
+  function cast() {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 1);
+    const second = createPromptSet('겨울', { positive: 'black hair', negative: 'hat' });
+    const emotion = {
+      ...createEmotion('웃음', 'smile'),
+      extraPrompts: ['laughing'],
+    };
+    return {
+      preset,
+      project,
+      emotionSet: { ...emotionSet, emotions: [emotion, createEmotion('2번만', '')] },
+      characters: [
+        { name: character.name, promptSet },
+        { name: '리나', promptSet: second },
+      ],
+    };
+  }
+
+  it('씬 프롬프트를 캐릭터마다 순서대로 붙이고 이름을 +로 이어', () => {
+    const { preset, project, emotionSet, characters } = cast();
+    const [job] = buildJobs({
+      project,
+      preset,
+      characters,
+      emotionSet,
+      reference,
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job).toMatchObject({
+      characterName: '아리아+리나',
+      promptSetName: '기본+겨울',
+      characterPrompt: 'silver hair, smile',
+      extraCharacters: [{ name: '리나', prompt: 'black hair, laughing', negative: 'hat' }],
+    });
+    expect(job.characterCenters).toBeUndefined();
+    const hashed = { ...job, imageSha256: 'a'.repeat(64), maskSha256: 'b'.repeat(64) };
+    expect(generationEnqueueRequestSchema.safeParse({ jobs: [hashed] }).success).toBe(true);
+  });
+
+  it('두 번째 캐릭터 칸만 채운 씬도 생성 대상이고, 빈 칸의 캐릭터에는 아무것도 붙이지 않아', () => {
+    const { preset, project, emotionSet, characters } = cast();
+    emotionSet.emotions[1].extraPrompts = ['waving'];
+    const jobs = buildJobs({
+      project,
+      preset,
+      characters,
+      emotionSet,
+      reference,
+      emotionIds: emotionSet.emotions.map((emotion) => emotion.id),
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(jobs).toHaveLength(2);
+    expect(jobs[1].characterPrompt).toBe('silver hair');
+    expect(jobs[1].extraCharacters?.[0].prompt).toBe('black hair, waving');
+  });
+
+  it('직접 지정한 위치는 V4.5에서 5×5 칸에 맞추고, 정하지 않은 캐릭터는 빈 칸을 채워', () => {
+    const { preset, project, emotionSet, characters } = cast();
+    preset.generation = { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' };
+    const [job] = buildJobs({
+      project: { ...project, positionMode: 'manual' },
+      preset,
+      characters: [{ ...characters[0], center: { x: 0.52, y: 0.18 } }, characters[1]],
+      emotionSet,
+      reference,
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job.characterCenters).toEqual([
+      { x: 0.5, y: 0.1 },
+      { x: 0.5, y: 0.5 },
+    ]);
+  });
+
+  it('모델이 받는 인원을 넘으면 작업을 만들지 않아', () => {
+    const { preset, project, emotionSet, characters } = cast();
+    preset.generation = { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' };
+    expect(() =>
+      buildJobs({
+        project,
+        preset,
+        characters: Array.from({ length: 7 }, () => characters[0]),
+        emotionSet,
+        reference,
+        emotionIds: [emotionSet.emotions[0].id],
+        input,
+        settings: DEFAULT_SETTINGS,
+      }),
+    ).toThrow(/6명까지/);
+  });
+
+  it('Medium이면 두 번째 캐릭터부터의 네거티브도 비워', () => {
+    const { preset, characters } = cast();
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-5-full-inpainting',
+      effort: 'medium',
+    };
+    const prompts = composeRequestPrompts(
+      preset,
+      characters.map((character) => character.promptSet),
+      'smile',
+    );
+    expect(prompts.extraCharacters).toEqual([{ prompt: 'black hair', negative: '' }]);
   });
 });

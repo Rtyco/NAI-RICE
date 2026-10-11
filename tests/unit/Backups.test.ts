@@ -82,7 +82,7 @@ describe('import files', () => {
     const full = { ...library, characters: [character], references: [reference], projects: [project] };
     const bundle = parseImportFile(JSON.stringify(exportLibrary(full, {})), 'all.json', PRESET_ID);
     const restored = bundle.projects[0];
-    expect(restored.characterId).toBe(bundle.characters[0].id);
+    expect(restored.characters[0].characterId).toBe(bundle.characters[0].id);
     expect(restored.referenceId).toBe(bundle.references[0].id);
     expect(restored.presetId).toBe(bundle.presets[0].id);
     expect(librarySchema.safeParse(mergeBundle(full, bundle)).success).toBe(true);
@@ -189,8 +189,7 @@ describe('mergeBundle 덮어쓰기', () => {
     expect(set.emotions[0]).toMatchObject({ id: firstEmotion.id, prompt: 'changed' });
     expect(set.emotions[1].id).toBe('incoming-e2');
     expect(merged.projects[0]).toMatchObject({
-      characterId: character.id,
-      promptSetId: character.promptSets[0].id,
+      characters: [{ characterId: character.id, promptSetId: character.promptSets[0].id }],
       emotionSetId: emotionSet.id,
     });
     expect(librarySchema.safeParse(merged).success).toBe(true);
@@ -214,6 +213,6 @@ describe('mergeBundle 덮어쓰기', () => {
       { label: 't', presets: [], characters: [incoming], emotionSets: [], references: [], projects: [], pieceSets: [], images: {}, warnings: [] },
       { [incoming.id]: character.id },
     );
-    expect(merged.projects[0].promptSetId).toBe(incoming.promptSets[0].id);
+    expect(merged.projects[0].characters[0].promptSetId).toBe(incoming.promptSets[0].id);
   });
 });

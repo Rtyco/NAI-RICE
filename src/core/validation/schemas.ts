@@ -8,6 +8,13 @@ export const rectSchema = z.object({
   height: z.number().positive(),
 });
 
+const centerSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+const extraCharacterSchema = z.object({
+  name: z.string(),
+  prompt: z.string(),
+  negative: z.string(),
+});
+
 export const generationSettingsSchema = z.object({
   model: z.string(),
   sampler: z.string(),
@@ -59,7 +66,14 @@ export const characterSchema = z.object({
 export const emotionSetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
-  emotions: z.array(z.object({ id: z.string().min(1), name: z.string(), prompt: z.string() })),
+  emotions: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string(),
+      prompt: z.string(),
+      extraPrompts: z.array(z.string()).optional(),
+    }),
+  ),
 });
 
 export const promptPieceSchema = z.object({
@@ -151,21 +165,45 @@ export const referenceSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const projectSchema = z.object({
-  id: z.string().regex(FOLDER_ID),
-  name: z.string(),
-  // 없어진 i2i 방식(img2img)은 인페인트로 읽는다.
-  mode: z.enum(['reference', 'txt2img']).catch('reference'),
-  presetId: z.string(),
+const characterSlotSchema = z.object({
   characterId: z.string(),
   promptSetId: z.string(),
-  emotionSetId: z.string(),
-  referenceId: z.string(),
-  excludedEmotionIds: z.array(z.string()).default([]),
-  favorites: z.record(z.string(), z.string()).default({}),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  center: centerSchema.optional(),
 });
+
+/** 캐릭터가 하나뿐이던 때의 `characterId`·`promptSetId`는 한 명짜리 목록으로 읽는다. */
+function readSingleCharacter(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const item = value as Record<string, unknown>;
+  if (Array.isArray(item.characters)) return item;
+  const { characterId, promptSetId, ...rest } = item;
+  return {
+    ...rest,
+    characters:
+      typeof characterId === 'string' && characterId
+        ? [{ characterId, promptSetId: typeof promptSetId === 'string' ? promptSetId : '' }]
+        : [],
+  };
+}
+
+export const projectSchema = z.preprocess(
+  readSingleCharacter,
+  z.object({
+    id: z.string().regex(FOLDER_ID),
+    name: z.string(),
+    // 없어진 i2i 방식(img2img)은 인페인트로 읽는다.
+    mode: z.enum(['reference', 'txt2img']).catch('reference'),
+    presetId: z.string(),
+    characters: z.array(characterSlotSchema),
+    positionMode: z.enum(['ai', 'manual']).catch('ai'),
+    emotionSetId: z.string(),
+    referenceId: z.string(),
+    excludedEmotionIds: z.array(z.string()).default([]),
+    favorites: z.record(z.string(), z.string()).default({}),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }),
+);
 
 export const appSettingsSchema = z.object({
   outputFilenameTemplate: z.string().min(1).default(DEFAULT_OUTPUT_FILENAME_TEMPLATE),
@@ -226,11 +264,11 @@ export const librarySchema = z.object({
   pieceSets: z.array(pieceSetSchema).default([]),
   freeGeneration: z
     .preprocess(
-      readFreeInpaintMode,
+      (value) => readSingleCharacter(readFreeInpaintMode(value)),
       z.object({
         presetId: z.string(),
-        characterId: z.string(),
-        promptSetId: z.string(),
+        characters: z.array(characterSlotSchema),
+        positionMode: z.enum(['ai', 'manual']).catch('ai'),
         prompt: z.string(),
         count: z.number().int().min(1).max(20),
         mode: z.enum(['txt2img', 'img2img']).catch('txt2img'),
@@ -252,8 +290,8 @@ export const librarySchema = z.object({
     )
     .default({
       presetId: '',
-      characterId: '',
-      promptSetId: '',
+      characters: [],
+      positionMode: 'ai',
       prompt: '',
       count: 1,
       mode: 'txt2img',
@@ -300,6 +338,8 @@ export const generationRecordSchema = z.object({
   negativePrompt: z.string(),
   characterPrompt: z.string(),
   characterNegativePrompt: z.string(),
+  extraCharacters: z.array(extraCharacterSchema).optional(),
+  characterCenters: z.array(centerSchema).optional(),
   emotionPrompt: z.string(),
   settings: generationSettingsSchema,
   anlasSpent: z.number().optional(),
@@ -333,6 +373,8 @@ const jobSnapshotCommonSchema = z.object({
   negativePrompt: z.string(),
   characterPrompt: z.string(),
   characterNegativePrompt: z.string(),
+  extraCharacters: z.array(extraCharacterSchema).max(32).optional(),
+  characterCenters: z.array(centerSchema).max(32).optional(),
   source: z.object({
     commonPositive: z.string(),
     commonNegative: z.string(),

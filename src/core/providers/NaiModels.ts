@@ -18,6 +18,8 @@ export type NaiModelInfo = {
   family: NaiTagFamily;
   /** V4 이상은 v4_prompt와 캐릭터 프롬프트를 지원한다. V3는 하나의 프롬프트로 합쳐 보낸다. */
   generation: 'v5' | 'v4' | 'v3';
+  /** 한 요청에 넣을 수 있는 캐릭터 수(NovelAI 웹의 `maxCharacters`). V3는 앱이 공통 프롬프트에 합친다. */
+  maxCharacters: number;
   maxSteps: number;
   maxScale: number;
 };
@@ -33,6 +35,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V5 Full',
     family: 'v5',
     generation: 'v5',
+    maxCharacters: 32,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -44,6 +47,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V5 Curated',
     family: 'v5-curated',
     generation: 'v5',
+    maxCharacters: 32,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -56,6 +60,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V4.5 Full',
     family: 'v4-5-full',
     generation: 'v4',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -68,6 +73,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V4.5 Curated',
     family: 'v4-5-curated',
     generation: 'v4',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -77,6 +83,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V4 Full',
     family: 'v4-full',
     generation: 'v4',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -89,6 +96,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion V4 Curated',
     family: 'v4-curated',
     generation: 'v4',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -98,6 +106,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion Anime V3',
     family: 'v3',
     generation: 'v3',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -107,6 +116,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     label: 'NAI Diffusion Furry V3',
     family: 'v3-furry',
     generation: 'v3',
+    maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
   },
@@ -120,6 +130,11 @@ export const INPAINT_MODELS = NAI_MODELS.filter((model) => model.requestIds.inpa
 
 export function supportsInpaint(id: string): boolean {
   return Boolean(modelInfo(id)?.requestIds.inpaint);
+}
+
+/** 모르는 모델이면 V4와 같은 6명으로 본다. */
+export function maxCharactersFor(id: string | undefined): number {
+  return modelInfo(id ?? '')?.maxCharacters ?? 6;
 }
 
 export function supportsEffort(id: string): boolean {
