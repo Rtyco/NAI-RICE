@@ -9,7 +9,7 @@ import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
-import { EmptyState, PanelHeading, SelectField } from '../components/ui';
+import { EmptyState, SelectField } from '../components/ui';
 import type { CanvasImage } from '../lib/image';
 import {
   canvasImageToDataUrl,
@@ -290,202 +290,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
 
   return (
     <div className="canvas-view">
-      <aside className="canvas-settings">
-        <PanelHeading title="참고 이미지" subtitle="" />
-        <button className="import-card" onClick={pickImage}>
-          <span className="file-icon image">IMG</span>
-          <span>
-            <b>{source ? source.name : '이미지 선택'}</b>
-            <small>{source ? '클릭해서 교체 · 창에 드롭해도 됩니다' : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}</small>
-          </span>
-        </button>
-
-        <PanelHeading title="캔버스 구성" />
-        <div className="segmented full">
-          <button className={auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'auto' })}>
-            자동 구성
-          </button>
-          <button className={!auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'prepared' })}>
-            직접 준비한 캔버스
-          </button>
-        </div>
-        {auto ? (
-          <>
-            <SelectField
-              label="해상도 (NovelAI에 보내는 전체 캔버스)"
-              value={layout.resolution}
-              options={[
-                ...RESOLUTION_PRESETS.map((item) => ({ value: item.id, label: `${item.label} (무료)` })),
-                { value: 'custom' as const, label: '커스텀' },
-              ]}
-              onChange={(resolution) => {
-                const preset = RESOLUTION_PRESETS.find((item) => item.id === resolution);
-                changeLayout(preset ? { resolution, width: preset.width, height: preset.height } : { resolution });
-              }}
-            />
-            {layout.resolution === 'custom' && (
-              <>
-                <SettingRow label="가로" unit="px">
-                  <Stepper
-                    label="가로"
-                    value={layout.width}
-                    min={CUSTOM_MIN}
-                    max={CUSTOM_MAX}
-                    step={64}
-                    onChange={(width) => changeLayout({ width: snapDimension(width) })}
-                  />
-                </SettingRow>
-                <SettingRow label="세로" unit="px">
-                  <Stepper
-                    label="세로"
-                    value={layout.height}
-                    min={CUSTOM_MIN}
-                    max={CUSTOM_MAX}
-                    step={64}
-                    onChange={(height) => changeLayout({ height: snapDimension(height) })}
-                  />
-                </SettingRow>
-              </>
-            )}
-            <SelectField
-              label="참고 이미지 위치"
-              value={layout.referenceSide}
-              options={SIDES}
-              onChange={(referenceSide) => changeLayout({ referenceSide })}
-            />
-            <SettingRow
-              label="참고 영역 비율"
-              unit="%"
-              title="캔버스에서 참고 이미지가 차지하는 몫입니다. 나머지가 결과 쪽 크기입니다."
-            >
-              <Stepper
-                label="참고 영역 비율"
-                value={Math.round(layout.referenceRatio * 100)}
-                min={20}
-                max={80}
-                step={5}
-                onChange={(percent) => changeLayout({ referenceRatio: percent / 100 })}
-              />
-            </SettingRow>
-            <div className="two-column-fields">
-              <SelectField
-                label="이미지 맞춤"
-                value={layout.fit}
-                options={[
-                  { value: 'contain', label: '전체 보이기' },
-                  { value: 'cover', label: '꽉 채우기' },
-                ]}
-                onChange={(fit) => changeLayout({ fit })}
-              />
-              <SelectField
-                label="세로 맞춤"
-                value={layout.anchor}
-                options={[
-                  { value: 'top', label: '상단' },
-                  { value: 'center', label: '중앙' },
-                  { value: 'bottom', label: '하단' },
-                ]}
-                onChange={(anchor) => changeLayout({ anchor })}
-              />
-            </div>
-            <SettingRow label="배경색">
-              <input
-                type="color"
-                className="color-swatch"
-                aria-label="배경색"
-                value={layout.background}
-                onChange={(event) => changeLayout({ background: event.target.value })}
-              />
-            </SettingRow>
-          </>
-        ) : (
-          <>
-            <p className="hint">
-              참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 참고 영역을 찾습니다.
-            </p>
-            <SettingRow label="배경 임계값">
-              <Stepper
-                label="배경 임계값"
-                value={threshold}
-                min={4}
-                max={64}
-                step={1}
-                onChange={(value) => {
-                  setThreshold(value);
-                  scheduleRebuild(source, layout, value);
-                }}
-              />
-            </SettingRow>
-          </>
-        )}
-        <button
-          className="with-icon full-width"
-          disabled={!source || rebuilding}
-          title="참고 영역·결과 영역·생성 영역을 처음 상태로 다시 만듭니다"
-          onClick={() => source && void rebuild(source, layout, threshold)}
-        >
-          <Icon name="refresh" size={14} /> {auto ? '자동 배치로 되돌리기' : '배경 다시 감지'}
-        </button>
-
-        <PanelHeading title="영역" />
-        <SettingRow label="참고 영역 여백" unit="px">
-          <Stepper
-            label="참고 영역 여백"
-            value={expansionPx}
-            min={0}
-            max={64}
-            step={4}
-            onChange={(value) => {
-              setExpansionPx(value);
-              if (working) {
-                // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
-                const base =
-                  layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
-                setOutputRect(
-                  cropOutside(
-                    base,
-                    expandRect(referenceRect, value, working.width, working.height),
-                  ),
-                );
-              }
-              dirty.current = true;
-            }}
-          />
-        </SettingRow>
-        <p className="hint">
-          참고 영역 둘레를 이만큼 더 그대로 남깁니다. 결과 영역은 그 바깥에서 자릅니다.
-        </p>
-        {working && (
-          <details className="crop-details">
-            <summary>결과 영역 숫자로 맞추기</summary>
-            <div className="two-column-fields">
-              {CROP_FIELDS.map(({ key, label }) => (
-                <SettingRow key={key} label={label}>
-                  <Stepper
-                    label={`결과 영역 ${label}`}
-                    value={Math.round(outputRect[key])}
-                    min={key === 'width' || key === 'height' ? 16 : 0}
-                    max={key === 'x' || key === 'width' ? working.width : working.height}
-                    step={8}
-                    onChange={(value) => {
-                      setOutputRect(
-                        clampRect(
-                          { ...outputRect, [key]: value },
-                          working.width,
-                          working.height,
-                          16,
-                        ),
-                      );
-                      dirty.current = true;
-                    }}
-                  />
-                </SettingRow>
-              ))}
-            </div>
-          </details>
-        )}
-      </aside>
-
       <section className="canvas-panel">
         {working ? (
           <ReferenceCanvas
@@ -544,6 +348,214 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           </EmptyState>
         )}
       </section>
+
+      <aside className="canvas-settings">
+        <section className="detail-card settings-card">
+          <div className="detail-card-head">
+            <b>참고 이미지</b>
+          </div>
+          <button className="import-card" onClick={pickImage}>
+            <span className="file-icon image">IMG</span>
+            <span>
+              <b>{source ? source.name : '이미지 선택'}</b>
+              <small>{source ? '클릭해서 교체 · 창에 드롭해도 됩니다' : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}</small>
+            </span>
+          </button>
+        </section>
+
+        <section className="detail-card settings-card">
+          <div className="detail-card-head">
+            <b>캔버스 구성</b>
+          </div>
+          <div className="segmented full">
+            <button className={auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'auto' })}>
+              자동 구성
+            </button>
+            <button className={!auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'prepared' })}>
+              직접 준비한 캔버스
+            </button>
+          </div>
+          {auto ? (
+            <>
+              <SelectField
+                label="해상도 (NovelAI에 보내는 전체 캔버스)"
+                value={layout.resolution}
+                options={[
+                  ...RESOLUTION_PRESETS.map((item) => ({ value: item.id, label: `${item.label} (무료)` })),
+                  { value: 'custom' as const, label: '커스텀' },
+                ]}
+                onChange={(resolution) => {
+                  const preset = RESOLUTION_PRESETS.find((item) => item.id === resolution);
+                  changeLayout(preset ? { resolution, width: preset.width, height: preset.height } : { resolution });
+                }}
+              />
+              {layout.resolution === 'custom' && (
+                <>
+                  <SettingRow label="가로" unit="px">
+                    <Stepper
+                      label="가로"
+                      value={layout.width}
+                      min={CUSTOM_MIN}
+                      max={CUSTOM_MAX}
+                      step={64}
+                      onChange={(width) => changeLayout({ width: snapDimension(width) })}
+                    />
+                  </SettingRow>
+                  <SettingRow label="세로" unit="px">
+                    <Stepper
+                      label="세로"
+                      value={layout.height}
+                      min={CUSTOM_MIN}
+                      max={CUSTOM_MAX}
+                      step={64}
+                      onChange={(height) => changeLayout({ height: snapDimension(height) })}
+                    />
+                  </SettingRow>
+                </>
+              )}
+              <SelectField
+                label="참고 이미지 위치"
+                value={layout.referenceSide}
+                options={SIDES}
+                onChange={(referenceSide) => changeLayout({ referenceSide })}
+              />
+              <SettingRow
+                label="참고 영역 비율"
+                unit="%"
+                title="캔버스에서 참고 이미지가 차지하는 몫입니다. 나머지가 결과 쪽 크기입니다."
+              >
+                <Stepper
+                  label="참고 영역 비율"
+                  value={Math.round(layout.referenceRatio * 100)}
+                  min={20}
+                  max={80}
+                  step={5}
+                  onChange={(percent) => changeLayout({ referenceRatio: percent / 100 })}
+                />
+              </SettingRow>
+              <div className="two-column-fields">
+                <SelectField
+                  label="이미지 맞춤"
+                  value={layout.fit}
+                  options={[
+                    { value: 'contain', label: '전체 보이기' },
+                    { value: 'cover', label: '꽉 채우기' },
+                  ]}
+                  onChange={(fit) => changeLayout({ fit })}
+                />
+                <SelectField
+                  label="세로 맞춤"
+                  value={layout.anchor}
+                  options={[
+                    { value: 'top', label: '상단' },
+                    { value: 'center', label: '중앙' },
+                    { value: 'bottom', label: '하단' },
+                  ]}
+                  onChange={(anchor) => changeLayout({ anchor })}
+                />
+              </div>
+              <SettingRow label="배경색">
+                <input
+                  type="color"
+                  className="color-swatch"
+                  aria-label="배경색"
+                  value={layout.background}
+                  onChange={(event) => changeLayout({ background: event.target.value })}
+                />
+              </SettingRow>
+            </>
+          ) : (
+            <>
+              <p className="hint">
+                참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 참고 영역을 찾습니다.
+              </p>
+              <SettingRow label="배경 임계값">
+                <Stepper
+                  label="배경 임계값"
+                  value={threshold}
+                  min={4}
+                  max={64}
+                  step={1}
+                  onChange={(value) => {
+                    setThreshold(value);
+                    scheduleRebuild(source, layout, value);
+                  }}
+                />
+              </SettingRow>
+            </>
+          )}
+          <button
+            className="with-icon full-width"
+            disabled={!source || rebuilding}
+            title="참고 영역·결과 영역·생성 영역을 처음 상태로 다시 만듭니다"
+            onClick={() => source && void rebuild(source, layout, threshold)}
+          >
+            <Icon name="refresh" size={14} /> {auto ? '자동 배치로 되돌리기' : '배경 다시 감지'}
+          </button>
+        </section>
+
+        <section className="detail-card settings-card">
+          <div className="detail-card-head">
+            <b>영역</b>
+          </div>
+          <SettingRow label="참고 영역 여백" unit="px">
+            <Stepper
+              label="참고 영역 여백"
+              value={expansionPx}
+              min={0}
+              max={64}
+              step={4}
+              onChange={(value) => {
+                setExpansionPx(value);
+                if (working) {
+                  // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
+                  const base =
+                    layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
+                  setOutputRect(
+                    cropOutside(
+                      base,
+                      expandRect(referenceRect, value, working.width, working.height),
+                    ),
+                  );
+                }
+                dirty.current = true;
+              }}
+            />
+          </SettingRow>
+          <p className="hint">
+            참고 영역 둘레를 이만큼 더 그대로 남깁니다. 결과 영역은 그 바깥에서 자릅니다.
+          </p>
+          {working && (
+            <details className="crop-details">
+              <summary>결과 영역 숫자로 맞추기</summary>
+              <div className="two-column-fields">
+                {CROP_FIELDS.map(({ key, label }) => (
+                  <SettingRow key={key} label={label}>
+                    <Stepper
+                      label={`결과 영역 ${label}`}
+                      value={Math.round(outputRect[key])}
+                      min={key === 'width' || key === 'height' ? 16 : 0}
+                      max={key === 'x' || key === 'width' ? working.width : working.height}
+                      step={8}
+                      onChange={(value) => {
+                        setOutputRect(
+                          clampRect(
+                            { ...outputRect, [key]: value },
+                            working.width,
+                            working.height,
+                            16,
+                          ),
+                        );
+                        dirty.current = true;
+                      }}
+                    />
+                  </SettingRow>
+                ))}
+              </div>
+            </details>
+          )}
+        </section>
+      </aside>
     </div>
   );
 }

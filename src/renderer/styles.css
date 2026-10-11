@@ -809,25 +809,6 @@ textarea {
 }
 
 /* ── 프롬프트 화면 ──────────────────────────── */
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 4px 0 10px;
-}
-.panel-heading > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.panel-heading b {
-  font-size: 14px;
-}
-.panel-heading small {
-  color: var(--muted);
-  font-size: 12px;
-}
 .panel-heading-actions {
   display: flex;
   gap: 6px;
@@ -1121,16 +1102,20 @@ textarea.syntax-input::selection {
 .canvas-view {
   height: 100%;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 360px;
 }
+/* 씬 상세·자유 생성처럼 가운데는 캔버스, 오른쪽은 입력 카드를 둔다. */
 .canvas-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   overflow-y: auto;
-  padding: 12px 14px 24px;
-  border-right: 1px solid var(--line);
+  padding: 14px 16px 24px;
+  border-left: 1px solid var(--line);
   background: var(--bg-2);
 }
-.canvas-settings .panel-heading {
-  margin-top: 14px;
+.settings-card {
+  flex-shrink: 0;
 }
 .import-card {
   width: 100%;

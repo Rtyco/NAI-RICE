@@ -3,26 +3,6 @@ import type { ReactNode } from 'react';
 import { PromptTextarea } from './PromptTextarea';
 import { ExpandTextButton } from './TextEditorDialog';
 
-export function PanelHeading({
-  title,
-  subtitle,
-  actions,
-}: {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-}) {
-  return (
-    <div className="panel-heading">
-      <div>
-        <b>{title}</b>
-        {subtitle && <small>{subtitle}</small>}
-      </div>
-      {actions && <div className="panel-heading-actions">{actions}</div>}
-    </div>
-  );
-}
-
 /**
  * 입력 중에는 자유롭게 타이핑하고, 포커스를 잃거나 Enter를 누를 때 범위를 맞춘다.
  * (입력 도중 최소값으로 튀는 문제 방지)
