@@ -243,9 +243,9 @@ textarea {
   flex-direction: column;
 }
 /*
- * 창 제목 표시줄을 따로 두지 않는다. 화면 맨 위의 머리줄들(사이드바 이름 줄, 왼쪽 패널 머리, 화면 머리줄)을
- * 끌어 창을 옮기고, Windows 창 버튼은 화면 머리줄 오른쪽 위에 겹쳐 그려진다. 창 버튼 폭은 Electron이 주는
- * titlebar-area 값으로 구하고(확대 비율을 따라간다), 값이 없으면 버튼 세 개(46px씩) 폭으로 둔다.
+ * 창 맨 위 줄. 끌어서 창을 옮기고, 오른쪽에는 Windows 창 버튼이 겹쳐 그려지므로 그 폭만큼 비운다. 창 버튼
+ * 폭은 Electron이 주는 titlebar-area 값으로 구하고(확대 비율을 따라간다), 값이 없으면 버튼 세 개(46px씩)
+ * 폭으로 둔다. 전체 화면에서는 창 버튼이 사라지지만 사이드바 접기와 화면 이름이 있어 줄은 남긴다.
  */
 :root {
   --window-controls-width: calc(
@@ -255,41 +255,49 @@ textarea {
 :root[data-fullscreen='true'] {
   --window-controls-width: 0px;
 }
-.brand-block,
-.library-list-head,
-.main-area .project-header,
-.main-area .library-editor-head,
-.window-strip {
+.titlebar {
+  position: relative;
+  flex: none;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 calc(8px + var(--window-controls-width)) 0 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
   -webkit-app-region: drag;
   app-region: drag;
 }
-.brand-block :is(button, input, select, textarea, a, label, .segmented, .account-meter, .menu),
-.library-list-head :is(button, input, select, textarea, a, label),
-.main-area
-  :is(.project-header, .library-editor-head)
-  :is(button, input, select, textarea, a, label, .segmented, .account-meter, .menu),
-.modal-backdrop,
-.menu-popup,
-.context-menu,
-.checklist-popover,
-.lightbox,
-.toast {
+.titlebar button {
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
-.main-area .project-header,
-.main-area .library-editor-head {
-  padding-right: calc(16px + var(--window-controls-width));
+.titlebar-toggle {
+  width: 28px;
+  min-width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-2);
 }
-/* 시작 화면처럼 머리줄이 없는 화면에서 창을 끌고 창 버튼이 얹힐 줄. */
-.window-strip {
-  flex: none;
-  height: 32px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-2);
+.titlebar-brand {
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
-:root[data-fullscreen='true'] .window-strip {
-  display: none;
+/* 화면 이름은 창 가운데에 둔다. 누를 수 없고 끌기는 그대로 된다. */
+.titlebar-location {
+  position: absolute;
+  left: 50%;
+  max-width: 40%;
+  overflow: hidden;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .app-shell {
   position: relative;
@@ -2470,23 +2478,7 @@ textarea.syntax-input::selection {
 }
 .sidebar {
   gap: 8px;
-  padding-bottom: 8px;
-}
-.brand-block {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 10px 8px;
-  border-bottom: 1px solid var(--line);
-}
-.brand-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.brand-text strong {
-  font-size: 14px;
-  white-space: nowrap;
+  padding: 8px 0;
 }
 .brand-sub {
   color: var(--faint);
@@ -2495,13 +2487,6 @@ textarea.syntax-input::selection {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.sidebar-toggle {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  color: var(--text-2);
 }
 .sidebar-card {
   display: flex;
@@ -2677,10 +2662,6 @@ textarea.syntax-input::selection {
 }
 
 /* 접힌 사이드바: 아이콘만 세로로 */
-.sidebar.collapsed .brand-block {
-  justify-content: center;
-  padding: 10px 0 8px;
-}
 .sidebar.collapsed .sidebar-card {
   margin: 0 6px;
   align-items: center;
@@ -3149,7 +3130,6 @@ textarea.syntax-input::selection {
   interpolate-size: allow-keywords;
 }
 /* 사이드바를 펼칠 때 글자는 폭이 넓어진 뒤에 나타난다. */
-.sidebar .brand-text,
 .sidebar .project-meta,
 .sidebar .library-nav-text,
 .sidebar .library-nav .count,

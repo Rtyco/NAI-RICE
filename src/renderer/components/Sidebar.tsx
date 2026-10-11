@@ -30,7 +30,6 @@ import {
   run,
   setSettingsOpen,
   toggleFolder,
-  toggleSidebar,
   toggleSidebarSection,
   updateLibrary,
   useLibrary,
@@ -377,7 +376,6 @@ export function Sidebar() {
   const view = useStore((state) => state.view);
   const queue = useStore((state) => state.queue);
   const version = useStore((state) => state.version);
-  const saveState = useStore((state) => state.saveState);
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const sections = useStore((state) => state.sidebarSections);
   const update = useStore((state) => state.update);
@@ -462,30 +460,6 @@ export function Sidebar() {
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="brand-block">
-        <button
-          className="icon-button sidebar-toggle"
-          title={collapsed ? '사이드바 펼치기 (Ctrl+B)' : '사이드바 접기 (Ctrl+B)'}
-          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-          onClick={toggleSidebar}
-        >
-          <Icon name="sidebar" size={18} />
-        </button>
-        {!collapsed && (
-          <div className="brand-text">
-            <strong>NAI RICE</strong>
-            {saveState === 'error' && (
-              <span
-                className="save-indicator error"
-                title="작업 폴더에 저장하지 못했습니다. 알림을 확인하십시오."
-              >
-                저장 실패
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
       <section className="sidebar-card free-card">
         <nav className="library-nav" aria-label="자유 생성">
           <button

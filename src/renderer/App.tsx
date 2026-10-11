@@ -5,6 +5,7 @@ import { DropZone } from './components/DropImport';
 import { Icon } from './components/Icon';
 import { QueueBar } from './components/QueueBar';
 import { NewProjectDialog, Sidebar } from './components/Sidebar';
+import { TitleBar } from './components/TitleBar';
 import { EmptyState } from './components/ui';
 import { importJsonFromPicker } from './importers';
 import { PROJECT_SECTIONS } from './sections';
@@ -120,6 +121,7 @@ export default function App() {
 
   return (
     <>
+      <TitleBar />
       <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {library ? <Sidebar /> : <aside className="sidebar" />}
         {!collapsed && <PanelResizer panel="sidebar" />}
@@ -127,12 +129,9 @@ export default function App() {
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>
               {!ready || !library ? (
-                <>
-                  <div className="window-strip" />
-                  <p className="hint pad">
-                    {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
-                  </p>
-                </>
+                <p className="hint pad">
+                  {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
+                </p>
               ) : view.kind === 'project' && projectExists ? (
                 <PromptPanelLayout panel={<ProjectPromptPanel projectId={view.projectId} />}>
                   <ProjectView projectId={view.projectId} />
@@ -144,10 +143,7 @@ export default function App() {
               ) : view.kind === 'library' ? (
                 <LibraryView section={view.section} itemId={view.itemId} />
               ) : (
-                <>
-                  <div className="window-strip" />
-                  <Welcome />
-                </>
+                <Welcome />
               )}
             </div>
           </ErrorBoundary>
