@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import type { ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
@@ -182,6 +182,23 @@ export function GalleryView({
     emotions.map((emotion) => emotion.id),
     removeMany,
   );
+  const { selectAll } = selection;
+  const emotionIds = emotions.map((emotion) => emotion.id).join('\n');
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'a')
+        return;
+      // 입력 칸에서는 브라우저 기본 동작(글자 전체 선택)을 둔다.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('.modal-backdrop')) return;
+      event.preventDefault();
+      selectAll(emotionIds ? emotionIds.split('\n') : []);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectAll, emotionIds]);
 
   if (!emotionSet) {
     return (
@@ -267,6 +284,7 @@ export function GalleryView({
           <section className="toolbar-zone" aria-label="카드 고르기">
             <button
               className="with-icon"
+              title="모두 고르기 (Ctrl+A)"
               onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
             >
               <Icon name="select-all" size={14} /> 모두 고르기

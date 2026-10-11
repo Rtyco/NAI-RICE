@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -167,6 +174,8 @@ export function useBoxSelection<T extends HTMLElement>(
     return false;
   };
 
+  const selectAll = useCallback((only: string[]) => setSelected(new Set(only)), []);
+
   const boxElement = box && (
     <div
       className="select-box"
@@ -179,7 +188,7 @@ export function useBoxSelection<T extends HTMLElement>(
     selected,
     clear: () => setSelected(new Set()),
     /** 주어진 항목만 고른 상태로 바꾼다. */
-    selectAll: (only: string[]) => setSelected(new Set(only)),
+    selectAll,
     clickItem,
     boxElement,
     isSelected: (id: string) => selected.has(id),
