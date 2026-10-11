@@ -187,7 +187,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
   );
 }
 
-function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
+export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
   const library = useLibrary();
   const emotions = resolved.emotionSet?.emotions ?? [];
   const [emotionId, setEmotionId] = useState(emotions[0]?.id ?? '');

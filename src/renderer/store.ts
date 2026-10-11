@@ -41,6 +41,8 @@ type State = {
   filmstripCollapsed: boolean;
   /** 라이브러리 화면 왼쪽의 항목 목록을 접었는지. */
   libraryListCollapsed: boolean;
+  /** 작업·자유 생성 화면 왼쪽의 프롬프트 패널을 접었는지. 두 화면이 함께 쓴다. */
+  promptPanelCollapsed: boolean;
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
   token: TokenStatus;
@@ -88,6 +90,7 @@ const readGalleryColumns = () =>
 
 const FILMSTRIP_KEY = 'filmstrip-collapsed';
 const LIBRARY_LIST_KEY = 'library-list-collapsed';
+const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
 
 const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
 
@@ -113,6 +116,7 @@ export const useStore = create<State>(() => ({
   galleryColumns: readGalleryColumns(),
   filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
   libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
+  promptPanelCollapsed: readUiState(PROMPT_PANEL_KEY, (raw) => raw === '1', false),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
   token: { stored: false, secureStorageAvailable: false },
@@ -361,6 +365,12 @@ export function toggleLibraryList(): void {
   const collapsed = !get().libraryListCollapsed;
   set({ libraryListCollapsed: collapsed });
   saveUiState(LIBRARY_LIST_KEY, collapsed ? '1' : '0');
+}
+
+export function togglePromptPanel(): void {
+  const collapsed = !get().promptPanelCollapsed;
+  set({ promptPanelCollapsed: collapsed });
+  saveUiState(PROMPT_PANEL_KEY, collapsed ? '1' : '0');
 }
 
 export async function refreshAccount(): Promise<void> {

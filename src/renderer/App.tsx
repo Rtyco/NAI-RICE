@@ -20,6 +20,7 @@ import {
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
+import { FreePromptPanel, ProjectPromptPanel, PromptPanelLayout } from './components/PromptPanel';
 import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 import { checkForUpdate } from './updates';
@@ -129,9 +130,13 @@ export default function App() {
                   {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
                 </p>
               ) : view.kind === 'project' && projectExists ? (
-                <ProjectView projectId={view.projectId} />
+                <PromptPanelLayout panel={<ProjectPromptPanel projectId={view.projectId} />}>
+                  <ProjectView projectId={view.projectId} />
+                </PromptPanelLayout>
               ) : view.kind === 'free' ? (
-                <FreeView />
+                <PromptPanelLayout panel={<FreePromptPanel />}>
+                  <FreeView />
+                </PromptPanelLayout>
               ) : view.kind === 'library' ? (
                 <LibraryView section={view.section} itemId={view.itemId} />
               ) : (
