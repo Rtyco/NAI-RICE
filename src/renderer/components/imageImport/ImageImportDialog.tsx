@@ -127,7 +127,8 @@ export function ImageImportDialog({
   const [name, setName] = useState(desk?.characterName ?? stem);
 
   const [useCharacter, setUseCharacter] = useState(data.characters.length > 0);
-  const [characterIndex, setCharacterIndex] = useState(0);
+  const [characterIndex, setCharacterIndex] = useState<number | 'all'>(0);
+  const allCharacters = characterIndex === 'all';
   const [characterTarget, setCharacterTarget] = useState<'new' | 'add-set' | 'overwrite-set'>(
     picked('characters') !== undefined || resolved?.character ? 'add-set' : 'new',
   );
@@ -196,7 +197,7 @@ export function ImageImportDialog({
           character: useCharacter
             ? {
                 index: characterIndex,
-                target: characterTarget,
+                target: allCharacters ? 'new' : characterTarget,
                 character: targetCharacter,
                 promptSet: targetSet,
               }
@@ -350,8 +351,15 @@ export function ImageImportDialog({
             {data.characters.length > 1 && (
               <select
                 value={characterIndex}
-                onChange={(event) => setCharacterIndex(Number(event.target.value))}
+                onChange={(event) =>
+                  setCharacterIndex(
+                    event.target.value === 'all' ? 'all' : Number(event.target.value),
+                  )
+                }
               >
+                <option value="all">
+                  모든 캐릭터 ({data.characters.length}명, 순서대로 작업에 넣기)
+                </option>
                 {data.characters.map((item, index) => (
                   <option key={index} value={index}>
                     캐릭터 {index + 1}: {item.positive.slice(0, 40)}
@@ -360,10 +368,18 @@ export function ImageImportDialog({
               </select>
             )}
             <pre className="prompt-code small">
-              {data.characters[characterIndex]?.positive || '(없음)'}
+              {allCharacters
+                ? data.characters.map((item, index) => `${index + 1}. ${item.positive}`).join('\n')
+                : data.characters[characterIndex]?.positive || '(없음)'}
             </pre>
+            {allCharacters && (
+              <p className="hint">
+                캐릭터마다 새 캐릭터({name} 1, {name} 2 …)를 만듭니다.
+                {data.characterCenters ? ' 이미지에 지정된 캐릭터 위치도 함께 옮깁니다.' : ''}
+              </p>
+            )}
           </Check>
-          {useCharacter && data.characters.length > 0 && (
+          {useCharacter && data.characters.length > 0 && !allCharacters && (
             <div className="import-target">
               <Radio value="new" current={characterTarget} onChange={setCharacterTarget}>
                 새 캐릭터로 추가

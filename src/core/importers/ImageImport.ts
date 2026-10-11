@@ -1,6 +1,7 @@
 import type {
   Character,
   CharacterPromptSet,
+  CharacterSlot,
   EmotionSet,
   Library,
   Preset,
@@ -45,7 +46,8 @@ export type ImageImportChoices = {
     seed: boolean;
   };
   character?: {
-    index: number;
+    /** 'all'이면 이미지의 캐릭터마다 새 캐릭터를 만들고 그 순서대로 작업에 넣는다. */
+    index: number | 'all';
     target: 'new' | 'add-set' | 'overwrite-set';
     character?: Character;
     promptSet?: CharacterPromptSet;
@@ -129,8 +131,24 @@ export function applyImageImport(
   }
 
   const characterChoice = choices.character;
-  const characterPrompt = characterChoice ? data.characters[characterChoice.index] : undefined;
-  if (characterChoice && characterPrompt) {
+  const characterPrompt =
+    characterChoice && characterChoice.index !== 'all'
+      ? data.characters[characterChoice.index]
+      : undefined;
+  // 캐릭터를 모두 가져오면 두 번째부터는 여기에 모아 작업의 캐릭터 목록 뒤에 넣는다.
+  let moreSlots: CharacterSlot[] = [];
+  if (characterChoice?.index === 'all' && data.characters.length) {
+    const created = data.characters.map((prompts, index) =>
+      createCharacter(`${name} ${index + 1}`, [createPromptSet('기본', prompts)]),
+    );
+    next = { ...next, characters: [...next.characters, ...created] };
+    characterForProject = created[0];
+    promptSetId = created[0].promptSets[0].id;
+    moreSlots = created
+      .slice(1)
+      .map((item) => ({ characterId: item.id, promptSetId: item.promptSets[0].id }));
+    applied.push(`새 캐릭터 ${created.length}명`);
+  } else if (characterChoice && characterPrompt) {
     const { character: target, promptSet: targetSet } = characterChoice;
     if (characterChoice.target === 'new' || !target || !targetSet) {
       // 새 캐릭터 안의 첫 세트는 원래 세트 이름(없으면 "기본")을 쓰고, 캐릭터에 이름을 붙인다.
@@ -207,6 +225,8 @@ export function applyImageImport(
     });
     if (promptSetId && character.promptSets.some((set) => set.id === promptSetId))
       created.characters[0].promptSetId = promptSetId;
+    created.characters.push(...moreSlots);
+    placeCharacters(created, data);
     next = { ...next, projects: [...next.projects, created] };
     openId = created.id;
     applied.push(`새 작업 "${created.name}"`);
@@ -214,7 +234,7 @@ export function applyImageImport(
     next = patchItem(next, 'projects', project.id, (item) => ({
       ...item,
       presetId,
-      // 가져온 캐릭터는 첫 캐릭터 자리에 넣는다. 나머지 캐릭터는 그대로 둔다.
+      // 가져온 캐릭터는 첫 캐릭터 자리에 넣는다. 모두 가져오면 목록을 바꾸고, 아니면 나머지는 그대로 둔다.
       characters: characterForProject
         ? [
             {
@@ -222,7 +242,7 @@ export function applyImageImport(
               characterId: characterForProject.id,
               promptSetId: promptSetId ?? characterForProject.promptSets[0].id,
             },
-            ...item.characters.slice(1),
+            ...(moreSlots.length ? moreSlots : item.characters.slice(1)),
           ]
         : item.characters,
       emotionSetId: emotionSetId ?? item.emotionSetId,
@@ -230,5 +250,19 @@ export function applyImageImport(
     }));
   }
 
+  if (moreSlots.length && project && !choices.newProject)
+    next = patchItem(next, 'projects', project.id, (item) => placeCharacters({ ...item }, data));
   return { library: next, applied, projectId: openId, referenceId: newReferenceId };
+}
+
+/** 이미지가 위치를 직접 지정해 만든 것이고 캐릭터 수가 맞으면 그 위치를 작업에 옮긴다. */
+function placeCharacters(project: Project, data: ImageImportData): Project {
+  const centers = data.characterCenters;
+  if (!centers || centers.length !== project.characters.length) return project;
+  project.positionMode = 'manual';
+  project.characters = project.characters.map((slot, index) => ({
+    ...slot,
+    center: centers[index],
+  }));
+  return project;
 }

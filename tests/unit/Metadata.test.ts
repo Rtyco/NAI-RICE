@@ -122,6 +122,29 @@ describe('NovelAI metadata', () => {
     expect(data?.desk?.emotion.name).toBe('기쁨');
   });
 
+  it('위치를 직접 지정한 이미지면 캐릭터 위치를 읽어', () => {
+    const placed = {
+      ...naiComment,
+      v4_prompt: {
+        caption: {
+          base_caption: 'masterpiece',
+          char_captions: [
+            { char_caption: 'a', centers: [{ x: 0.1, y: 0.5 }] },
+            { char_caption: 'b', centers: [{ x: 0.9, y: 0.3 }] },
+          ],
+        },
+        use_coords: true,
+      },
+    };
+    expect(interpretMetadata({ Comment: JSON.stringify(placed) })?.characterCenters).toEqual([
+      { x: 0.1, y: 0.5 },
+      { x: 0.9, y: 0.3 },
+    ]);
+    expect(
+      interpretMetadata({ Comment: JSON.stringify(naiComment) })?.characterCenters,
+    ).toBeUndefined();
+  });
+
   it('V5 Full은 Effort를 함께 읽어', () => {
     const desk = (extra: object) =>
       interpretMetadata({

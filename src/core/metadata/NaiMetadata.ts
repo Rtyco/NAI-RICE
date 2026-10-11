@@ -1,5 +1,6 @@
 import { Gunzip } from 'fflate';
 import type {
+  CharacterCenter,
   Effort,
   ExtraCharacterPrompt,
   GenerationSettings,
@@ -42,6 +43,8 @@ export type ImageImportData = {
   commonPositive?: string;
   commonNegative?: string;
   characters: Array<{ positive: string; negative: string }>;
+  /** 위치를 직접 지정해 만든 이미지(`use_coords`)면 캐릭터마다의 위치. */
+  characterCenters?: CharacterCenter[];
   settings: Partial<GenerationSettings>;
   seed?: number;
   width?: number;
@@ -234,6 +237,17 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
       ),
       negative: asString((negatives[index] as Record<string, unknown>)?.char_caption) ?? '',
     }));
+    const useCoords = comment.v4_prompt?.use_coords ?? comment.use_coords;
+    if (useCoords === true && positives.length) {
+      const centers = positives.map((item) => {
+        const center = (item as { centers?: unknown[] })?.centers?.[0] as
+          Record<string, unknown> | undefined;
+        const x = asNumber(center?.x);
+        const y = asNumber(center?.y);
+        return x !== undefined && y !== undefined ? { x, y } : undefined;
+      });
+      if (centers.every(Boolean)) result.characterCenters = centers as CharacterCenter[];
+    }
     const settings: Partial<GenerationSettings> = {};
     const steps = asNumber(comment.steps);
     const scale = asNumber(comment.scale);

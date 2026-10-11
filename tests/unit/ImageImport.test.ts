@@ -144,4 +144,39 @@ describe('applyImageImport', () => {
     expect(linked).toMatchObject({ referenceId: result.referenceId, presetId: existing.id });
     expect(result.projectId).toBeUndefined();
   });
+
+  it('모든 캐릭터를 가져오면 캐릭터마다 새로 만들어 순서대로 넣고 위치도 옮겨', () => {
+    const result = applyImageImport(
+      createDefaultLibrary(),
+      {
+        stem: 'image',
+        data: {
+          ...data,
+          characters: [
+            { positive: 'girl, red hair', negative: '' },
+            { positive: 'girl, blue hair', negative: 'hat' },
+          ],
+          characterCenters: [
+            { x: 0.1, y: 0.5 },
+            { x: 0.9, y: 0.5 },
+          ],
+        },
+        tags,
+      },
+      {
+        name: '둘',
+        character: { index: 'all', target: 'new' },
+        reference: false,
+        newProject: true,
+      },
+    );
+    const project = result.library.projects.find((item) => item.id === result.projectId)!;
+    const names = project.characters.map(
+      (slot) => result.library.characters.find((item) => item.id === slot.characterId)?.name,
+    );
+    expect(names).toEqual(['둘 1', '둘 2']);
+    expect(project.positionMode).toBe('manual');
+    expect(project.characters[1].center).toEqual({ x: 0.9, y: 0.5 });
+    expect(result.library.characters[1].promptSets[0].negative).toBe('hat');
+  });
 });
