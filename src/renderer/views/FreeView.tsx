@@ -11,6 +11,7 @@ import { ChainChip, SizeChip } from '../components/ChainChip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
+import { PanelResizer } from '../components/PanelResizer';
 import { PresetNumberRow } from '../components/PresetNumberRow';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
@@ -644,6 +645,7 @@ export function FreeView() {
                 )}
               </div>
             </aside>
+            <PanelResizer panel="side-panel" />
           </div>
         </div>
       </div>

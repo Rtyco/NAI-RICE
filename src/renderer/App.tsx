@@ -20,6 +20,7 @@ import {
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
+import { PanelResizer } from './components/PanelResizer';
 import { FreePromptPanel, ProjectPromptPanel, PromptPanelLayout } from './components/PromptPanel';
 import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
@@ -122,6 +123,7 @@ export default function App() {
       <div className="titlebar" />
       <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {library ? <Sidebar /> : <aside className="sidebar" />}
+        {!collapsed && <PanelResizer panel="sidebar" />}
         <div className="main-area">
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>

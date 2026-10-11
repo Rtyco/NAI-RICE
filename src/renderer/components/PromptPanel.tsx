@@ -14,6 +14,7 @@ import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { PreviewDialog } from '../views/ProjectView';
 import { openDialog } from './Dialogs';
 import { Icon } from './Icon';
+import { PanelResizer } from './PanelResizer';
 import { PromptField } from './ui';
 
 function editInPopup(section: 'presets' | 'characters', itemId: string) {
@@ -208,6 +209,7 @@ export function PromptPanelLayout(props: { panel: ReactNode; children: ReactNode
   return (
     <div className={`prompt-panel-view ${collapsed ? 'panel-collapsed' : ''}`}>
       {props.panel}
+      {!collapsed && <PanelResizer panel="prompt-panel" />}
       {props.children}
     </div>
   );

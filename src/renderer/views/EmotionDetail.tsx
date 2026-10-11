@@ -5,6 +5,7 @@ import type { ResolvedProject } from '../../core/model/defaults';
 import { generateEmotions } from '../actions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
+import { PanelResizer } from '../components/PanelResizer';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { Menu, NumberField } from '../components/ui';
@@ -354,3 +355,4 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     </div>
   );
 }
+        <PanelResizer panel="side-panel" />

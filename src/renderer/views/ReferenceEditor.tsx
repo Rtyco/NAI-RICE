@@ -6,6 +6,7 @@ import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper
 import { clampRect, expandRect } from '../../core/imaging/rects';
 import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
+import { PanelResizer } from '../components/PanelResizer';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
@@ -556,6 +557,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           )}
         </section>
       </aside>
+      <PanelResizer panel="side-panel" />
     </div>
   );
 }

@@ -56,7 +56,7 @@ type State = {
 
 // 다음 실행에도 기억하는 화면 상태. 저장소를 쓸 수 없으면 기본값으로 이번 실행만 동작한다.
 
-function readUiState<T>(key: string, parse: (raw: string | null) => T, fallback: T): T {
+export function readUiState<T>(key: string, parse: (raw: string | null) => T, fallback: T): T {
   try {
     return parse(localStorage.getItem(key));
   } catch {
@@ -64,7 +64,7 @@ function readUiState<T>(key: string, parse: (raw: string | null) => T, fallback:
   }
 }
 
-function saveUiState(key: string, value: string): void {
+export function saveUiState(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch {

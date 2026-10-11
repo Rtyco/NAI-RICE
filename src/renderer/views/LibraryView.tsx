@@ -5,6 +5,7 @@ import { moveItems } from '../../core/model/mutations';
 import { showContextMenu } from '../components/ContextMenu';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
+import { PanelResizer } from '../components/PanelResizer';
 import { focusAndSelect } from '../components/focusAndSelect';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
@@ -313,6 +314,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           </button>
         )}
       </aside>
+      {!collapsed && <PanelResizer panel="library-list" />}
       <section className="library-editor animate-in" key={selected?.id ?? 'empty'}>
         {selected ? (
           <>
