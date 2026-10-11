@@ -378,6 +378,7 @@ textarea {
   gap: 12px;
 }
 .emotion-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2725,19 +2726,27 @@ textarea.syntax-input::selection {
   padding: 0 12px 14px;
   animation: fade-in 220ms ease 120ms both;
 }
-/* 생성 설정과 캐릭터마다 한 장씩. 제목 줄을 누르면 접히고, 접힌 카드는 포지티브 첫머리만 보인다. */
+/*
+ * 생성 설정과 캐릭터마다 한 장씩. 제목 줄을 누르면 접히고, 접힌 카드는 포지티브 첫머리만 보인다. 제목 줄과
+ * 내용은 배경색을 달리해 어디까지가 한 캐릭터인지 보이게 한다.
+ */
 .prompt-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  background: var(--bg-2);
+  background: var(--bg-3);
 }
 .prompt-card-head {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 2px 4px 2px 2px;
+  background: var(--bg-5);
+}
+.prompt-card:not(.folded) .prompt-card-head {
+  border-bottom: 1px solid var(--line-strong);
 }
 .prompt-card-head .icon-button {
   width: 26px;
@@ -2757,13 +2766,15 @@ textarea.syntax-input::selection {
 }
 .prompt-card-toggle:hover:not(:disabled) {
   border-color: transparent;
-  background: var(--bg-4);
+  background: var(--line-strong);
 }
 .prompt-card-toggle[aria-expanded='true'] .section-chevron {
   transform: rotate(90deg);
 }
 .prompt-card-toggle .prompt-panel-order {
   margin-right: 0;
+  background: var(--accent-bg);
+  color: var(--accent-text);
 }
 .prompt-card-title {
   min-width: 0;
@@ -2789,7 +2800,7 @@ textarea.syntax-input::selection {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 0 10px 10px;
+  padding: 8px 10px 10px;
 }
 .prompt-card-body .hint {
   margin: 0;
@@ -3535,13 +3546,40 @@ textarea.syntax-input::selection {
   margin: 4px 0 2px;
 }
 .checklist-folder-name {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px 3px;
+  padding: 3px 8px;
+  border-color: transparent;
+  background: transparent;
   color: var(--muted);
   font-size: 11px;
   font-weight: 600;
+  text-align: left;
+}
+.checklist-folder-name:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.checklist-folder-name[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.checklist-folder-name span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.checklist-folder-name em {
+  color: var(--accent-text);
+  font-style: normal;
+  font-weight: 600;
+}
+.checklist-folder-name small {
+  color: var(--faint);
+  font-weight: 400;
 }
 .checklist-folder .checklist-row {
   margin-left: 12px;
@@ -3777,13 +3815,38 @@ textarea.syntax-input::selection {
 
 /* 카드 아래 ▶·⋯은 마우스를 올렸을 때만 보인다. 숨긴 동안 자리를 차지하면 카드가 좁을 때 씬 이름이 한두
    글자만 남으므로 자리도 그때만 준다. */
-.emotion-card .card-hover {
-  display: none;
+/* 호버 버튼은 카드 오른쪽 위에 세로로 겹쳐 띄워 카드 크기가 바뀌지 않게 한다. 대표 이미지 별 자리를 덮는다. */
+.card-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
-.emotion-card:hover .card-hover,
-.emotion-card:focus-within .card-hover {
-  display: inline-block;
-  animation: fade-in 120ms ease both;
+.card-actions .icon-button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border-color: var(--line-strong);
+  background: #000a;
+  backdrop-filter: blur(4px);
+}
+.card-actions .icon-button:hover:not(:disabled) {
+  background: var(--bg-4);
+}
+.emotion-card:hover .card-actions,
+.emotion-card:focus-within .card-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.emotion-card:hover .card-favorite,
+.emotion-card:focus-within .card-favorite {
+  opacity: 0;
 }
 
 /* 가져오기: 덮어쓸 대상 고르기 */

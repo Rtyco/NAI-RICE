@@ -6,10 +6,11 @@ import { normalizeGenerationSettings } from '../../core/model/defaults';
 import { listRows } from '../../core/model/folders';
 import { patchItem } from '../../core/model/mutations';
 import { sectionInfo } from '../sections';
-import { openLibrary, updateLibrary, useStore, type LibrarySection } from '../store';
+import { openLibrary, toggleFolder, updateLibrary, useStore, type LibrarySection } from '../store';
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
+import { folderKey } from './listFolders';
 
 /**
  * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 편집 버튼은 마우스를 올렸을 때만 보이고, 고른 항목을 편집
@@ -163,6 +164,38 @@ function ChecklistPopover(props: {
 const SEARCH_FROM = 9;
 
 /**
+ * 고르기 창의 폴더. 라이브러리 목록의 폴더와 따로 접히고 다음에 열 때도 기억한다. 접혀 있어도 고른 항목 수가
+ * 보이고, 이름으로 찾는 중에는 펼쳐 둔다.
+ */
+function ChecklistFolder(props: {
+  foldKey: string;
+  name: string;
+  count: number;
+  checked: number;
+  open: boolean;
+  children: ReactNode;
+}) {
+  const folded = useStore((state) => state.foldedFolders.includes(props.foldKey)) && !props.open;
+  return (
+    <div className={`checklist-folder ${folded ? 'folded' : ''}`}>
+      <button
+        className="checklist-folder-name"
+        aria-expanded={!folded}
+        title={folded ? '펼치기' : '접기'}
+        onClick={() => toggleFolder(props.foldKey)}
+      >
+        <Icon name="chevron" size={11} className="section-chevron" />
+        <Icon name="folder" size={13} />
+        <span>{props.name}</span>
+        {props.checked > 0 && <em>{props.checked}개 고름</em>}
+        <small>{props.count}</small>
+      </button>
+      {!folded && props.children}
+    </div>
+  );
+}
+
+/**
  * 라이브러리 항목을 고르는 칩. 누르면 작은 창에 항목이 폴더대로 보이고, 지금 쓰는 항목은 체크와 색으로
  * 표시된다. 여럿 고르는 칸(`multi`)은 체크 대신 고른 순서가 번호로 보이고, 눌러도 창이 닫히지 않는다.
  */
@@ -302,13 +335,16 @@ export function ChecklistChip(props: {
             entry.kind === 'item' ? (
               row(entry.item)
             ) : (
-              <div key={`folder:${entry.name}`} className="checklist-folder">
-                <div className="checklist-folder-name">
-                  <Icon name="folder" size={13} />
-                  {entry.name}
-                </div>
+              <ChecklistFolder
+                key={`folder:${entry.name}`}
+                foldKey={folderKey(`pick-${props.section ?? title}`, entry.name)}
+                name={entry.name}
+                count={entry.items.length}
+                checked={entry.items.filter((item) => props.checked.includes(item.id)).length}
+                open={Boolean(needle)}
+              >
                 {entry.items.map(row)}
-              </div>
+              </ChecklistFolder>
             ),
           )}
         </ChecklistPopover>

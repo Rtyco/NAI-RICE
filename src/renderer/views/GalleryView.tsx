@@ -136,18 +136,20 @@ function EmotionCard(props: {
           <b>{emotion.name}</b>
           <small>{records.length ? `${records.length}장` : '—'}</small>
         </button>
+      </footer>
+      <div className="card-actions">
         <button
-          className="icon-button card-generate card-hover"
+          className="icon-button card-generate"
           title="이 씬만 생성"
           disabled={!hasScenePrompt(emotion) || resolved.missing.length > 0}
           onClick={() => void generateEmotions(project.id, [emotion.id])}
         >
           ▶
         </button>
-        <button className="icon-button card-hover" title="메뉴" onClick={menu}>
+        <button className="icon-button" title="메뉴" onClick={menu}>
           ⋯
         </button>
-      </footer>
+      </div>
     </article>
   );
 }
