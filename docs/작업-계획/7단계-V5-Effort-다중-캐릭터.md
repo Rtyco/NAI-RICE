@@ -71,4 +71,24 @@
 
 ## 결과
 
-(단계를 끝내면 여기에 적습니다.)
+### 7-1 (2026-10-12)
+
+- `GenerationSettings.effort`(기본 `high`). V5 Full에서만 쓰고, Medium이면 요청할 때만 `-medium` 모델 ID로
+  보냅니다(`requestModelId`). 저장된 모델·Steps 등은 그대로이고, 작업을 만들 때
+  `effectiveGenerationSettings`가 고정값(Steps 14, `k_euler_ancestral`, UC Heavy, CFG Rescale 0)을 덮어씁니다.
+  비용 계산·미리보기도 같은 함수를 씁니다.
+- 네거티브: 웹은 Medium이면 `uc`를 UC 프리셋 문구로만 다시 만들고(포지티브에 nsfw가 없으면 `nsfw, ` 포함)
+  캐릭터 네거티브를 모두 비웁니다. 앱도 같게 했습니다. 편집기·프롬프트 패널의 네거티브 칸에 "Medium에서는
+  쓰이지 않음"을 표시합니다.
+- 웹은 Effort를 바꿀 때 Steps·Sampler·Noise Schedule·UC 프리셋·CFG Rescale을 모델별로 따로 기억합니다. 앱은
+  값을 덮어쓰지 않고 잠가서 보여 주므로 High로 돌리면 원래 값이 그대로입니다.
+- 실측(무료 범위 3장, Anlas·V5 할당량 변화 없음, `ForTest/stage7-effort/`):
+  - Medium 생성·인페인트 모두 지금 요청 형식 그대로 됩니다(`-medium-inpainting`).
+  - Steps 28을 보내도 거부하지 않고 서버가 14로 바꿔 생성합니다(메타데이터 steps 14).
+  - Source 라벨은 Medium도 "NovelAI Diffusion V5 <해시>"입니다. V5 해시: Full 생성 `0ADF9AB7`, Full 인페인트
+    `657484A5`, Medium 생성 `70AB5786`, Medium 인페인트 `93F4BD30`, Curated `DB276663`. 가져오기는 이 해시로
+    모델·Effort를 알아봅니다(전에는 V5 Curated 이미지를 Full로 읽었습니다).
+- V5 Curated 인페인트: 웹 코드에 `nai-diffusion-5-curated-inpainting`이 있지만 서버는 "model doesn't exist"(400)로
+  거부합니다(2026-10-12). 웹도 아직 V4.5 Curated 인페인트로 보냅니다. 열리면 `NaiModels`의
+  `requestIds.inpaint`만 넣으면 됩니다.
+- 비용: 유료 크기에서 Steps 14로 계산하는 것이 맞는지는 확인하지 않았습니다(유료 호출 필요).

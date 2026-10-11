@@ -52,13 +52,33 @@ export type ImageImportData = {
   desk?: DeskMetadata;
 };
 
+/**
+ * V5는 Source 라벨이 모두 "NovelAI Diffusion V5 <해시>"이고 Full·Curated·Medium이 해시로만 갈린다. 해시는
+ * 생성과 인페인트가 서로 다르다(2026-10 실측).
+ */
+const V5_SOURCE_HASHES: Record<string, { model: string; effort: Effort }> = {
+  '0ADF9AB7': { model: 'nai-diffusion-5-full-inpainting', effort: 'high' },
+  '657484A5': { model: 'nai-diffusion-5-full-inpainting', effort: 'high' },
+  '70AB5786': { model: 'nai-diffusion-5-full-inpainting', effort: 'medium' },
+  '93F4BD30': { model: 'nai-diffusion-5-full-inpainting', effort: 'medium' },
+  DB276663: { model: 'nai-diffusion-5-curated', effort: 'high' },
+};
+
+function v5SourceHash(label: string | undefined) {
+  const hash = /v5\s+([0-9a-f]{8})\b/i.exec(label ?? '')?.[1].toUpperCase();
+  return hash ? V5_SOURCE_HASHES[hash] : undefined;
+}
+
 /** "NovelAI Diffusion V4.5 4BDE2A90" 같은 Source 라벨을 인페인트 모델 ID로 바꾼다. */
 export function guessModelFromSource(label: string | undefined): string | undefined {
   if (!label) return undefined;
   const text = label.toLowerCase();
   const curated = text.includes('curated');
   if (/v5/.test(text))
-    return curated ? 'nai-diffusion-5-curated' : 'nai-diffusion-5-full-inpainting';
+    return (
+      v5SourceHash(label)?.model ??
+      (curated ? 'nai-diffusion-5-curated' : 'nai-diffusion-5-full-inpainting')
+    );
   if (/v4\.5/.test(text))
     return curated ? 'nai-diffusion-4-5-curated-inpainting' : 'nai-diffusion-4-5-full-inpainting';
   if (/v4/.test(text))
@@ -186,7 +206,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     desk,
   };
   if (result.model && supportsEffort(result.model))
-    result.effort = /medium/i.test(result.modelLabel ?? '') ? 'medium' : 'high';
+    result.effort = v5SourceHash(result.modelLabel)?.effort ?? 'high';
 
   if (comment) {
     const v4 = comment.v4_prompt?.caption;

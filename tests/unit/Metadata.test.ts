@@ -2,6 +2,7 @@ import { gzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import {
   DESK_METADATA_KEY,
+  guessModelFromSource,
   interpretMetadata,
   MAX_STEALTH_TEXT_BYTES,
   readImageMetadata,
@@ -144,6 +145,11 @@ describe('NovelAI metadata', () => {
     const fromWeb = (source: string) =>
       interpretMetadata({ Comment: JSON.stringify(naiComment), Source: source })?.effort;
     expect(fromWeb('NovelAI Diffusion V5 1A2B3C4D')).toBe('high');
+    expect(fromWeb('NovelAI Diffusion V5 70AB5786')).toBe('medium');
+    expect(fromWeb('NovelAI Diffusion V5 93F4BD30')).toBe('medium');
+    expect(fromWeb('NovelAI Diffusion V5 657484A5')).toBe('high');
+    expect(guessModelFromSource('NovelAI Diffusion V5 DB276663')).toBe('nai-diffusion-5-curated');
+    expect(fromWeb('NovelAI Diffusion V5 DB276663')).toBeUndefined();
     expect(fromWeb('NovelAI Diffusion V4.5 4BDE2A90')).toBeUndefined();
   });
 
