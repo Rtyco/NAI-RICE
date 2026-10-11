@@ -79,6 +79,12 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
+      // 입력 칸 밖의 Tab은 포커스 이동 대신 씬을 넘긴다(Shift+Tab은 이전 씬). 마지막 씬에서는 그대로 둔다.
+      if (event.key === 'Tab' && !event.ctrlKey && !event.altKey && !document.querySelector('.modal-backdrop')) {
+        event.preventDefault();
+        const target = event.shiftKey ? previous : next;
+        if (target) openEmotion(target.id);
+      }
       // 여러 장을 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
       if (event.key === 'Delete' && !pickedCount && selected && !document.querySelector('.modal-backdrop')) {
         event.preventDefault();
@@ -202,13 +208,13 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
           ]}
         />
         <div className="header-spacer" />
-        <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="PageUp">
+        <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="Shift+Tab · PageUp">
           ‹ {previous?.name ?? '이전'}
         </button>
         <span className="detail-position">
           {index + 1} / {set.emotions.length}
         </span>
-        <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
+        <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="Tab · PageDown">
           {next?.name ?? '다음'} ›
         </button>
       </div>
@@ -338,7 +344,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <span>일괄 생성에 포함 (이 작업만)</span>
           </label>
 
-          <p className="hint">←/→ 결과 이동 · Del 결과 삭제 · PageUp/PageDown 씬 이동 · Esc 갤러리</p>
+          <p className="hint">←/→ 결과 이동 · Del 결과 삭제 · Tab/Shift+Tab 씬 이동 · Esc 갤러리</p>
 
           <div className="generate-dock">
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
@@ -351,8 +357,8 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             </button>
           </div>
         </aside>
+        <PanelResizer panel="side-panel" />
       </div>
     </div>
   );
 }
-        <PanelResizer panel="side-panel" />
