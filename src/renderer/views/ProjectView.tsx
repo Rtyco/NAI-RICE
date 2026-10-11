@@ -8,7 +8,7 @@ import {
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
-import { modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
+import { modelLabel, supportsInpaint, usesMedium } from '../../core/providers/NaiModels';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -246,6 +246,7 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
       </p>
       <p className="hint">
         모델: {modelLabel(resolved.preset.generation.model)}
+        {usesMedium(resolved.preset.generation) && ' · Effort Medium(네거티브는 UC 프리셋만)'}
         {resolved.preset.generation.model.includes('-3-') &&
           ' · V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합침'}
       </p>

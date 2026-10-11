@@ -194,6 +194,11 @@ optgroup {
 option:disabled {
   color: var(--faint);
 }
+input:disabled,
+select:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
 input[type='checkbox'],
 input[type='radio'] {
   width: auto;

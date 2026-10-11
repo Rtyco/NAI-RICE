@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { GenerationKind, GenerationRecord, GenerationSummary } from '../../core/domain/types';
-import { modelLabel } from '../../core/providers/NaiModels';
+import { modelLabel, usesMedium } from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
 import { projectMedia } from '../store';
 
@@ -55,7 +55,10 @@ export function RecordInfo({
         </>
       )}
       <dt>모델</dt>
-      <dd>{modelLabel(record.model)}</dd>
+      <dd>
+        {modelLabel(record.model)}
+        {full && usesMedium(full.settings) && ' · Effort Medium'}
+      </dd>
       <dt>크기</dt>
       <dd>
         {record.width}×{record.height}

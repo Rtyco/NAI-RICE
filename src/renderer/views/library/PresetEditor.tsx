@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type {
+  Effort,
   EmotionPosition,
   GenerationSettings,
   Preset,
@@ -13,20 +14,26 @@ import {
   RESOLUTION_PRESETS,
   snapDimension,
 } from '../../../core/imaging/CanvasLayout';
-import { normalizeGenerationSettings } from '../../../core/model/defaults';
+import {
+  effectiveGenerationSettings,
+  normalizeGenerationSettings,
+} from '../../../core/model/defaults';
 import { patchItem } from '../../../core/model/mutations';
 import { FREE_MAX_PIXELS } from '../../../core/providers/NaiCost';
 import {
   addsAutoNsfw,
+  EFFORT_LABELS,
   modelInfo,
   modelLabel,
   NAI_MODELS,
   naiTagText,
   QUALITY_LEVEL_LABELS,
   qualityLevelsFor,
+  supportsEffort,
   supportsInpaint,
   UC_PRESET_LABELS,
   ucPresetsFor,
+  usesMedium,
 } from '../../../core/providers/NaiModels';
 import { Card, NumberField, PromptField, SelectField, Toggle } from '../../components/ui';
 import { PROMPT_POSITIONS } from '../../promptPositions';
@@ -62,8 +69,12 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const isV3 = model?.generation === 'v3';
   const levels = qualityLevelsFor(g.model);
   const ucPresets = ucPresetsFor(g.model);
-  const tagText = naiTagText(g.model, g);
-  const autoNsfw = addsAutoNsfw(g.model, g.ucPreset);
+  const medium = usesMedium(g);
+  // Medium이면 고정값을 보여 준다. 저장된 값은 그대로라 High로 돌리면 되살아난다.
+  const shown = effectiveGenerationSettings(g);
+  const tagText = naiTagText(g.model, shown);
+  const autoNsfw = addsAutoNsfw(g.model, shown.ucPreset);
+  const unusedInMedium = medium ? 'Medium에서는 쓰이지 않음' : undefined;
   const { width, height, img2imgStrength, img2imgNoise } = normalizeGenerationSettings(g);
   const sizePreset = RESOLUTION_PRESETS.find(
     (item) => item.width === width && item.height === height,
@@ -106,6 +117,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           <PromptField
             label="공통 네거티브"
             tone="negative"
+            hint={unusedInMedium}
             value={preset.commonNegative}
             rows={5}
             onChange={(commonNegative) => patch({ commonNegative })}
@@ -172,6 +184,30 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         {isV3 && <p className="hint">V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합쳐 보냅니다</p>}
         {isV5 && (
           <p className="hint">V5: Noise Schedule karras 고정 · 무료 할당량(%)을 먼저 씁니다</p>
+        )}
+        {supportsEffort(g.model) && (
+          <>
+            <div className="inset-row">
+              <span className="inset-label">Effort</span>
+              <div className="segmented" role="group" aria-label="Effort">
+                {(Object.keys(EFFORT_LABELS) as Effort[]).map((effort) => (
+                  <button
+                    key={effort}
+                    className={g.effort === effort ? 'active' : ''}
+                    aria-pressed={g.effort === effort}
+                    onClick={() => setting({ effort })}
+                  >
+                    {EFFORT_LABELS[effort]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="hint">
+              {medium
+                ? 'Medium: 사용량이 약 42% 적습니다 · Steps 14 · Euler Ancestral · UC Heavy 고정 · 직접 쓴 네거티브와 캐릭터 네거티브는 보내지 않습니다(빼고 싶은 것은 포지티브에 -3::hat:: 처럼 음수 강조)'
+                : 'High: 지금까지의 방식입니다. Medium은 사용량이 약 42% 적고 몇 가지 설정이 고정됩니다'}
+            </p>
+          </>
         )}
       </Card>
 
@@ -269,7 +305,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           />
           <SelectField
             label="UC 프리셋 (공통 네거티브 앞에 추가)"
-            value={g.ucPreset}
+            value={shown.ucPreset}
+            disabled={medium}
             options={(Object.keys(UC_PRESET_LABELS) as UcPresetId[]).map((value) => ({
               value,
               label: ucPresets.includes(value)
@@ -308,7 +345,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         <div className="four-column-fields">
           <NumberField
             label="Steps"
-            value={g.steps}
+            value={shown.steps}
+            disabled={medium}
             min={1}
             max={model?.maxSteps ?? 50}
             integer
@@ -324,7 +362,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           />
           <NumberField
             label="CFG Rescale"
-            value={g.cfgRescale}
+            value={shown.cfgRescale}
+            disabled={medium}
             min={0}
             max={1}
             step={0.02}
@@ -342,7 +381,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         <div className="four-column-fields">
           <SelectField
             label="Sampler"
-            value={g.sampler}
+            value={shown.sampler}
+            disabled={medium}
             options={(SAMPLERS.includes(g.sampler) ? SAMPLERS : [g.sampler, ...SAMPLERS]).map(
               (value) => ({ value, label: value }),
             )}
@@ -357,8 +397,14 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(noiseSchedule) => setting({ noiseSchedule })}
           />
         </div>
-        {g.steps > 28 && (
+        {shown.steps > 28 && (
           <p className="field-error">Steps가 28을 넘으면 Opus 구독에서도 Anlas가 사용됩니다.</p>
+        )}
+        {medium && (
+          <p className="hint">
+            Effort Medium이라 Steps·Sampler·CFG Rescale이 고정되어 있습니다. 모델 카드에서 High로
+            바꾸면 원래 값으로 돌아옵니다.
+          </p>
         )}
       </Card>
 

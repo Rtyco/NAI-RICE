@@ -15,6 +15,7 @@ export function NumberField(props: {
   step?: number;
   suffix?: string;
   integer?: boolean;
+  disabled?: boolean;
   onChange: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(String(props.value));
@@ -46,6 +47,7 @@ export function NumberField(props: {
           min={props.min}
           max={props.max}
           step={props.step}
+          disabled={props.disabled}
           onFocus={() => (focused.current = true)}
           onBlur={() => {
             focused.current = false;
@@ -141,12 +143,17 @@ export function SelectField<T extends string>(props: {
   value: T;
   /** `disabled`인 항목은 목록에 보이지만 고를 수 없다(이 모델에서 지원하지 않는 값 등). */
   options: Array<{ value: T; label: string; disabled?: boolean }>;
+  disabled?: boolean;
   onChange: (value: T) => void;
 }) {
   return (
     <label className="stack-field">
       {props.label}
-      <select value={props.value} onChange={(event) => props.onChange(event.target.value as T)}>
+      <select
+        value={props.value}
+        disabled={props.disabled}
+        onChange={(event) => props.onChange(event.target.value as T)}
+      >
         {props.options.map((option) => (
           <option key={option.value} value={option.value} disabled={option.disabled}>
             {option.label}

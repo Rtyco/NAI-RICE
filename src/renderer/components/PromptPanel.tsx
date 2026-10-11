@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
+import { usesMedium } from '../../core/providers/NaiModels';
 import {
   resolveFreeGeneration,
   togglePromptPanel,
@@ -51,6 +52,8 @@ export function PromptPanel(props: {
     preset && sharedHint(projectsUsing(library, 'preset', preset.id).length, own);
   const characterShared =
     character && sharedHint(projectsUsing(library, 'character', character.id).length, own);
+  const unusedInMedium =
+    preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
 
   const patchPreset = (value: Partial<Pick<Preset, 'commonPositive' | 'commonNegative'>>) =>
     preset &&
@@ -143,6 +146,7 @@ export function PromptPanel(props: {
               <PromptField
                 label="공통 네거티브"
                 tone="negative"
+                hint={unusedInMedium}
                 value={preset.commonNegative}
                 rows={3}
                 onChange={(commonNegative) => patchPreset({ commonNegative })}
@@ -187,6 +191,7 @@ export function PromptPanel(props: {
               <PromptField
                 label="캐릭터 네거티브"
                 tone="negative"
+                hint={unusedInMedium}
                 value={promptSet.negative}
                 rows={3}
                 onChange={(negative) => patchPromptSet({ negative })}
