@@ -8,6 +8,7 @@ import { generateFree } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
 import { CharacterChips } from '../components/CharacterChips';
+import { PositionChip } from '../components/CharacterPositions';
 import { ChainChip, SizeChip } from '../components/ChainChip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
@@ -415,6 +416,7 @@ export function FreeView() {
           max={maxCharactersFor(preset?.generation.model)}
           onChange={(characters) => updateFreeGeneration({ characters })}
         />
+        <PositionChip target="free" />
         {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
       </div>
       {inpaintModelMissing && (

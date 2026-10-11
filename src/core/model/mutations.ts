@@ -176,6 +176,19 @@ export function updateEmotion(
   };
 }
 
+/** `index`번째 추가 캐릭터(두 번째 캐릭터가 0)의 씬 프롬프트를 바꾼다. 끝의 빈 칸은 저장하지 않는다. */
+export function withExtraPrompt(
+  emotion: Pick<Emotion, 'extraPrompts'>,
+  index: number,
+  value: string,
+): Pick<Emotion, 'extraPrompts'> {
+  const prompts = [...(emotion.extraPrompts ?? [])];
+  while (prompts.length <= index) prompts.push('');
+  prompts[index] = value;
+  while (prompts.length && !prompts.at(-1)!.trim()) prompts.pop();
+  return { extraPrompts: prompts.length ? prompts : undefined };
+}
+
 export function removeEmotion(set: EmotionSet, id: string): EmotionSet {
   return { ...set, emotions: set.emotions.filter((emotion) => emotion.id !== id) };
 }

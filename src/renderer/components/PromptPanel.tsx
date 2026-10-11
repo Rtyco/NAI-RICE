@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
-import { projectsUsing } from '../../core/model/defaults';
+import { projectsUsing, type ResolvedCharacter } from '../../core/model/defaults';
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
@@ -36,22 +36,21 @@ function sharedHint(uses: number, ownUses: number): string | undefined {
  */
 export function PromptPanel(props: {
   preset?: Preset;
-  character?: Character;
-  promptSet?: CharacterPromptSet;
+  characters: ResolvedCharacter[];
   /** 자유 생성이면 비워 둔다. 공유 안내에서 이 작업은 빼고 센다. */
   projectId?: string;
   /** 캐릭터가 없을 때 보일 안내. */
   noCharacter: string;
+  /** 캐릭터가 여럿일 때 첫 캐릭터 칸 아래에 붙는 안내(인페인트의 참고 이미지 등). */
+  firstCharacterNote?: string;
   footer?: ReactNode;
 }) {
-  const { preset, character, promptSet } = props;
+  const { preset, characters } = props;
   const library = useLibrary();
   const collapsed = useStore((state) => state.promptPanelCollapsed);
   const own = props.projectId ? 1 : 0;
   const presetShared =
     preset && sharedHint(projectsUsing(library, 'preset', preset.id).length, own);
-  const characterShared =
-    character && sharedHint(projectsUsing(library, 'character', character.id).length, own);
   const unusedInMedium =
     preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
 
@@ -60,9 +59,11 @@ export function PromptPanel(props: {
     updateLibrary((current) =>
       patchItem(current, 'presets', preset.id, (item) => ({ ...item, ...value })),
     );
-  const patchPromptSet = (value: Partial<Pick<CharacterPromptSet, 'positive' | 'negative'>>) =>
-    character &&
-    promptSet &&
+  const patchPromptSet = (
+    character: Character,
+    promptSet: CharacterPromptSet,
+    value: Partial<Pick<CharacterPromptSet, 'positive' | 'negative'>>,
+  ) =>
     updateLibrary((current) =>
       patchItem(current, 'characters', character.id, (item) =>
         updatePromptSet(item, promptSet.id, value),
@@ -92,7 +93,11 @@ export function PromptPanel(props: {
           </button>
           <button
             className="icon-button"
-            title={character ? `캐릭터 프롬프트 · ${character.name}` : props.noCharacter}
+            title={
+              characters.length
+                ? `캐릭터 프롬프트 · ${characters.map((item) => item.character.name).join(', ')}`
+                : props.noCharacter
+            }
             onClick={togglePromptPanel}
           >
             <Icon name="character" size={18} />
@@ -158,50 +163,58 @@ export function PromptPanel(props: {
           )}
         </section>
 
-        <section className="prompt-panel-section">
-          <div className="prompt-panel-section-head">
-            <Icon name="character" size={14} />
-            <b>
-              {character
-                ? character.promptSets.length > 1 && promptSet
-                  ? `${character.name} / ${promptSet.name}`
-                  : character.name
-                : '캐릭터 없음'}
-            </b>
-            {character && (
-              <button
-                className="icon-button"
-                title="캐릭터 편집"
-                aria-label="캐릭터 편집"
-                onClick={() => editInPopup('characters', character.id)}
-              >
-                <Icon name="edit" size={14} />
-              </button>
-            )}
-          </div>
-          {character && promptSet ? (
-            <>
+        {characters.map(({ character, promptSet }, index) => {
+          const shared = sharedHint(projectsUsing(library, 'character', character.id).length, own);
+          return (
+            <section key={`${index}-${character.id}`} className="prompt-panel-section">
+              <div className="prompt-panel-section-head">
+                <Icon name="character" size={14} />
+                <b>
+                  {characters.length > 1 && <span className="prompt-panel-order">{index + 1}</span>}
+                  {character.promptSets.length > 1
+                    ? `${character.name} / ${promptSet.name}`
+                    : character.name}
+                </b>
+                <button
+                  className="icon-button"
+                  title="캐릭터 편집"
+                  aria-label="캐릭터 편집"
+                  onClick={() => editInPopup('characters', character.id)}
+                >
+                  <Icon name="edit" size={14} />
+                </button>
+              </div>
               <PromptField
                 label="캐릭터 포지티브"
                 value={promptSet.positive}
-                rows={6}
+                rows={characters.length > 1 ? 4 : 6}
                 placeholder="외형, 복장, 정체성 등 캐릭터 전용 태그"
-                onChange={(positive) => patchPromptSet({ positive })}
+                onChange={(positive) => patchPromptSet(character, promptSet, { positive })}
               />
               <PromptField
                 label="캐릭터 네거티브"
                 tone="negative"
                 hint={unusedInMedium}
                 value={promptSet.negative}
-                rows={3}
-                onChange={(negative) => patchPromptSet({ negative })}
+                rows={characters.length > 1 ? 2 : 3}
+                onChange={(negative) => patchPromptSet(character, promptSet, { negative })}
               />
-              {characterShared && <p className="hint">{characterShared}</p>}
-            </>
-          ) : (
+              {shared && <p className="hint">{shared}</p>}
+              {index === 0 && characters.length > 1 && props.firstCharacterNote && (
+                <p className="hint">{props.firstCharacterNote}</p>
+              )}
+            </section>
+          );
+        })}
+        {!characters.length && (
+          <section className="prompt-panel-section">
+            <div className="prompt-panel-section-head">
+              <Icon name="character" size={14} />
+              <b>캐릭터 없음</b>
+            </div>
             <p className="hint">{props.noCharacter}</p>
-          )}
-        </section>
+          </section>
+        )}
         {props.footer}
       </div>
     </aside>
@@ -226,10 +239,14 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
   return (
     <PromptPanel
       preset={resolved.preset}
-      character={resolved.character}
-      promptSet={resolved.promptSet}
+      characters={resolved.characters}
       projectId={projectId}
       noCharacter="위쪽에서 캐릭터를 고르십시오."
+      firstCharacterNote={
+        resolved.project.mode === 'reference'
+          ? '참고 이미지는 첫 캐릭터만 참고가 됩니다.'
+          : undefined
+      }
       footer={
         <button
           className="with-icon prompt-panel-preview"
@@ -246,12 +263,11 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
 }
 
 export function FreePromptPanel() {
-  const { preset, character, promptSet } = resolveFreeGeneration(useLibrary());
+  const { preset, characters } = resolveFreeGeneration(useLibrary());
   return (
     <PromptPanel
       preset={preset}
-      character={character}
-      promptSet={promptSet}
+      characters={characters}
       noCharacter="캐릭터 없이 생성합니다. 위쪽에서 캐릭터를 고르면 여기서 고칠 수 있습니다."
     />
   );

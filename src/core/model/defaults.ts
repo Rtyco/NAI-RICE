@@ -279,6 +279,11 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }
 
+/** 어느 캐릭터 칸이든 씬 프롬프트가 있으면 생성할 수 있다. */
+export function hasScenePrompt(emotion: Pick<Emotion, 'prompt' | 'extraPrompts'>): boolean {
+  return [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim());
+}
+
 /** 이 항목을 쓰고 있는 작업 목록. 삭제 전 확인용. */
 export function projectsUsing(
   library: Library,

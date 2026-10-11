@@ -1,5 +1,5 @@
 import type { Emotion, EmotionSet, GenerationSummary } from '../core/domain/types';
-import { generationKindFor, projectsUsing } from '../core/model/defaults';
+import { generationKindFor, hasScenePrompt, projectsUsing } from '../core/model/defaults';
 import {
   addEmotion,
   duplicateEmotion,
@@ -191,7 +191,7 @@ export function emotionMenu(
     'divider',
     {
       label: '이 씬만 생성',
-      disabled: !emotion.prompt.trim(),
+      disabled: !hasScenePrompt(emotion),
       onSelect: () => void generateEmotions(projectId, [emotion.id]),
     },
     {

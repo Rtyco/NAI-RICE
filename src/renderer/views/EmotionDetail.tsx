@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import type { ResolvedProject } from '../../core/model/defaults';
+import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { generateEmotions } from '../actions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
@@ -23,8 +23,7 @@ import {
   useStore,
 } from '../store';
 import { fileApi, libraryApi } from '../desktop';
-import { PromptTextarea } from '../components/PromptTextarea';
-import { ExpandTextButton } from '../components/TextEditorDialog';
+import { ScenePromptFields } from '../components/ScenePromptFields';
 
 export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject; emotion: Emotion }) {
   const { project } = resolved;
@@ -304,26 +303,18 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             씬 이름
             <input value={emotion.name} onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })} />
           </label>
-          <label className="prompt-field">
-            <span>
-              씬 프롬프트
-              <span className="prompt-field-tools">
-                <em>캐릭터 프롬프트 뒤에 붙습니다</em>
-                <ExpandTextButton
-                  title={`${emotion.name} 씬 프롬프트`}
-                  value={emotion.prompt}
-                  placeholder="예: smile, happy, open mouth"
-                  onApply={(prompt) => patchEmotion(set.id, emotion.id, { prompt })}
-                />
-              </span>
-            </span>
-            <PromptTextarea
-              rows={5}
-              value={emotion.prompt}
-              placeholder="예: smile, happy, open mouth"
-              onChange={(prompt) => patchEmotion(set.id, emotion.id, { prompt })}
-            />
-          </label>
+          <ScenePromptFields
+            emotion={emotion}
+            names={resolved.characters.map((item) => item.character.name)}
+            firstPlacement={
+              resolved.preset?.generation.emotionPosition === 'common-end'
+                ? '공통 포지티브 뒤에 붙습니다'
+                : resolved.characters.length > 1
+                  ? '첫 캐릭터 프롬프트 뒤에 붙습니다'
+                  : '캐릭터 프롬프트 뒤에 붙습니다'
+            }
+            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+          />
           <p className="hint">
             씬 모음 "{set.name}"에 저장됩니다{sharedCount > 1 ? ` · 이 모음을 쓰는 작업 ${sharedCount}개에 함께 반영` : ''}.
           </p>
@@ -331,7 +322,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <input
               type="checkbox"
               checked={!excluded}
-              disabled={!emotion.prompt.trim()}
+              disabled={!hasScenePrompt(emotion)}
               onChange={(event) =>
                 updateProject(project.id, (current) => ({
                   ...current,
@@ -350,7 +341,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
             <button
               className="generate-button"
-              disabled={!emotion.prompt.trim() || resolved.missing.length > 0}
+              disabled={!hasScenePrompt(emotion) || resolved.missing.length > 0}
               onClick={() => void generateEmotions(project.id, [emotion.id], { variants })}
             >
               ▶ {variants}장 생성

@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
-import type { ResolvedProject } from '../../core/model/defaults';
+import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
 import { showContextMenu } from '../components/ContextMenu';
@@ -59,7 +59,7 @@ function EmotionCard(props: {
   const cover = coverRecord(records, favoriteId, props.prefer);
   const state = jobState(props.jobs);
   const excluded = project.excludedEmotionIds.includes(emotion.id);
-  const included = !excluded && Boolean(emotion.prompt.trim());
+  const included = !excluded && hasScenePrompt(emotion);
   const [over, setOver] = useState(false);
   const menu = (event: React.MouseEvent) =>
     showContextMenu(event, emotionMenu(project.id, set, emotion, excluded));
@@ -105,7 +105,7 @@ function EmotionCard(props: {
           />
         ) : (
           <span className="thumb-empty">
-            {emotion.prompt.trim() ? '아직 생성 전' : '프롬프트 없음'}
+            {hasScenePrompt(emotion) ? '아직 생성 전' : '프롬프트 없음'}
           </span>
         )}
         {state && <span className={`card-status ${state.tone}`}>{state.label}</span>}
@@ -119,9 +119,9 @@ function EmotionCard(props: {
         <input
           type="checkbox"
           checked={included}
-          disabled={!emotion.prompt.trim()}
+          disabled={!hasScenePrompt(emotion)}
           title={
-            emotion.prompt.trim() ? '일괄 생성에 포함' : '프롬프트를 입력하면 선택할 수 있습니다.'
+            hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트를 입력하면 선택할 수 있습니다.'
           }
           onChange={(event) =>
             updateProject(project.id, (current) => ({
@@ -139,7 +139,7 @@ function EmotionCard(props: {
         <button
           className="icon-button card-generate card-hover"
           title="이 씬만 생성"
-          disabled={!emotion.prompt.trim() || resolved.missing.length > 0}
+          disabled={!hasScenePrompt(emotion) || resolved.missing.length > 0}
           onClick={() => void generateEmotions(project.id, [emotion.id])}
         >
           ▶
@@ -214,7 +214,7 @@ export function GalleryView({
   const projectJobs = queue.jobs.filter((job) => job.projectId === project.id);
   const excluded = new Set(project.excludedEmotionIds);
   const included = emotionSet.emotions.filter(
-    (emotion) => !excluded.has(emotion.id) && emotion.prompt.trim(),
+    (emotion) => !excluded.has(emotion.id) && hasScenePrompt(emotion),
   ).length;
   const withResults = emotionSet.emotions.filter(
     (emotion) => emotionRecords(records, emotion.id).length,

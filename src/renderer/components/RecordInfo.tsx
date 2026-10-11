@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { GenerationKind, GenerationRecord, GenerationSummary } from '../../core/domain/types';
 import { modelLabel, usesMedium } from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
@@ -84,6 +84,22 @@ export function RecordInfo({
       <dd className="mono">{record.emotionPrompt || '—'}</dd>
       <dt>캐릭터 프롬프트</dt>
       <dd className="mono">{prompt((value) => value.characterPrompt)}</dd>
+      {full?.extraCharacters?.map((character, index) => (
+        <Fragment key={index}>
+          <dt>{character.name || `캐릭터 ${index + 2}`}</dt>
+          <dd className="mono">{character.prompt || '(비어 있음)'}</dd>
+        </Fragment>
+      ))}
+      {full?.characterCenters && (
+        <>
+          <dt>캐릭터 위치</dt>
+          <dd>
+            {full.characterCenters
+              .map((center) => `(${center.x.toFixed(2)}, ${center.y.toFixed(2)})`)
+              .join(' · ')}
+          </dd>
+        </>
+      )}
       <dt>공통 프롬프트</dt>
       <dd className="mono">{prompt((value) => value.prompt)}</dd>
       <dt>공통 네거티브</dt>

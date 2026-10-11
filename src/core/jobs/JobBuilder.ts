@@ -17,7 +17,12 @@ import type {
   Reference,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
-import { createPromptSet, effectiveGenerationSettings, FREE_PROJECT_ID } from '../model/defaults';
+import {
+  createPromptSet,
+  effectiveGenerationSettings,
+  FREE_PROJECT_ID,
+  hasScenePrompt,
+} from '../model/defaults';
 import {
   composeSeparatedPrompts,
   referenceInsetCount,
@@ -219,9 +224,7 @@ function buildEmotionJobs<T>(
   const settings = effectiveGenerationSettings(input.preset.generation);
   const wanted = new Set(input.emotionIds);
   const selected = input.emotionSet.emotions.filter(
-    (emotion) =>
-      wanted.has(emotion.id) &&
-      [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim()),
+    (emotion) => wanted.has(emotion.id) && hasScenePrompt(emotion),
   );
   const first = input.characters[0];
   const now = input.now ?? (() => new Date());

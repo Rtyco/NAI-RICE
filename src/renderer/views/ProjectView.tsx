@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
@@ -15,6 +15,7 @@ import {
   usesMedium,
 } from '../../core/providers/NaiModels';
 import { CharacterChips } from '../components/CharacterChips';
+import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -121,6 +122,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         max={maxCharactersFor(resolved.preset?.generation.model)}
         onChange={(characters) => patch({ characters })}
       />
+      <PositionChip target={{ projectId: project.id }} />
       {project.mode === 'reference' && (
         <ChainChip
           section="references"
@@ -209,14 +211,28 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
           <span>공통 네거티브 (UC 프리셋 포함)</span>
           <pre className="prompt-code">{prompts.negativePrompt || '(비어 있음)'}</pre>
         </div>
-        <div className="prompt-preview">
-          <span>캐릭터 포지티브 + 씬</span>
-          <pre className="prompt-code">{prompts.characterPrompt || '(비어 있음)'}</pre>
-        </div>
-        <div className="prompt-preview negative-preview">
-          <span>캐릭터 네거티브</span>
-          <pre className="prompt-code">{prompts.characterNegativePrompt || '(비어 있음)'}</pre>
-        </div>
+        {[
+          {
+            prompt: prompts.characterPrompt,
+            negative: prompts.characterNegativePrompt,
+          },
+          ...prompts.extraCharacters,
+        ].map((character, index) => {
+          const name =
+            resolved.characters.length > 1 ? ` · ${resolved.characters[index].character.name}` : '';
+          return (
+            <Fragment key={index}>
+              <div className="prompt-preview">
+                <span>캐릭터 포지티브 + 씬{name}</span>
+                <pre className="prompt-code">{character.prompt || '(비어 있음)'}</pre>
+              </div>
+              <div className="prompt-preview negative-preview">
+                <span>캐릭터 네거티브{name}</span>
+                <pre className="prompt-code">{character.negative || '(비어 있음)'}</pre>
+              </div>
+            </Fragment>
+          );
+        })}
       </div>
       <p className="hint">
         조각은 내용으로 표시 · "줄마다 하나씩 고르기" 조각은 첫 줄로 표시(실제로는 이미지마다 고름)

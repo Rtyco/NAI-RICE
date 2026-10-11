@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { EmotionSet } from '../../../core/domain/types';
 import {
   addEmotion,
@@ -6,6 +7,7 @@ import {
   patchItem,
   removeEmotion,
   updateEmotion,
+  withExtraPrompt,
 } from '../../../core/model/mutations';
 import { Card, Menu } from '../../components/ui';
 import { toast, updateLibrary, useLibrary } from '../../store';
@@ -17,10 +19,12 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const save = (recipe: (item: EmotionSet) => EmotionSet) =>
     updateLibrary((current) => patchItem(current, 'emotionSets', set.id, recipe));
   const others = library.emotionSets.filter((item) => item.id !== set.id);
+  // 새로 연 빈 칸은 저장하지 않으므로(끝의 빈 칸은 지운다) 화면에서만 센다.
+  const [opened, setOpened] = useState<Record<string, number>>({});
   return (
     <Card
       title={`씬 (${set.emotions.length})`}
-      subtitle="캐릭터 포지티브 뒤에 붙음 · 이 모음을 쓰는 모든 작업에 반영"
+      subtitle="캐릭터 포지티브 뒤에 붙음 · 캐릭터가 여럿이면 칸마다 그 순서의 캐릭터에 붙음 · 이 모음을 쓰는 모든 작업에 반영"
       actions={
         <>
           {others.length > 0 && (
@@ -53,14 +57,50 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                 save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
               }
             />
-            <PromptTextarea
-              rows={1}
-              value={emotion.prompt}
-              aria-label={`${emotion.name} 프롬프트`}
-              placeholder="씬 프롬프트"
-              onChange={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
-            />
+            <div className="emotion-prompts">
+              <PromptTextarea
+                rows={1}
+                value={emotion.prompt}
+                aria-label={`${emotion.name} 프롬프트`}
+                placeholder="씬 프롬프트"
+                onChange={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
+              />
+              {Array.from(
+                {
+                  length: Math.max(emotion.extraPrompts?.length ?? 0, opened[emotion.id] ?? 0),
+                },
+                (_, extra) => (
+                  <div className="emotion-extra-prompt" key={extra}>
+                    <span>캐릭터 {extra + 2}</span>
+                    <PromptTextarea
+                      rows={1}
+                      value={emotion.extraPrompts?.[extra] ?? ''}
+                      aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
+                      placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
+                      onChange={(prompt) =>
+                        save((item) =>
+                          updateEmotion(item, emotion.id, withExtraPrompt(emotion, extra, prompt)),
+                        )
+                      }
+                    />
+                  </div>
+                ),
+              )}
+            </div>
             <div className="row-actions">
+              <button
+                className="icon-button"
+                title="다음 캐릭터의 씬 프롬프트 칸 추가"
+                onClick={() =>
+                  setOpened((current) => ({
+                    ...current,
+                    [emotion.id]:
+                      Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) + 1,
+                  }))
+                }
+              >
+                ＋
+              </button>
               <ExpandTextButton
                 title={`${emotion.name || '씬'} 프롬프트`}
                 value={emotion.prompt}

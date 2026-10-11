@@ -8,7 +8,7 @@ import {
 } from '../core/jobs/JobBuilder';
 import type { GenerationJobSnapshot, GenerationSummary } from '../core/domain/types';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
-import { resolveProject, type ResolvedCharacter } from '../core/model/defaults';
+import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
@@ -200,5 +200,5 @@ export function batchEmotionIds(projectId: string): string[] {
   if (!library || !project) return [];
   const set = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const excluded = new Set(project.excludedEmotionIds);
-  return (set?.emotions ?? []).filter((emotion) => !excluded.has(emotion.id) && emotion.prompt.trim()).map((e) => e.id);
+  return (set?.emotions ?? []).filter((emotion) => !excluded.has(emotion.id) && hasScenePrompt(emotion)).map((e) => e.id);
 }

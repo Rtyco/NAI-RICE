@@ -1053,6 +1053,34 @@ textarea.syntax-input::selection {
   min-height: 34px;
   resize: vertical;
 }
+.emotion-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.emotion-extra-prompt {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+.emotion-extra-prompt > span {
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.prompt-panel-order {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  border-radius: 999px;
+  background: var(--bg-5);
+  color: var(--muted);
+  font-size: 10px;
+}
 .emotion-table-row > input[type='checkbox'] {
   margin-top: 10px;
 }
@@ -3234,6 +3262,92 @@ textarea.syntax-input::selection {
 }
 .icon.rotate-left {
   transform: rotate(180deg);
+}
+.chain-chip-value {
+  padding: 3px 6px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
+}
+
+/* ── 캐릭터 위치 ───────────────────────────── */
+.position-mode {
+  width: fit-content;
+  margin-bottom: 6px;
+}
+.position-board {
+  position: relative;
+  margin: 10px auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 20% 20%,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 20% 20%,
+    var(--bg-1);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+.position-board.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.position-cell {
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  padding: 3px 5px;
+  color: var(--faint);
+  font-size: 10px;
+  pointer-events: none;
+}
+.position-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--bg-1);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+.position-marker.selected {
+  outline: 2px solid var(--text);
+}
+.position-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.position-legend button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+}
+.position-legend button.active {
+  border-color: var(--accent-strong);
+}
+.position-legend i {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+}
+.position-legend small {
+  color: var(--muted);
 }
 .chain-thumb {
   width: 20px;
