@@ -1,7 +1,7 @@
 import type { GenerationJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
-import { vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
+import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
 import type { GenerationEnqueueResult, TokenStatus } from '../../src/shared/ipc';
 
@@ -44,18 +44,26 @@ export class GenerationRequests {
 
   /** 작업 순서별로, 아직 인코딩하지 않은 바이브를 처음 쓰는 수. 그 작업에 인코딩 비용을 더한다. */
   private async vibeEncodes(jobs: GenerationJobSnapshot[]): Promise<Map<number, number>> {
-    const first = new Map<string, number>();
+    const first = new Map<string, { index: number; encodedOnly?: string }>();
     jobs.forEach((job, index) => {
       if (job.aid?.kind !== 'vibe') return;
       for (const vibe of job.aid.vibes) {
-        const key = vibeCacheKey(vibe.imageSha256, job.settings, vibe.informationExtracted);
-        if (!first.has(key)) first.set(key, index);
+        const key = vibeCacheKey(
+          vibe.encodingId ?? vibe.imageSha256,
+          job.settings,
+          vibe.informationExtracted,
+        );
+        if (!first.has(key))
+          first.set(key, { index, ...(vibe.encodingId ? { encodedOnly: vibe.name } : {}) });
       }
     });
     const encodes = new Map<number, number>();
-    for (const [key, index] of first)
-      if (this.vibes && !(await this.vibes.readVibe(key)))
-        encodes.set(index, (encodes.get(index) ?? 0) + 1);
+    for (const [key, { index, encodedOnly }] of first) {
+      if (!this.vibes || (await this.vibes.readVibe(key))) continue;
+      // 인코딩만 있는 바이브는 다시 인코딩할 원본이 없어 큐에 넣기 전에 막는다.
+      if (encodedOnly) throw new Error(encodedOnlyMessage(encodedOnly));
+      encodes.set(index, (encodes.get(index) ?? 0) + 1);
+    }
     return encodes;
   }
 

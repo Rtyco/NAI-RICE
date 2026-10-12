@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { readImageMetadata } from '../../core/metadata/NaiMetadata';
+import { embeddedVibeFile, readImageMetadata } from '../../core/metadata/NaiMetadata';
+import { readImageText } from '../../core/metadata/WebpMetadata';
+import { VIBE_FILE_PATTERN } from '../../core/vibes/VibeFile';
+import { importVibeFile } from '../aidImport';
 import { importJsonText } from '../importers';
 import { blobToDataUrl, decodePixels } from '../lib/image';
 import { run } from '../store';
@@ -9,14 +12,30 @@ import { PlainImageDialog } from './imageImport/PlainImageDialog';
 
 export async function importDroppedFile(file: File): Promise<void> {
   const name = file.name;
+  if (VIBE_FILE_PATTERN.test(name)) {
+    await importVibeFile(await file.text(), name);
+    return;
+  }
   if (/\.json$/i.test(name) || file.type === 'application/json') {
     await importJsonText(await file.text(), name);
     return;
   }
   if (!file.type.startsWith('image/')) throw new Error(`지원하지 않는 파일입니다: ${name}`);
   const bytes = new Uint8Array(await file.arrayBuffer());
+  // NovelAI 웹이 바이브 묶음을 넣어 내려받은 그림(`.naiv4vibebundle.png`)은 생성 정보 없이 바이브만 있다.
+  const vibeFile = (() => {
+    try {
+      return embeddedVibeFile(readImageText(bytes));
+    } catch {
+      return undefined;
+    }
+  })();
   const dataUrl = await blobToDataUrl(file);
   const data = await readImageMetadata(bytes, () => decodePixels(file)).catch(() => null);
+  if (vibeFile && !data) {
+    await importVibeFile(vibeFile, name);
+    return;
+  }
   const image = { name, dataUrl };
   if (data)
     void openDialog((close) => <ImageImportDialog data={data} image={image} close={close} />);
@@ -89,8 +108,8 @@ export function DropZone() {
       <div>
         <b>여기에 놓기</b>
         <p>
-          NovelAI 이미지 → 설정 불러오기 · 일반 이미지 → 인페인트·캐릭터 레퍼런스·바이브 · JSON →
-          백업/SDStudio 가져오기
+          NovelAI 이미지 → 설정 불러오기 · 일반 이미지 → 인페인트·캐릭터 레퍼런스·바이브 · 바이브
+          파일(.naiv4vibe) → 바이브 · JSON → 백업/SDStudio 가져오기
         </p>
       </div>
     </div>

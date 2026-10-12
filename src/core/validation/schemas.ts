@@ -310,6 +310,11 @@ export const vibeSchema = z.object({
   image: pictureSchema,
   strength: aidValueSchema(0.6),
   informationExtracted: unitSchema(1),
+  encodingId: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional()
+    .catch(undefined),
   updatedAt: z.string().catch(''),
 });
 
@@ -577,6 +582,7 @@ const jobSnapshotCommonSchema = z.object({
                 imageSha256: sha256Schema,
                 strength: aidValue,
                 informationExtracted: z.number().min(0).max(1),
+                encodingId: sha256Schema.optional(),
               }),
             )
             .min(1),

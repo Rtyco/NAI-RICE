@@ -320,6 +320,10 @@ export function buildNovelAIEncodeVibeRequest(
   };
 }
 
+export function encodedOnlyMessage(name: string): string {
+  return `바이브 「${name}」은(는) 원본 그림 없이 인코딩만 가져와서, 가져온 모델·정보 추출 값으로만 쓸 수 있습니다. 생성 설정의 모델이나 바이브의 정보 추출 값을 확인하십시오.`;
+}
+
 /**
  * 바이브 인코딩 결과를 다시 쓸 때의 이름. 같은 그림·모델·information_extracted면 결과가 같아 한 번만 인코딩한다.
  * 파일 이름으로 쓰므로 영문·숫자·하이픈만 남긴다.
@@ -329,9 +333,34 @@ export function vibeCacheKey(
   settings: Pick<GenerationSettings, 'model'>,
   informationExtracted: number,
 ): string {
-  const model = requestModelId(settings.model, 'generate');
+  return vibeCacheName(
+    imageSha256,
+    requestModelId(settings.model, 'generate'),
+    informationExtracted,
+  );
+}
+
+/**
+ * 인코딩 결과 이름. `owner`는 그림 해시이거나, 원본 없이 인코딩만 가져온 바이브의 `encodingId`다.
+ * `generateModel`은 일반 생성 모델 ID다.
+ */
+export function vibeCacheName(
+  owner: string,
+  generateModel: string,
+  informationExtracted: number,
+): string {
   const information = Math.round(clamp(informationExtracted, 0, 1) * 100);
-  return `${imageSha256}-${model}-ie${information}`.replace(/[^0-9a-z-]/gi, '-');
+  return `${owner}-${generateModel}-ie${information}`.replace(/[^0-9a-z-]/gi, '-');
+}
+
+/** `vibeCacheName`의 반대. 그 owner의 이름이 아니면 undefined. */
+export function parseVibeCacheName(
+  name: string,
+  owner: string,
+): { model: string; informationExtracted: number } | undefined {
+  if (!name.startsWith(`${owner}-`)) return undefined;
+  const match = /^(.+)-ie(\d+)$/.exec(name.slice(owner.length + 1));
+  return match ? { model: match[1], informationExtracted: Number(match[2]) / 100 } : undefined;
 }
 
 /**

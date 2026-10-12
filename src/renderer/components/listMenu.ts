@@ -11,6 +11,8 @@ export function listMenu(actions: {
   rename?: () => void;
   duplicate: () => void;
   exportJson?: () => void;
+  /** 바이브만. 고른 항목 중 하나면 고른 것 모두를 묶음으로 내보낸다. */
+  exportVibes?: () => void;
   folder?: () => void;
   remove: () => void;
   pickedCount: number;
@@ -25,6 +27,17 @@ export function listMenu(actions: {
     { label: '이름 변경', disabled: !actions.rename, onSelect: () => actions.rename?.() },
     { label: '복제', onSelect: actions.duplicate },
     ...(actions.exportJson ? [{ label: 'JSON 내보내기', onSelect: actions.exportJson }] : []),
+    ...(actions.exportVibes
+      ? [
+          {
+            label:
+              actions.pickedCount > 1
+                ? `고른 ${actions.pickedCount}개를 바이브 묶음으로 내보내기`
+                : '바이브 파일로 내보내기',
+            onSelect: actions.exportVibes,
+          },
+        ]
+      : []),
     ...(actions.folder ? [{ label: '폴더 열기', onSelect: actions.folder }] : []),
     ...(actions.group
       ? [

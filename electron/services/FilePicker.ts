@@ -41,6 +41,20 @@ export class FilePicker {
     };
   }
 
+  async pickVibe(): Promise<OpenTextFileResult | null> {
+    const picked = await this.pick(
+      'NovelAI 바이브 파일 선택',
+      { name: 'NovelAI 바이브', extensions: ['naiv4vibe', 'naiv4vibeBundle', 'naiv4vibebundle'] },
+      '100MB를 초과하는 파일은 가져올 수 없습니다.',
+    );
+    if (!picked) return null;
+    return {
+      path: picked.filePath,
+      name: path.basename(picked.filePath),
+      text: picked.buffer.toString('utf8'),
+    };
+  }
+
   async pickImage(): Promise<OpenImageResult | null> {
     const picked = await this.pick(
       '참고 이미지 선택',

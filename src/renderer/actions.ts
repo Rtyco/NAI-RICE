@@ -84,6 +84,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
             ...(await libraryApi().prepareAidInput(project.id, item.image!.file, 'vibe')),
             strength: item.strength,
             informationExtracted: item.informationExtracted,
+            ...(item.encodingId ? { encodingId: item.encodingId } : {}),
           })),
         ),
         normalize: project.normalizeVibes ?? true,

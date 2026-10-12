@@ -18,6 +18,9 @@ const api: DesktopApi = {
   prepareAidInput: (projectId, file, kind) =>
     ipcRenderer.invoke('project:prepare-aid-input', projectId, file, kind),
   addPicture: (dataUrl) => ipcRenderer.invoke('picture:add', dataUrl),
+  importVibeFile: (text, name) => ipcRenderer.invoke('vibe:import-file', text, name),
+  importMetadataVibes: (request) => ipcRenderer.invoke('vibe:import-metadata', request),
+  vibeEncodings: (vibe) => ipcRenderer.invoke('vibe:encodings', vibe),
   prepareInputs: (projectId, reference) =>
     ipcRenderer.invoke('project:prepare-inputs', projectId, reference),
   prepareImageInput: (request) => ipcRenderer.invoke('project:prepare-image-input', request),
@@ -54,6 +57,8 @@ const api: DesktopApi = {
   exportImages: (request) => ipcRenderer.invoke('file:export-images', request),
   exportReference: (reference) => ipcRenderer.invoke('file:export-reference', reference),
   exportLibrary: (library) => ipcRenderer.invoke('file:export-library', library),
+  openVibeFile: () => ipcRenderer.invoke('file:open-vibe'),
+  exportVibes: (vibes) => ipcRenderer.invoke('file:export-vibes', vibes),
 
   tokenStatus: () => ipcRenderer.invoke('token:status'),
   saveAndValidateToken: (token) => ipcRenderer.invoke('token:save-and-validate', token),

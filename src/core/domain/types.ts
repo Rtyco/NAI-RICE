@@ -272,6 +272,11 @@ export type Vibe = {
   strength: number;
   /** 인코딩의 information_extracted(0~1). 바꾸면 다시 인코딩한다. */
   informationExtracted: number;
+  /**
+   * 원본 그림 없이 인코딩만 가져온 바이브(NovelAI 바이브 파일의 `type: 'encoding'`, 이미지 메타데이터)의 인코딩
+   * 이름. 있으면 그림은 보기용이고, 가져온 모델·정보 추출 값으로만 쓸 수 있다(다시 인코딩할 원본이 없다).
+   */
+  encodingId?: string;
   updatedAt: string;
 };
 
@@ -283,6 +288,8 @@ export type JobVibe = {
   imageSha256: string;
   strength: number;
   informationExtracted: number;
+  /** 인코딩만 있는 바이브. 인코딩 결과를 그림 해시 대신 이 이름으로 찾고, 없으면 인코딩하지 않고 막는다. */
+  encodingId?: string;
 };
 
 export type JobReference = {

@@ -268,6 +268,10 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return { file, width, height };
   }
 
+  async readPicture(file: string): Promise<Buffer> {
+    return fs.readFile(await this.verifyReal(this.pictureFile(file)));
+  }
+
   async prepareAidInput(
     projectId: string,
     file: string,
@@ -287,6 +291,13 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
 
   async readVibe(key: string): Promise<Buffer | undefined> {
     return fs.readFile(this.vibeFile(key)).catch(() => undefined);
+  }
+
+  async vibeNames(owner: string): Promise<string[]> {
+    const names = await fs.readdir(path.join(this.root, 'vibes')).catch(() => [] as string[]);
+    return names
+      .filter((name) => name.startsWith(`${owner}-`) && name.endsWith('.bin'))
+      .map((name) => name.slice(0, -'.bin'.length));
   }
 
   async writeVibe(key: string, data: Buffer): Promise<void> {

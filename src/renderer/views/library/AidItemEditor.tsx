@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import type { CharacterReference, Picture, Vibe } from '../../../core/domain/types';
+import type { VibeEncodingInfo } from '../../../shared/ipc';
 import { patchItem } from '../../../core/model/mutations';
 import { Icon } from '../../components/Icon';
-import { REFERENCE_TARGETS } from '../../../core/providers/NaiModels';
+import { NAI_MODELS, REFERENCE_TARGETS } from '../../../core/providers/NaiModels';
 import { AID_VALUE_LIMIT } from '../../../core/validation/schemas';
 import { Card, NumberField, SelectField } from '../../components/ui';
 import { fileApi, libraryApi } from '../../desktop';
@@ -90,6 +92,10 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
   );
 }
 
+function generateModelLabel(model: string): string {
+  return NAI_MODELS.find((item) => item.requestIds.generate === model)?.label ?? model;
+}
+
 export function VibeEditor({ item }: { item: Vibe }) {
   const save = (patch: Partial<Vibe>) =>
     updateLibrary((current) =>
@@ -99,9 +105,25 @@ export function VibeEditor({ item }: { item: Vibe }) {
         updatedAt: new Date().toISOString(),
       })),
     );
+  const [encodings, setEncodings] = useState<VibeEncodingInfo[]>();
+  useEffect(() => {
+    let alive = true;
+    libraryApi()
+      .vibeEncodings({ image: item.image, encodingId: item.encodingId })
+      .then((list) => alive && setEncodings(list))
+      .catch(() => alive && setEncodings([]));
+    return () => {
+      alive = false;
+    };
+  }, [item.image, item.encodingId]);
+  const encodedOnly = Boolean(item.encodingId);
   return (
     <>
-      <PictureCard image={item.image} onChange={(image) => save({ image })} />
+      {/* 새 그림을 불러오면 그 그림으로 인코딩하는 보통 바이브가 된다. */}
+      <PictureCard
+        image={item.image}
+        onChange={(image) => save({ image, encodingId: undefined })}
+      />
       <Card
         title="값"
         subtitle="작업에서 이 바이브를 고르면 그림의 분위기·그림체를 따라갑니다(일반 생성·인페인트)"
@@ -121,12 +143,32 @@ export function VibeEditor({ item }: { item: Vibe }) {
             min={0}
             max={1}
             step={0.05}
+            disabled={encodedOnly}
             onChange={(informationExtracted) => save({ informationExtracted })}
           />
         </div>
+        {encodedOnly && (
+          <p className="field-error">
+            원본 그림 없이 인코딩만 가져온 바이브입니다. 아래의 저장된 인코딩과 같은 모델·정보 추출
+            값으로만 쓸 수 있고, 위 그림은 보기용입니다. 원본 그림을 불러오면 보통 바이브가 됩니다.
+          </p>
+        )}
+        <p className="hint">
+          저장된 인코딩:{' '}
+          {encodings === undefined
+            ? '확인하는 중'
+            : encodings.length
+              ? encodings
+                  .map(
+                    (encoding) =>
+                      `${generateModelLabel(encoding.model)} · 정보 추출 ${encoding.informationExtracted}`,
+                  )
+                  .join(', ')
+              : '없음(처음 생성할 때 인코딩합니다)'}
+        </p>
         <p className="hint">
           V4.5 모델 전용입니다. 작업에서 바이브 여러 개를 함께 쓸 수 있고, 4개를 넘으면 넘는
-          바이브마다 한 장에 2 Anlas가 듭니다. 세기는 NovelAI 웹 기본 범위(0~1) 밖으로도
+          바이브마다 한 장에 2 Anlas가 듭니다. 세기는 NovelAI 웹 기본 범위(0~1) 밖으로도{' '}
           {`±${AID_VALUE_LIMIT}`}까지 넣을 수 있습니다. 처음 생성할 때 그림을 인코딩해 2 Anlas가
           들고, 같은 그림·모델·정보 추출 값이면 인코딩 결과를 다시 씁니다. 그림이나 정보 추출 값을
           바꾸면 다시 인코딩합니다.

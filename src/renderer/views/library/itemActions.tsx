@@ -44,6 +44,7 @@ import { DeleteUsedDialog } from './DeleteUsedDialog';
 import { SECTIONS } from '../../sections';
 import { openLibrary, run, toast, updateLibrary, useStore, type LibrarySection } from '../../store';
 import { fileApi, libraryApi } from '../../desktop';
+import { importVibeFile } from '../../aidImport';
 
 export type Item = { id: string; name: string; folder?: string };
 
@@ -327,4 +328,20 @@ export function itemSubtitle(section: LibrarySection, item: Item): string {
   return reference.image
     ? `${reference.image.canvasWidth}×${reference.image.canvasHeight}`
     : '이미지 없음';
+}
+
+/** 바이브를 NovelAI 바이브 파일로 저장한다. 여럿이면 묶음 하나로 저장한다. */
+export function exportVibeItems(ids: string[]): void {
+  void run('바이브를 내보내는 중', async () => {
+    const vibes = useStore.getState().library?.vibes.filter((vibe) => ids.includes(vibe.id)) ?? [];
+    const saved = await fileApi().exportVibes(vibes);
+    if (saved) toast(`저장했습니다: ${saved}`);
+  });
+}
+
+export function importVibeFromPicker(): void {
+  void run('바이브 파일을 가져오는 중', async () => {
+    const file = await fileApi().openVibeFile();
+    if (file) await importVibeFile(file.text, file.name);
+  });
 }

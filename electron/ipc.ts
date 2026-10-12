@@ -1,9 +1,10 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
-import type { Library as LibraryData, Reference } from '../src/core/domain/types';
+import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain/types';
 import type {
   ExportRequest,
   ImageDataSource,
   ImageInputRequest,
+  MetadataVibeImport,
   OpenTarget,
   ReferenceImageSave,
   SourceImageAdd,
@@ -19,6 +20,7 @@ import { toGenerationSummary } from '../src/core/model/generationSummary';
 import type { AppCache } from './services/AppCache';
 import type { Library } from './services/Library';
 import type { UpdateChecker } from './services/UpdateChecker';
+import type { VibeFiles } from './services/VibeFiles';
 import type { WorkspaceShell } from './services/WorkspaceShell';
 
 /** IPC 처리기가 부르는 서비스. main.ts가 만들어 넘긴다. */
@@ -33,12 +35,23 @@ export type AppServices = {
   requests: GenerationRequests;
   appCache: AppCache;
   updates: UpdateChecker;
+  vibes: VibeFiles;
 };
 
 /** 렌더러가 부를 수 있는 기능을 등록한다. 각 처리기는 해당 서비스에 넘기기만 한다. */
 export function registerIpc(services: AppServices): void {
-  const { library, workspace, exporter, files, account, queue, requests, appCache, updates } =
-    services;
+  const {
+    library,
+    workspace,
+    exporter,
+    files,
+    account,
+    queue,
+    requests,
+    appCache,
+    updates,
+    vibes,
+  } = services;
 
   ipcMain.handle('library:load', () => library.load());
   ipcMain.handle('library:save', (_event, data: LibraryData) => library.save(data));
@@ -64,6 +77,15 @@ export function registerIpc(services: AppServices): void {
     },
   );
   ipcMain.handle('picture:add', (_event, dataUrl: string) => library.addPicture(dataUrl));
+  ipcMain.handle('vibe:import-file', (_event, text: string, name: string) =>
+    vibes.importText(text, name),
+  );
+  ipcMain.handle('vibe:import-metadata', (_event, request: MetadataVibeImport) =>
+    vibes.importMetadata(request),
+  );
+  ipcMain.handle('vibe:encodings', (_event, vibe: Pick<Vibe, 'image' | 'encodingId'>) =>
+    vibes.encodings(vibe),
+  );
   ipcMain.handle('project:prepare-image-input', (_event, request: ImageInputRequest) =>
     library.prepareImageInput(request),
   );
@@ -106,6 +128,8 @@ export function registerIpc(services: AppServices): void {
     exporter.saveJson(data, name, title || 'JSON 파일 저장'),
   );
   ipcMain.handle('file:open-image', () => files.pickImage());
+  ipcMain.handle('file:open-vibe', () => files.pickVibe());
+  ipcMain.handle('file:export-vibes', (_event, list: Vibe[]) => vibes.export(list));
   ipcMain.handle(
     'file:save-image-as',
     (_event, id: string, generationId: string, name: string, quality: number) =>

@@ -39,6 +39,36 @@ NovelAI 웹 코드(2026-10-12에 받은 `image` 페이지 스크립트), 커뮤�
 - **인페인트와 함께:** 웹 기능 표의 `charRefInpainting`이 V4.5에 켜져 있어 인페인트 작업에서도 고를 수 있게
   했습니다.
 
+## 바이브 파일 (`.naiv4vibe`·`.naiv4vibeBundle`)
+
+형식(웹 코드): JSON `{ identifier: "novelai-vibe-transfer", version: 1, type, image?, id, encodings, name,
+thumbnail, createdAt, importInfo }`. 묶음은 `{ identifier: "novelai-vibe-transfer-bundle", version: 1, vibes }`.
+
+- `type: "image"`: `image`는 원본 그림 base64, `id`는 그 문자열의 SHA-256. 인코딩은
+  `encodings[모델 키][SHA-256("information_extracted:값")] = { encoding, params }`.
+- `type: "encoding"`(Export as Encodings·이미지 메타데이터): 원본이 없고 `id`는 인코딩 문자열의 SHA-256, 키는
+  `unknown`, 정보 추출 값은 `importInfo`.
+- 모델 키: `v4-5full`, `v4-5curated`, `v4full`, `v4curated`(V5 키도 있으나 앱은 V4.5만 바이브를 씀).
+
+구현(`core/vibes/VibeFile.ts`, `electron/services/VibeFiles.ts`):
+
+- **가져오기:** 바이브 파일을 끌어 놓거나 라이브러리 바이브 칸 아래 「바이브 파일 가져오기」. 그림은
+  `pictures/`에, 인코딩은 생성 큐가 쓰는 `vibes/<그림 해시>-<모델>-ie<값>.bin`에 넣어, 같은 모델·정보 추출 값이면
+  인코딩 비용 없이 씁니다. 열린 작업이 있으면 그 작업의 바이브 뒤에 더합니다.
+- **인코딩만 있는 바이브:** `Vibe.encodingId`(문서 `id`)를 그림 해시 대신 인코딩 이름에 씁니다. 그림은 썸네일이나
+  색만 있는 보기용이고, 정보 추출 값은 바꿀 수 없습니다. 인코딩이 없는 모델·값으로 생성하면 큐에 넣기 전에
+  막습니다(다시 인코딩할 원본이 없음). 원본 그림을 불러오면 보통 바이브가 됩니다. 전체 백업에는 `vibes/`가
+  들어가지 않아, 다른 컴퓨터로 옮기면 이런 바이브는 다시 가져와야 합니다.
+- **내보내기:** 바이브 편집기 위 「바이브 파일로 내보내기」, 우클릭 메뉴, 여러 개 고른 막대의 「내보내기」.
+  하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`. 원본 그림(PNG), 256px JPEG 썸네일, 저장해 둔 인코딩을 모두
+  넣습니다. 바이브 편집기에 저장된 인코딩(모델·정보 추출 값)이 보입니다.
+- **이미지 안의 바이브:** NovelAI 이미지의 생성 정보(Comment)에 `reference_image_multiple`(인코딩)과
+  `reference_strength_multiple`·`reference_information_extracted_multiple`이 들어 있습니다. 불러오기 창 ⑤에
+  「이미지에 든 바이브 N개 가져오기」가 나오고, 인코딩은 그 이미지의 모델(Source 라벨)로 저장합니다. 그림이
+  그대로 든 값(V3 방식)은 보통 바이브로 만듭니다. 웹이 바이브를 넣어 내려받은 이미지는 `naidata` 텍스트 청크에
+  바이브 파일·묶음이 base64로 들어 있어 그것을 먼저 씁니다. 생성 정보 없이 `naidata`만 있으면(묶음 PNG) 바로
+  가져옵니다. stealth 메타데이터 상한을 1MB에서 8MB로 늘렸습니다(인코딩 하나에 약 65KB).
+
 ## 사용자 확인 (무료)
 
 `npm run dev`에서 생성 설정의 샘플링 카드를 봅니다.
@@ -51,3 +81,10 @@ NovelAI 웹 코드(2026-10-12에 받은 `image` 페이지 스크립트), 커뮤�
 1. 인페인트 + 캐릭터 레퍼런스 한 장(5 Anlas): 오류 없이 나오고 참고 그림이 반영되는지.
 2. 캐릭터 레퍼런스 두 개 한 장: 실제 차감이 10 Anlas인지, 두 그림이 섞이는지.
 3. 세기를 1.5나 -0.5로 넣은 한 장: 서버가 받아들이는지.
+
+## 사용자 확인 (바이브 파일)
+
+1. NovelAI 웹에서 내려받은 `.naiv4vibe`를 끌어 놓기 → 바이브 편집기에 「저장된 인코딩: V4.5 Full · 정보 추출 …」이
+   보이는지, 그 값으로 생성할 때 인코딩 비용(2 Anlas)을 묻지 않는지(생성 자체는 무료 범위).
+2. 앱에서 내보낸 `.naiv4vibe`·묶음을 NovelAI 웹에 넣어 받아들이는지.
+3. 바이브를 쓴 NovelAI 이미지를 끌어 놓아 ⑤의 「이미지에 든 바이브」를 가져오고 같은 모델로 생성.

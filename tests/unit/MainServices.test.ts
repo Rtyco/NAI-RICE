@@ -141,6 +141,25 @@ describe('GenerationRequests', () => {
     return { requests, queued, queuedEstimates, asked, estimates };
   }
 
+  it('인코딩만 가져온 바이브의 인코딩이 없으면 큐에 넣기 전에 막아', async () => {
+    const { requests, queued } = setup();
+    const vibe = {
+      name: '노을',
+      imagePath: `inputs/${'c'.repeat(64)}.png`,
+      imageSha256: 'c'.repeat(64),
+      strength: 0.5,
+      informationExtracted: 1,
+      encodingId: 'd'.repeat(64),
+    };
+    const encodedOnly = {
+      ...job,
+      settings: { ...job.settings, model: 'nai-diffusion-4-5-full-inpainting' },
+      aid: { kind: 'vibe' as const, vibes: [vibe] },
+    };
+    await expect(requests.enqueue({ jobs: [encodedOnly] })).rejects.toThrow('인코딩만');
+    expect(queued).toHaveLength(0);
+  });
+
   it('무료 기준 안이면 묻지 않고 큐에 넣어', async () => {
     const { requests, queued, queuedEstimates, asked } = setup();
     expect((await requests.enqueue({ jobs: [job] })).cancelled).toBe(false);

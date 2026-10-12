@@ -4,10 +4,13 @@ import { type ImageImportData } from '../../../core/metadata/NaiMetadata';
 import { resolveProject } from '../../../core/model/defaults';
 import {
   detectNaiTags,
+  modelInfo,
   modelLabel,
   QUALITY_LEVEL_LABELS,
+  requestModelId,
   UC_PRESET_LABELS,
 } from '../../../core/providers/NaiModels';
+import { parseVibeFile } from '../../../core/vibes/VibeFile';
 import { applyImageImport } from '../../../core/importers/ImageImport';
 import {
   currentProject,
@@ -20,7 +23,12 @@ import {
   useLibrary,
   useStore,
 } from '../../store';
-import { addAidFromImage, type AidSection } from '../../aidImport';
+import {
+  addAidFromImage,
+  importMetadataVibes,
+  importVibeFile,
+  type AidSection,
+} from '../../aidImport';
 import { Modal } from '../Dialogs';
 
 export type DroppedImage = { name: string; dataUrl: string };
@@ -158,6 +166,15 @@ export function ImageImportDialog({
       on ? [...current, section] : current.filter((item) => item !== section),
     );
   const [makeProject, setMakeProject] = useState(!project);
+  // 생성 정보의 인코딩은 그 이미지의 모델로 만든 것이라 그 모델로 저장한다. 앱이 바이브를 쓰는 V4 계열만 받는다.
+  const vibeModel =
+    data.model && modelInfo(data.model)?.generation === 'v4'
+      ? requestModelId(data.model, 'generate')
+      : undefined;
+  const embeddedVibes = data.vibeFile
+    ? vibeCount(data.vibeFile)
+    : (data.vibes?.filter((vibe) => vibe.image || vibeModel).length ?? 0);
+  const [useVibes, setUseVibes] = useState(false);
 
   // 전체 선택·해제는 불러올 항목에만 적용한다. 이미지에 없는 항목은 선택해도 꺼진 채로 보인다.
   const setAll = (value: boolean) => {
@@ -219,6 +236,17 @@ export function ImageImportDialog({
       for (const section of aidTargets) {
         await addAidFromImage(section, image, name || stem, linkTo);
         result.applied.push(section === 'characterReferences' ? '캐릭터 레퍼런스' : '바이브');
+      }
+      if (useVibes && embeddedVibes) {
+        if (data.vibeFile) await importVibeFile(data.vibeFile, stem, linkTo);
+        else
+          await importMetadataVibes(
+            data.vibes!.filter((vibe) => vibe.image || vibeModel),
+            vibeModel ?? '',
+            `${stem} 바이브`,
+            linkTo,
+          );
+        result.applied.push(`이미지의 바이브 ${embeddedVibes}개`);
       }
       if (result.projectId) openProject(result.projectId);
       if (result.referenceId) {
@@ -508,6 +536,16 @@ export function ImageImportDialog({
               <b>새 바이브로 추가</b>
               <small>그림의 분위기·그림체를 따라갑니다</small>
             </Check>
+            {embeddedVibes > 0 && (
+              <Check checked={useVibes} onChange={setUseVibes}>
+                <b>이미지에 든 바이브 {embeddedVibes}개 가져오기</b>
+                <small>
+                  {data.vibeFile
+                    ? 'NovelAI 웹이 이미지에 넣어 둔 바이브 파일입니다'
+                    : `이 이미지를 만들 때 쓴 바이브입니다. 인코딩이 들어 있어 ${modelLabel(data.model ?? '')}에서는 인코딩 비용 없이 씁니다`}
+                </small>
+              </Check>
+            )}
           </div>
 
           <hr />
@@ -525,4 +563,12 @@ export function ImageImportDialog({
       </div>
     </Modal>
   );
+}
+
+function vibeCount(text: string): number {
+  try {
+    return parseVibeFile(text).length;
+  } catch {
+    return 0;
+  }
 }

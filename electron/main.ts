@@ -13,6 +13,7 @@ import { GenerationRequests } from './services/GenerationRequests';
 import { Library } from './services/Library';
 import { TokenVault } from './services/TokenVault';
 import { UpdateChecker } from './services/UpdateChecker';
+import { VibeFiles } from './services/VibeFiles';
 import { WorkspaceShell } from './services/WorkspaceShell';
 import {
   anyWindowVisible,
@@ -63,6 +64,7 @@ async function createServices(): Promise<AppServices> {
     queue,
     requests: new GenerationRequests(queue, account, confirmAnlasUse, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
+    vibes: new VibeFiles(library, dialog),
     // 포터블 실행 파일은 electron-builder가 PORTABLE_EXECUTABLE_FILE을 넣어 준다.
     updates: new UpdateChecker(
       app.getVersion(),

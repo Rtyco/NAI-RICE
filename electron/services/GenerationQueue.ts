@@ -22,7 +22,7 @@ import {
 } from '../../src/core/jobs/JobLifecycle';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
-import { vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
+import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationStore, ImageGenerator } from './ports';
@@ -275,9 +275,14 @@ export class GenerationQueue {
     token: string,
     signal: AbortSignal,
   ): Promise<Buffer> {
-    const key = vibeCacheKey(vibe.imageSha256, job.settings, vibe.informationExtracted);
+    const key = vibeCacheKey(
+      vibe.encodingId ?? vibe.imageSha256,
+      job.settings,
+      vibe.informationExtracted,
+    );
     const cached = await this.dependencies.library.readVibe(key);
     if (cached) return cached;
+    if (vibe.encodingId) throw new Error(encodedOnlyMessage(vibe.name));
     const encode = this.dependencies.provider.encodeVibe;
     if (!encode) throw new Error('바이브를 인코딩할 수 없습니다.');
     await this.waitRequestDelay(signal);

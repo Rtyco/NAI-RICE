@@ -10,6 +10,7 @@ import type {
 import { readImageText } from './WebpMetadata';
 import { removeReferenceInset } from '../prompts/PromptComposer';
 import { supportsEffort } from '../providers/NaiModels';
+import { metadataVibes, VIBE_BUNDLE_ID, VIBE_FILE_ID, type MetadataVibe } from '../vibes/VibeFile';
 
 /**
  * 이 앱이 결과 PNG에 함께 기록하는 보조 메타데이터 키.
@@ -61,7 +62,28 @@ export type ImageImportData = {
   /** NovelAI 웹이 기록한 품질 태그·UC 프리셋 힌트 번호(`tag_hint_qt`, `tag_hint_uc_preset`). */
   tagHints?: { quality?: number; uc?: number };
   desk?: DeskMetadata;
+  /** 생성 정보에 든 바이브(`reference_image_multiple`). */
+  vibes?: MetadataVibe[];
+  /** NovelAI 웹이 이미지에 넣어 둔 바이브 파일·묶음(`naidata`, JSON 문자열). */
+  vibeFile?: string;
 };
+
+/**
+ * NovelAI 웹은 바이브를 이미지에 넣어 내려받을 때 바이브 파일·묶음 JSON을 base64로 `naidata` 텍스트 청크에
+ * 넣는다(2026-10 웹 코드). 바이브 파일이 아니면 undefined.
+ */
+export function embeddedVibeFile(entries: Record<string, unknown>): string | undefined {
+  const raw = entries.naidata;
+  if (typeof raw !== 'string' || !raw) return undefined;
+  try {
+    const bytes = Uint8Array.from(atob(raw), (char) => char.charCodeAt(0));
+    const text = new TextDecoder().decode(bytes);
+    const identifier = (JSON.parse(text) as { identifier?: unknown }).identifier;
+    return identifier === VIBE_FILE_ID || identifier === VIBE_BUNDLE_ID ? text : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * V5는 Source 라벨이 모두 "NovelAI Diffusion V5 <해시>"이고 Full·Curated·Medium이 해시로만 갈린다. 해시는
@@ -101,8 +123,11 @@ export function guessModelFromSource(label: string | undefined): string | undefi
   return undefined;
 }
 
-/** stealth 메타데이터 압축 해제 결과의 상한. 실제 NovelAI 메타데이터는 수 KB다. */
-export const MAX_STEALTH_TEXT_BYTES = 1024 * 1024;
+/**
+ * stealth 메타데이터 압축 해제 결과의 상한. 보통 수 KB지만 바이브를 쓴 이미지는 인코딩(하나에 base64 약 65KB)이
+ * 들어 있어, 웹 최대 16개를 넉넉히 받는다.
+ */
+export const MAX_STEALTH_TEXT_BYTES = 8 * 1024 * 1024;
 /** 한 번에 넣는 압축 데이터 크기. deflate 최대 압축률(약 1032:1)로도 한 번의 출력이 1MB 안팎에 그친다. */
 const GUNZIP_INPUT_CHUNK = 1024;
 
@@ -269,7 +294,11 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     const quality = asNumber(comment.tag_hint_qt);
     const uc = asNumber(comment.tag_hint_uc_preset);
     if (quality !== undefined || uc !== undefined) result.tagHints = { quality, uc };
+    const vibes = metadataVibes(comment);
+    if (vibes.length) result.vibes = vibes;
   }
+  const vibeFile = embeddedVibeFile(entries);
+  if (vibeFile) result.vibeFile = vibeFile;
 
   if (desk) {
     // 이 앱의 결과물이면 분리 저장해 둔 원래 값을 우선한다. 캐릭터 프롬프트에 감정이 섞이지 않는다.

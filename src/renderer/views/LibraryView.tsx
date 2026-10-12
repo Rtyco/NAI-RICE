@@ -44,6 +44,8 @@ import {
   deleteItems,
   duplicateItem,
   exportItem,
+  exportVibeItems,
+  importVibeFromPicker,
   openReferenceFolder,
   itemSubtitle,
   LABELS,
@@ -80,6 +82,8 @@ function LibraryRow(props: {
   removePicked: () => void;
   /** 이 항목(고른 항목 중 하나면 고른 것 모두)을 새 폴더로 묶는다. */
   group: () => void;
+  /** 바이브만. 이 항목(고른 항목 중 하나면 고른 것 모두)을 바이브 파일로 내보낸다. */
+  exportVibes?: () => void;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent) => boolean;
 }) {
@@ -130,6 +134,7 @@ function LibraryRow(props: {
             rename: collapsed ? undefined : () => setRenaming(true),
             duplicate: () => void duplicateItem(section, item),
             exportJson: exportable(section) ? () => exportItem(section, item) : undefined,
+            exportVibes: props.exportVibes,
             remove: () => void deleteItem(section, item),
             pickedCount: props.picked ? props.pickedCount : 0,
             removePicked: props.removePicked,
@@ -301,6 +306,11 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
         pickedCount={selection.selected.size}
         removePicked={() => removeMany([...selection.selected])}
         group={() => group(picked ? [...selection.selected] : [item.id])}
+        exportVibes={
+          section === 'vibes'
+            ? () => exportVibeItems(picked ? [...selection.selected] : [item.id])
+            : undefined
+        }
         onPick={(event) => selection.clickItem(event, item.id)}
       />
     );
@@ -425,6 +435,15 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             >
               <Icon name="folder" size={14} /> 묶기
             </button>
+            {section === 'vibes' && (
+              <button
+                className="with-icon"
+                title="고른 바이브를 NovelAI 바이브 묶음(.naiv4vibeBundle)으로 저장합니다"
+                onClick={() => exportVibeItems([...selection.selected])}
+              >
+                <Icon name="export" size={14} /> 내보내기
+              </button>
+            )}
             <button
               className="with-icon danger-quiet"
               onClick={() => removeMany([...selection.selected])}
@@ -435,6 +454,11 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               선택 취소
             </button>
           </div>
+        )}
+        {!collapsed && section === 'vibes' && (
+          <button className="link-button" onClick={importVibeFromPicker}>
+            바이브 파일 가져오기
+          </button>
         )}
         {!collapsed && (
           <button className="link-button" onClick={() => void importJsonFromPicker()}>
@@ -469,6 +493,18 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                 <>
                   <button className="with-icon" onClick={() => exportItem(section, selected)}>
                     <Icon name="export" /> JSON 내보내기
+                  </button>
+                  <span className="zone-divider" />
+                </>
+              )}
+              {section === 'vibes' && (
+                <>
+                  <button
+                    className="with-icon"
+                    title="NovelAI 웹에서 가져올 수 있는 .naiv4vibe 파일로 저장합니다"
+                    onClick={() => exportVibeItems([selected.id])}
+                  >
+                    <Icon name="export" /> 바이브 파일로 내보내기
                   </button>
                   <span className="zone-divider" />
                 </>

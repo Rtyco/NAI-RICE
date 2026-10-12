@@ -9,8 +9,24 @@ import type {
   QueueView,
   Rect,
   Reference,
+  Vibe,
 } from '../core/domain/types';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
+import type { MetadataVibe } from '../core/vibes/VibeFile';
+
+/** 바이브 파일·이미지에서 가져온 바이브 하나. 화면이 이것으로 라이브러리 항목을 만든다. */
+export type ImportedVibe = {
+  name: string;
+  picture: Omit<Picture, 'name'>;
+  strength: number;
+  informationExtracted: number;
+  encodingId?: string;
+};
+
+/** 저장해 둔 바이브 인코딩 하나. `model`은 일반 생성 모델 ID다. */
+export type VibeEncodingInfo = { model: string; informationExtracted: number };
+
+export type MetadataVibeImport = { model: string; name: string; vibes: MetadataVibe[] };
 
 export type OpenTextFileResult = {
   path: string;
@@ -160,6 +176,11 @@ export type LibraryApi = {
   ) => Promise<PreparedImage>;
   /** 캐릭터 레퍼런스·바이브 그림을 `pictures/`에 저장한다. 같은 그림은 같은 파일이 된다. */
   addPicture: (dataUrl: string) => Promise<Omit<Picture, 'name'>>;
+  /** NovelAI 바이브 파일·묶음의 그림과 인코딩 결과를 저장한다. */
+  importVibeFile: (text: string, name: string) => Promise<ImportedVibe[]>;
+  /** NovelAI 이미지의 생성 정보에 든 바이브를 저장한다. */
+  importMetadataVibes: (request: MetadataVibeImport) => Promise<ImportedVibe[]>;
+  vibeEncodings: (vibe: Pick<Vibe, 'image' | 'encodingId'>) => Promise<VibeEncodingInfo[]>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
   /** 마스크 PNG를 `sources/`에 넣고 파일 이름을 돌려준다. */
@@ -201,6 +222,9 @@ export type FileApi = {
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
+  openVibeFile: () => Promise<OpenTextFileResult | null>;
+  /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`로 저장한다. */
+  exportVibes: (vibes: Vibe[]) => Promise<string | null>;
 };
 
 export type AccountApi = {
