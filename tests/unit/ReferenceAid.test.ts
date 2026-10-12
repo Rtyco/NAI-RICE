@@ -21,6 +21,7 @@ import {
   buildNovelAIEncodeVibeRequest,
   buildNovelAIJobRequest,
   vibeCacheKey,
+  vibeStrengths,
 } from '../../src/core/providers/NovelAIRequestBuilder';
 import { generationEnqueueRequestSchema, librarySchema } from '../../src/core/validation/schemas';
 
@@ -160,6 +161,27 @@ describe('캐릭터 레퍼런스·바이브', () => {
       generationEnqueueRequestSchema.safeParse({ jobs: [withHashes({ ...job, aid: many })] })
         .success,
     ).toBe(true);
+  });
+
+  it('Normalize를 켜면 세기 합이 1을 넘을 때만 비율대로 줄이고, 끄면 그대로 보내', () => {
+    const two = { kind: 'vibe' as const, vibes: [sunset, { ...sunset, strength: 0.75 }] };
+    const strengths = (aid: JobAid) => {
+      const [job] = buildTxt2ImgJobs({ ...setup(), aid });
+      return buildNovelAIJobRequest(job, { aidBase64: ['A', 'B'] }).body.parameters as Record<
+        string,
+        unknown
+      >;
+    };
+    expect(strengths(two)).toMatchObject({
+      reference_strength_multiple: [0.4, 0.6],
+      normalize_reference_strength_multiple: true,
+    });
+    expect(strengths({ ...two, normalize: false })).toMatchObject({
+      reference_strength_multiple: [0.5, 0.75],
+      normalize_reference_strength_multiple: false,
+    });
+    expect(vibeStrengths([0.3, 0.2], true)).toEqual([0.3, 0.2]);
+    expect(vibeStrengths([0.8], true)).toEqual([0.8]);
   });
 
   it('V4.5가 아니면 작업을 만들지 않아', () => {

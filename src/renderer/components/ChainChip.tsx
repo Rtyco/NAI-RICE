@@ -105,6 +105,7 @@ function ChecklistPopover(props: {
   close: () => void;
   title: string;
   children: ReactNode;
+  options?: ReactNode;
   footer?: ReactNode;
   query?: { value: string; change: (value: string) => void };
 }) {
@@ -166,6 +167,7 @@ function ChecklistPopover(props: {
         />
       )}
       <div className="checklist-body">{props.children}</div>
+      {props.options && <div className="checklist-options">{props.options}</div>}
       {props.footer && <div className="checklist-footer">{props.footer}</div>}
     </div>,
     document.body,
@@ -233,6 +235,8 @@ export function ChecklistChip(props: {
   before?: ReactNode;
   /** 고르기 창 제목. 없으면 「칩 이름 고르기」. */
   pickTitle?: string;
+  /** 고르기 창 목록 아래에 두는 설정. */
+  options?: ReactNode;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const chip = useRef<HTMLDivElement>(null);
@@ -329,6 +333,7 @@ export function ChecklistChip(props: {
             (props.multi ? `${title} 고르기 · 여럿 고를 수 있습니다` : `${title} 고르기`)
           }
           query={props.items.length >= SEARCH_FROM ? { value: query, change: setQuery } : undefined}
+          options={props.options}
           footer={
             (props.hint || props.editSection) && (
               <>

@@ -82,6 +82,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
             informationExtracted: item.informationExtracted,
           })),
         ),
+        normalize: project.normalizeVibes ?? true,
       };
     }
     const common = {

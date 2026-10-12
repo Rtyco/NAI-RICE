@@ -3723,6 +3723,17 @@ textarea.syntax-input::selection {
 .checklist-folder .checklist-row {
   margin-left: 12px;
 }
+.checklist-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--line);
+}
+.checklist-options small {
+  color: var(--faint);
+  font-size: 11px;
+}
 .checklist-footer {
   display: flex;
   align-items: center;

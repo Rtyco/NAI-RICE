@@ -476,6 +476,7 @@ describe('generation pipeline', () => {
     expect(records[0].aid).toEqual({
       kind: 'vibe',
       vibes: [{ name: '노을', strength: 0.6, informationExtracted: 0.7 }],
+      normalize: true,
     });
   });
 

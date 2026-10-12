@@ -51,6 +51,7 @@ function recordAid(aid: JobAid): RecordAid {
           strength,
           informationExtracted,
         })),
+        normalize: aid.normalize ?? true,
       };
 }
 

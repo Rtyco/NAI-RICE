@@ -220,6 +220,7 @@ export const projectSchema = z.preprocess(
     aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
     characterReferenceId: z.string().min(1).optional().catch(undefined),
     vibeIds: z.array(z.string().min(1)).catch([]),
+    normalizeVibes: z.boolean().optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     createdAt: z.string(),
@@ -442,6 +443,7 @@ export const generationRecordSchema = z.object({
               informationExtracted: z.number(),
             }),
           ),
+          normalize: z.boolean().optional().catch(undefined),
         }),
       ]),
     )
@@ -535,6 +537,7 @@ const jobSnapshotCommonSchema = z.object({
               }),
             )
             .min(1),
+          normalize: z.boolean().optional(),
         }),
       ]),
     )

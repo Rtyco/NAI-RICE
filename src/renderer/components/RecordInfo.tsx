@@ -52,12 +52,17 @@ export function RecordInfo({
           <dd>
             {record.aid.kind === 'character'
               ? `캐릭터 레퍼런스 「${record.aid.name}」 · ${referenceTargetLabel(record.aid.target)} · 충실도 ${record.aid.fidelity}`
-              : record.aid.vibes.map((vibe, index) => (
-                  <div key={index}>
-                    바이브 「{vibe.name}」 · 세기 {vibe.strength} · 정보 추출{' '}
-                    {vibe.informationExtracted}
-                  </div>
-                ))}
+              : [
+                  ...record.aid.vibes.map((vibe, index) => (
+                    <div key={index}>
+                      바이브 「{vibe.name}」 · 세기 {vibe.strength} · 정보 추출{' '}
+                      {vibe.informationExtracted}
+                    </div>
+                  )),
+                  record.aid.normalize === false && (
+                    <div key="normalize">세기 합 맞추기(Normalize) 끔</div>
+                  ),
+                ]}
           </dd>
         </>
       )}

@@ -213,6 +213,8 @@ export type Project = {
   characterReferenceId?: string;
   /** 고른 바이브(고른 순서). 일반 생성과 인페인트에 쓴다. */
   vibeIds: string[];
+  /** NovelAI의 Normalize Reference Strengths. 없으면 켠다(NovelAI 웹 기본값). */
+  normalizeVibes?: boolean;
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
   /** 감정별 대표 이미지(생성 기록 ID). */
@@ -284,7 +286,12 @@ export type JobAid =
       target: ReferenceTarget;
       fidelity: number;
     }
-  | { kind: 'vibe'; vibes: JobVibe[] };
+  | {
+      kind: 'vibe';
+      vibes: JobVibe[];
+      /** Normalize Reference Strengths. 없으면 켠다. 이 값이 생기기 전의 작업은 모두 켠 채로 보냈다. */
+      normalize?: boolean;
+    };
 
 /** 결과 기록에 남기는 참고 방식(그림 경로는 뺀다). */
 export type RecordAid =
@@ -292,6 +299,7 @@ export type RecordAid =
   | {
       kind: 'vibe';
       vibes: Array<{ name: string; strength: number; informationExtracted: number }>;
+      normalize?: boolean;
     };
 
 export type ExportFormat = 'png' | 'webp' | 'avif';

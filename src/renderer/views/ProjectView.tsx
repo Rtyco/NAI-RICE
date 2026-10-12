@@ -34,7 +34,7 @@ import { ChecklistChip, SizeChip, type ChecklistItem } from '../components/Chain
 import type { IconName } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
-import { Menu } from '../components/ui';
+import { Menu, Toggle } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
   pictureMedia,
@@ -165,6 +165,18 @@ function AidChip(props: { project: Project; missing: boolean }) {
       editSection="vibes"
       pickTitle="바이브 고르기 · 여럿 고를 수 있습니다"
       empty="라이브러리에 바이브가 없습니다."
+      options={
+        <>
+          <Toggle
+            label="세기 합 맞추기 (Normalize Reference Strengths)"
+            checked={project.normalizeVibes ?? true}
+            onChange={(normalizeVibes) => patch({ normalizeVibes })}
+          />
+          <small>
+            켜면 바이브가 둘 이상이고 세기 합이 1을 넘을 때 합이 1이 되도록 비율대로 줄여 보냅니다.
+          </small>
+        </>
+      }
       hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas, 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 듭니다."
     />
   );

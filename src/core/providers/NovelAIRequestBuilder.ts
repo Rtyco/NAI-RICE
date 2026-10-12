@@ -43,7 +43,11 @@ export type NaiPromptInput = {
 /** 캐릭터 레퍼런스(캔버스에 맞춘 그림) 또는 바이브(인코딩 결과). */
 export type NaiAidInput =
   | { kind: 'character'; imageBase64: string; target: ReferenceTarget; fidelity: number }
-  | { kind: 'vibe'; vibes: Array<{ encodedBase64: string; strength: number }> };
+  | {
+      kind: 'vibe';
+      vibes: Array<{ encodedBase64: string; strength: number }>;
+      normalize: boolean;
+    };
 
 /** 요청에 넣는 입력 이미지. 생성 방식마다 NovelAI의 `action`이 다르다. */
 export type NaiImageInput =
@@ -224,6 +228,16 @@ export function buildNovelAIDiffusionRequest(
   };
 }
 
+/**
+ * Normalize Reference Strengths. NovelAI 웹은 바이브가 둘 이상이고 세기 절댓값의 합이 1을 넘을 때만 합이 1이
+ * 되도록 나눠서 보낸다(웹 코드 2026-10). 플래그도 함께 보내지만 나누는 것은 웹 쪽이라 앱도 직접 나눈다.
+ */
+export function vibeStrengths(strengths: number[], normalize: boolean): number[] {
+  if (!normalize || strengths.length < 2) return strengths;
+  const sum = strengths.reduce((total, value) => total + Math.abs(value), 0);
+  return sum > 1 ? strengths.map((value) => value / sum) : strengths;
+}
+
 /** 캐릭터 레퍼런스·바이브 필드. 0단계에서 V4.5 요청으로 받아들여진 형식이다. */
 function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string, unknown> {
   if (!aid) return {};
@@ -232,8 +246,11 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
   if (aid.kind === 'vibe')
     return {
       reference_image_multiple: aid.vibes.map((vibe) => vibe.encodedBase64),
-      reference_strength_multiple: aid.vibes.map((vibe) => clamp(vibe.strength, 0, 1)),
-      normalize_reference_strength_multiple: true,
+      reference_strength_multiple: vibeStrengths(
+        aid.vibes.map((vibe) => clamp(vibe.strength, 0, 1)),
+        aid.normalize,
+      ),
+      normalize_reference_strength_multiple: aid.normalize,
     };
   return {
     director_reference_images: [aid.imageBase64],
@@ -320,6 +337,7 @@ function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
           encodedBase64: base64[index],
           strength: vibe.strength,
         })),
+        normalize: aid.normalize ?? true,
       };
 }
 
