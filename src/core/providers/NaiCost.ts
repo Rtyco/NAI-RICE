@@ -66,7 +66,8 @@ type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasH
   kind?: GenerationKind;
   strength?: number;
   tool?: AugmentTool;
-  aid?: Pick<JobAid, 'kind'>;
+  /** 작업의 참고 방식이나, 화면에서 미리 계산할 때는 작업에 정해 둔 참고 방식. */
+  aid?: { kind: JobAid['kind'] | 'none' };
 };
 
 /** 0단계 실측: 캐릭터 레퍼런스는 무료 조건 안에서도 한 장에 5 Anlas가 더 든다. */

@@ -46,6 +46,17 @@ export function RecordInfo({
         {record.augment && ` · ${augmentToolInfo(record.augment.tool).label}`}
         {record.augment?.parts && ` · ${(record.augment.part ?? 0) + 1}/${record.augment.parts}장`}
       </dd>
+      {record.aid && (
+        <>
+          <dt>참고 방식</dt>
+          <dd>
+            {record.aid.kind === 'character'
+              ? `캐릭터 레퍼런스 · 충실도 ${record.aid.fidelity}${record.aid.styleAware ? ' · 그림체도 따라감' : ''}`
+              : `바이브 · 세기 ${record.aid.strength} · 정보 추출 ${record.aid.informationExtracted}`}
+            {record.referenceName && ` · ${record.referenceName}`}
+          </dd>
+        </>
+      )}
       {record.augment?.mood && (
         <>
           <dt>표정</dt>

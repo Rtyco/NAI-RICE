@@ -4,6 +4,7 @@ import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   effectiveGenerationSettings,
   generationKindFor,
+  projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
@@ -16,6 +17,7 @@ import {
 } from '../../core/providers/NaiModels';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
+import { ReferenceAidChip } from '../components/ReferenceAid';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -121,9 +123,18 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         onChange={(characters) => patch({ characters })}
       />
       <PositionChip target={{ projectId: project.id }} />
-      {project.mode === 'reference' && (
+      {(project.mode === 'reference' || projectAid(project)) && (
         <ChecklistChip
           section="references"
+          label={
+            project.mode === 'reference'
+              ? undefined
+              : {
+                  text: '참고 그림',
+                  icon: 'reference',
+                  usage: '캐릭터 레퍼런스·바이브에 쓸 그림(인페인트 항목의 원본 그림)',
+                }
+          }
           itemId={resolved.reference?.id}
           missing={!resolved.reference?.image}
           value={resolved.reference?.name ?? '(없음)'}
@@ -143,6 +154,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         />
       )}
       {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
+      <ReferenceAidChip project={project} />
       <ChecklistChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
@@ -254,6 +266,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
   const generation = preset && effectiveGenerationSettings(preset.generation);
+  const aid = projectAid(project);
   const costJob =
     project.mode !== 'reference'
       ? generation && {
@@ -261,12 +274,14 @@ export function ProjectView({ projectId }: { projectId: string }) {
           settings: generation,
           canvasWidth: generation.width,
           canvasHeight: generation.height,
+          aid,
         }
       : generation && reference?.image
         ? {
             settings: generation,
             canvasWidth: reference.image.canvasWidth,
             canvasHeight: reference.image.canvasHeight,
+            aid,
           }
         : undefined;
   const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;

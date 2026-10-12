@@ -13,13 +13,16 @@ import type {
   AugmentSettings,
   GenerationJobSnapshot,
   GenerationSummary,
+  JobAid,
 } from '../core/domain/types';
+
+type EmotionJobAid = { job: JobAid; referenceName: string };
 import {
   augmentToolInfo,
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
-import { FREE_PROJECT_ID } from '../core/model/defaults';
+import { FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
@@ -55,6 +58,27 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     const templateError = validateOutputFilenameTemplate(library.settings.outputFilenameTemplate);
     if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
 
+    const reference = resolved.reference!;
+    const aid = projectAid(project);
+    let aidInput: EmotionJobAid | undefined;
+    if (aid?.kind === 'character') {
+      const image = await libraryApi().prepareAidInput(project.id, reference, 'character');
+      aidInput = {
+        job: { kind: 'character', ...image, styleAware: aid.styleAware, fidelity: aid.fidelity },
+        referenceName: reference.name,
+      };
+    } else if (aid?.kind === 'vibe') {
+      const image = await libraryApi().prepareAidInput(project.id, reference, 'vibe');
+      aidInput = {
+        job: {
+          kind: 'vibe',
+          ...image,
+          strength: aid.vibeStrength,
+          informationExtracted: aid.vibeInformation,
+        },
+        referenceName: reference.name,
+      };
+    }
     const common = {
       project,
       preset: resolved.preset!,
@@ -65,8 +89,8 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
       variantsOverride: options.variants,
+      aid: aidInput,
     };
-    const reference = resolved.reference!;
     let jobs: GenerationJobSnapshot[];
     if (project.mode === 'txt2img') jobs = buildTxt2ImgJobs(common);
     else {
