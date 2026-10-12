@@ -62,5 +62,8 @@ export function fillCell(
   const top = Math.max(0, cellY * MASK_CELL);
   const right = Math.min(width, (cellX + 1) * MASK_CELL);
   const bottom = Math.min(height, (cellY + 1) * MASK_CELL);
+  // 칸이 이미지 밖이면 right가 0 이하가 된다. fill은 음수 끝을 배열 끝에서 센다(맨 윗줄에서 fill(v, 0, -8)이
+  // 마스크 거의 전체를 칠해 왼쪽 위를 칠하면 캔버스가 다 칠해졌다).
+  if (right <= left || bottom <= top) return;
   for (let y = top; y < bottom; y += 1) buffer.fill(value, y * width + left, y * width + right);
 }

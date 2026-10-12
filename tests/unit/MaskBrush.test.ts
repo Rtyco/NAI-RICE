@@ -39,4 +39,19 @@ describe('마스크 붓 (NovelAI 웹과 같은 8px 칸)', () => {
     fillCell(buffer, width, height, -1, 0, 1);
     expect(buffer[0]).toBe(0);
   });
+
+  it('왼쪽 위 밖으로 나간 칸은 칠하지 않아(음수 끝으로 마스크 전체를 칠하지 않게)', () => {
+    const width = 64;
+    const height = 64;
+    const buffer = new Uint8Array(width * height);
+    for (const [x, y] of [
+      [-2, 0],
+      [-3, 0],
+      [0, -2],
+      [-2, -2],
+      [9, 0],
+    ])
+      fillCell(buffer, width, height, x, y, 1);
+    expect(buffer.reduce((sum, value) => sum + value, 0)).toBe(0);
+  });
 });
