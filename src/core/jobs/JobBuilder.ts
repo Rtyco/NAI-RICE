@@ -570,8 +570,10 @@ export type ResultAugmentInput = {
   mood?: string;
   toolPrompt: string;
   defry: number;
-  /** 비어 있으면 원래 결과의 씬에 한 장을 쌓는다. */
+  /** 비어 있으면 원래 결과의 씬에 쌓는다. */
   targets?: AugmentTarget[];
+  /** 씬(대상)마다 보낼 횟수. 같은 입력이어도 결과가 매번 달라(5단계 실측) 여러 장 만들 수 있다. */
+  count?: number;
   outputFilenameTemplate: string;
   projectName: string;
   now?: () => Date;
@@ -591,27 +593,30 @@ export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSna
       emotionPrompt: record.emotionPrompt,
     },
   ];
-  return targets.map((target, index) => {
-    const createdAt = now().toISOString();
-    return {
-      ...resultJobCommon(record, {
-        ...input,
-        id: `${record.projectId}-${record.id}-${input.tool}-${index}-${createdAt}`,
-        createdAt,
-        seed: record.seed,
-        variantIndex: 1,
-      }),
-      emotionId: target.emotionId,
-      emotionName: target.emotionName,
-      emotionPrompt: target.emotionPrompt,
-      kind: 'augment',
-      ...input.image,
-      tool: input.tool,
-      ...(input.tool === 'emotion' ? { mood: target.mood ?? input.mood ?? 'neutral' } : {}),
-      toolPrompt: input.toolPrompt,
-      defry: target.defry ?? input.defry,
-    };
-  });
+  const variants = Array.from({ length: Math.max(1, input.count ?? 1) }, (_, index) => index + 1);
+  return targets.flatMap((target, index) =>
+    variants.map((variantIndex) => {
+      const createdAt = now().toISOString();
+      return {
+        ...resultJobCommon(record, {
+          ...input,
+          id: `${record.projectId}-${record.id}-${input.tool}-${index}-${variantIndex}-${createdAt}`,
+          createdAt,
+          seed: record.seed,
+          variantIndex,
+        }),
+        emotionId: target.emotionId,
+        emotionName: target.emotionName,
+        emotionPrompt: target.emotionPrompt,
+        kind: 'augment',
+        ...input.image,
+        tool: input.tool,
+        ...(input.tool === 'emotion' ? { mood: target.mood ?? input.mood ?? 'neutral' } : {}),
+        toolPrompt: input.toolPrompt,
+        defry: target.defry ?? input.defry,
+      };
+    }),
+  );
 }
 
 /** 일반 생성: 참고 이미지 없이 생성 설정의 해상도로 감정마다 txt2img를 한다. */

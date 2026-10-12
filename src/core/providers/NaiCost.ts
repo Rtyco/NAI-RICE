@@ -68,15 +68,13 @@ type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasH
 };
 
 /**
- * 0단계 실측: 832×1216 배경 제거 한 번에 65 Anlas. 다른 디렉터 툴은 그 크기까지 무료였다.
- * 크기에 비례한다고 보고 대략 추정한다(5단계에서 크기별 비용을 확인한다).
+ * 배경 제거 실측: 832×1216에 65 Anlas(0단계), 608×832에 35 Anlas(5단계). 두 점을 잇는 직선(5 + 면적 비례)으로
+ * 추정한다. 다른 디렉터 툴은 1024×1024까지 무료였고, 그보다 크면 같은 식으로 어림한다.
  */
-const BG_REMOVAL_ANLAS_AT_832x1216 = 65;
-
 function augmentAnlas(job: CostJob): number {
   const pixels = job.canvasWidth * job.canvasHeight;
   if (job.tool !== 'bg-removal' && pixels <= FREE_MAX_PIXELS) return 0;
-  return Math.ceil((BG_REMOVAL_ANLAS_AT_832x1216 * pixels) / (832 * 1216));
+  return Math.ceil(5 + (60 * pixels) / (832 * 1216));
 }
 
 /** 등급을 아직 모르면 이 앱의 기본 전제대로 Opus로 본다. */

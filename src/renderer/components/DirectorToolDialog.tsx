@@ -11,7 +11,7 @@ import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/N
 import { directorToolSize, runDirectorTool, type DirectorToolOptions } from '../actions';
 import { projectMedia, useStore } from '../store';
 import { Modal } from './Dialogs';
-import { SelectField, Toggle } from './ui';
+import { NumberField, SelectField, Toggle } from './ui';
 
 // 같은 실행 동안 마지막으로 고른 툴과 값을 다음 창의 기본값으로 쓴다.
 let lastOptions: Omit<DirectorToolOptions, 'shrink'> = {
@@ -19,6 +19,7 @@ let lastOptions: Omit<DirectorToolOptions, 'shrink'> = {
   mood: 'happy',
   toolPrompt: '',
   defry: 0,
+  count: 1,
 };
 
 const FREE_PIXELS = 1024 * 1024;
@@ -52,14 +53,23 @@ export function DirectorToolDialog(props: {
       canvasHeight: size.height,
     };
   });
-  const estimate = costJobs.reduce((sum, job) => sum + estimateJobAnlas(job, token), 0);
+  const estimate =
+    costJobs.reduce((sum, job) => sum + estimateJobAnlas(job, token), 0) * options.count;
   const reasons = generationCostWarnings(costJobs, token);
   const count = props.records.length;
-  const resultCount = options.tool === 'bg-removal' ? count * 3 : count;
+  const requests = count * options.count;
+  const resultCount = options.tool === 'bg-removal' ? requests * 3 : requests;
 
   const submit = () => {
     const { tool, mood, toolPrompt, defry } = options;
-    lastOptions = { tool, mood, toolPrompt, defry };
+    // 배경 제거는 Anlas가 들어 장수를 다음 창으로 넘기지 않는다.
+    lastOptions = {
+      tool,
+      mood,
+      toolPrompt,
+      defry,
+      count: tool === 'bg-removal' ? 1 : options.count,
+    };
     props.close();
     void runDirectorTool(
       props.projectId,
@@ -94,7 +104,7 @@ export function DirectorToolDialog(props: {
           </span>
           <button onClick={props.close}>취소</button>
           <button className="accent" onClick={submit}>
-            {count > 1 ? `${count}장에 적용` : '적용'}
+            {requests > 1 ? `${requests}번 적용` : '적용'}
           </button>
         </>
       }
@@ -128,32 +138,38 @@ export function DirectorToolDialog(props: {
         )}
         <p className="hint">{info.description}</p>
       </div>
-      {(info.strength || options.tool === 'emotion') && (
-        <div className="four-column-fields">
-          {options.tool === 'emotion' && (
-            <SelectField
-              label="표정"
-              value={options.mood}
-              options={EMOTION_MOODS.map((mood) => ({
-                value: mood.id,
-                label: `${mood.label} (${mood.id})`,
-              }))}
-              onChange={(mood) => patch({ mood })}
-            />
-          )}
-          {info.strength && (
-            <SelectField
-              label="강도"
-              value={String(options.defry)}
-              options={AUGMENT_STRENGTHS.map((label, index) => ({
-                value: String(index),
-                label,
-              }))}
-              onChange={(value) => patch({ defry: Number(value) })}
-            />
-          )}
-        </div>
-      )}
+      <div className="four-column-fields">
+        {options.tool === 'emotion' && (
+          <SelectField
+            label="표정"
+            value={options.mood}
+            options={EMOTION_MOODS.map((mood) => ({
+              value: mood.id,
+              label: `${mood.label} (${mood.id})`,
+            }))}
+            onChange={(mood) => patch({ mood })}
+          />
+        )}
+        {info.strength && (
+          <SelectField
+            label="강도"
+            value={String(options.defry)}
+            options={AUGMENT_STRENGTHS.map((label, index) => ({
+              value: String(index),
+              label,
+            }))}
+            onChange={(value) => patch({ defry: Number(value) })}
+          />
+        )}
+        <NumberField
+          label={count > 1 ? '결과마다 장수' : '장수'}
+          value={options.count}
+          min={1}
+          max={4}
+          integer
+          onChange={(value) => patch({ count: value })}
+        />
+      </div>
       {options.tool === 'emotion' && props.onSceneSet && (
         <p className="hint">
           씬 모음의 씬마다 다른 표정으로 한꺼번에 만들려면{' '}
@@ -189,12 +205,14 @@ export function DirectorToolDialog(props: {
       )}
       {options.tool === 'bg-removal' && (
         <p className="warning-box">
-          배경 제거는 Opus여도 Anlas가 듭니다(832×1216 한 장에 65 Anlas). 결과는 배경이 투명한
-          이미지 세 장으로, 모두 {resultCount}장이 쌓입니다.
+          배경 제거는 Opus여도 Anlas가 듭니다(832×1216 한 번에 65, 608×832 한 번에 35). 한 번에
+          배경이 투명한 이미지 세 장(원본 그대로 오린 것, 다시 그린 것, 거의 원본과 같은 것)이 와서
+          모두 {resultCount}장이 쌓입니다.
         </p>
       )}
       <p className="hint">
-        {options.tool === 'emotion' && '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. '}
+        {options.tool === 'emotion' &&
+          '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. 같은 설정이어도 매번 조금씩 다르게 나옵니다. '}
         결과는 원래 씬에 새 결과로 쌓이고, 프롬프트와 생성 설정은 쓰지 않습니다.
       </p>
     </Modal>

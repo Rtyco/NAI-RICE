@@ -203,6 +203,8 @@ export type DirectorToolOptions = {
   defry: number;
   /** 무료 면적을 넘는 결과를 무료 면적 안으로 줄여 보낸다. */
   shrink: boolean;
+  /** 결과(씬 세트면 씬)마다 만들 장수. */
+  count: number;
 };
 
 /** 디렉터 툴에 보낼 크기. */

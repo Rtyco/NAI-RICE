@@ -212,6 +212,9 @@ describe('작업별 예상 Anlas', () => {
 
   it('배경 제거만 Opus여도 Anlas가 들고, 다른 디렉터 툴은 무료 기준 안이면 0이야', () => {
     expect(estimateJobAnlas(augment('bg-removal'))).toBe(65);
+    expect(estimateJobAnlas(augment('bg-removal', { canvasWidth: 608, canvasHeight: 832 }))).toBe(
+      35,
+    );
     expect(estimateJobAnlas(augment('emotion'))).toBe(0);
     expect(generationCostWarnings([augment('bg-removal')])).toEqual([
       '배경 제거는 Opus여도 Anlas가 듭니다.',

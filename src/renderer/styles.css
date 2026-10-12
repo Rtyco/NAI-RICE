@@ -1846,6 +1846,11 @@ textarea.syntax-input::selection {
 .scene-set-body > .hint:first-child {
   margin-top: 0;
 }
+.scene-set-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 8px;
+}
 .scene-set .mood-table {
   margin-bottom: 10px;
 }

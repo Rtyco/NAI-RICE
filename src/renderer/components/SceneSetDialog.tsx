@@ -8,7 +8,7 @@ import { directorToolSize, runDirectorTool } from '../actions';
 import { projectMedia, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { MoodSelect, StrengthSelect } from './MoodFields';
-import { Toggle } from './ui';
+import { NumberField, Toggle } from './ui';
 
 type Row = { checked: boolean; mood: string; defry: number };
 
@@ -47,6 +47,7 @@ export function SceneSetDialog(props: {
   );
   const [toolPrompt, setToolPrompt] = useState('');
   const [shrink, setShrink] = useState(true);
+  const [count, setCount] = useState(1);
   const patchRow = (id: string, value: Partial<Row>) =>
     setRows((current) => ({ ...current, [id]: { ...current[id], ...value } }));
   const targets = emotions.filter((emotion) => rows[emotion.id]?.checked && rows[emotion.id].mood);
@@ -57,6 +58,7 @@ export function SceneSetDialog(props: {
   const size = directorToolSize(props.record, shrink);
   const estimate =
     targets.length *
+    count *
     estimateJobAnlas(
       {
         kind: 'augment',
@@ -100,7 +102,7 @@ export function SceneSetDialog(props: {
           })),
         },
       ],
-      { tool: 'emotion', mood: 'neutral', toolPrompt, defry: 0, shrink },
+      { tool: 'emotion', mood: 'neutral', toolPrompt, defry: 0, shrink, count },
     );
   };
 
@@ -119,7 +121,7 @@ export function SceneSetDialog(props: {
           </span>
           <button onClick={props.close}>취소</button>
           <button className="accent" disabled={!targets.length} onClick={submit}>
-            {targets.length}개 씬 만들기
+            {targets.length}개 씬 × {count}장 만들기
           </button>
         </>
       }
@@ -192,14 +194,24 @@ export function SceneSetDialog(props: {
               );
             })}
           </div>
-          <label className="stack-field">
-            모든 씬에 덧붙일 문구 (선택)
-            <input
-              value={toolPrompt}
-              placeholder="예: blush"
-              onChange={(event) => setToolPrompt(event.target.value)}
+          <div className="scene-set-options">
+            <label className="stack-field">
+              모든 씬에 덧붙일 문구 (선택)
+              <input
+                value={toolPrompt}
+                placeholder="예: blush"
+                onChange={(event) => setToolPrompt(event.target.value)}
+              />
+            </label>
+            <NumberField
+              label="씬마다 장수"
+              value={count}
+              min={1}
+              max={4}
+              integer
+              onChange={setCount}
             />
-          </label>
+          </div>
           {oversized && (
             <Toggle
               label="무료 면적(1024×1024)을 넘으니 비율을 지켜 줄여 보내기"
@@ -208,8 +220,9 @@ export function SceneSetDialog(props: {
             />
           )}
           <p className="hint">
-            결과는 각 씬에 새 결과로 쌓입니다. 고른 표정과 강도는 씬 모음 「{set?.name}」에 저장되어
-            다음에도 쓰입니다.
+            같은 표정이어도 매번 조금씩 다르게 나오니 여러 장 만들어 고를 수 있습니다. 결과는 각
+            씬에 새 결과로 쌓입니다. 고른 표정과 강도는 씬 모음 「{set?.name}」에 저장되어 다음에도
+            쓰입니다.
           </p>
         </div>
       </div>

@@ -92,6 +92,27 @@ describe('디렉터 툴 작업', () => {
     });
   });
 
+  it('장수를 주면 대상마다 그만큼 만들고 장마다 번호를 붙여', () => {
+    const jobs = buildResultAugmentJobs({
+      ...base,
+      tool: 'emotion',
+      count: 3,
+      targets: [
+        { emotionId: 'e-happy', emotionName: '기쁨', emotionPrompt: '', mood: 'happy' },
+        { emotionId: 'e-sad', emotionName: '슬픔', emotionPrompt: '', mood: 'sad' },
+      ],
+    });
+    expect(jobs.map((job) => `${job.emotionId}:${job.variantIndex}`)).toEqual([
+      'e-happy:1',
+      'e-happy:2',
+      'e-happy:3',
+      'e-sad:1',
+      'e-sad:2',
+      'e-sad:3',
+    ]);
+    expect(new Set(jobs.map((job) => job.id)).size).toBe(6);
+  });
+
   it('씬 이름으로 Emotion 표정을 추천해', () => {
     expect(
       ['중립', '기쁨', '슬픔', '분노', '놀람', '부끄러움', '크게 웃음', 'Smile', '카페'].map(
