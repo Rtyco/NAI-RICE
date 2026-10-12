@@ -198,12 +198,14 @@ export type Project = {
   folder?: FolderName;
   mode: ProjectMode;
   presetId: string;
-  /** 비어 있으면 생성할 수 없다. 인페인트의 참고 이미지는 첫 캐릭터만 참고가 된다. */
+  /** 비어 있으면 캐릭터 없이 생성한다. 인페인트의 참고 이미지는 첫 캐릭터만 참고가 된다. */
   characters: CharacterSlot[];
   positionMode: CharacterPositionMode;
   emotionSetId: string;
-  /** 인페인트 방식에서만 쓰지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
+  /** 인페인트와 참고 방식(캐릭터 레퍼런스·바이브)이 그 참고 그림을 쓴다. 쓰지 않을 때도 남겨 둔다. */
   referenceId: string;
+  /** 비어 있으면 참고 방식을 쓰지 않는다. */
+  referenceAid?: ReferenceAid;
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
   /** 감정별 대표 이미지(생성 기록 ID). */
@@ -211,6 +213,46 @@ export type Project = {
   createdAt: string;
   updatedAt: string;
 };
+
+/**
+ * 참고 그림을 생성에 더하는 방식. 캐릭터 레퍼런스는 일반 생성에, 바이브는 일반 생성과 인페인트에 더한다.
+ * 둘 다 V4.5 전용이다(0단계: V5로 보내면 500 오류). 고르지 않은 쪽의 값도 다시 고를 때를 위해 남긴다.
+ */
+export type ReferenceAid = {
+  kind: 'none' | 'character' | 'vibe';
+  /** 캐릭터 레퍼런스가 그림체도 따라간다(NovelAI 웹의 Style Aware). */
+  styleAware: boolean;
+  /** 캐릭터 레퍼런스 충실도(0~1). 요청의 secondary strength는 1 - 이 값이다. */
+  fidelity: number;
+  /** 바이브 세기(0~1). */
+  vibeStrength: number;
+  /** 바이브 인코딩의 information_extracted(0~1). 바꾸면 다시 인코딩해 2 Anlas가 든다. */
+  vibeInformation: number;
+};
+
+/** 작업에 넣는 참고 방식. 그림은 작업 폴더의 `inputs/`에 해시 이름으로 둔 불변 입력이다. */
+export type JobAid =
+  | {
+      kind: 'character';
+      /** 정해진 캔버스(1024×1536 등)에 검은 여백을 넣어 맞춘 그림. */
+      imagePath: string;
+      imageSha256: string;
+      styleAware: boolean;
+      fidelity: number;
+    }
+  | {
+      kind: 'vibe';
+      /** 인코딩할 원본 그림. 인코딩 결과는 작업 폴더 밖 `vibes/`에 두고 다시 쓴다. */
+      imagePath: string;
+      imageSha256: string;
+      strength: number;
+      informationExtracted: number;
+    };
+
+/** 결과 기록에 남기는 참고 방식(그림 경로는 뺀다). */
+export type RecordAid =
+  | { kind: 'character'; styleAware: boolean; fidelity: number }
+  | { kind: 'vibe'; strength: number; informationExtracted: number };
 
 export type ExportFormat = 'png' | 'webp' | 'avif';
 
@@ -360,6 +402,7 @@ export type GenerationRecord = {
   /** i2i·디렉터 툴에 실제로 보낸 입력(목표 크기로 맞춘 것). 작업 폴더의 `inputs/`에 있다. */
   inputFile?: string;
   augment?: AugmentInfo;
+  aid?: RecordAid;
   width: number;
   height: number;
   seed: number;
@@ -428,6 +471,8 @@ export type JobSnapshotCommon = {
   warnings: string[];
   /** 이전 생성 결과를 입력으로 쓰면 그 기록 ID. */
   sourceRecordId?: string;
+  /** 캐릭터 레퍼런스·바이브. 일반 생성과 인페인트에만 쓴다. */
+  aid?: JobAid;
 };
 
 /** 입력 이미지가 있는 작업. 작업 폴더 기준 상대 경로이고, 해시 이름으로 저장된 불변 입력 파일이다. */

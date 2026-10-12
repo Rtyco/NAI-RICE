@@ -15,9 +15,16 @@ import type {
   Project,
   PromptPiece,
   Reference,
+  ReferenceAid,
 } from '../domain/types';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
-import { MEDIUM_FIXED, NAI_MODELS, supportsInpaint, usesMedium } from '../providers/NaiModels';
+import {
+  MEDIUM_FIXED,
+  NAI_MODELS,
+  supportsInpaint,
+  supportsReferenceAid,
+  usesMedium,
+} from '../providers/NaiModels';
 
 /** 자유 생성 결과가 쌓이는 폴더(`projects/free/`). 작업 ID는 항상 무작위 접미사가 붙어 겹치지 않는다. */
 export const FREE_PROJECT_ID = 'free';
@@ -260,6 +267,27 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
   return mode === 'reference' ? 'inpaint' : 'txt2img';
 }
 
+export const DEFAULT_REFERENCE_AID: ReferenceAid = {
+  kind: 'none',
+  styleAware: true,
+  fidelity: 1,
+  vibeStrength: 0.6,
+  vibeInformation: 1,
+};
+
+/**
+ * 작업에 실제로 쓰는 참고 방식. 고르지 않았으면 undefined다. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와
+ * 함께 쓰는지는 확인하지 않았다).
+ */
+export function projectAid(
+  project: Pick<Project, 'mode' | 'referenceAid'>,
+): ReferenceAid | undefined {
+  const aid = project.referenceAid;
+  if (!aid || aid.kind === 'none') return undefined;
+  if (aid.kind === 'character' && project.mode === 'reference') return undefined;
+  return aid;
+}
+
 export function resolveProject(library: Library, project: Project): ResolvedProject {
   const preset = library.presets.find((item) => item.id === project.presetId);
   const characters = resolveCharacters(library, project.characters);
@@ -268,14 +296,16 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
   const inpaint = project.mode === 'reference';
+  const aid = projectAid(project);
   const missing = [
     !preset && '생성 설정',
     // 캐릭터 없이도 생성할 수 있다. 고른 캐릭터가 라이브러리에서 지워졌을 때만 막는다.
     characters.length < project.characters.length && '캐릭터',
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
-    inpaint && reference && !reference.image && '참고 이미지',
+    (inpaint || aid) && (inpaint ? reference : true) && !reference?.image && '참고 이미지',
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
+    aid && preset && !supportsReferenceAid(preset.generation.model) && 'V4.5 모델',
   ].filter(Boolean) as string[];
   return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }

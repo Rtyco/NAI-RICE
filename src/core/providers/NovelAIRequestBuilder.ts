@@ -3,10 +3,19 @@ import type {
   CharacterCenter,
   GenerationJobSnapshot,
   GenerationSettings,
+  JobAid,
 } from '../domain/types';
-import { modelInfo, NAI_MODELS, naiTagHints, requestModelId } from './NaiModels';
+import {
+  modelInfo,
+  NAI_MODELS,
+  naiTagHints,
+  requestModelId,
+  supportsReferenceAid,
+} from './NaiModels';
 
 export const NAI_IMAGE_ENDPOINT = 'https://image.novelai.net/ai/generate-image';
+/** 바이브 인코딩. 응답은 ZIP이 아니라 인코딩 결과 그대로다(0단계: 약 49KB). */
+export const NAI_ENCODE_VIBE_ENDPOINT = 'https://image.novelai.net/ai/encode-vibe';
 /** 디렉터 툴. 응답은 생성과 같은 ZIP이다. */
 export const NAI_AUGMENT_ENDPOINT = 'https://image.novelai.net/ai/augment-image';
 export const NAI_USER_ENDPOINT = 'https://image.novelai.net/user/data';
@@ -27,7 +36,13 @@ export type NaiPromptInput = {
   height: number;
   seed: number;
   settings: GenerationSettings;
+  aid?: NaiAidInput;
 };
+
+/** 캐릭터 레퍼런스(캔버스에 맞춘 그림) 또는 바이브(인코딩 결과). */
+export type NaiAidInput =
+  | { kind: 'character'; imageBase64: string; styleAware: boolean; fidelity: number }
+  | { kind: 'vibe'; encodedBase64: string; strength: number };
 
 /** 요청에 넣는 입력 이미지. 생성 방식마다 NovelAI의 `action`이 다르다. */
 export type NaiImageInput =
@@ -204,7 +219,35 @@ export function buildNovelAIDiffusionRequest(
   return {
     ...request,
     ...(isV5 ? { use_new_shared_trial: true } : {}),
-    parameters: { ...shared, ...v4, ...legacy },
+    parameters: { ...shared, ...v4, ...legacy, ...aidParams(model.id, input.aid) },
+  };
+}
+
+/** 캐릭터 레퍼런스·바이브 필드. 0단계에서 V4.5 요청으로 받아들여진 형식이다. */
+function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string, unknown> {
+  if (!aid) return {};
+  if (!supportsReferenceAid(modelId))
+    throw new Error('캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다.');
+  if (aid.kind === 'vibe')
+    return {
+      reference_image_multiple: [aid.encodedBase64],
+      reference_strength_multiple: [clamp(aid.strength, 0, 1)],
+      normalize_reference_strength_multiple: true,
+    };
+  return {
+    director_reference_images: [aid.imageBase64],
+    director_reference_descriptions: [
+      {
+        caption: {
+          base_caption: aid.styleAware ? 'character&style' : 'character',
+          char_captions: [],
+        },
+        legacy_uc: false,
+      },
+    ],
+    director_reference_information_extracted: [1],
+    director_reference_strength_values: [1],
+    director_reference_secondary_strength_values: [1 - clamp(aid.fidelity, 0, 1)],
   };
 }
 
@@ -232,8 +275,44 @@ export function buildNovelAIAugmentRequest(input: NaiAugmentRequestInput): Recor
   return body;
 }
 
-/** 작업에 필요한 입력 파일(base64). 큐가 스냅샷의 해시를 확인한 뒤 넘긴다. */
-export type NaiJobInputs = { imageBase64?: string; maskBase64?: string };
+/** 바이브 인코딩 요청 본문. 인코딩은 일반 생성 모델 ID로 하고, 인페인트 요청에도 그 결과를 쓴다(0단계). */
+export function buildNovelAIEncodeVibeRequest(
+  imageBase64: string,
+  settings: Pick<GenerationSettings, 'model'>,
+  informationExtracted: number,
+): Record<string, unknown> {
+  return {
+    image: imageBase64,
+    information_extracted: clamp(informationExtracted, 0, 1),
+    model: requestModelId(settings.model, 'generate'),
+  };
+}
+
+/**
+ * 바이브 인코딩 결과를 다시 쓸 때의 이름. 같은 그림·모델·information_extracted면 결과가 같아 한 번만 인코딩한다.
+ * 파일 이름으로 쓰므로 영문·숫자·하이픈만 남긴다.
+ */
+export function vibeCacheKey(
+  imageSha256: string,
+  settings: Pick<GenerationSettings, 'model'>,
+  informationExtracted: number,
+): string {
+  const model = requestModelId(settings.model, 'generate');
+  const information = Math.round(clamp(informationExtracted, 0, 1) * 100);
+  return `${imageSha256}-${model}-ie${information}`.replace(/[^0-9a-z-]/gi, '-');
+}
+
+/**
+ * 작업에 필요한 입력 파일(base64). 큐가 스냅샷의 해시를 확인한 뒤 넘긴다. `aidBase64`는 캐릭터 레퍼런스면
+ * 맞춘 그림, 바이브면 인코딩 결과다.
+ */
+export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase64?: string };
+
+function jobAidInput(aid: JobAid, base64: string): NaiAidInput {
+  return aid.kind === 'character'
+    ? { kind: 'character', imageBase64: base64, styleAware: aid.styleAware, fidelity: aid.fidelity }
+    : { kind: 'vibe', encodedBase64: base64, strength: aid.strength };
+}
 
 function required(value: string | undefined, label: string): string {
   if (!value) throw new Error(`작업에 ${label}이(가) 없습니다.`);
@@ -255,6 +334,7 @@ export function buildNovelAIJobRequest(
     height: job.canvasHeight,
     seed: job.seed,
     settings: job.settings,
+    ...(job.aid ? { aid: jobAidInput(job.aid, required(inputs.aidBase64, '참고 그림')) } : {}),
   };
   switch (job.kind) {
     case 'inpaint':

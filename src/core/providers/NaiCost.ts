@@ -1,5 +1,6 @@
 import type {
   AugmentTool,
+  JobAid,
   GenerationJobSnapshot,
   GenerationKind,
   GenerationSettings,
@@ -65,7 +66,11 @@ type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasH
   kind?: GenerationKind;
   strength?: number;
   tool?: AugmentTool;
+  aid?: Pick<JobAid, 'kind'>;
 };
+
+/** 0단계 실측: 캐릭터 레퍼런스는 무료 조건 안에서도 한 장에 5 Anlas가 더 든다. */
+const CHARACTER_REFERENCE_ANLAS = 5;
 
 /**
  * 배경 제거 실측: 832×1216에 65 Anlas(0단계), 608×832에 35 Anlas(5단계). 두 점을 잇는 직선(5 + 면적 비례)으로
@@ -91,6 +96,12 @@ function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
 /** 작업 한 개(한 장)의 예상 Anlas. 무료 기준 안이면 0이다. */
 export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
   if (job.kind === 'augment') return augmentAnlas(job);
+  return (
+    diffusionAnlas(job, account) + (job.aid?.kind === 'character' ? CHARACTER_REFERENCE_ANLAS : 0)
+  );
+}
+
+function diffusionAnlas(job: CostJob, account?: CostAccount): number {
   const free =
     isOpus(account) &&
     checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight).free &&
@@ -120,6 +131,8 @@ export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): 
         warnings.add('디렉터 툴 입력이 무료 기준 면적을 넘어 Anlas가 들 수 있습니다.');
       continue;
     }
+    if (job.aid?.kind === 'character')
+      warnings.add('캐릭터 레퍼런스는 Opus여도 한 장에 5 Anlas가 듭니다.');
     for (const reason of checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight)
       .reasons)
       warnings.add(reason);

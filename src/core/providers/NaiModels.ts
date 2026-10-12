@@ -137,6 +137,11 @@ export function maxCharactersFor(id: string | undefined): number {
   return modelInfo(id ?? '')?.maxCharacters ?? 6;
 }
 
+/** 캐릭터 레퍼런스·바이브를 받는 모델. 0단계에서 V4.5만 되고 V5는 500 오류가 났다. */
+export function supportsReferenceAid(id: string): boolean {
+  return modelInfo(id)?.family.startsWith('v4-5') ?? false;
+}
+
 export function supportsEffort(id: string): boolean {
   return Boolean(modelInfo(id)?.mediumRequestIds);
 }

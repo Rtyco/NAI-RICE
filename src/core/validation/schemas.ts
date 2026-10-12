@@ -209,6 +209,16 @@ export const projectSchema = z.preprocess(
     positionMode: z.enum(['ai', 'manual']).catch('ai'),
     emotionSetId: z.string(),
     referenceId: z.string(),
+    referenceAid: z
+      .object({
+        kind: z.enum(['none', 'character', 'vibe']).catch('none'),
+        styleAware: z.boolean().catch(true),
+        fidelity: z.number().min(0).max(1).catch(1),
+        vibeStrength: z.number().min(0).max(1).catch(0.6),
+        vibeInformation: z.number().min(0).max(1).catch(1),
+      })
+      .optional()
+      .catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     createdAt: z.string(),
@@ -356,6 +366,17 @@ export const generationRecordSchema = z.object({
   canvasFile: z.string().optional(),
   inputFile: z.string().optional(),
   augment: augmentInfoSchema.optional().catch(undefined),
+  aid: z
+    .discriminatedUnion('kind', [
+      z.object({ kind: z.literal('character'), styleAware: z.boolean(), fidelity: z.number() }),
+      z.object({
+        kind: z.literal('vibe'),
+        strength: z.number(),
+        informationExtracted: z.number(),
+      }),
+    ])
+    .optional()
+    .catch(undefined),
   width: z.number(),
   height: z.number(),
   seed: z.number(),
@@ -419,6 +440,24 @@ const jobSnapshotCommonSchema = z.object({
   settings: generationSettingsSchema,
   warnings: z.array(z.string()),
   sourceRecordId: z.string().min(1).optional(),
+  aid: z
+    .discriminatedUnion('kind', [
+      z.object({
+        kind: z.literal('character'),
+        imagePath: z.string().min(1),
+        imageSha256: sha256Schema,
+        styleAware: z.boolean(),
+        fidelity: z.number().min(0).max(1),
+      }),
+      z.object({
+        kind: z.literal('vibe'),
+        imagePath: z.string().min(1),
+        imageSha256: sha256Schema,
+        strength: z.number().min(0).max(1),
+        informationExtracted: z.number().min(0).max(1),
+      }),
+    ])
+    .optional(),
 });
 
 const sourceImageSchema = { imagePath: z.string().min(1), imageSha256: sha256Schema };

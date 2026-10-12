@@ -13,6 +13,7 @@ import type {
   GenerationRecord,
   Img2ImgJobSnapshot,
   InpaintJobSnapshot,
+  JobAid,
   JobSnapshotCommon,
   PieceSet,
   Preset,
@@ -40,6 +41,7 @@ import {
   emptyNegativeFor,
   maxCharactersFor,
   modelLabel,
+  supportsReferenceAid,
   naiTagText,
   usesMedium,
 } from '../providers/NaiModels';
@@ -63,6 +65,8 @@ type EmotionJobBuildInput = {
   /** 지정하면 설정의 Seed 방식보다 우선한다. "이 seed로 다시 생성"에 쓴다. */
   seedOverride?: number;
   variantsOverride?: number;
+  /** 캐릭터 레퍼런스·바이브와 그 그림을 가져온 인페인트 항목 이름. */
+  aid?: { job: JobAid; referenceName: string };
   now?: () => Date;
   randomSeed?: () => number;
 };
@@ -234,6 +238,10 @@ function buildEmotionJobs<T>(
   make: (common: EmotionJobCommon) => T,
 ): T[] {
   const settings = effectiveGenerationSettings(input.preset.generation);
+  if (input.aid && !supportsReferenceAid(settings.model))
+    throw new Error(
+      `캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(settings.model)}입니다.`,
+    );
   const wanted = new Set(input.emotionIds);
   const selected = input.emotionSet.emotions.filter(
     (emotion) => wanted.has(emotion.id) && hasScenePrompt(emotion),
@@ -301,6 +309,7 @@ function buildEmotionJobs<T>(
           outputFilenameTemplate: input.settings.outputFilenameTemplate,
           settings: { ...settings },
           warnings,
+          ...(input.aid ? { aid: { ...input.aid.job } } : {}),
         }),
       );
     }
@@ -690,7 +699,11 @@ export function buildTxt2ImgJobs(input: Txt2ImgJobBuildInput): Txt2ImgJobSnapsho
   return buildEmotionJobs(
     input,
     'txt2img',
-    { referenceName: '', canvasWidth: settings.width, canvasHeight: settings.height },
+    {
+      referenceName: input.aid?.referenceName ?? '',
+      canvasWidth: settings.width,
+      canvasHeight: settings.height,
+    },
     (common) => ({ ...common, kind: 'txt2img' }),
   );
 }
