@@ -4,8 +4,6 @@ export type AugmentToolInfo = {
   id: AugmentTool;
   label: string;
   description: string;
-  /** 툴 목록에서 「주요 툴」로 앞에 둔다. 나머지는 「그 밖의 툴」이다. */
-  primary: boolean;
   /** 덧붙이는 프롬프트를 받는다. */
   prompt: boolean;
   /** 강도(defry)를 받는다. */
@@ -18,7 +16,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'emotion',
     label: 'Emotion',
     description: '얼굴 표정만 바꿉니다. 머리·옷·포즈·배경은 그대로입니다.',
-    primary: true,
     prompt: true,
     strength: true,
   },
@@ -26,7 +23,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'bg-removal',
     label: '배경 제거',
     description: '배경을 투명하게 지운 이미지 세 장을 받습니다.',
-    primary: true,
     prompt: false,
     strength: false,
   },
@@ -34,7 +30,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'declutter',
     label: 'Declutter',
     description: '글자·말풍선·효과선 같은 잡다한 것을 지웁니다.',
-    primary: true,
     prompt: false,
     strength: false,
   },
@@ -42,7 +37,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'lineart',
     label: 'Line Art',
     description: '흑백 선화로 바꿉니다.',
-    primary: false,
     prompt: false,
     strength: false,
   },
@@ -50,7 +44,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'sketch',
     label: 'Sketch',
     description: '연필 스케치로 바꿉니다.',
-    primary: false,
     prompt: false,
     strength: false,
   },
@@ -58,7 +51,6 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     id: 'colorize',
     label: 'Colorize',
     description: '색을 새로 칠합니다. 프롬프트가 없으면 머리·눈 색이 바뀔 수 있습니다.',
-    primary: false,
     prompt: true,
     strength: true,
   },

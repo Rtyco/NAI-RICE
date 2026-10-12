@@ -34,12 +34,7 @@ export function DirectorToolFields(props: {
           value={value.tool}
           onChange={(event) => onChange({ tool: event.target.value as AugmentSettings['tool'] })}
         >
-          <optgroup label="주요 툴">
-            {AUGMENT_TOOLS.filter((tool) => tool.primary).map(option)}
-          </optgroup>
-          <optgroup label="그 밖의 툴">
-            {AUGMENT_TOOLS.filter((tool) => !tool.primary).map(option)}
-          </optgroup>
+          {AUGMENT_TOOLS.map(option)}
         </select>
         <span className="hint">{info.description}</span>
       </label>
