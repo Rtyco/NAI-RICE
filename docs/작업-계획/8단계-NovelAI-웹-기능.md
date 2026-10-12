@@ -69,6 +69,21 @@ thumbnail, createdAt, importInfo }`. 묶음은 `{ identifier: "novelai-vibe-tran
   바이브 파일·묶음이 base64로 들어 있어 그것을 먼저 씁니다. 생성 정보 없이 `naidata`만 있으면(묶음 PNG) 바로
   가져옵니다. stealth 메타데이터 상한을 1MB에서 8MB로 늘렸습니다(인코딩 하나에 약 65KB).
 
+## 스트리밍
+
+- **설정:** 프로그램 설정 → NovelAI 계정 · 요청 → 「생성 과정 보기 (스트리밍)」(`AppSettings.streaming`, 기본 끔).
+- **요청:** 웹처럼 `POST /ai/generate-image-stream`에 `parameters.stream = "msgpack"`을 넣습니다
+  (`streamingRequest`). 웹 기능 표대로 V4·V4.5·V5만 바꾸고, V3와 디렉터 툴은 원래대로 ZIP을 받습니다. 일반
+  생성·i2i·인페인트 모두 스트리밍합니다(웹도 i2i·인페인트 진행률을 세기로 계산함).
+- **응답:** 4바이트 빅엔디언 길이 + MessagePack 맵이 이어집니다. `event_type`이 `intermediate`(중간 그림 JPEG,
+  `step_ix`), `final`(최종 그림), `error`(`message`)입니다. 커뮤니티 구현이 받는 SSE(`data:` JSON, 그림 base64)도
+  `content-type`이 `event-stream`이면 읽습니다(`NaiStream.ts`, 의존성 없이 MessagePack 해석).
+- **최종 그림:** 웹은 `image_format: "webp"`로 받아 PNG로 바꿉니다. 앱은 그 값을 넣지 않아 ZIP처럼 PNG가 오리라
+  보고, PNG가 아니면 PNG로 바꿔 저장합니다(이때 NovelAI 메타데이터는 남지 않음, `ensurePng`).
+- **화면:** 메인 프로세스가 중간 그림을 `generation:preview`로 보내고, 씬 카드·자유 생성 결과·생성 큐 막대가
+  마지막 중간 그림과 진행 막대를 보입니다(`StreamPreview`). 작업이 끝나면 지웁니다. 진행률은 Steps(i2i·인페인트는
+  세기를 곱한 값)로 어림합니다.
+
 ## 사용자 확인 (무료)
 
 `npm run dev`에서 생성 설정의 샘플링 카드를 봅니다.
@@ -88,3 +103,10 @@ thumbnail, createdAt, importInfo }`. 묶음은 `{ identifier: "novelai-vibe-tran
    보이는지, 그 값으로 생성할 때 인코딩 비용(2 Anlas)을 묻지 않는지(생성 자체는 무료 범위).
 2. 앱에서 내보낸 `.naiv4vibe`·묶음을 NovelAI 웹에 넣어 받아들이는지.
 3. 바이브를 쓴 NovelAI 이미지를 끌어 놓아 ⑤의 「이미지에 든 바이브」를 가져오고 같은 모델로 생성.
+
+## 사용자 확인 (스트리밍, 무료)
+
+1. 설정에서 스트리밍을 켜고 V4.5 일반 생성 한 장: 씬 카드에 중간 그림이 보이다가 결과로 바뀌는지, 저장된 결과의
+   생성 정보(프롬프트·seed)가 그대로 남는지.
+2. V5 일반 생성, 인페인트, 자유 생성 i2i 한 장씩.
+3. 스트리밍 중 취소가 바로 되는지.

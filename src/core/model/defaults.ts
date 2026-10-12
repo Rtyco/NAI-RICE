@@ -234,6 +234,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   storageFormat: 'webp-lossless',
   export: { format: 'png', quality: 90, target: 'favorite' },
   requestDelayMs: 300,
+  streaming: false,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   update: { autoCheck: true, skippedVersion: '' },

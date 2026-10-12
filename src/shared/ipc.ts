@@ -235,6 +235,9 @@ export type AccountApi = {
   onTokenStatus: (listener: (status: TokenStatus) => void) => () => void;
 };
 
+/** 스트리밍으로 받은 생성 중간 그림. `steps`는 대략의 전체 단계 수(진행 표시용)다. */
+export type GenerationPreview = { jobId: string; dataUrl: string; step: number; steps: number };
+
 export type QueueApi = {
   queueSnapshot: () => Promise<QueueView>;
   enqueueGeneration: (request: GenerationEnqueueRequest) => Promise<GenerationEnqueueResult>;
@@ -245,6 +248,7 @@ export type QueueApi = {
   clearFinished: () => Promise<QueueView>;
   onQueueUpdate: (listener: (snapshot: QueueView) => void) => () => void;
   onGenerationAdded: (listener: (record: GenerationSummary) => void) => () => void;
+  onGenerationPreview: (listener: (preview: GenerationPreview) => void) => () => void;
 };
 
 /** 작업 폴더 안 한 작업의 폴더별 바이트. */

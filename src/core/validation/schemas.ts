@@ -331,6 +331,7 @@ export const appSettingsSchema = z.object({
     .default({ format: 'png', quality: 90, target: 'favorite' }),
   // 이전 버전의 naiTags(직접 고친 품질 태그 문구)는 NovelAI 고정값으로 바뀌어 읽지 않는다.
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
+  streaming: z.boolean().default(false),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({

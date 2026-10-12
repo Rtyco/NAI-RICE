@@ -361,6 +361,8 @@ export type AppSettings = {
   };
   /** NovelAI 요청 사이에 기다리는 시간(0~1000ms). */
   requestDelayMs: number;
+  /** 스트리밍으로 생성 과정의 중간 그림을 받아 보여 준다. 받는 모델(V4·V4.5·V5)만 바뀐다. */
+  streaming: boolean;
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

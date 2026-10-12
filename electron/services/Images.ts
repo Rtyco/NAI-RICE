@@ -19,6 +19,14 @@ export function integerCrop(rect: Rect, width: number, height: number): Rect {
   return { x, y, width: right - x, height: bottom - y };
 }
 
+/**
+ * 결과 저장은 PNG 텍스트 청크를 쓴다. 스트리밍의 최종 그림이 PNG가 아니면(웹은 `image_format: "webp"`로 받는다)
+ * PNG로 바꾼다. 이때 원본의 NovelAI 메타데이터는 남지 않는다.
+ */
+export async function ensurePng(buffer: Buffer): Promise<Buffer> {
+  return isPng(buffer) ? buffer : sharp(buffer).png().toBuffer();
+}
+
 export async function imageSize(buffer: Buffer): Promise<{ width: number; height: number }> {
   const meta = await sharp(buffer).metadata();
   if (!meta.width || !meta.height) throw new Error('이미지 크기를 읽을 수 없습니다.');

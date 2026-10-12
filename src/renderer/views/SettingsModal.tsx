@@ -78,6 +78,24 @@ function RequestDelayCard() {
   );
 }
 
+function StreamingCard() {
+  const streaming = useLibrary().settings.streaming;
+  return (
+    <Card title="스트리밍" subtitle="생성 과정을 받는 대로 보여 줍니다">
+      <Toggle
+        label="생성 과정 보기 (스트리밍)"
+        checked={streaming}
+        onChange={(value) => patchSettings((current) => ({ ...current, streaming: value }))}
+      />
+      <p className="hint">
+        켜면 NovelAI 웹처럼 생성 중인 그림을 씬 카드·자유 생성 결과·생성 큐 막대에 보여 줍니다.
+        V4·V4.5·V5에만 적용되고, V3와 디렉터 툴은 NovelAI 웹도 스트리밍하지 않아 그대로 받습니다.
+        다음 요청부터 적용됩니다.
+      </p>
+    </Card>
+  );
+}
+
 function AccountTab() {
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
@@ -179,6 +197,7 @@ function AccountTab() {
       </Card>
 
       <RequestDelayCard />
+      <StreamingCard />
 
       <Card title="Anlas가 차감되는 경우">
         <p>

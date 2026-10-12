@@ -5,6 +5,7 @@ import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { openEmotion, openFree, openProject, run, useStore } from '../store';
 import { queueApi } from '../desktop';
 import { BottomSlotTarget } from './BottomSlot';
+import { StreamPreview } from './StreamPreview';
 
 const STATUS: Record<string, string> = {
   queued: '대기',
@@ -92,6 +93,7 @@ export function QueueBar() {
         <button className="queue-toggle" onClick={() => setOpen((value) => !value)}>
           {open ? '▼' : '▲'} 생성 큐
         </button>
+        {current && <StreamPreview jobIds={[current.id]} className="queue-preview" />}
         <span className="queue-status">
           {current
             ? `${STATUS[current.status]}: ${current.projectName} · ${current.emotionName}`

@@ -27,6 +27,7 @@ import {
   useLibrary,
   useStore,
 } from '../store';
+import { StreamPreview } from '../components/StreamPreview';
 
 function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null {
   if (jobs.some((job) => job.status === 'generating')) return { label: '생성 중', tone: 'busy' };
@@ -111,6 +112,9 @@ function EmotionCard(props: {
             {hasScenePrompt(emotion) ? '아직 생성 전' : '프롬프트 없음'}
           </span>
         )}
+        <StreamPreview
+          jobIds={props.jobs.filter((job) => job.status === 'generating').map((job) => job.id)}
+        />
         {state && <span className={`card-status ${state.tone}`}>{state.label}</span>}
         {favoriteId && cover?.id === favoriteId && (
           <span className="card-favorite" title="대표 이미지">

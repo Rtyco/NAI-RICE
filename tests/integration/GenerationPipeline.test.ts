@@ -7,6 +7,7 @@ import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { GenerationRecord, QueueView, Reference } from '../../src/core/domain/types';
+import type { GenerationPreview } from '../../src/shared/ipc';
 import {
   buildFreeJobs,
   buildJobs,
@@ -335,6 +336,52 @@ describe('generation pipeline', () => {
       readFile(library.resolveProject(FREE_PROJECT_ID, records[0].file)),
     ).resolves.toBeTruthy();
     expect(await library.listGenerations(FREE_PROJECT_ID)).toHaveLength(1);
+  });
+
+  it('스트리밍을 켜면 중간 그림을 넘기고, PNG가 아닌 최종 그림은 PNG로 바꿔 저장해', async () => {
+    const { root, library } = await setupLibrary();
+    const webp = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: '#00ff00' },
+    })
+      .webp({ lossless: true })
+      .toBuffer();
+    const records: GenerationRecord[] = [];
+    const previews: GenerationPreview[] = [];
+    let streaming = false;
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async (request) => {
+          request.onPreview?.({ image: Buffer.from([0xff, 0xd8]), step: 13 });
+          return [webp];
+        },
+      },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: (record) => records.push(record),
+      requestDelayMs: () => 0,
+      streaming: () => streaming,
+      onPreview: (preview) => previews.push(preview),
+    });
+    await queue.initialize();
+    const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+    const wait = async (count: number) => {
+      for (let tries = 0; tries < 250 && records.length < count; tries += 1)
+        await new Promise((resolve) => setTimeout(resolve, 20));
+    };
+    await queue.enqueue(buildFreeJobs({ preset, prompt: 'cafe', count: 1 }), [0]);
+    await wait(1);
+    expect(previews).toEqual([]);
+    streaming = true;
+    const [job] = buildFreeJobs({ preset, prompt: 'cafe', count: 1 });
+    await queue.enqueue([job], [0]);
+    await wait(2);
+    expect(previews).toEqual([
+      { jobId: job.id, dataUrl: 'data:image/jpeg;base64,/9g=', step: 13, steps: 28 },
+    ]);
+    const saved = await readFile(library.resolveProject(FREE_PROJECT_ID, records[1].file));
+    expect((await sharp(saved).metadata()).width).toBe(64);
   });
 
   it('배경 제거처럼 한 번에 여러 장이 오면 장마다 결과로 쌓고 Anlas는 첫 장에만 적어', async () => {

@@ -1,11 +1,14 @@
 import { unzipSync } from 'fflate';
 import type { GenerationJobSnapshot, GenerationSettings } from '../domain/types';
 import { naiHttpError, naiNetworkError, NaiApiError } from './NaiErrors';
+import { classifyNaiError } from './NaiErrors';
+import { NaiStreamParser } from './NaiStream';
 import {
   buildNovelAIEncodeVibeRequest,
   buildNovelAIJobRequest,
   NAI_ENCODE_VIBE_ENDPOINT,
   NAI_USER_ENDPOINT,
+  streamingRequest,
 } from './NovelAIRequestBuilder';
 
 /** 작업 하나를 생성하는 요청. 입력 이미지·마스크는 그 작업 종류가 쓰는 것만 넘긴다. */
@@ -17,6 +20,8 @@ export type NovelAIImageRequest = {
   /** 캐릭터 레퍼런스마다 맞춘 그림, 또는 바이브마다 인코딩 결과. */
   aid?: Buffer[];
   signal?: AbortSignal;
+  /** 주면 스트리밍을 받는 모델에서 생성 과정의 중간 그림(JPEG)을 받는다. */
+  onPreview?: (preview: { image: Buffer; step: number }) => void;
 };
 
 export type NovelAIVibeRequest = {
@@ -85,6 +90,44 @@ function pngsFromZip(buffer: Uint8Array): Buffer[] {
   return entries.map(([, data]) => Buffer.from(data));
 }
 
+/** 스트리밍 응답을 끝까지 읽어 최종 그림을 순서대로 돌려준다. 중간 그림은 받는 대로 넘긴다. */
+async function readImageStream(
+  response: Response,
+  onPreview: NovelAIImageRequest['onPreview'],
+): Promise<Buffer[]> {
+  const contentType = response.headers.get('content-type') ?? '';
+  const parser = new NaiStreamParser(contentType.includes('event-stream') ? 'sse' : 'msgpack');
+  const finals: Buffer[] = [];
+  const handle = (events: ReturnType<NaiStreamParser['push']>) => {
+    for (const event of events) {
+      if (event.type === 'error') {
+        const message = event.message || '스트리밍 중 오류가 났습니다.';
+        throw new NaiApiError(classifyNaiError(500, message), message);
+      }
+      if (!event.image) continue;
+      if (event.type === 'final') finals[event.sample] = Buffer.from(event.image);
+      else onPreview?.({ image: Buffer.from(event.image), step: event.step });
+    }
+  };
+  if (!response.body) throw new NaiApiError('server', '스트리밍 응답이 비어 있습니다.');
+  const reader = response.body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      handle(parser.push(value));
+    }
+  } catch (error) {
+    throw error instanceof NaiApiError ? error : naiNetworkError(error);
+  } finally {
+    reader.releaseLock();
+  }
+  handle(parser.flush());
+  const images = finals.filter(Boolean);
+  if (!images.length) throw new NaiApiError('server', '스트리밍 응답에 최종 그림이 없습니다.');
+  return images;
+}
+
 /** NovelAI에 요청하고, 연결 실패와 오류 응답을 NaiApiError로 바꾼다. */
 async function requestNovelAI(
   url: string,
@@ -117,16 +160,19 @@ export class NovelAIProvider {
   }
 
   async generate(request: NovelAIImageRequest): Promise<Buffer[]> {
-    const { url, body } = buildNovelAIJobRequest(request.job, {
+    const plain = buildNovelAIJobRequest(request.job, {
       imageBase64: request.image?.toString('base64'),
       maskBase64: request.mask?.toString('base64'),
       aidBase64: request.aid?.map((buffer) => buffer.toString('base64')),
     });
+    const streaming = request.onPreview && streamingRequest(plain, request.job);
+    const { url, body } = streaming ?? plain;
     const response = await requestNovelAI(url, request.token, {
       method: 'POST',
       body: JSON.stringify(body),
       signal: request.signal,
     });
+    if (streaming) return readImageStream(response, request.onPreview);
     return pngsFromZip(new Uint8Array(await response.arrayBuffer()));
   }
 

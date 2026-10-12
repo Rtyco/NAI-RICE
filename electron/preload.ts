@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { GenerationSummary, QueueView } from '../src/core/domain/types';
-import type { DesktopApi, TokenStatus, WindowState } from '../src/shared/ipc';
+import type { DesktopApi, GenerationPreview, TokenStatus, WindowState } from '../src/shared/ipc';
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
   const handler = (_event: Electron.IpcRendererEvent, payload: T) => listener(payload);
@@ -81,6 +81,7 @@ const api: DesktopApi = {
   onQueueUpdate: (listener) => subscribe<QueueView>('generation:queue-update', listener),
   onGenerationAdded: (listener) =>
     subscribe<GenerationSummary>('generation:record-added', listener),
+  onGenerationPreview: (listener) => subscribe<GenerationPreview>('generation:preview', listener),
   onWindowState: (listener) => subscribe<WindowState>('app:window-state', listener),
   onTokenStatus: (listener) => subscribe<TokenStatus>('token:status', listener),
 

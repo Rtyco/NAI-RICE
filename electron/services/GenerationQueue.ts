@@ -25,6 +25,8 @@ import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
+import type { GenerationPreview } from '../../src/shared/ipc';
+import { ensurePng } from './Images';
 import type { GenerationStore, ImageGenerator } from './ports';
 
 /** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림들이거나 바이브로 인코딩할 원본 그림들이다. */
@@ -46,7 +48,24 @@ type QueueDependencies = {
   anlas?: (token: string) => Promise<number | undefined>;
   /** 연속 요청 사이에 둘 간격(ms). 설정에서 바꾸면 다음 요청부터 반영된다. */
   requestDelayMs?: () => number;
+  /** 켜져 있으면 스트리밍으로 받아 중간 그림을 `onPreview`로 넘긴다. 설정에서 바꾸면 다음 요청부터 반영된다. */
+  streaming?: () => boolean;
+  onPreview?: (preview: GenerationPreview) => void;
 };
+
+/**
+ * 진행 표시용 전체 단계 수. NovelAI 웹처럼 i2i·인페인트는 세기만큼만 돈다고 보고, 2차 샘플러가 단계를 반만
+ * 보내는 것은 따지지 않는다(넘치면 화면이 100%로 자른다).
+ */
+function previewSteps(job: QueuedGenerationJob): number {
+  const strength =
+    job.kind === 'img2img'
+      ? job.strength
+      : job.kind === 'inpaint'
+        ? job.settings.inpaintStrength
+        : 1;
+  return Math.max(1, Math.ceil(job.settings.steps * strength));
+}
 
 export class GenerationQueue {
   private snapshot: QueueSnapshot = {
@@ -322,12 +341,25 @@ export class GenerationQueue {
     }
     await this.waitRequestDelay(signal);
     this.lastRequestAt = Date.now();
+    const { onPreview } = this.dependencies;
+    const steps = previewSteps(job);
     const generated = await this.dependencies.provider.generate({
       token,
       job,
       ...inputs,
       aid,
       signal,
+      ...(onPreview && this.dependencies.streaming?.()
+        ? {
+            onPreview: ({ image, step }: { image: Buffer; step: number }) =>
+              onPreview({
+                jobId: job.id,
+                dataUrl: `data:image/jpeg;base64,${image.toString('base64')}`,
+                step,
+                steps,
+              }),
+          }
+        : {}),
     });
     // 간격은 응답을 받은 시점부터 센다.
     this.lastRequestAt = Date.now();
@@ -346,7 +378,8 @@ export class GenerationQueue {
     const inputs = await this.loadInputs(job);
     const { generated, anlasSpent } = await this.requestImage(job, inputs, signal);
     const records: GenerationRecord[] = [];
-    for (const [index, image] of generated.entries()) {
+    for (const [index, received] of generated.entries()) {
+      const image = await ensurePng(received);
       records.push(
         await saveGenerationOutput(this.dependencies.library, job, image, anlasSpent, {
           index,

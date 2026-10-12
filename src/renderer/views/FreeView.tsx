@@ -18,6 +18,7 @@ import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
+import { StreamPreview } from '../components/StreamPreview';
 import { ImageStage } from '../components/ImageStage';
 import { PanelResizer } from '../components/PanelResizer';
 import { PresetNumberRow } from '../components/PresetNumberRow';
@@ -214,6 +215,9 @@ export function FreeView() {
   const pending = queue.jobs.filter(
     (job) => job.projectId === FREE_PROJECT_ID && isActive(job.status),
   ).length;
+  const running = queue.jobs
+    .filter((job) => job.projectId === FREE_PROJECT_ID && job.status === 'generating')
+    .map((job) => job.id);
 
   const newest = records[0];
   // 새 결과가 생기면 그 결과를 원본과 나란히 보여 준다. 처음 열 때 이미 있던 결과나, 최신 결과를 지워 맨
@@ -411,6 +415,7 @@ export function FreeView() {
       }
       overlay={
         <>
+          <StreamPreview jobIds={running} className="stage-preview" />
           {image && <span className="stage-label">결과</span>}
           {pending > 0 && (
             <span className="card-status busy stage-status">생성 대기 {pending}</span>

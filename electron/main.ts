@@ -52,6 +52,8 @@ async function createServices(): Promise<AppServices> {
     onRecord: (record) => broadcast('generation:record-added', toGenerationSummary(record)),
     anlas: async (token) => (await account.refresh(token))?.anlas,
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
+    streaming: () => library.settings?.streaming ?? false,
+    onPreview: (preview) => broadcast('generation:preview', preview),
   });
   await queue.initialize();
   return {

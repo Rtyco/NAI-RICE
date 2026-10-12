@@ -163,6 +163,12 @@ export function referenceTargetLabel(target: ReferenceTarget): string {
   return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;
 }
 
+/** NovelAI 웹이 스트리밍으로 받는 모델(`streamedResponses`, 2026-10 웹 코드). V3는 웹도 스트리밍하지 않는다. */
+export function supportsStreaming(id: string): boolean {
+  const generation = modelInfo(id)?.generation;
+  return generation === 'v4' || generation === 'v5';
+}
+
 /** V3만 SMEA·SMEA DYN·Decrisp를 받는다(NovelAI 웹의 `smea`·`smeaDyn`·`dynamicThresholding`). */
 export function supportsV3Sampling(id: string): boolean {
   return modelInfo(id)?.generation === 'v3';

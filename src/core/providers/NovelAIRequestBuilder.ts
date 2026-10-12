@@ -12,10 +12,13 @@ import {
   naiTagHints,
   requestModelId,
   supportsReferenceAid,
+  supportsStreaming,
   varietySigma,
 } from './NaiModels';
 
 export const NAI_IMAGE_ENDPOINT = 'https://image.novelai.net/ai/generate-image';
+/** 생성 과정을 받는 스트리밍. 응답은 ZIP이 아니라 이벤트 스트림이다(`NaiStream`). */
+export const NAI_IMAGE_STREAM_ENDPOINT = 'https://image.novelai.net/ai/generate-image-stream';
 /** 바이브 인코딩. 응답은 ZIP이 아니라 인코딩 결과 그대로다(0단계: 약 49KB). */
 export const NAI_ENCODE_VIBE_ENDPOINT = 'https://image.novelai.net/ai/encode-vibe';
 /** 디렉터 툴. 응답은 생성과 같은 ZIP이다. */
@@ -453,4 +456,21 @@ export function buildNovelAIJobRequest(
         }),
       };
   }
+}
+
+/**
+ * 스트리밍으로 보낼 요청. 확산 모델 요청이고 모델이 스트리밍을 받을 때만 바꾸고, 아니면 undefined다(디렉터 툴과
+ * V3는 그대로 보낸다). NovelAI 웹처럼 `stream: "msgpack"`을 넣는다.
+ */
+export function streamingRequest(
+  request: NaiHttpRequest,
+  job: Pick<GenerationJobSnapshot, 'settings'>,
+): NaiHttpRequest | undefined {
+  if (request.url !== NAI_IMAGE_ENDPOINT || !supportsStreaming(job.settings.model))
+    return undefined;
+  const parameters = request.body.parameters as Record<string, unknown>;
+  return {
+    url: NAI_IMAGE_STREAM_ENDPOINT,
+    body: { ...request.body, parameters: { ...parameters, stream: 'msgpack' } },
+  };
 }

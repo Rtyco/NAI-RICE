@@ -13,7 +13,7 @@ import {
   resolveProject,
   type ResolvedProject,
 } from '../core/model/defaults';
-import type { TokenStatus } from '../shared/ipc';
+import type { GenerationPreview, TokenStatus } from '../shared/ipc';
 import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
 export type LibrarySection =
@@ -65,6 +65,8 @@ type State = {
   foldedPromptGroups: string[];
   generations: Record<string, GenerationSummary[] | undefined>;
   queue: QueueView;
+  /** 스트리밍으로 받은 진행 중 작업의 중간 그림(작업 ID별). */
+  previews: Record<string, GenerationPreview>;
   token: TokenStatus;
   toasts: Toast[];
   saveState: 'saved' | 'saving' | 'error';
@@ -167,6 +169,7 @@ export const useStore = create<State>(() => ({
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
   queue: { paused: false, updatedAt: new Date(0).toISOString(), jobs: [] },
+  previews: {},
   token: { stored: false, secureStorageAvailable: false },
   toasts: [],
   saveState: 'saved',
@@ -295,7 +298,21 @@ async function openWorkspace(): Promise<void> {
 /** 메인 프로세스의 알림(큐·계정·새 생성 기록)을 받는다. 돌려준 함수를 부르면 그만 받는다. */
 export function subscribeToMain(): () => void {
   const stops = [
-    queueApi().onQueueUpdate((queue) => set({ queue })),
+    queueApi().onQueueUpdate((queue) =>
+      set((state) => {
+        // 끝난 작업의 중간 그림은 버린다.
+        const running = new Set(
+          queue.jobs.filter((job) => job.status === 'generating').map((job) => job.id),
+        );
+        const previews = Object.fromEntries(
+          Object.entries(state.previews).filter(([id]) => running.has(id)),
+        );
+        return { queue, previews };
+      }),
+    ),
+    queueApi().onGenerationPreview((preview) =>
+      set((state) => ({ previews: { ...state.previews, [preview.jobId]: preview } })),
+    ),
     accountApi().onTokenStatus((token) => set({ token })),
     queueApi().onGenerationAdded((record) =>
       set((state) => {

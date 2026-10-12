@@ -78,6 +78,7 @@ function createPreviewApi(): DesktopApi {
     clearFinished: async () => queue,
     onQueueUpdate: none,
     onGenerationAdded: none,
+    onGenerationPreview: none,
     onTokenStatus: none,
     storageUsage: async () => ({
       projects: [],
