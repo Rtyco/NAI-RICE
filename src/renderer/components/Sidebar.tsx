@@ -560,22 +560,32 @@ export function Sidebar() {
           </nav>
           {!collapsed && selection.selected.size > 0 && (
             <div className="selection-bar">
-              <span>{selection.selected.size}개 선택</span>
+              <span className="selection-count">
+                {selection.selected.size}개<span className="bar-label"> 선택</span>
+              </span>
               <button
                 className="with-icon"
                 title="고른 작업을 새 폴더로 묶습니다 (Ctrl+G)"
                 onClick={() => group([...selection.selected])}
               >
-                <Icon name="folder" size={14} /> 묶기
+                <Icon name="folder" size={14} />
+                <span className="bar-label">묶기</span>
               </button>
               <button
                 className="with-icon danger-quiet"
+                title="고른 작업을 삭제합니다"
                 onClick={() => removeMany([...selection.selected])}
               >
-                <Icon name="trash" size={14} /> 삭제
+                <Icon name="trash" size={14} />
+                <span className="bar-label">삭제</span>
               </button>
-              <button className="link-button" onClick={selection.clear}>
-                선택 취소
+              <button
+                className="link-button with-icon"
+                title="선택 취소 (Esc)"
+                onClick={selection.clear}
+              >
+                <Icon name="close" size={14} />
+                <span className="bar-label">선택 취소</span>
               </button>
             </div>
           )}

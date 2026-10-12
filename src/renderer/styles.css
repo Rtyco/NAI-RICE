@@ -2304,14 +2304,31 @@ textarea.syntax-input::selection {
   background: var(--accent-bg);
   font-size: 13px;
 }
-.selection-bar > span {
+.selection-count {
   flex: 1;
+  white-space: nowrap;
 }
 .selection-bar.inline {
   margin: 0;
 }
 .selection-bar button {
   padding: 3px 8px;
+  white-space: nowrap;
+}
+/* 사이드바가 좁아 글자가 다 들어가지 않으면 아이콘과 개수만 남긴다(이름은 버튼 title에 있다). 기준 폭은 글자를 모두
+   보일 때 막대에 필요한 폭이다. 바이브는 「내보내기」가 더 있어 넓다. */
+.selection-bar {
+  container-type: inline-size;
+}
+@container (max-width: 300px) {
+  .selection-bar .bar-label {
+    display: none;
+  }
+}
+@container (max-width: 400px) {
+  .selection-bar.wide .bar-label {
+    display: none;
+  }
 }
 .library-list nav.selectable {
   padding-bottom: 32px;

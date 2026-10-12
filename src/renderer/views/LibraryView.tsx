@@ -426,14 +426,17 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           {!collapsed && selection.boxElement}
         </nav>
         {!collapsed && selection.selected.size > 0 && (
-          <div className="selection-bar">
-            <span>{selection.selected.size}개 선택</span>
+          <div className={`selection-bar ${section === 'vibes' ? 'wide' : ''}`}>
+            <span className="selection-count">
+              {selection.selected.size}개<span className="bar-label"> 선택</span>
+            </span>
             <button
               className="with-icon"
               title="고른 항목을 새 폴더로 묶습니다 (Ctrl+G)"
               onClick={() => group([...selection.selected])}
             >
-              <Icon name="folder" size={14} /> 묶기
+              <Icon name="folder" size={14} />
+              <span className="bar-label">묶기</span>
             </button>
             {section === 'vibes' && (
               <button
@@ -441,17 +444,25 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                 title="고른 바이브를 NovelAI 바이브 묶음(.naiv4vibeBundle)으로 저장합니다"
                 onClick={() => exportVibeItems([...selection.selected])}
               >
-                <Icon name="export" size={14} /> 내보내기
+                <Icon name="export" size={14} />
+                <span className="bar-label">내보내기</span>
               </button>
             )}
             <button
               className="with-icon danger-quiet"
+              title="고른 항목을 삭제합니다"
               onClick={() => removeMany([...selection.selected])}
             >
-              <Icon name="trash" size={14} /> 삭제
+              <Icon name="trash" size={14} />
+              <span className="bar-label">삭제</span>
             </button>
-            <button className="link-button" onClick={selection.clear}>
-              선택 취소
+            <button
+              className="link-button with-icon"
+              title="선택 취소 (Esc)"
+              onClick={selection.clear}
+            >
+              <Icon name="close" size={14} />
+              <span className="bar-label">선택 취소</span>
             </button>
           </div>
         )}
