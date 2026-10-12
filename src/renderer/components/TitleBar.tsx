@@ -1,5 +1,4 @@
 import { libraryApi } from '../desktop';
-import { importJsonFromPicker } from '../importers';
 import { sectionInfo } from '../sections';
 import { run, setSettingsOpen, toggleSidebar, useStore } from '../store';
 import { Icon } from './Icon';
@@ -31,7 +30,7 @@ function useLocation(): string {
 
 /**
  * 창 맨 위 줄. 끌어서 창을 옮기고, 오른쪽에는 Windows 창 버튼이 겹쳐 그려진다. 왼쪽에 사이드바 접기와 앱
- * 이름·저장 실패 표시를, 가운데에 지금 화면 이름을, 창 버튼 왼쪽에 JSON 가져오기·작업 폴더·프로그램 설정을 둔다.
+ * 이름·버전·저장 실패 표시를, 가운데에 지금 화면 이름을, 창 버튼 왼쪽에 작업 폴더·프로그램 설정을 둔다.
  */
 export function TitleBar() {
   const collapsed = useStore((state) => state.sidebarCollapsed);
@@ -50,6 +49,17 @@ export function TitleBar() {
         <Icon name="sidebar" size={16} />
       </button>
       <strong className="titlebar-brand">NAI RICE</strong>
+      {update?.newer ? (
+        <button
+          className="update-badge"
+          title="새 버전 보기"
+          onClick={() => setSettingsOpen(true, 'info')}
+        >
+          새 버전 {update.latest}
+        </button>
+      ) : (
+        version && <small className="titlebar-version">v{version}</small>
+      )}
       {saveState === 'error' && (
         <span
           className="save-indicator error"
@@ -66,34 +76,21 @@ export function TitleBar() {
       <div className="titlebar-actions">
         <button
           className="titlebar-action"
-          title="백업, 내보낸 항목, SDStudio JSON 가져오기 (Ctrl+O)"
-          onClick={() => void importJsonFromPicker()}
-        >
-          <Icon name="import" size={15} />
-          <span>JSON 가져오기</span>
-        </button>
-        <button
-          className="titlebar-action"
           title="작업 폴더 열기"
+          aria-label="작업 폴더 열기"
           onClick={() =>
             void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'root' }))
           }
         >
-          <Icon name="folder" size={15} />
-          <span>작업 폴더</span>
+          <Icon name="folder" size={16} />
         </button>
         <button
-          className="titlebar-action settings-entry"
+          className="titlebar-action"
           title="프로그램 설정 (NovelAI 토큰·요청 간격·결과 파일·백업) · Ctrl+,"
+          aria-label="프로그램 설정"
           onClick={() => setSettingsOpen(true)}
         >
-          <Icon name="settings" size={15} />
-          <span>프로그램 설정</span>
-          {update?.newer ? (
-            <small className="update-badge">새 버전 {update.latest}</small>
-          ) : (
-            <small>v{version}</small>
-          )}
+          <Icon name="settings" size={16} />
         </button>
       </div>
     </div>

@@ -12,9 +12,10 @@ first, then the English meaning and the code name (component or CSS class) to se
 [사이드바] [ 생성 큐 막대 queue bar ············ 생성 묶음 ]
 ```
 
-- **위 줄** title bar (`TitleBar`, 40 px, full width): sidebar toggle (Ctrl+B), app name (「저장 실패」 on save
-  failure), current location in the middle (e.g. 작업 › 리나 › 기쁨), then JSON 가져오기 (Ctrl+O), 작업 폴더 and
-  프로그램 설정 (Ctrl+, with version or update badge) before the Windows buttons. Drag to move the window.
+- **위 줄** title bar (`TitleBar`, 40 px, full width): sidebar toggle (Ctrl+B), app name with the version (or a
+  「새 버전」 badge that opens 정보 · 업데이트), 「저장 실패」 on save failure, current location in the middle (e.g.
+  작업 › 리나 › 기쁨), then icon-only 작업 폴더 and 프로그램 설정 (Ctrl+,) before the Windows buttons. Drag to move the
+  window. JSON 가져오기 lives in 프로그램 설정 › 저장 공간 · 백업 (and Ctrl+O).
 - **사이드바** sidebar (`Sidebar`): always visible; Ctrl+B folds it to icons.
 - **왼쪽 패널** left panel: 프롬프트 패널 on project/free screens, 라이브러리 목록 in the library.
 - **가운데** body: images, canvas, cards.
