@@ -158,7 +158,6 @@ export async function deleteEmotions(
   return true;
 }
 
-/** 갤러리 카드 우클릭 메뉴. */
 export function emotionMenu(
   projectId: string,
   set: EmotionSet,

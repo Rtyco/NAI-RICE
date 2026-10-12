@@ -108,7 +108,6 @@ export function useCanvasViewport(width: number, height: number) {
     viewport,
     scale,
     zoomTo,
-    /** 화면에 맞추고 가운데로 되돌린다. */
     fit: () => {
       setOffset(CENTER);
       setZoom('fit');

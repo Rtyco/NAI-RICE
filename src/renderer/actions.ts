@@ -252,7 +252,6 @@ export type DirectorToolOptions = AugmentSettings & {
   shrink: boolean;
 };
 
-/** 디렉터 툴에 보낼 크기. */
 export function directorToolSize(
   record: Pick<GenerationSummary, 'width' | 'height'>,
   shrink: boolean,

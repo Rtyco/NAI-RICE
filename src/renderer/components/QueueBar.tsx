@@ -106,7 +106,6 @@ export function QueueBar() {
           {failed > 0 && <b className="error-text"> · 실패 {failed}</b>}
         </span>
         <div className="header-spacer" />
-        {/* 지금 쓸 수 있는 버튼만 보여 준다. 생성 중이 아닐 때는 막대가 비어 있다. */}
         {active.length > 0 &&
           (queue.paused ? (
             <button onClick={() => void queueAction('큐를 재개하는 중', () => api.resumeQueue())}>

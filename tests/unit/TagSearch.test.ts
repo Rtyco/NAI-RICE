@@ -102,7 +102,7 @@ describe('TagIndex.search', () => {
   }, 30_000);
 });
 
-/** 줄 단위 색인 전의 검색. 결과가 같아야 한다. */
+/** 앞 글자로 후보를 나누기 전의 전체 탐색. 결과가 같아야 한다. */
 const scanSearch = (tags: ReturnType<typeof parseTagCsv>) => {
   const keys = tags.map((tag) => tag.name.toLowerCase());
   const aliasKeys = tags.map((tag) => tag.aliases.map((alias) => alias.toLowerCase()));

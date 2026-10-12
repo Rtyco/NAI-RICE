@@ -167,10 +167,6 @@ export function NewProjectDialog({ close }: { close: () => void }) {
   );
 }
 
-/**
- * 사이드바의 작업 한 줄. 라이브러리 목록처럼 끌어서 순서를 바꾸고, 두 번 클릭(또는 우클릭 › 이름 변경)으로
- * 이름을 바꾸고, 호버하면 삭제 버튼이 뜬다. 사이드바를 접으면 열기·끌기·우클릭만 된다.
- */
 function ProjectRow(props: {
   project: Project;
   collapsed: boolean;
@@ -178,7 +174,6 @@ function ProjectRow(props: {
   busy?: number;
   avatar?: string;
   subtitle: string;
-  /** 끄는 중인 작업들. */
   dragging: string[];
   /** 끌기를 시작할 때 옮길 작업들을 정한다(고른 작업 중 하나를 끌면 고른 것 모두). */
   startDrag: (id: string) => DragPayload;
@@ -357,10 +352,6 @@ function useProjectInfo<T>(describe: (library: Library, project: Project) => T):
   );
 }
 
-/**
- * 사이드바 카드의 제목 줄. 제목을 누르면 카드가 제목 줄만 남기고 접힌다.
- * 사이드바 전체를 접은 좁은 막대에서는 아이콘만 보이고 누를 수 없다.
- */
 function SectionTitle(props: {
   section: SidebarSection;
   icon: IconName;

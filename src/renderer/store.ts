@@ -446,21 +446,18 @@ export function setSettingsOpen(open: boolean, tab?: string): void {
   set({ settingsOpen: open, settingsTab: tab });
 }
 
-/** 사이드바를 아이콘만 남긴 좁은 막대로 접거나 편다. 다음 실행에도 기억한다. */
 export function toggleSidebar(): void {
   const collapsed = !get().sidebarCollapsed;
   set({ sidebarCollapsed: collapsed });
   saveUiState(SIDEBAR_KEY, collapsed ? '1' : '0');
 }
 
-/** 사이드바 카드(작업·라이브러리) 하나를 제목 줄만 남기고 접거나 편다. 다음 실행에도 기억한다. */
 export function toggleSidebarSection(section: SidebarSection): void {
   const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
   set({ sidebarSections: sections });
   saveUiState(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
 }
 
-/** 작업 화면에서 한 줄에 놓을 감정 카드 수. 다음 실행에도 기억한다. */
 export function setGalleryColumns(columns: number): void {
   set({ galleryColumns: columns });
   saveUiState(GALLERY_COLUMNS_KEY, String(columns));
@@ -494,7 +491,7 @@ function toggleIn(list: string[], value: string, folded?: boolean): string[] {
   return next ? [...new Set([...list, value])] : list.filter((item) => item !== value);
 }
 
-/** 목록 폴더를 접거나 편다. `folded`를 주면 그 상태로 맞춘다. 다음 실행에도 기억한다. */
+/** `folded`를 주면 그 상태로 맞춘다. */
 export function toggleFolder(key: string, folded?: boolean): void {
   const foldedFolders = toggleIn(get().foldedFolders, key, folded);
   set({ foldedFolders });

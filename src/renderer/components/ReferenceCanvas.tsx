@@ -112,7 +112,6 @@ export function ReferenceCanvas(props: Props) {
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
   const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
-  /** 원본 픽셀 대비 배율. 처음에는 화면에 맞춘다. */
   /** 붓이 지나간 마지막 위치(칸 좌표). 다음 이벤트까지의 사이를 채운다. */
   const lastStampRef = useRef<{ x: number; y: number } | null>(null);
   const cursorRef = useRef<HTMLDivElement>(null);

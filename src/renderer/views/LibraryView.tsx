@@ -60,17 +60,12 @@ import { useShortcut } from '../useShortcut';
 
 const DRAG_TYPE = 'application/x-library-item';
 
-/**
- * 목록 한 줄. 끌어서 놓으면 순서를 바꾸고, 두 번 클릭하면 그 자리에서 이름을 바꾼다. 목록을 접으면 사이드바처럼
- * 아바타만 남고 누르면 바로 그 항목을 연다.
- */
 function LibraryRow(props: {
   section: LibrarySection;
   item: Item;
   collapsed: boolean;
   selected: boolean;
   subtitle: string;
-  /** 끄는 중인 항목들. */
   dragging: string[];
   /** 끌기를 시작할 때 옮길 항목들을 정한다(고른 항목 중 하나를 끌면 고른 것 모두). */
   startDrag: (id: string) => DragPayload;

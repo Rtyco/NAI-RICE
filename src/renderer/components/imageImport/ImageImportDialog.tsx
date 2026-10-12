@@ -72,7 +72,6 @@ function Radio<T extends string>(props: {
   );
 }
 
-/** NovelAI처럼 이미지에 담긴 생성 정보를 항목별로 골라 원하는 곳에 불러온다. */
 export function ImageImportDialog({
   data,
   image,

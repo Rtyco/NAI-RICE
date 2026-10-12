@@ -112,7 +112,6 @@ export function PromptField(props: {
   );
 }
 
-/** 테두리로 감싼 묶음. 설정 화면과 라이브러리 편집기에서 관련된 칸을 한데 모은다. */
 export function Card({
   title,
   subtitle,
@@ -190,7 +189,6 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   );
 }
 
-/** 바깥을 클릭하면 닫히는 간단한 드롭다운 메뉴. */
 export function Menu({
   label,
   items,

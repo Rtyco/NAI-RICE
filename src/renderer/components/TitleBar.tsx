@@ -25,10 +25,7 @@ function locationOf({ library, view, detailEmotionId }: StoreState): string {
   return '';
 }
 
-/**
- * 창 맨 위 줄. 끌어서 창을 옮기고, 오른쪽에는 Windows 창 버튼이 겹쳐 그려진다. 왼쪽에 사이드바 접기와 앱
- * 이름·버전·저장 실패 표시를, 가운데에 지금 화면 이름을, 창 버튼 왼쪽에 작업 폴더·프로그램 설정을 둔다.
- */
+/** 창 맨 위 줄. 오른쪽 끝에는 Windows 창 버튼이 겹쳐 그려진다(`titleBarOverlay`). */
 export function TitleBar() {
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const saveState = useStore((state) => state.saveState);

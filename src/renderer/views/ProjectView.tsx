@@ -92,7 +92,7 @@ function ModeSwitch({ project }: { project: Project }) {
   );
 }
 
-/** 작업에 쓰는 라이브러리 항목 네 가지를 한 줄에서 바꾼다. 거의 바꾸지 않는 값이라 작게 둔다. */
+/** 거의 바꾸지 않는 작업 구성이라 한 줄에 작게 둔다. */
 function ChainBar({ resolved }: { resolved: ResolvedProject }) {
   const presets = useStore((state) => state.library!.presets);
   const references = useStore((state) => state.library!.references);

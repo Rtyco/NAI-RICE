@@ -258,8 +258,8 @@ const pictureSchema = z
 const unitSchema = (fallback: number) => z.number().min(0).max(1).catch(fallback);
 
 /**
- * 캐릭터 레퍼런스·바이브의 세기와 충실도. NovelAI 웹 슬라이더는 0~1이지만 숫자를 직접 넣으면 음수 등도 받아,
- * 사용자 요청으로 넓게 열어 둔다.
+ * 캐릭터 레퍼런스·바이브의 세기와 충실도. NovelAI 웹 슬라이더는 0~1이지만 숫자를 직접 넣으면 음수 등도 받아
+ * 넓게 열어 둔다.
  */
 export const AID_VALUE_LIMIT = 10;
 const aidValue = z.number().min(-AID_VALUE_LIMIT).max(AID_VALUE_LIMIT);

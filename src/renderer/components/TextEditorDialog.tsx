@@ -11,7 +11,6 @@ type EditorOptions = {
   onApply: (value: string) => void;
 };
 
-/** 긴 프롬프트를 큰 창에서 고친다. 적용을 누르기 전까지는 원래 칸이 바뀌지 않는다. */
 export function TextEditorDialog({
   title,
   value,

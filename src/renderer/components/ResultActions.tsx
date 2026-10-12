@@ -32,10 +32,7 @@ function groups(actions: ResultAction[]): ResultAction[][] {
   return result;
 }
 
-/**
- * 가운데 이미지 바로 아래의 「선택한 결과」 막대. 결과에 하는 일은 결과 옆에 두고, 오른쪽 패널은 생성 입력만
- * 둔다. 같은 목록을 이미지 우클릭 메뉴(`showResultMenu`)도 쓴다.
- */
+/** 같은 동작 목록을 이미지 우클릭 메뉴(`showResultMenu`)도 쓴다. */
 export function ResultBar(props: {
   projectId: string;
   record: GenerationSummary;
@@ -60,7 +57,6 @@ export function ResultBar(props: {
       </button>
       {groups(props.actions).map((group) => (
         <Fragment key={group[0].group}>
-          {/* 파일 묶음(저장·폴더에서 보기)과 삭제는 오른쪽 끝에 한데 붙인다. */}
           {group[0].group === 'file' ? (
             <span className="header-spacer" />
           ) : (

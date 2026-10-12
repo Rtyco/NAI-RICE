@@ -83,7 +83,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const queuedRepaint = useRef<CanvasLayout | null>(null);
   const repaintRunning = useRef(false);
 
-  // 저장된 레퍼런스 불러오기
   useEffect(() => {
     if (!reference.image) return;
     let active = true;
@@ -213,7 +212,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     [layout, threshold, rebuild],
   );
 
-  // 드래그앤드롭으로 들어온 이미지
   useEffect(() => {
     if (!pendingReference || pendingReference.referenceId !== reference.id || loading) return;
     setPendingReference(undefined);
@@ -262,7 +260,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
   }, []);
 
-  // 자동 저장
   const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask });
   latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask };
 

@@ -188,7 +188,6 @@ export type CharacterCenter = { x: number; y: number };
 
 export type ExtraCharacterPrompt = { name: string; prompt: string; negative: string };
 
-/** 작업·자유 생성에 넣은 캐릭터 한 명. */
 export type CharacterSlot = {
   characterId: string;
   promptSetId: string;
@@ -446,7 +445,6 @@ export type GenerationKind = 'inpaint' | 'txt2img' | 'img2img' | 'augment';
 export type AugmentTool =
   'emotion' | 'bg-removal' | 'declutter' | 'lineart' | 'sketch' | 'colorize';
 
-/** 디렉터 툴에 고른 값. 디렉터 툴 창과 자유 생성의 디렉터 툴이 쓴다. */
 export type AugmentSettings = {
   tool: AugmentTool;
   /** Emotion 툴의 표정(NovelAI 값). */

@@ -65,7 +65,6 @@ type EmotionJobBuildInput = {
   /** 지정하면 설정의 Seed 방식보다 우선한다. "이 seed로 다시 생성"에 쓴다. */
   seedOverride?: number;
   variantsOverride?: number;
-  /** 캐릭터 레퍼런스·바이브. */
   aid?: JobAid;
   now?: () => Date;
   randomSeed?: () => number;

@@ -31,7 +31,7 @@ app.setPath('userData', renamedFolder(app.getPath('appData'), APP_NAME, 'referen
 const moduleDirectory = __dirname;
 registerMediaScheme();
 
-/** 서비스를 만들어 서로 이어 붙인다. 서비스끼리 직접 만들지 않고 여기서만 조립한다. */
+/** 서비스끼리는 서로 만들지 않고 여기서만 만들어 잇는다. */
 async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
   const provider = new NovelAIProvider();

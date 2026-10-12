@@ -10,7 +10,6 @@ export type MenuItem =
 
 const useContextMenu = create<{ x: number; y: number; items: MenuItem[] } | null>(() => null);
 
-/** 마우스 위치에 메뉴를 띄운다. 우클릭(onContextMenu)과 ⋯ 버튼이 함께 쓴다. */
 export function showContextMenu(event: ReactMouseEvent, items: MenuItem[]): void {
   event.preventDefault();
   event.stopPropagation();

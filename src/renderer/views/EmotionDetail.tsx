@@ -64,7 +64,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     seenNewest.current = newest?.createdAt;
   }, [newest]);
 
-  // 결과 목록에서 Ctrl·Shift 클릭이나 상자로 여러 장을 골라 한꺼번에 지운다.
   const removeMany = (ids: string[]) =>
     void deleteResults(
       project.id,

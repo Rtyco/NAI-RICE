@@ -24,7 +24,6 @@ import type { UpdateChecker } from './services/UpdateChecker';
 import type { VibeFiles } from './services/VibeFiles';
 import type { WorkspaceShell } from './services/WorkspaceShell';
 
-/** IPC 처리기가 부르는 서비스. main.ts가 만들어 넘긴다. */
 export type AppServices = {
   version: string;
   library: Library;
@@ -39,7 +38,6 @@ export type AppServices = {
   vibes: VibeFiles;
 };
 
-/** 렌더러가 부를 수 있는 기능을 등록한다. 각 처리기는 해당 서비스에 넘기기만 한다. */
 export function registerIpc(services: AppServices): void {
   const {
     library,

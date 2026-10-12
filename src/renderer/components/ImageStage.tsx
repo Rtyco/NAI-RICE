@@ -11,9 +11,8 @@ type Offset = { x: number; y: number };
 const CENTER: Offset = { x: 0, y: 0 };
 
 /**
- * 확대·축소할 수 있는 이미지. 휠로 커서 위치를 기준으로 확대하고, 왼쪽(또는 가운데) 버튼으로 끌면 화면 안
- * 어디로든 옮긴다. 이미지는 화면 가운데에서 `offset`만큼 민 자리에 그린다. 처음에는 화면에 맞추며(`fit`),
- * 원본보다 크게 늘리지는 않는다. 다른 이미지로 넘겨도 배율과 자리는 그대로 두어 같은 곳을 비교할 수 있다.
+ * 다른 이미지로 넘겨도 배율과 자리를 그대로 두어 같은 곳을 비교할 수 있게 한다. 처음 맞출 때(`fit`)는 원본보다
+ * 크게 늘리지 않는다.
  */
 function ZoomView(props: {
   src: string;
@@ -219,10 +218,6 @@ function Lightbox({ src, alt, close }: { src: string; alt?: string; close: () =>
   );
 }
 
-/**
- * 결과 화면 왼쪽의 큰 이미지. 확대·축소, 원본 크기 창, 아래 이미지 목록 접기를 함께 둔다.
- * `src`가 없으면 `empty`를 보여 준다.
- */
 export function ImageStage(props: {
   src?: string;
   alt?: string;

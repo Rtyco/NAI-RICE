@@ -42,10 +42,7 @@ type ChainLabel = { text: string; icon: IconName; usage: string };
 /** 칩 편집 버튼. null이면 두지 않는다. */
 type ChainEdit = { title: string; open: () => void } | null;
 
-/**
- * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 편집 버튼은 마우스를 올렸을 때만 보이고, 고른 항목을 편집
- * 팝업으로 연다. 고르기 창의 줄마다 있는 편집 버튼과 같은 일을 하지만, 지금 쓰는 항목은 칩에서 바로 연다.
- */
+/** 한 줄짜리 구성 칩. 편집 버튼은 지금 쓰는 항목을 화면을 떠나지 않고 팝업으로 연다. */
 export function ChainChip(props: {
   section?: LibrarySection;
   itemId?: string;
@@ -209,8 +206,8 @@ function ChecklistFolder(props: {
 }
 
 /**
- * 라이브러리 항목을 고르는 칩. 누르면 작은 창에 항목이 폴더대로 보이고, 지금 쓰는 항목은 체크와 색으로
- * 표시된다. 여럿 고르는 칸(`multi`)은 체크 대신 고른 순서가 번호로 보이고, 눌러도 창이 닫히지 않는다.
+ * 라이브러리 항목을 고르는 칩. 여럿 고르는 칸(`multi`)은 체크 대신 고른 순서가 번호로 보이고, 눌러도 창이
+ * 닫히지 않는다.
  */
 export function ChecklistChip(props: {
   section?: LibrarySection;
@@ -218,7 +215,6 @@ export function ChecklistChip(props: {
   itemId?: string;
   missing?: boolean;
   edit?: ChainEdit;
-  /** 칩에 보일 값. */
   value: string;
   thumb?: string;
   items: ChecklistItem[];

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 
-/** 직접 입력하거나 −/+로 `step`씩 바꾸는 작은 숫자 입력. 범위 밖 값은 맞춰 넣는다. */
 export function Stepper(props: {
   value: number;
   min: number;

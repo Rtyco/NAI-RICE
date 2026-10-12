@@ -94,8 +94,8 @@ export function AidChip(props: {
       empty={`라이브러리에 ${label}가 없습니다.`}
       options={
         character ? (
-          // NovelAI 웹은 V4.5 인페인트에도 캐릭터 레퍼런스를 허용하지만, 사용자가 써 보니 결과가 제대로 나오지 않았다
-          // (2026-10-12). 같은 조건의 바이브는 잘 되어 막지 않고 알리기만 한다.
+          // NovelAI 웹은 V4.5 인페인트에도 캐릭터 레퍼런스를 허용하지만 사용자가 써 보니 결과가 나빴다. 같은 조건의
+          // 바이브는 괜찮아 막지 않고 알리기만 한다.
           props.inpaint && (
             <p className="warning-box aid-warning">
               인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수 있습니다. 인페인트에는

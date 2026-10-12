@@ -33,7 +33,6 @@ function sharedHint(uses: number, ownUses: number): string | undefined {
   return others > 0 ? `다른 작업 ${others}개에도 함께 반영됩니다.` : undefined;
 }
 
-/** 프롬프트 패널의 접을 수 있는 묶음 하나. 접으면 제목 줄 아래에 포지티브 첫머리만 보인다. */
 function PromptCard(props: {
   groupKey: string;
   icon: 'preset' | 'character';
@@ -80,10 +79,7 @@ function PromptCard(props: {
   );
 }
 
-/**
- * 작업·자유 생성 화면 왼쪽의 프롬프트 패널. 지금 고른 생성 설정의 공통 프롬프트와 캐릭터 프롬프트 세트를
- * 라이브러리로 가지 않고 고친다. 바꾼 값은 라이브러리 항목에 바로 저장된다.
- */
+/** 고친 값은 생성 설정·캐릭터 라이브러리 항목에 바로 저장되어, 같은 항목을 쓰는 곳이 모두 바뀐다. */
 export function PromptPanel(props: {
   preset?: Preset;
   characters: ResolvedCharacter[];
@@ -285,7 +281,6 @@ export function PromptPanel(props: {
   );
 }
 
-/** 라이브러리 화면처럼 왼쪽에 패널, 오른쪽에 화면 본문을 둔다. */
 export function PromptPanelLayout(props: { panel: ReactNode; children: ReactNode }) {
   const collapsed = useStore((state) => state.promptPanelCollapsed);
   return (
