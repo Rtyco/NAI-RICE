@@ -10,7 +10,12 @@ import { ResultBar, showResultMenu, type ResultAction } from '../components/Resu
 import { useBoxSelection } from '../components/useBoxSelection';
 import { Menu, NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
-import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
+import {
+  deleteResults,
+  deleteShownResult,
+  openDirectorToolDialog,
+  openImg2ImgDialog,
+} from '../generationOps';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
 import {
   emotionRecords,
@@ -132,6 +137,14 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       group: 'send',
       title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(project.id, [record]),
+    },
+    {
+      label: '디렉터 툴',
+      icon: 'wand',
+      group: 'send',
+      title:
+        'Emotion(표정 바꾸기)·배경 제거·Declutter 같은 NovelAI 디렉터 툴을 이 결과에 적용합니다',
+      onSelect: () => openDirectorToolDialog(project.id, [record]),
     },
     {
       label: '자유 생성 i2i',

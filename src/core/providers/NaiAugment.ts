@@ -25,7 +25,7 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
   {
     id: 'bg-removal',
     label: '배경 제거',
-    description: '배경을 투명하게 지운 이미지 세 장을 받습니다. Opus여도 Anlas가 듭니다.',
+    description: '배경을 투명하게 지운 이미지 세 장을 받습니다.',
     primary: true,
     prompt: false,
     strength: false,

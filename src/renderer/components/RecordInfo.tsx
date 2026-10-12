@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { GenerationKind, GenerationRecord, GenerationSummary } from '../../core/domain/types';
+import { AUGMENT_STRENGTHS, augmentToolInfo, moodLabel } from '../../core/providers/NaiAugment';
 import { modelLabel, usesMedium } from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
 import { projectMedia } from '../store';
@@ -40,7 +41,29 @@ export function RecordInfo({
       <dt>Seed</dt>
       <dd>{record.seed}</dd>
       <dt>방식</dt>
-      <dd>{KIND_LABELS[record.kind]}</dd>
+      <dd>
+        {KIND_LABELS[record.kind]}
+        {record.augment && ` · ${augmentToolInfo(record.augment.tool).label}`}
+        {record.augment?.parts && ` · ${(record.augment.part ?? 0) + 1}/${record.augment.parts}장`}
+      </dd>
+      {record.augment?.mood && (
+        <>
+          <dt>표정</dt>
+          <dd>{moodLabel(record.augment.mood)}</dd>
+        </>
+      )}
+      {record.augment && augmentToolInfo(record.augment.tool).strength && (
+        <>
+          <dt>강도</dt>
+          <dd>{AUGMENT_STRENGTHS[record.augment.defry ?? 0]}</dd>
+        </>
+      )}
+      {record.augment?.toolPrompt && (
+        <>
+          <dt>툴 프롬프트</dt>
+          <dd className="mono">{record.augment.toolPrompt}</dd>
+        </>
+      )}
       {record.inputFile && (
         <>
           <dt>입력 이미지</dt>

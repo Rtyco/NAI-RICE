@@ -23,7 +23,7 @@ import {
 } from './store';
 import { libraryApi } from './desktop';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from './freeImageOps';
-import { clearEmotionResults, openImg2ImgDialog } from './generationOps';
+import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from './generationOps';
 
 export function updateEmotionSet(id: string, recipe: (set: EmotionSet) => EmotionSet): void {
   updateLibrary((library) => patchItem(library, 'emotionSets', id, recipe));
@@ -228,6 +228,12 @@ export function emotionMenu(
       label: 'i2i로 보내기',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
+    },
+    {
+      label: '디렉터 툴',
+      hint: 'Emotion·배경 제거 등',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => openDirectorToolDialog(projectId, [cover])),
     },
     {
       label: '자유 생성 i2i',

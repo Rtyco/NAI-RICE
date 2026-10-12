@@ -1,12 +1,15 @@
 import {
   buildFreeJobs,
   buildJobs,
+  buildResultAugmentJobs,
   buildResultImg2ImgJobs,
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
+  type AugmentTarget,
   type JobCharacter,
 } from '../core/jobs/JobBuilder';
-import type { GenerationJobSnapshot, GenerationSummary } from '../core/domain/types';
+import type { AugmentTool, GenerationJobSnapshot, GenerationSummary } from '../core/domain/types';
+import { augmentToolInfo, freeAugmentSize } from '../core/providers/NaiAugment';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
@@ -189,6 +192,78 @@ export function sendResultsToImg2Img(
       result.cancelled
         ? '생성 요청을 취소했습니다.'
         : `i2i ${jobs.length}장을 생성 큐에 등록했습니다.`,
+    );
+  }).then(() => undefined);
+}
+
+export type DirectorToolOptions = {
+  tool: AugmentTool;
+  mood: string;
+  toolPrompt: string;
+  defry: number;
+  /** 무료 면적을 넘는 결과를 무료 면적 안으로 줄여 보낸다. */
+  shrink: boolean;
+};
+
+/** 디렉터 툴에 보낼 크기. */
+export function directorToolSize(
+  record: Pick<GenerationSummary, 'width' | 'height'>,
+  shrink: boolean,
+): { width: number; height: number } {
+  return shrink
+    ? freeAugmentSize(record.width, record.height)
+    : { width: record.width, height: record.height };
+}
+
+/**
+ * 결과마다 디렉터 툴을 적용한다. `targets`가 없으면 원래 씬에 쌓고, 있으면(Emotion 툴로 씬 세트 만들기)
+ * 그 씬들에 하나씩 쌓는다.
+ */
+export function runDirectorTool(
+  projectId: string,
+  entries: Array<{ record: GenerationSummary; targets?: AugmentTarget[] }>,
+  options: DirectorToolOptions,
+): Promise<void> {
+  return run('디렉터 툴 작업을 준비하는 중', async () => {
+    await flushSaves();
+    const state = useStore.getState();
+    const library = state.library;
+    if (!library) throw new Error('라이브러리를 읽지 못했습니다.');
+    if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
+    const free = projectId === FREE_PROJECT_ID;
+    const project = library.projects.find((item) => item.id === projectId);
+    if (!free && !project) throw new Error('작업을 찾을 수 없습니다.');
+    const jobs: GenerationJobSnapshot[] = [];
+    for (const entry of entries) {
+      const record = await libraryApi().getGeneration(projectId, entry.record.id);
+      const size = directorToolSize(record, options.shrink);
+      const image = await libraryApi().prepareImageInput({
+        projectId,
+        source: { kind: 'record', projectId, generationId: record.id },
+        ...size,
+        fit: 'crop',
+      });
+      jobs.push(
+        ...buildResultAugmentJobs({
+          record,
+          image,
+          ...size,
+          ...options,
+          targets: entry.targets,
+          projectName: free ? '자유 생성' : project!.name,
+          outputFilenameTemplate: free
+            ? FREE_FILENAME_TEMPLATE
+            : library.settings.outputFilenameTemplate,
+        }),
+      );
+    }
+    if (!jobs.length) throw new Error('디렉터 툴을 적용할 결과가 없습니다.');
+    const result = await queueApi().enqueueGeneration({ jobs });
+    useStore.setState({ queue: result.snapshot });
+    toast(
+      result.cancelled
+        ? '생성 요청을 취소했습니다.'
+        : `${augmentToolInfo(options.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`,
     );
   }).then(() => undefined);
 }

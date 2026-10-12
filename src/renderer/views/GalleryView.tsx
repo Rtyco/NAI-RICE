@@ -11,7 +11,7 @@ import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
-import { clearEmotionResults, openImg2ImgDialog } from '../generationOps';
+import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import {
   coverRecord,
   emotionRecords,
@@ -230,6 +230,14 @@ export function GalleryView({
     if (id) openEmotion(id);
   };
 
+  const pickedCovers = () =>
+    emotions
+      .filter((emotion) => selection.isSelected(emotion.id))
+      .map((emotion) =>
+        coverRecord(emotionRecords(records, emotion.id), project.favorites[emotion.id]),
+      )
+      .filter((record): record is GenerationSummary => Boolean(record));
+
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
       {/*
@@ -245,22 +253,16 @@ export function GalleryView({
             <button
               className="with-icon"
               title="고른 씬마다 대표 이미지(없으면 최신)를 크기·강도를 정해 i2i로 다시 그립니다"
-              onClick={() =>
-                openImg2ImgDialog(
-                  project.id,
-                  emotions
-                    .filter((emotion) => selection.isSelected(emotion.id))
-                    .map((emotion) =>
-                      coverRecord(
-                        emotionRecords(records, emotion.id),
-                        project.favorites[emotion.id],
-                      ),
-                    )
-                    .filter((record): record is GenerationSummary => Boolean(record)),
-                )
-              }
+              onClick={() => openImg2ImgDialog(project.id, pickedCovers())}
             >
               <Icon name="upscale" size={14} /> i2i로 보내기
+            </button>
+            <button
+              className="with-icon"
+              title="고른 씬마다 대표 이미지(없으면 최신)에 Emotion·배경 제거 같은 디렉터 툴을 적용합니다"
+              onClick={() => openDirectorToolDialog(project.id, pickedCovers())}
+            >
+              <Icon name="wand" size={14} /> 디렉터 툴
             </button>
             <button
               className="with-icon"

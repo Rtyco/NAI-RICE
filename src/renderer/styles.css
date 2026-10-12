@@ -594,6 +594,15 @@ textarea {
 .zoom-viewport.panning {
   cursor: grabbing;
 }
+/* 투명한 결과(배경 제거)는 체크무늬 위에 보인다. 불투명한 이미지는 무늬를 덮는다. */
+.emotion-thumb img,
+.zoom-viewport img,
+.filmstrip img,
+.i2i-sources img {
+  background-color: #fff;
+  background-image: conic-gradient(#d6d6d6 25%, transparent 0 50%, #d6d6d6 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
 .zoom-viewport img {
   position: absolute;
   top: 50%;
@@ -1778,6 +1787,25 @@ textarea.syntax-input::selection {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.director-tools {
+  margin-bottom: 10px;
+}
+.director-tools .segmented.full {
+  margin-bottom: 6px;
+}
+.director-tools .segmented .director-more {
+  flex: none;
+  color: var(--muted);
+}
+.director-tools .director-more.open {
+  color: var(--text);
+}
+.director-tools .hint {
+  margin: 0;
+}
+.hint.cost-warn {
+  color: var(--orange-text);
 }
 .export-grid {
   display: grid;
