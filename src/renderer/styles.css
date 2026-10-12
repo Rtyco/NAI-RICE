@@ -2521,11 +2521,12 @@ textarea.syntax-input::selection {
 }
 
 /* ── 설정 창 ─────────────────────────────────── */
+/* 탭마다 창 크기가 바뀌지 않게 「화면 · 테마」 탭 크기로 고정하고, 긴 탭은 안에서 스크롤한다. */
 .settings-layout {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
   gap: 16px;
-  min-height: 460px;
+  height: min(460px, calc(100vh - 160px));
 }
 .settings-tabs {
   display: flex;
@@ -3075,7 +3076,7 @@ textarea.syntax-input::selection {
   text-align: left;
 }
 .settings-body {
-  max-height: 68vh;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
 }
