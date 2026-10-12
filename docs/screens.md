@@ -71,7 +71,7 @@ Shown with no projects or nothing selected: new project, JSON import, settings.
 #### 작업영역 gallery (`GalleryView`)
 
 - **카드 막대** card bar (`gallery-toolbar`): left **카드 고르기** select all (Ctrl+A); with picked cards it becomes
-  the **고른 카드 막대** (i2i로 보내기, 디렉터 툴, 결과만 삭제, 씬 삭제, cancel). Right: export, **카드 비율** icons
+  the **고른 카드 막대** (다듬기, 디렉터 툴, 결과만 삭제, 씬 삭제, cancel). Right: export, **카드 비율** icons
   (832×1216, 1216×832, 1024²) and **한 줄 카드 수** (3–7).
 - **씬 카드** scene card (`EmotionCard`): favorite image (else newest), **생성 체크** (include in batch), scene name,
   count. Hover shows ▶ (generate this scene) and ⋯ (menu) at the top right. While streaming, the in-progress frame
@@ -90,7 +90,7 @@ Shown with no projects or nothing selected: new project, JSON import, settings.
     number to fit and center, double-click fit/original, original-size window. Zoom and position persist across
     results.
   - **결과 막대** 「선택한 결과」 (`ResultBar`): ⓘ record info | favorite, same seed again, restore prompt | i2i로
-    보내기, 디렉터 툴, 자유 생성 i2i, 인페인트 만들기 …… save, show in folder, delete. The image context menu has
+    보내기, 디렉터 툴, 자유 생성으로 보내기, 인페인트 만들기 …… save, show in folder, delete. The image context menu has
     the same list (`ResultActions`). Transparent results show on a checkerboard.
   - **이미지 목록** filmstrip (`filmstrip`): newest first, collapsible, multi-select delete (`filmstrip-bar`).
 - Right panel: scene name, scene prompts (one per character, `ScenePromptFields`), include in batch, **생성 독**
@@ -178,7 +178,7 @@ One level of folders in the sidebar project list and library lists.
 | 프로그램 설정            | `SettingsModal`           | title bar, Ctrl+,                             |
 | 새 작업                  | `NewProjectDialog`        | sidebar ＋, Ctrl+N                            |
 | 편집 팝업                | `LibraryEditorDialog`     | chip pencils, prompt panel pencils            |
-| i2i로 보내기             | `Img2ImgDialog`           | result bar, picked-cards bar, scene card menu |
+| 다듬기 (Enhance)         | `Img2ImgDialog`           | result bar, picked-cards bar, scene card menu |
 | 디렉터 툴                | `DirectorToolDialog`      | result bar, picked-cards bar, scene card menu |
 | 씬 표정 만들기           | `SceneSetDialog`          | scene card menu, Emotion in the tool window   |
 | 씬 이미지 내보내기       | `ExportDialog`            | card bar export                               |

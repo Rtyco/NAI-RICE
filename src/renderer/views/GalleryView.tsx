@@ -300,10 +300,10 @@ export function GalleryView({
             <span className="zone-divider" />
             <button
               className="with-icon"
-              title="고른 씬마다 대표 이미지(없으면 최신)를 크기·강도를 정해 i2i로 다시 그립니다"
+              title="고른 씬마다 대표 이미지(없으면 최신)를 크기·강도를 정해 다시 그려 다듬습니다"
               onClick={() => openImg2ImgDialog(project.id, pickedCovers())}
             >
-              <Icon name="upscale" size={14} /> i2i로 보내기
+              <Icon name="upscale" size={14} /> 다듬기
             </button>
             <button
               className="with-icon"

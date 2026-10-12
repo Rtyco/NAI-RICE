@@ -230,7 +230,7 @@ export function emotionMenu(
     'divider',
     { heading: records.length ? '대표 이미지 (없으면 최신)' : '대표 이미지 (결과 없음)' },
     {
-      label: 'i2i로 보내기',
+      label: '다듬기',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
     },
@@ -247,7 +247,7 @@ export function emotionMenu(
       onSelect: () => withCover((cover) => openSceneSetDialog(projectId, cover)),
     },
     {
-      label: '자유 생성 i2i',
+      label: '자유 생성으로 보내기',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void sendToFreeImg2Img(projectId, cover)),
     },

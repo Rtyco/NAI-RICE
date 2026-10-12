@@ -189,7 +189,7 @@ function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Prese
           <br />
           {director
             ? '결과의 「이 결과로 디렉터 툴」로 보내거나 파일에서 불러옵니다.'
-            : '결과의 「자유 생성 i2i」로 보내거나 파일에서 불러옵니다.'}
+            : '결과의 「자유 생성으로 보내기」로 보내거나 파일에서 불러옵니다.'}
         </span>
       </div>
       <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
@@ -384,10 +384,11 @@ export function FreeView() {
   const resultActions = (record: GenerationSummary): ResultAction[] => [
     ...promptActions(record),
     {
-      label: 'i2i로 보내기',
+      label: '다듬기',
       icon: 'upscale',
       group: 'send',
-      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
+      title:
+        '이 결과를 크기·강도를 정해 다시 그려 다듬습니다(NovelAI 웹의 Enhance). 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
     },
     {

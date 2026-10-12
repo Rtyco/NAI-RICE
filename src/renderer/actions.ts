@@ -209,7 +209,7 @@ export function sendResultsToImg2Img(
   records: GenerationSummary[],
   options: ResultImg2ImgOptions,
 ): Promise<void> {
-  return run('i2i 작업을 준비하는 중', async () => {
+  return run('다듬기 작업을 준비하는 중', async () => {
     await flushSaves();
     const state = useStore.getState();
     const library = state.library;
@@ -240,10 +240,10 @@ export function sendResultsToImg2Img(
         }),
       );
     }
-    if (!jobs.length) throw new Error('i2i로 보낼 결과가 없습니다.');
+    if (!jobs.length) throw new Error('다듬을 결과가 없습니다.');
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(`i2i ${jobs.length}장을 생성 큐에 등록했습니다.`);
+    toast(`다듬기 ${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 

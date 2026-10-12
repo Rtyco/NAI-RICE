@@ -79,9 +79,7 @@ export function Img2ImgDialog(props: {
 
   return (
     <Modal
-      title={
-        props.records.length > 1 ? `결과 ${props.records.length}장 i2i로 보내기` : 'i2i로 보내기'
-      }
+      title={props.records.length > 1 ? `결과 ${props.records.length}장 다듬기` : '다듬기'}
       onClose={props.close}
       wide
       footer={

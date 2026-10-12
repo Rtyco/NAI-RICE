@@ -157,10 +157,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       onSelect: () => patchEmotion(set.id, emotion.id, { prompt: record.emotionPrompt }),
     },
     {
-      label: 'i2i로 보내기',
+      label: '다듬기',
       icon: 'upscale',
       group: 'send',
-      title: '이 결과를 크기·강도를 정해 i2i로 다시 그립니다. 더 큰 크기로 키울 때도 씁니다.',
+      title:
+        '이 결과를 크기·강도를 정해 다시 그려 다듬습니다(NovelAI 웹의 Enhance). 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(project.id, [record]),
     },
     {
@@ -172,10 +173,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       onSelect: () => openDirectorToolDialog(project.id, [record]),
     },
     {
-      label: '자유 생성 i2i',
+      label: '자유 생성으로 보내기',
       icon: 'sparkle',
       group: 'send',
-      title: '자유 생성의 i2i로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
+      title: '자유 생성의 i2i 이미지로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
       onSelect: () => void sendToFreeImg2Img(project.id, record),
     },
     {
