@@ -18,6 +18,7 @@ import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
+import { DrawCanvas } from '../components/DrawCanvas';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
@@ -34,6 +35,9 @@ import {
   clearFreeImage,
   loadFreeImageFromFile,
   makeReferenceFromRecord,
+  newBlankFreeImage,
+  replaceFreeImagePixels,
+  setPendingDrawing,
   saveFreeMask,
   sendToFreeDirector,
   sendToFreeImg2Img,
@@ -119,6 +123,38 @@ function FreeMaskCanvas({ image }: { image: FreeImage }) {
       onReferenceRectChange={ignore}
       onOutputRectChange={ignore}
       onMaskChange={onMaskChange}
+    />
+  );
+}
+
+/** i2i 이미지에 덧칠하는 「그리기」. 이미지가 바뀌면 `key`로 새로 만든다. */
+function FreeDrawStage({ image }: { image: FreeImage }) {
+  const [base, setBase] = useState<HTMLImageElement>();
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    sourceDataUrl(image.file)
+      .then(loadHtmlImage)
+      .then((picture) => !cancelled && setBase(picture))
+      .catch(() => !cancelled && setFailed(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [image.file]);
+  useEffect(() => () => setPendingDrawing(undefined), []);
+  if (failed) return <p className="hint">이미지를 읽지 못했습니다.</p>;
+  if (!base) return <p className="hint">이미지를 불러오는 중…</p>;
+  return (
+    <DrawCanvas
+      base={base}
+      width={image.width}
+      height={image.height}
+      onApply={(dataUrl) =>
+        run('그림을 합치는 중', () => replaceFreeImagePixels(image.file, dataUrl)).then(
+          () => undefined,
+        )
+      }
+      onPendingChange={setPendingDrawing}
     />
   );
 }
@@ -211,7 +247,8 @@ export function FreeView() {
     [allRecords],
   );
   const [selectedId, setSelectedId] = useState<string>();
-  const [stage, setStage] = useState<'source' | 'result'>('source');
+  const [stage, setStage] = useState<'source' | 'draw' | 'result'>('source');
+  const drawing = free.mode === 'img2img' && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
   const selected = records.find((record) => record.id === selectedId) ?? records[0];
   const pending = queue.jobs.filter(
@@ -263,6 +300,7 @@ export function FreeView() {
         event.key === 'Delete' &&
         !pickedCount &&
         !showSource &&
+        !drawing &&
         selected &&
         !document.querySelector('.modal-backdrop')
       ) {
@@ -508,26 +546,66 @@ export function FreeView() {
         <div className="emotion-detail">
           <div className="detail-body">
             <section className="detail-stage">
-              {image && (
+              {(image || free.mode === 'img2img') && (
                 <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
+                  {image && (
+                    <button
+                      className={stage === 'source' ? 'active' : ''}
+                      aria-pressed={stage === 'source'}
+                      onClick={() => setStage('source')}
+                    >
+                      <Icon name={inpainting ? 'brush' : director ? 'wand' : 'reference'} size={14} />
+                      {inpainting ? '마스크 칠하기' : sourceLabel}
+                    </button>
+                  )}
+                  {free.mode === 'img2img' && (
+                    <button
+                      className={stage === 'draw' ? 'active' : ''}
+                      aria-pressed={stage === 'draw'}
+                      title="NovelAI 웹의 캔버스처럼 i2i 이미지에 펜·채우기로 덧칠합니다"
+                      onClick={() => setStage('draw')}
+                    >
+                      <Icon name="pen" size={14} /> 그리기
+                    </button>
+                  )}
                   <button
-                    className={stage === 'source' ? 'active' : ''}
-                    aria-pressed={stage === 'source'}
-                    onClick={() => setStage('source')}
-                  >
-                    <Icon name={inpainting ? 'brush' : director ? 'wand' : 'reference'} size={14} />
-                    {inpainting ? '마스크 칠하기' : sourceLabel}
-                  </button>
-                  <button
-                    className={stage === 'result' ? 'active' : ''}
+                    className={stage === 'result' || (!image && stage === 'source') ? 'active' : ''}
                     aria-pressed={stage === 'result'}
                     onClick={() => setStage('result')}
                   >
-                    <Icon name="images" size={14} /> 원본과 결과
+                    <Icon name="images" size={14} /> {image ? '원본과 결과' : '결과'}
                   </button>
                 </div>
               )}
-              {showSource && image ? (
+              {drawing ? (
+                <div className="free-mask-stage">
+                  {image ? (
+                    <FreeDrawStage key={image.file} image={image} />
+                  ) : (
+                    <div className="stage-empty">
+                      <p>그릴 이미지가 없습니다.</p>
+                      <p className="hint">빈 캔버스에서 시작하거나 그 위에 그릴 이미지를 불러오십시오.</p>
+                      <div className="stage-empty-actions">
+                        <button
+                          className="accent"
+                          onClick={() =>
+                            void newBlankFreeImage(
+                              preset?.generation.width ?? 832,
+                              preset?.generation.height ?? 1216,
+                            )
+                          }
+                        >
+                          빈 캔버스 만들기 ({preset?.generation.width ?? 832}×
+                          {preset?.generation.height ?? 1216})
+                        </button>
+                        <button onClick={() => void loadFreeImageFromFile()}>
+                          파일에서 불러오기
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : showSource && image ? (
                 inpainting ? (
                   <div className="free-mask-stage">
                     <FreeMaskCanvas key={image.file} image={image} />
@@ -547,7 +625,7 @@ export function FreeView() {
               ) : (
                 resultStage
               )}
-              {!showSource && selected && (
+              {!showSource && !drawing && selected && (
                 <ResultBar
                   projectId={FREE_PROJECT_ID}
                   record={selected}

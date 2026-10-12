@@ -102,7 +102,13 @@ Results in `projects/free/`, separate from projects.
 - Header: [일반 생성 | i2i | 디렉터 툴], account, results folder.
 - Chain bar: preset, characters (none or many), position, resolution, 참고; hidden in 디렉터 툴.
 - Center: same preview, result bar and filmstrip. i2i and 디렉터 툴 add tabs [i2i 이미지 (or 마스크 칠하기, 디렉터 툴
-  이미지) | 원본과 결과]. Streaming frames show over the stage.
+  이미지) | 그리기 (i2i only) | 원본과 결과]. Streaming frames show over the stage.
+- **그리기** Draw (`DrawCanvas`, like the NovelAI web canvas's Draw): pen, eraser, fill (tolerance), eyedropper
+  (also Ctrl+click), color and palette, round/soft/square tips, size, opacity, undo/redo, wheel zoom, middle button
+  or Space drag to pan. Strokes sit on one layer over the i2i image; the eraser removes only strokes.
+  「이미지에 합치기」 (or generating, or leaving the tab) bakes them into a new i2i image. Without an image it offers a
+  blank white canvas at the preset size. Keys B/E/G/C, [ ]. Selection, lasso, blur, clone, HSV and 3D layers from the
+  web are not implemented.
 - Right panel: in i2i the **i2i 이미지** card (image, 전체 다시 그리기/인페인팅, strength, noise); prompt; **붙일 위치**
   insert position; dock (count, estimate, generate).
 - 디렉터 툴: **디렉터 툴 이미지** card and **디렉터 툴** card (`DirectorToolFields`), dock (▶ N번 적용, estimate).

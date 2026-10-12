@@ -96,6 +96,50 @@ export function loadFreeImageFromFile(): Promise<void> {
   }).then(() => undefined);
 }
 
+/** 흰 빈 캔버스를 i2i 이미지로 정한다. 「그리기」에서 처음부터 그릴 때 쓴다. */
+export function newBlankFreeImage(width: number, height: number): Promise<void> {
+  return run('빈 캔버스를 만드는 중', async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    const stored = await libraryApi().addSourceImage({
+      kind: 'data',
+      dataUrl: canvas.toDataURL('image/png'),
+    });
+    setFreeImage(stored, '빈 캔버스', 'img2img');
+  }).then(() => undefined);
+}
+
+/**
+ * 「그리기」에서 덧칠한 이미지로 i2i 이미지를 바꾼다. 크기는 그대로라 원래 영역(`outputRect`)과 칠해 둔
+ * 마스크는 그대로 쓴다.
+ */
+export async function replaceFreeImagePixels(file: string, dataUrl: string): Promise<void> {
+  const stored = await libraryApi().addSourceImage({ kind: 'data', dataUrl });
+  const latest = useStore.getState().library?.freeGeneration.image;
+  // 합치는 사이에 다른 이미지로 바꿨으면 새 이미지에 옛 그림을 덮지 않는다.
+  if (!latest || latest.file !== file) return;
+  const next: FreeImage = { ...latest, file: stored.file };
+  updateFreeGeneration({ image: next });
+  dropSourceFiles(latest, next);
+}
+
+let pendingDrawing: (() => Promise<void>) | undefined;
+
+export function setPendingDrawing(apply: (() => Promise<void>) | undefined): void {
+  pendingDrawing = apply;
+}
+
+/** 「그리기」에서 합치지 않은 그림이 있으면 합친다. 생성하기 직전에 부른다. */
+export async function applyPendingDrawing(): Promise<void> {
+  const apply = pendingDrawing;
+  pendingDrawing = undefined;
+  await apply?.();
+}
+
 export function clearFreeImage(): void {
   const previous = useStore.getState().library?.freeGeneration.image;
   pendingMask = undefined;

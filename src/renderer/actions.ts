@@ -27,7 +27,7 @@ import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
-import { saveFreeMask } from './freeImageOps';
+import { applyPendingDrawing, saveFreeMask } from './freeImageOps';
 import type { AidValue } from './components/AidChip';
 
 function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
@@ -136,6 +136,7 @@ export function generateFree(
   options: { prompt?: string; seed?: number; count?: number } = {},
 ): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
+    await applyPendingDrawing();
     await saveFreeMask();
     await flushSaves();
     const state = useStore.getState();

@@ -80,6 +80,11 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   `FreeGeneration` like `Project`). The Anlas confirm popup is gone; estimates still show by the generate button
   and in the queue. Inpaint + character reference gave bad images in the user's test (vibes were fine), so the
   picker shows a warning in inpaint requests instead of blocking.
+- **2026-10-12 list (user request):** free generation without any prompt; Danbooru tags as of 2026-10-01
+  (dbr-e621-lists-archive, ≥25 posts); settings window fixed at the 화면 · 테마 size; bigger scene cards in the scene
+  set editor; JSON import, storage folder and settings moved to a 40 px title bar; gallery reordering with pointer
+  events instead of HTML5 drag (OLE drag lag on Windows); background color repaint in place (676 → 7 ms per
+  change); 「그리기」 Draw tab in free i2i (see screens.md).
 
 ## Next
 
