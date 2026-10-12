@@ -476,6 +476,24 @@ textarea {
 .emotion-card.dragging {
   opacity: 0.35;
 }
+/* 끄는 동안 커서를 따라가는 카드 복제본(useCardReorder). */
+.card-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  margin: 0;
+  opacity: 0.85;
+  box-shadow: 0 12px 30px #0009;
+  pointer-events: none;
+  /* .emotion-card의 transform 전환이 남으면 복제본이 커서를 늦게 따라간다. */
+  transition: none;
+  will-change: transform;
+}
+body.card-reordering {
+  cursor: grabbing;
+  user-select: none;
+}
 /* 스트리밍 중간 그림. 인페인트는 참고 영역까지 든 캔버스라 잘리지 않게 전체를 보인다. */
 .stream-preview {
   position: absolute;

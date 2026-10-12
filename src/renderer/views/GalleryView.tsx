@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
@@ -11,6 +11,7 @@ import { useShortcut } from '../useShortcut';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
+import { useCardReorder, type CardReorder } from '../components/useCardReorder';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
 import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import {
@@ -42,12 +43,10 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
 function EmotionCard(props: {
   resolved: ResolvedProject;
   emotion: Emotion;
-  index: number;
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
-  dragging: string | undefined;
-  setDragging: (id: string | undefined) => void;
+  reorder: CardReorder;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
@@ -64,36 +63,15 @@ function EmotionCard(props: {
   const state = jobState(props.jobs);
   const excluded = project.excludedEmotionIds.includes(emotion.id);
   const included = !excluded && hasScenePrompt(emotion);
-  const [over, setOver] = useState(false);
   const menu = (event: React.MouseEvent) =>
     showContextMenu(event, emotionMenu(project.id, set, emotion, excluded));
 
   return (
     <article
-      className={`emotion-card ${included ? '' : 'disabled'} ${over ? 'drop-target' : ''} ${props.dragging === emotion.id ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
+      className={`emotion-card ${included ? '' : 'disabled'} ${props.reorder.over === emotion.id ? 'drop-target' : ''} ${props.reorder.dragging === emotion.id ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
       data-select-id={emotion.id}
-      draggable
       onContextMenu={menu}
-      onDragStart={(event) => {
-        event.dataTransfer.setData('application/x-emotion', emotion.id);
-        event.dataTransfer.effectAllowed = 'move';
-        props.setDragging(emotion.id);
-      }}
-      onDragEnd={() => props.setDragging(undefined)}
-      onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes('application/x-emotion')) return;
-        event.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(event) => {
-        const id = event.dataTransfer.getData('application/x-emotion');
-        setOver(false);
-        if (!id || id === emotion.id) return;
-        event.preventDefault();
-        event.stopPropagation();
-        updateEmotionSet(set.id, (current) => moveEmotion(current, id, props.index));
-      }}
+      onPointerDown={(event) => props.reorder.start(event, emotion.id)}
     >
       <button
         className="emotion-thumb"
@@ -178,8 +156,12 @@ export function GalleryView({
   const queue = useStore((state) => state.queue);
   const columns = useStore((state) => state.galleryColumns);
   const aspect = useStore((state) => state.galleryAspect);
-  const [dragging, setDragging] = useState<string>();
   const emotions = emotionSet?.emotions ?? [];
+  const reorder = useCardReorder(
+    emotions.map((emotion) => emotion.id),
+    (id, index) =>
+      emotionSet && updateEmotionSet(emotionSet.id, (current) => moveEmotion(current, id, index)),
+  );
   const removeMany = (ids: string[]) => {
     if (emotionSet)
       void deleteEmotions(
@@ -367,17 +349,15 @@ export function GalleryView({
           } as CSSProperties
         }
       >
-        {emotionSet.emotions.map((emotion, index) => (
+        {emotionSet.emotions.map((emotion) => (
           <EmotionCard
             key={emotion.id}
             resolved={resolved}
             emotion={emotion}
-            index={index}
             records={emotionRecords(records, emotion.id)}
             jobs={projectJobs.filter((job) => job.emotionId === emotion.id)}
             prefer={library.settings.export.target}
-            dragging={dragging}
-            setDragging={setDragging}
+            reorder={reorder}
             picked={selection.isSelected(emotion.id)}
             onPick={(event) => selection.clickItem(event, emotion.id)}
           />
