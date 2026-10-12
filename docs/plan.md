@@ -7,7 +7,7 @@ other NovelAI generation modes and conveniences, using NovelAI features only (no
 when you change that feature. Real NovelAI calls: [probes.md](plan/probes.md). Code structure, renderer state and
 performance history: [dev-guide.md](dev-guide.md#renderer).
 
-Last updated 2026-10-13.
+Last updated 2026-10-13 (optimization and cleanup pass).
 
 ## User decisions
 
@@ -105,13 +105,22 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   narrower than their labels (300 px, vibes 400 px) only the count and icon buttons remain.
 - **Docs (2026-10-13):** dev-guide gained Renderer (state, saving, shared parts) and Performance (measured fixes,
   traps, how to measure, candidates) sections for an optimization pass.
+- **Optimization and cleanup pass (2026-10-13, user request):** measured on a production build with a synthetic
+  library (dev-guide § Performance): tag autocomplete runs in a worker with prefix buckets, scene/piece editor rows
+  skip off-screen layout, always-mounted parts select narrow store slices. Comments that restate code were dropped.
+  Security: export requests validated with zod (a format with `../` could write outside the chosen folder), only
+  clipboard writes allowed among permission requests, packaged builds ignore `VITE_DEV_SERVER_URL`. Refactors:
+  `ListRow` shared by the sidebar and library lists, `GenerationIndex` split out of `Library`.
 
 ## Next
 
 No push yet; local commits only.
 
-0. Code optimization pass (another session): start from [dev-guide § Performance](dev-guide.md#performance);
-   keep behavior and the user's feel preferences; measure before and after on a production build.
+0. Refactoring backlog from the 2026-10-13 review (none urgent): `EmotionDetail` and `FreeView` repeat result
+   browsing (newest auto-select, filmstrip picking, ←/→/Home/End/Delete/Ctrl+Shift+S) and could share a hook;
+   `FreeView.tsx` (~800 lines) and `SettingsModal.tsx` (~700) hold several components each; `Library` still mixes
+   reference images, pictures/sources/inputs and storage inspection; `GenerationQueue` also owns vibe encoding
+   (`vibeFor`). `npm audit` reports moderate issues only in dev tooling (sprintf-js under electron-builder).
 
 1. User checks with `npm run dev`: stage 4 (free-range i2i to settle the default strength, 0.3–0.5), stage 6 and
    stage 8 paid one-image tests (lists in those files), stage 7 (Effort Medium, two characters, positions).

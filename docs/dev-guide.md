@@ -47,8 +47,13 @@ src/renderer/              only window.referenceDesk    → electron/services/*
 
 - **The renderer never touches files or the network.** A Content Security Policy blocks external requests; images
   load through the `desk-media://` protocol, limited to the storage folder ([window.ts](../electron/window.ts)).
-- **The main process does not trust the renderer.** Generation requests are re-validated with zod and Anlas
-  warnings are recomputed ([GenerationRequests.ts](../electron/services/GenerationRequests.ts)).
+- **The main process does not trust the renderer.** Generation and export requests are re-validated with zod and
+  Anlas warnings are recomputed ([GenerationRequests.ts](../electron/services/GenerationRequests.ts)). IDs and file
+  names become paths only through `Library` helpers (`FOLDER_ID`, `resolveInside`, `verifyReal` for links and
+  junctions). `Library` keeps each project's `generations.json` through `GenerationIndex` (parse cache + lock).
+- **Window hardening** ([main.ts](../electron/main.ts), [window.ts](../electron/window.ts)): sandboxed renderer,
+  navigation blocked, only clipboard writes allowed among permission requests, packaged builds ignore
+  `VITE_DEV_SERVER_URL`, Electron fuses off for run-as-node, `NODE_OPTIONS` and inspect.
 - **`src/core` is plain TypeScript,** used by both sides; most tests target it.
 - **Services connect through small interfaces in [ports.ts](../electron/services/ports.ts).**
   [main.ts](../electron/main.ts) wires real implementations; tests pass fakes with only the needed methods.
@@ -139,9 +144,11 @@ Model list, quality tags, UC preset text and per-model features are in
 ### State and saving ([store.ts](../src/renderer/store.ts))
 
 - One zustand store. `library` is the whole `library.json` as one immutable object; `updateLibrary(recipe)`
-  replaces it and schedules a save. `useLibrary()` (about 30 components) re-renders on **any** library change,
-  including each keystroke in a prompt field. `useResolvedProject` calls `resolveProject` on every render; it is
-  not memoized.
+  replaces it and schedules a save, so every keystroke in a prompt field makes a new library. `useLibrary()`
+  re-renders on **any** library change; always-mounted parts (App, title bar, sidebar, prompt panel and fields,
+  gallery cards, scene detail) select only what they show instead (`useStore(selector)`, `useShallow`, or
+  `useStoreMemo(selector, same)` for derived objects). `useResolvedProject` keeps the same object while its
+  parts are unchanged. Dialogs and editors may still use `useLibrary()`.
 - Saving: `scheduleSave(key, task, 400 ms)` debounces per key; `library` saves send the whole object over IPC, and
   `Library.save` (main) re-validates it with the zod schema and rewrites `library.json` atomically. `flushSaves` runs
   on unload and before generating. Reference canvases save separately (`ReferenceEditor`, key per reference).
@@ -158,8 +165,11 @@ Model list, quality tags, UC preset text and per-model features are in
   `ReferenceEditor`, `SettingsModal`/`StorageTab`. Region names: [screens.md](screens.md).
 - Actions that call the main process live in plain modules, not components: `actions.ts` (generate),
   `generationOps.tsx`, `emotionOps.tsx`, `freeImageOps.ts`, `projectOps.tsx`, `importers.tsx`.
-- Lists: `useBoxSelection` (marquee, Ctrl/Shift click, Delete/Esc/Ctrl+A), native drag with `listDrag.ts` payloads
+- Lists: `ListRow` (one row of the sidebar project list and the library lists: rename, drag, context menu),
+  `useBoxSelection` (marquee, Ctrl/Shift click, Delete/Esc/Ctrl+A), native drag with `listDrag.ts` payloads
   (multi-select moves), `ListFolder`. Gallery cards use the same drag.
+- Tag autocomplete: `tagDictionary.ts` runs `TagIndex` in a Web Worker (`tagWorker.ts`); if a worker cannot start
+  it loads on the page.
 - Canvases: `canvasViewport.ts` (transform viewport: zoom at cursor, free pan), `ReferenceCanvas` (inpaint mask in
   1/8 cells as `Int8Array` overrides, `core/imaging/MaskBrush`), `DrawCanvas` (three stacked GPU canvases),
   `ImageStage` (result viewer). `zoom.ts` holds the shared wheel handling.
@@ -178,6 +188,9 @@ What has been measured and fixed, so it is not undone. Numbers are from dev-mode
 | Draw brush               | GPU canvases, stamps on the visible stroke canvas, undo as canvas copies (no readback) |
 | Gallery marquee          | box drawn to the DOM, item rects measured once per drag, state only on pick change     |
 | Gallery cards            | records/jobs grouped once, `EmotionCard` memoized with stable callbacks                |
+| Tag autocomplete         | worker + first-two-letter buckets: rare queries 20 ms → <0.5 ms; 174 ms long task gone |
+| Scene/piece editor rows  | `content-visibility: auto`: layout per key with 40 scenes 2.7 → ~0 ms                  |
+| Keystrokes               | narrow selectors (see State): 2.6–2.8 → 1.9–2.3 ms per key on a large library (prod)   |
 
 Rules and traps:
 
@@ -189,13 +202,16 @@ Rules and traps:
   Use `getCoalescedEvents()` for strokes.
 - **User feel preferences:** lists and gallery cards use native HTML5 drag; a pointer-driven clone was tried and the
   user preferred the native feel. Mask brush feel is the reference for other brushes.
-- Measuring without the real app: run Vite and drive an Electron window with `executeJavaScript` (synthetic pointer
-  events, `performance.now()` around handlers and rAF). `webContents.sendInputEvent` wheel events do not reliably
-  reach the page; the DevTools protocol `Input.dispatchMouseEvent` does. Synthetic `setPointerCapture` fails for
-  pointer IDs the browser does not know.
-
-Likely candidates (observed, not measured): library-wide re-renders from `useLibrary()` while typing; whole-library
-zod validation and JSON write on each save; `resolveProject` per render.
+- Measuring without the real app: build the renderer (`vite build --outDir <tmp>`), load it in an offscreen Electron
+  window whose preload sets `window.referenceDesk` to an in-memory API with a large synthetic library (no real
+  library or token is touched), and drive it with `executeJavaScript` (synthetic input events, `performance.now()`
+  around dispatch + forced layout). Use `--force-device-scale-factor=1` (offscreen windows failed to load at
+  225%) and handle `window-all-closed` if one run opens several windows. `webContents.sendInputEvent` wheel events
+  do not reliably reach the page; the DevTools protocol `Input.dispatchMouseEvent` does. Synthetic
+  `setPointerCapture` fails for pointer IDs the browser does not know.
+- Measured and left alone: saving a 247 KB library costs ~1 ms of zod validation and ~0.6 ms of JSON per
+  debounced save; `resolveProject` is a few microseconds. What remains per key is mostly layout of the edited
+  field (~1–2 ms).
 
 ## Tests
 
