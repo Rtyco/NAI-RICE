@@ -17,6 +17,7 @@ import type { GenerationQueue } from './services/GenerationQueue';
 import type { GenerationRequests } from './services/GenerationRequests';
 import { toQueueView } from '../src/core/jobs/QueueView';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
+import { ZOOM_STEP, zoomWindow } from './window';
 import type { AppCache } from './services/AppCache';
 import type { Library } from './services/Library';
 import type { UpdateChecker } from './services/UpdateChecker';
@@ -184,6 +185,11 @@ export function registerIpc(services: AppServices): void {
     if (typeof url !== 'string' || !url.startsWith('https://github.com/'))
       throw new Error('GitHub 주소만 열 수 있습니다.');
     await shell.openExternal(url);
+  });
+  ipcMain.on('app:zoom', (event, direction: unknown) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window && (direction === 'in' || direction === 'out'))
+      zoomWindow(window, direction === 'in' ? ZOOM_STEP : -ZOOM_STEP);
   });
   ipcMain.on('app:titlebar', (event, colors: unknown) => {
     const hex = /^#[0-9a-f]{6}$/i;

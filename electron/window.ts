@@ -6,6 +6,23 @@ import type { Library } from './services/Library';
 
 export const MEDIA_SCHEME = 'desk-media';
 
+/** 확대 한 단계(zoom level). 약 10%다. */
+export const ZOOM_STEP = 0.5;
+
+function sendWindowState(window: BrowserWindow, fullScreen = window.isFullScreen()): void {
+  window.webContents.send('app:window-state', {
+    fullScreen,
+    zoomPercent: Math.round(window.webContents.getZoomFactor() * 100),
+  });
+}
+
+/** `step`만큼 확대한다. null이면 100%로 되돌린다. 50%~200% 사이로 둔다. */
+export function zoomWindow(window: BrowserWindow, step: number | null): void {
+  const level = window.webContents.getZoomLevel();
+  window.webContents.setZoomLevel(step === null ? 0 : Math.max(-3.8, Math.min(3.8, level + step)));
+  sendWindowState(window);
+}
+
 /** app이 준비되기 전에 불러야 한다. */
 export function registerMediaScheme(): void {
   protocol.registerSchemesAsPrivileged([
@@ -75,20 +92,8 @@ export function createWindow(title: string, moduleDirectory: string): void {
   });
   // 메뉴 막대를 없애 Electron 기본 단축키도 함께 사라졌으므로 창 단위 단축키는 여기서 처리한다.
   // 전체 화면 이벤트는 늦게 올 때가 있어 F11을 누른 순간에도 바뀔 상태를 바로 보낸다.
-  const sendWindowState = (fullScreen = window.isFullScreen()) =>
-    window.webContents.send('app:window-state', {
-      fullScreen,
-      zoomPercent: Math.round(window.webContents.getZoomFactor() * 100),
-    });
-  const zoom = (step: number | null) => {
-    const level = window.webContents.getZoomLevel();
-    // 한 단계는 약 10%. 50%~200% 사이로 둔다.
-    const next = step === null ? 0 : Math.max(-3.8, Math.min(3.8, level + step));
-    window.webContents.setZoomLevel(next);
-    sendWindowState();
-  };
-  window.on('enter-full-screen', () => sendWindowState(true));
-  window.on('leave-full-screen', () => sendWindowState(false));
+  window.on('enter-full-screen', () => sendWindowState(window, true));
+  window.on('leave-full-screen', () => sendWindowState(window, false));
   window.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
     const key = input.key.toLowerCase();
@@ -97,11 +102,11 @@ export function createWindow(title: string, moduleDirectory: string): void {
     if (key === 'f11' && !input.control && !input.alt) {
       const next = !window.isFullScreen();
       window.setFullScreen(next);
-      sendWindowState(next);
+      sendWindowState(window, next);
     } else if (ctrl && key === 'w') window.close();
-    else if (ctrl && (key === '=' || key === '+')) zoom(0.5);
-    else if (ctrl && key === '-') zoom(-0.5);
-    else if (ctrl && key === '0') zoom(null);
+    else if (ctrl && (key === '=' || key === '+')) zoomWindow(window, ZOOM_STEP);
+    else if (ctrl && key === '-') zoomWindow(window, -ZOOM_STEP);
+    else if (ctrl && key === '0') zoomWindow(window, null);
     else handled = false;
     if (handled) event.preventDefault();
   });

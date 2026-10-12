@@ -90,6 +90,10 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   name, JSON import only in settings; scene grid marquee and reorder no longer re-render every card per move
   (grouped records, memoized cards, DOM-drawn box, per-frame hit tests, edge auto-scroll); Draw stacks three GPU
   canvases and stamps straight onto the visible stroke canvas (no per-frame full redraw, no undo readbacks).
+- **2026-10-13 second round (user request):** 「i2i로 보내기」 → 「다듬기」 (NovelAI web calls it Enhance), 「자유 생성
+  i2i」 → 「자유 생성으로 보내기」; scene cards went back to native drag like the library lists (the user preferred that
+  feel over the pointer-driven clone) and move all picked cards together; Ctrl+wheel zooms the window unless a canvas
+  or image viewer already took the wheel (renderer sends `app:zoom`).
 
 ## Next
 

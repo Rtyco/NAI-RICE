@@ -95,6 +95,7 @@ function createPreviewApi(): DesktopApi {
     checkForUpdate: unsupported,
     openReleasePage: unsupported,
     setTitleBarColors: () => undefined,
+    zoomWindow: () => undefined,
     onWindowState: none,
   };
 }

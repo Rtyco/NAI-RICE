@@ -58,7 +58,8 @@ async function refreshView(): Promise<void> {
 
 /**
  * 창 어디서나 쓰는 단축키. 화면 이동은 숫자 키, F키는 흔한 프로그램의 쓰임(F1 도움말, F2 이름 바꾸기,
- * F5 새로 고침, F11 전체 화면)을 따른다. 창 단위 단축키(F11 전체 화면, Ctrl +/-/0 확대, Ctrl+W)는 메인 프로세스가 처리한다.
+ * F5 새로 고침, F11 전체 화면)을 따른다. 창 단위 단축키(F11 전체 화면, Ctrl +/-/0·Ctrl+휠 확대, Ctrl+W)는
+ * 메인 프로세스가 처리한다.
  * 대화상자가 열려 있으면 화면 이동은 하지 않는다. 생성처럼 Anlas를 쓰는 동작에는 단축키를 두지 않는다.
  */
 export function useGlobalShortcuts(): void {
@@ -108,6 +109,22 @@ export function useGlobalShortcuts(): void {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Ctrl+휠로 창을 확대·축소한다. 캔버스·이미지 보기가 먼저 받아 막은 휠(그림 확대)은 건너뛴다. 터치패드는
+  // 작은 값이 잦게 오므로 모아서 마우스 휠 한 칸만큼마다 한 단계씩 바꾼다.
+  useEffect(() => {
+    let pending = 0;
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey || event.defaultPrevented) return;
+      event.preventDefault();
+      pending += event.deltaY;
+      if (Math.abs(pending) < 50) return;
+      appApi().zoomWindow(pending < 0 ? 'in' : 'out');
+      pending = 0;
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
   }, []);
 
   // 전체 화면이면 위쪽 제목 줄(창 버튼 자리)을 숨기고, 확대 비율이 바뀌면 알려 준다.

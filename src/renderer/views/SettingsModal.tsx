@@ -552,7 +552,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['F2', '고른 작업·라이브러리 항목 이름 바꾸기'],
       ['F5', '새로 고침 (결과 목록·Anlas 다시 읽기)'],
       ['F11', '전체 화면 켜기·끄기'],
-      ['Ctrl++ / Ctrl+-', '화면 확대·축소'],
+      ['Ctrl++ / Ctrl+- / Ctrl+휠', '화면 확대·축소'],
       ['Ctrl+0', '화면 크기 되돌리기'],
       ['Ctrl+N', '새 작업'],
       ['Ctrl+O', 'JSON 가져오기'],

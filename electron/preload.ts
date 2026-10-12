@@ -89,6 +89,7 @@ const api: DesktopApi = {
   checkForUpdate: () => ipcRenderer.invoke('app:check-update'),
   openReleasePage: (url) => ipcRenderer.invoke('app:open-release', url),
   setTitleBarColors: (colors) => ipcRenderer.send('app:titlebar', colors),
+  zoomWindow: (direction) => ipcRenderer.send('app:zoom', direction),
 };
 
 contextBridge.exposeInMainWorld('referenceDesk', api);

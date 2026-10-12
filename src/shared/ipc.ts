@@ -308,7 +308,12 @@ export type AppApi = {
   openReleasePage: (url: string) => Promise<void>;
   /** 창 제목 표시줄(최소화·최대화·닫기 버튼 영역)을 테마 색에 맞춘다. 색은 #rrggbb. */
   setTitleBarColors: (colors: TitleBarColors) => void;
-  /** 전체 화면(F11)·확대(Ctrl +/-/0)가 바뀔 때. */
+  /**
+   * 창을 한 단계 확대·축소한다(Ctrl+휠). Electron은 Ctrl+휠로 스스로 확대하지 않는다. 캔버스·이미지 보기의 그림
+   * 확대와 겹치지 않게, 그쪽이 막지 않은 Ctrl+휠만 렌더러가 보낸다.
+   */
+  zoomWindow: (direction: 'in' | 'out') => void;
+  /** 전체 화면(F11)·확대(Ctrl +/-/0·휠)가 바뀔 때. */
   onWindowState: (listener: (state: WindowState) => void) => () => void;
 };
 
