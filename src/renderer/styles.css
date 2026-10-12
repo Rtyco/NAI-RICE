@@ -3773,6 +3773,10 @@ textarea.syntax-input::selection {
   color: var(--faint);
   font-size: 11px;
 }
+.checklist-options .aid-warning {
+  margin: 0;
+  font-size: 12px;
+}
 .checklist-footer {
   display: flex;
   align-items: center;

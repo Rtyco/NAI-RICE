@@ -261,6 +261,8 @@ export function createDefaultLibrary(): Library {
       mode: 'txt2img',
       inpaint: false,
       promptPosition: 'common-end',
+      characterReferenceIds: [],
+      vibeIds: [],
     },
   };
 }
@@ -303,7 +305,7 @@ export type ProjectAid =
   | { kind: 'character'; references: Array<{ id: string; item?: CharacterReference }> }
   | { kind: 'vibe'; vibes: Array<{ id: string; item?: Vibe }> };
 
-type AidChoice = Pick<Project, 'aidMode' | 'characterReferenceIds' | 'vibeIds'>;
+export type AidChoice = Pick<Project, 'aidMode' | 'characterReferenceIds' | 'vibeIds'>;
 
 /**
  * 작업이 쓰는 참고 방식. 방식을 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스다. NovelAI

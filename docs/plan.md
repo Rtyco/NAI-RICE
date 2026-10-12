@@ -76,6 +76,10 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   the open project.
 - **참고 chip toggle (2026-10-12):** one button inside the chip shows the current mode (레퍼런스/바이브) and flips
   it on each click; picks on the other side are kept.
+- **Aid fixes (2026-10-12, user report):** the 참고 chip is also in free generation (일반 생성 and i2i; fields on
+  `FreeGeneration` like `Project`). The Anlas confirm popup is gone; estimates still show by the generate button
+  and in the queue. Inpaint + character reference gave bad images in the user's test (vibes were fine), so the
+  picker shows a warning in inpaint requests instead of blocking.
 
 ## Next
 

@@ -421,6 +421,10 @@ export const librarySchema = z.object({
           .catch(undefined),
         // 이 설정이 생기기 전에는 늘 공통 포지티브 끝에 붙였다.
         promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
+        aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
+        characterReferenceIds: z.array(z.string().min(1)).catch([]),
+        vibeIds: z.array(z.string().min(1)).catch([]),
+        normalizeVibes: z.boolean().optional().catch(undefined),
       }),
     )
     .default({
@@ -432,6 +436,8 @@ export const librarySchema = z.object({
       mode: 'txt2img',
       inpaint: false,
       promptPosition: 'common-end',
+      characterReferenceIds: [],
+      vibeIds: [],
     }),
   lastProjectId: z.string().optional(),
 });

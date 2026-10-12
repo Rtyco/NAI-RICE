@@ -18,7 +18,6 @@ import { WorkspaceShell } from './services/WorkspaceShell';
 import {
   anyWindowVisible,
   broadcast,
-  confirmAnlasUse,
   createWindow,
   handleMediaProtocol,
   registerMediaScheme,
@@ -64,7 +63,7 @@ async function createServices(): Promise<AppServices> {
     files: new FilePicker(dialog),
     account,
     queue,
-    requests: new GenerationRequests(queue, account, confirmAnlasUse, library),
+    requests: new GenerationRequests(queue, account, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
     vibes: new VibeFiles(library, dialog),
     // 포터블 실행 파일은 electron-builder가 PORTABLE_EXECUTABLE_FILE을 넣어 준다.

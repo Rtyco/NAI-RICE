@@ -126,13 +126,12 @@ export type TokenStatus = {
   message?: string;
 };
 
-/** Anlas 확인 여부는 메인 프로세스가 작업 내용으로 직접 판단한다. */
+/** 예상 Anlas는 메인 프로세스가 작업 내용으로 직접 계산한다. */
 export type GenerationEnqueueRequest = {
   jobs: GenerationJobSnapshot[];
 };
 
 export type GenerationEnqueueResult = {
-  cancelled: boolean;
   snapshot: QueueView;
 };
 

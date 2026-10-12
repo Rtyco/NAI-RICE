@@ -14,19 +14,21 @@ import type {
   GenerationJobSnapshot,
   GenerationSummary,
   JobAid,
+  Library,
 } from '../core/domain/types';
 import {
   augmentToolInfo,
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
-import { FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
+import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
 import { saveFreeMask } from './freeImageOps';
+import type { AidValue } from './components/AidChip';
 
 function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
   return characters.map(({ character, promptSet, center }) => ({
@@ -34,6 +36,48 @@ function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
     promptSet,
     center,
   }));
+}
+
+/** 고른 참고 항목의 그림을 작업 폴더의 `inputs/`에 넣고 작업에 넣을 값을 만든다. */
+async function prepareAid(
+  library: Library,
+  choice: AidValue,
+  projectId: string,
+): Promise<JobAid | undefined> {
+  const aid = projectAid(library, choice);
+  if (!aid) return undefined;
+  const items = aidItems(aid);
+  if (items.some((item) => !item?.image))
+    throw new Error(
+      `고른 ${aid.kind === 'character' ? '캐릭터 레퍼런스' : '바이브'} 중 지워졌거나 그림이 없는 것이 있습니다. 참고 칩에서 다시 고르십시오.`,
+    );
+  if (aid.kind === 'character') {
+    return {
+      kind: 'character',
+      references: await Promise.all(
+        aid.references.map(async ({ item }) => ({
+          name: item!.name,
+          ...(await libraryApi().prepareAidInput(projectId, item!.image!.file, 'character')),
+          target: item!.target,
+          strength: item!.strength,
+          fidelity: item!.fidelity,
+        })),
+      ),
+    };
+  }
+  return {
+    kind: 'vibe',
+    vibes: await Promise.all(
+      aid.vibes.map(async ({ item }) => ({
+        name: item!.name,
+        ...(await libraryApi().prepareAidInput(projectId, item!.image!.file, 'vibe')),
+        strength: item!.strength,
+        informationExtracted: item!.informationExtracted,
+        ...(item!.encodingId ? { encodingId: item!.encodingId } : {}),
+      })),
+    ),
+    normalize: choice.normalizeVibes ?? true,
+  };
 }
 
 export type GenerateOptions = {
@@ -57,39 +101,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
 
     const reference = resolved.reference!;
-    // resolveProject가 그림이 없는 참고 항목을 이미 막았다.
-    const aid = projectAid(library, project);
-    let aidInput: JobAid | undefined;
-    if (aid?.kind === 'character') {
-      const items = aid.references.flatMap(({ item }) => (item?.image ? [item] : []));
-      aidInput = {
-        kind: 'character',
-        references: await Promise.all(
-          items.map(async (item) => ({
-            name: item.name,
-            ...(await libraryApi().prepareAidInput(project.id, item.image!.file, 'character')),
-            target: item.target,
-            strength: item.strength,
-            fidelity: item.fidelity,
-          })),
-        ),
-      };
-    } else if (aid?.kind === 'vibe') {
-      const vibes = aid.vibes.flatMap(({ item }) => (item?.image ? [item] : []));
-      aidInput = {
-        kind: 'vibe',
-        vibes: await Promise.all(
-          vibes.map(async (item) => ({
-            name: item.name,
-            ...(await libraryApi().prepareAidInput(project.id, item.image!.file, 'vibe')),
-            strength: item.strength,
-            informationExtracted: item.informationExtracted,
-            ...(item.encodingId ? { encodingId: item.encodingId } : {}),
-          })),
-        ),
-        normalize: project.normalizeVibes ?? true,
-      };
-    }
+    const aidInput = await prepareAid(library, project, project.id);
     const common = {
       project,
       preset: resolved.preset!,
@@ -115,7 +127,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
 
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
+    toast(`${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -173,12 +185,11 @@ export function generateFree(
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
       image,
+      aid: await prepareAid(library, free, FREE_PROJECT_ID),
     });
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(
-      result.cancelled ? '생성 요청을 취소했습니다.' : `${jobs.length}장을 생성 큐에 등록했습니다.`,
-    );
+    toast(`${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -232,11 +243,7 @@ export function sendResultsToImg2Img(
     if (!jobs.length) throw new Error('i2i로 보낼 결과가 없습니다.');
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(
-      result.cancelled
-        ? '생성 요청을 취소했습니다.'
-        : `i2i ${jobs.length}장을 생성 큐에 등록했습니다.`,
-    );
+    toast(`i2i ${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -300,11 +307,7 @@ export function runDirectorTool(
     if (!jobs.length) throw new Error('디렉터 툴을 적용할 결과가 없습니다.');
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(
-      result.cancelled
-        ? '생성 요청을 취소했습니다.'
-        : `${augmentToolInfo(options.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`,
-    );
+    toast(`${augmentToolInfo(options.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -337,11 +340,7 @@ export function runFreeDirectorTool(shrink: boolean): Promise<void> {
     });
     const result = await queueApi().enqueueGeneration({ jobs });
     useStore.setState({ queue: result.snapshot });
-    toast(
-      result.cancelled
-        ? '생성 요청을 취소했습니다.'
-        : `${augmentToolInfo(settings.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`,
-    );
+    toast(`${augmentToolInfo(settings.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 

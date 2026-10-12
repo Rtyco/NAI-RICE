@@ -13,10 +13,12 @@ import {
   createProject,
   createPromptSet,
   createReference,
+  createVibe,
   DEFAULT_SETTINGS,
   FREE_PROJECT_ID,
   resolveProject,
 } from '../../src/core/model/defaults';
+import { removeItemReassigning } from '../../src/core/model/mutations';
 import { estimateJobAnlas } from '../../src/core/providers/NaiCost';
 import {
   addsAutoNsfw,
@@ -229,7 +231,52 @@ describe('자유 생성 작업', () => {
       mode: 'txt2img',
       inpaint: false,
       promptPosition: 'common-end',
+      characterReferenceIds: [],
+      vibeIds: [],
     });
+  });
+
+  it('참고를 고르면 자유 생성 작업에도 넣고, V4.5가 아니면 만들지 않아', () => {
+    const { preset } = setup();
+    const aid = {
+      kind: 'vibe' as const,
+      vibes: [
+        {
+          name: '노을',
+          imagePath: `inputs/${'c'.repeat(64)}.png`,
+          imageSha256: 'c'.repeat(64),
+          strength: 0.6,
+          informationExtracted: 1,
+        },
+      ],
+      normalize: true,
+    };
+    const v45 = {
+      ...preset,
+      generation: { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' },
+    };
+    const [job] = buildFreeJobs({ preset: v45, prompt: 'cafe', count: 1, aid });
+    expect(job.aid).toEqual(aid);
+    const v5 = {
+      ...preset,
+      generation: { ...preset.generation, model: 'nai-diffusion-5-full-inpainting' },
+    };
+    expect(() => buildFreeJobs({ preset: v5, prompt: 'cafe', count: 1, aid })).toThrow('V4.5');
+  });
+
+  it('라이브러리에서 바이브를 지우면 자유 생성에서 고른 것도 빼', () => {
+    const library = createDefaultLibrary();
+    const vibe = createVibe('노을');
+    const next = removeItemReassigning(
+      {
+        ...library,
+        vibes: [vibe],
+        freeGeneration: { ...library.freeGeneration, vibeIds: [vibe.id] },
+      },
+      'vibes',
+      vibe.id,
+    );
+    expect(next.freeGeneration.vibeIds).toEqual([]);
   });
 
   it('캐릭터가 하나뿐이던 작업·자유 생성은 한 명짜리 목록으로 읽어', () => {

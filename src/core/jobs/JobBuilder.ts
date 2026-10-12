@@ -225,6 +225,13 @@ function castFields(
   };
 }
 
+function assertAidModel(aid: JobAid | undefined, model: string): void {
+  if (aid && !supportsReferenceAid(model))
+    throw new Error(
+      `캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(model)}입니다.`,
+    );
+}
+
 type EmotionJobCommon = Omit<
   InpaintJobSnapshot,
   'kind' | keyof JobBuildInput['input'] | 'outputRect' | 'keepDiagnosticCanvas'
@@ -238,10 +245,7 @@ function buildEmotionJobs<T>(
   make: (common: EmotionJobCommon) => T,
 ): T[] {
   const settings = effectiveGenerationSettings(input.preset.generation);
-  if (input.aid && !supportsReferenceAid(settings.model))
-    throw new Error(
-      `캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(settings.model)}입니다.`,
-    );
+  assertAidModel(input.aid, settings.model);
   const wanted = new Set(input.emotionIds);
   const selected = input.emotionSet.emotions.filter(
     (emotion) => wanted.has(emotion.id) && hasScenePrompt(emotion),
@@ -361,6 +365,7 @@ export type FreeJobBuildInput = {
   };
   pieceSets?: PieceSet[];
   seedOverride?: number;
+  aid?: JobAid;
   now?: () => Date;
   randomSeed?: () => number;
 };
@@ -370,6 +375,7 @@ export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
   const settings = effectiveGenerationSettings(input.preset.generation);
+  assertAidModel(input.aid, settings.model);
   const characters = input.characters ?? [];
   const promptSet = characters[0]?.promptSet ?? createPromptSet('', {});
   // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어가 공통과 따로 논다.
@@ -430,6 +436,7 @@ export function buildFreeJobs(
       outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
       settings: { ...settings },
       warnings: [],
+      ...(input.aid ? { aid: { ...input.aid } } : {}),
     };
     const { image } = input;
     if (!image) {

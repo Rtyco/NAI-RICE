@@ -398,6 +398,11 @@ export type FreeGeneration = {
   inpaint: boolean;
   /** 입력한 프롬프트를 붙일 곳. 캐릭터 프롬프트가 비어 있으면 공통 포지티브 끝에 붙인다. */
   promptPosition: EmotionPosition;
+  /** 참고(캐릭터 레퍼런스·바이브). 뜻은 `Project`의 같은 필드와 같다. 디렉터 툴에는 쓰지 않는다. */
+  aidMode?: AidMode;
+  characterReferenceIds: string[];
+  vibeIds: string[];
+  normalizeVibes?: boolean;
 };
 
 /**

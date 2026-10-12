@@ -5,6 +5,7 @@ import {
   DEFAULT_GENERATION_SETTINGS,
   effectiveGenerationSettings,
   FREE_PROJECT_ID,
+  projectAid,
 } from '../../core/model/defaults';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
@@ -12,6 +13,7 @@ import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/provid
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
+import { AidChip } from '../components/AidChip';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
@@ -296,6 +298,7 @@ export function FreeView() {
         settings: generation,
         canvasWidth: image?.width ?? generation.width,
         canvasHeight: image?.height ?? generation.height,
+        aid: projectAid(library, free),
       };
   const runs = director ? augment.count : free.count;
   const sourceLabel = director ? '디렉터 툴 이미지' : 'i2i 이미지';
@@ -487,6 +490,12 @@ export function FreeView() {
           />
           <PositionChip target="free" />
           {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
+          <AidChip
+            value={free}
+            onChange={updateFreeGeneration}
+            model={preset?.generation.model}
+            inpaint={free.mode === 'img2img' && free.inpaint}
+          />
         </div>
       )}
       {inpaintModelMissing && (

@@ -62,7 +62,8 @@ Shown with no projects or nothing selected: new project, JSON import, settings.
   - **참고 칩** (`AidChip`): one button inside the chip shows the current mode (레퍼런스/바이브) and flips it on each
     click (`Project.aidMode`); the picker lists that mode's items. Both allow any number (order numbers); none =
     not used. The vibe picker has the 「세기 합 맞추기 (Normalize Reference Strengths)」 toggle. Picks on the other
-    side are kept. Works with both modes.
+    side are kept. Works with both modes. In an inpaint request the character reference picker shows a warning (bad
+    results in the user's test).
 - **경고 띠** warning band (`missing-banner`): only when something required is missing.
 - Body: gallery or scene detail.
 
@@ -99,7 +100,7 @@ Shown with no projects or nothing selected: new project, JSON import, settings.
 Results in `projects/free/`, separate from projects.
 
 - Header: [일반 생성 | i2i | 디렉터 툴], account, results folder.
-- Chain bar: preset, characters (none or many), position, resolution; hidden in 디렉터 툴.
+- Chain bar: preset, characters (none or many), position, resolution, 참고; hidden in 디렉터 툴.
 - Center: same preview, result bar and filmstrip. i2i and 디렉터 툴 add tabs [i2i 이미지 (or 마스크 칠하기, 디렉터 툴
   이미지) | 원본과 결과]. Streaming frames show over the stage.
 - Right panel: in i2i the **i2i 이미지** card (image, 전체 다시 그리기/인페인팅, strength, noise); prompt; **붙일 위치**

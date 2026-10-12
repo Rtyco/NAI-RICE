@@ -132,6 +132,10 @@ export function removeItemReassigning(
       projects: removed.projects.map((project) =>
         project[field].includes(id) ? { ...project, [field]: replace(project[field]) } : project,
       ),
+      freeGeneration: {
+        ...removed.freeGeneration,
+        [field]: replace(removed.freeGeneration[field]),
+      },
     };
   }
   if (key === 'characters') {

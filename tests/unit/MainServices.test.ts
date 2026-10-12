@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AccountService } from '../../electron/services/AccountService';
-import { GenerationRequests, type CostEstimate } from '../../electron/services/GenerationRequests';
+import { GenerationRequests } from '../../electron/services/GenerationRequests';
 import type { TokenStore, WorkspaceFolders } from '../../electron/services/ports';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type {
@@ -117,28 +117,20 @@ describe('GenerationRequests', () => {
     warnings: [],
   } satisfies InpaintJobSnapshot;
 
-  function setup(latest?: TokenStatus, answer = false, cachedVibes: string[] = []) {
+  function setup(latest?: TokenStatus, cachedVibes: string[] = []) {
     const queued: GenerationJobSnapshot[][] = [];
     const queuedEstimates: (number[] | undefined)[] = [];
-    const asked: string[][] = [];
-    const estimates: CostEstimate[] = [];
     const requests = new GenerationRequests(
       {
         enqueue: async (jobs, anlas) => (queued.push(jobs), queuedEstimates.push(anlas), snapshot),
-        getSnapshot: () => snapshot,
       },
       { latest, token: async () => 'token' },
-      async (_count, warnings, estimate) => (
-        asked.push(warnings),
-        estimates.push(estimate),
-        answer
-      ),
       {
         readVibe: async (key) =>
           cachedVibes.some((cached) => key.startsWith(cached)) ? Buffer.from('V') : undefined,
       },
     );
-    return { requests, queued, queuedEstimates, asked, estimates };
+    return { requests, queued, queuedEstimates };
   }
 
   it('인코딩만 가져온 바이브의 인코딩이 없으면 큐에 넣기 전에 막아', async () => {
@@ -160,38 +152,25 @@ describe('GenerationRequests', () => {
     expect(queued).toHaveLength(0);
   });
 
-  it('무료 기준 안이면 묻지 않고 큐에 넣어', async () => {
-    const { requests, queued, queuedEstimates, asked } = setup();
-    expect((await requests.enqueue({ jobs: [job] })).cancelled).toBe(false);
+  it('무료 기준 안이면 예상 0으로 큐에 넣어', async () => {
+    const { requests, queued, queuedEstimates } = setup();
+    await requests.enqueue({ jobs: [job] });
     expect(queued).toHaveLength(1);
     expect(queuedEstimates).toEqual([[0]]);
-    expect(asked).toHaveLength(0);
   });
 
-  it('Anlas가 들면 예상 합계와 함께 묻고, 계속하면 작업마다 예상값을 큐에 넘겨', async () => {
-    const { requests, queuedEstimates, estimates } = setup(
-      { stored: true, secureStorageAvailable: true, tier: 1 },
-      true,
-    );
-    expect((await requests.enqueue({ jobs: [job, { ...job, id: 'j2' }] })).cancelled).toBe(false);
-    expect(estimates).toEqual([{ paidJobs: 2, anlas: 40 }]);
+  it('Anlas가 들어도 묻지 않고 작업마다 예상값을 큐에 넘겨', async () => {
+    const { requests, queued, queuedEstimates } = setup({
+      stored: true,
+      secureStorageAvailable: true,
+      tier: 1,
+    });
+    await requests.enqueue({ jobs: [job, { ...job, id: 'j2' }] });
+    expect(queued).toHaveLength(1);
     expect(queuedEstimates).toEqual([[20, 20]]);
   });
 
-  it('렌더러가 경고를 빼도 V5 할당량 소진을 직접 판단해 확인을 받아', async () => {
-    const exhausted = {
-      stored: true,
-      secureStorageAvailable: true,
-      v5Quota: { percent: 0, isNegative: false, timeUntilNextPercent: 0 },
-    };
-    const { requests, queued, asked } = setup(exhausted);
-    const result = await requests.enqueue({ jobs: [job], costWarnings: [] });
-    expect(result.cancelled).toBe(true);
-    expect(asked[0]).toHaveLength(1);
-    expect(queued).toHaveLength(0);
-  });
-
-  it('처음 쓰는 바이브는 바이브마다 인코딩 2 Anlas를 첫 작업에만 더해 묻고, 인코딩한 적이 있으면 묻지 않아', async () => {
+  it('처음 쓰는 바이브는 바이브마다 인코딩 2 Anlas를 첫 작업의 예상에만 더하고, 인코딩한 적이 있으면 더하지 않아', async () => {
     const vibe = (sha: string) => ({
       name: '노을',
       imagePath: `inputs/${sha}.png`,
@@ -204,15 +183,12 @@ describe('GenerationRequests', () => {
       settings: { ...job.settings, model: 'nai-diffusion-4-5-full-inpainting' },
       aid: { kind: 'vibe' as const, vibes: [vibe('c'.repeat(64)), vibe('d'.repeat(64))] },
     };
-    const fresh = setup(undefined, true);
+    const fresh = setup();
     await fresh.requests.enqueue({ jobs: [vibeJob, { ...vibeJob, id: 'j2' }] });
-    expect(fresh.asked[0]).toEqual([
-      '바이브 2개를 이 그림·모델로 처음 써서 인코딩에 바이브마다 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
-    ]);
     expect(fresh.queuedEstimates).toEqual([[4, 0]]);
-    const cached = setup(undefined, false, ['c'.repeat(64), 'd'.repeat(64)]);
-    expect((await cached.requests.enqueue({ jobs: [vibeJob] })).cancelled).toBe(false);
-    expect(cached.asked).toHaveLength(0);
+    const cached = setup(undefined, ['c'.repeat(64), 'd'.repeat(64)]);
+    await cached.requests.enqueue({ jobs: [vibeJob] });
+    expect(cached.queuedEstimates).toEqual([[0]]);
   });
 
   it('형식이 어긋난 요청은 거부해', async () => {

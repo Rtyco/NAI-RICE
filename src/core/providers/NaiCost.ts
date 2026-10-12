@@ -145,10 +145,7 @@ function diffusionAnlas(job: CostJob, account?: CostAccount): number {
       });
 }
 
-/**
- * 작업들을 생성하면 Anlas가 쓰일 수 있는 이유. 비어 있으면 모두 무료 기준 안이다.
- * 메인 프로세스가 큐에 넣기 전에 직접 계산하므로, 렌더러가 경고를 빼고 보내도 확인 창이 뜬다.
- */
+/** 작업들을 생성하면 Anlas가 쓰일 수 있는 이유. 비어 있으면 모두 무료 기준 안이다. */
 export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): string[] {
   const warnings = new Set<string>();
   if (jobs.length && !isOpus(account))
