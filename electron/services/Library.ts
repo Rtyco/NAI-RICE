@@ -10,7 +10,7 @@ import type {
 } from '../../src/core/domain/types';
 import { createDefaultLibrary } from '../../src/core/model/defaults';
 import { KIND_FOLDERS, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
-import { FOLDER_ID, generationIndexSchema, librarySchema } from '../../src/core/validation/schemas';
+import { FOLDER_ID, librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
   ImageDataSource,
@@ -45,6 +45,7 @@ import {
   toDataUrl,
   toPosix,
 } from './fsUtils';
+import { GenerationIndex } from './GenerationIndex';
 import {
   fitCharacterReference,
   fitImage,
@@ -86,11 +87,9 @@ function recordFiles(record: GenerationRecord): string[] {
  */
 export class Library implements GenerationStore, ExportSource, WorkspaceFolders {
   private readonly mutex = new KeyedMutex();
-  /** 작업별로 마지막에 읽거나 쓴 생성 기록과 그때 파일의 수정 시각·크기. */
-  private readonly indexCache = new Map<
-    string,
-    { mtimeMs: number; size: number; records: GenerationRecord[] }
-  >();
+  private readonly generations = new GenerationIndex((projectId) =>
+    path.join(this.projectDir(projectId), 'generations.json'),
+  );
   /** 마지막으로 읽거나 저장한 라이브러리. 생성 큐가 요청 지연 같은 설정을 읽는다. */
   private latest?: LibraryData;
 
@@ -418,56 +417,12 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.writeInput(request.projectId, png);
   }
 
-  private indexPath(projectId: string): string {
-    return path.join(this.projectDir(projectId), 'generations.json');
-  }
-
-  /**
-   * 생성 기록을 읽는다. 결과가 한 장 생길 때마다 기록 전체(수 MB)를 읽고 검증하던 것을 줄이려고, 파일의
-   * 수정 시각과 크기가 그대로면 지난번에 읽은 것을 쓴다. 돌려준 배열은 복사본이라 고쳐도 캐시는 그대로다.
-   */
-  private async readIndex(projectId: string): Promise<GenerationRecord[]> {
-    const file = this.indexPath(projectId);
-    let stat: { mtimeMs: number; size: number };
-    try {
-      stat = await fs.stat(file);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      this.indexCache.delete(projectId);
-      return [];
-    }
-    const cached = this.indexCache.get(projectId);
-    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size)
-      return [...cached.records];
-    const raw = JSON.parse(await fs.readFile(file, 'utf8'));
-    const records = (generationIndexSchema.parse(raw).records as GenerationRecord[]).map(
-      (record) => ({ ...record, projectId }),
-    );
-    this.indexCache.set(projectId, { mtimeMs: stat.mtimeMs, size: stat.size, records });
-    return [...records];
-  }
-
-  private async writeIndex(projectId: string, records: GenerationRecord[]): Promise<void> {
-    const file = this.indexPath(projectId);
-    await atomicWrite(file, `${JSON.stringify({ schemaVersion: 2, records }, null, 2)}\n`);
-    const stat = await fs.stat(file);
-    this.indexCache.set(projectId, {
-      mtimeMs: stat.mtimeMs,
-      size: stat.size,
-      records: [...records],
-    });
-  }
-
   listGenerations(projectId: string): Promise<GenerationRecord[]> {
-    return this.mutex.run(`index:${projectId}`, () => this.readIndex(projectId));
+    return this.generations.list(projectId);
   }
 
   addGeneration(record: GenerationRecord): Promise<void> {
-    return this.mutex.run(`index:${record.projectId}`, async () => {
-      const records = await this.readIndex(record.projectId);
-      records.push(record);
-      await this.writeIndex(record.projectId, records);
-    });
+    return this.generations.add(record);
   }
 
   async findGeneration(projectId: string, generationId: string): Promise<GenerationRecord> {
@@ -483,15 +438,11 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
    */
   stageGenerations(projectId: string, generationIds: string[]): Promise<string | null> {
     const targets = new Set(generationIds);
-    return this.mutex.run(`index:${projectId}`, async () => {
-      const records = await this.readIndex(projectId);
+    return this.generations.edit(projectId, async (records, write) => {
       const removed = records.filter((item) => targets.has(item.id));
       if (!removed.length) return null;
       const staging = await this.moveToStaging(projectId, removed.flatMap(recordFiles));
-      await this.writeIndex(
-        projectId,
-        records.filter((item) => !targets.has(item.id)),
-      );
+      await write(records.filter((item) => !targets.has(item.id)));
       return staging;
     });
   }
@@ -538,9 +489,8 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     projectId: string,
     fix = false,
   ): Promise<ProjectInspection & { staging: string | null }> {
-    return this.mutex.run(`index:${projectId}`, async () => {
+    return this.generations.edit(projectId, async (records, write) => {
       const directory = this.projectDir(projectId);
-      const records = await this.readIndex(projectId);
       const referenced = new Set(records.flatMap(recordFiles));
       const orphans: string[] = [];
       for (const folder of RESULT_FOLDERS) {
@@ -560,10 +510,7 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
       ]);
       if (missing.length) {
         const gone = new Set(missing.map((record) => record.id));
-        await this.writeIndex(
-          projectId,
-          records.filter((record) => !gone.has(record.id)),
-        );
+        await write(records.filter((record) => !gone.has(record.id)));
       }
       return { ...report, staging };
     });

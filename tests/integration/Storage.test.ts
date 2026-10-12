@@ -129,6 +129,19 @@ describe('storage', () => {
     expect((await library.listGenerations(PROJECT)).map((item) => item.id)).toEqual(['a']);
   });
 
+  it('keeps every record when results are added at the same time', async () => {
+    const { library } = await setup();
+    const added = Array.from({ length: 20 }, (_, index) => record(`new-${index}`, 'smile'));
+    await Promise.all([
+      ...added.map((item) => library.addGeneration(item)),
+      library.stageGenerations(PROJECT, ['b']),
+    ]);
+    const ids = (await library.listGenerations(PROJECT)).map((item) => item.id);
+    expect(ids).toHaveLength(22);
+    expect(ids).not.toContain('b');
+    expect(ids).toEqual(expect.arrayContaining(added.map((item) => item.id)));
+  });
+
   it('summarizes records for the screen without prompts or settings', () => {
     const full = { ...record('a', 'smile'), prompt: 'masterpiece, '.repeat(200) };
     const summary = toGenerationSummary(full);
