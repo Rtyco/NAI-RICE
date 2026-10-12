@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import type {
+  AidMode,
   CharacterReference,
   Preset,
   Project,
@@ -9,13 +10,16 @@ import type {
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   effectiveGenerationSettings,
+  aidItems,
   generationKindFor,
   projectAid,
+  projectAidMode,
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
+  MAX_VIBES,
   maxCharactersFor,
   modelLabel,
   supportsInpaint,
@@ -28,6 +32,7 @@ import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { ChecklistChip, SizeChip, type ChecklistItem } from '../components/ChainChip';
+import type { IconName } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
@@ -53,58 +58,115 @@ const MAX_VARIANTS = 20;
 
 const NO_AID = '__none';
 
+const AID_MODES: Array<{ value: AidMode; label: string; title: string }> = [
+  { value: 'character', label: '레퍼런스', title: '캐릭터 레퍼런스 하나를 씁니다' },
+  { value: 'vibe', label: '바이브', title: `바이브를 ${MAX_VIBES}개까지 함께 씁니다` },
+];
+
 /**
- * 캐릭터 레퍼런스·바이브 칩. 둘은 함께 쓰지 않아 한 칩에서 하나만 고르고, 맨 위 「쓰지 않음」으로 끈다.
- * 창에서는 두 칸을 폴더처럼 나눠 보이고, 항목의 원래 폴더는 줄 설명에 적는다.
+ * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼으로 방식을 고르고, 그 방식의 목록에서
+ * 고른다. 캐릭터 레퍼런스는 하나, 바이브는 여럿 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다.
  */
 function AidChip(props: { project: Project; missing: boolean }) {
   const library = useLibrary();
   const { project } = props;
-  const aid = projectAid(library, project);
+  const mode = projectAidMode(project);
   const txt2img = project.mode === 'txt2img';
-  const row = (kind: 'character' | 'vibe', item: CharacterReference | Vibe): ChecklistItem => ({
-    id: `${kind}:${item.id}`,
+  const aid = projectAid(library, project);
+  const patch = (value: Partial<Project>) =>
+    updateProject(project.id, (current) => ({ ...current, ...value }));
+  const row = (item: CharacterReference | Vibe): ChecklistItem => ({
+    id: item.id,
     name: item.name,
-    folder: kind === 'character' ? '캐릭터 레퍼런스' : '바이브',
+    folder: item.folder,
     thumb: item.image ? pictureMedia(item.image.file) : '',
-    hint: [item.folder, item.image ? '' : '그림 없음'].filter(Boolean).join(' · ') || undefined,
-    editSection: kind === 'character' ? 'characterReferences' : 'vibes',
+    hint: item.image ? undefined : '그림 없음',
   });
-  const pick = (value: string) => {
-    const at = value.indexOf(':');
-    const kind = value === NO_AID ? '' : value.slice(0, at);
-    const id = value.slice(at + 1);
-    updateProject(project.id, (current) => ({
-      ...current,
-      characterReferenceId: kind === 'character' ? id : undefined,
-      vibeId: kind === 'vibe' ? id : undefined,
-    }));
+  const common = {
+    label: {
+      text: '참고',
+      icon: (mode === 'character' ? 'portrait' : 'vibe') as IconName,
+      usage: '캐릭터 레퍼런스나 바이브를 씁니다(V4.5 전용)',
+    },
+    missing: Boolean(aid) && props.missing,
+    before: (
+      <span className="segmented chain-chip-switch" role="group" aria-label="참고 방식">
+        {AID_MODES.map((item) => {
+          const blocked = item.value === 'character' && !txt2img;
+          return (
+            <button
+              key={item.value}
+              className={mode === item.value ? 'active blue' : ''}
+              aria-pressed={mode === item.value}
+              disabled={blocked}
+              title={blocked ? '캐릭터 레퍼런스는 일반 생성에서만 씁니다' : item.title}
+              onClick={() => patch({ aidMode: item.value })}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </span>
+    ),
   };
+
+  if (mode === 'character') {
+    const id = project.characterReferenceId;
+    const selected = library.characterReferences.find((item) => item.id === id);
+    return (
+      <ChecklistChip
+        {...common}
+        value={id ? (selected?.name ?? '(없음)') : '쓰지 않음'}
+        thumb={selected?.image ? pictureMedia(selected.image.file) : undefined}
+        items={[
+          { id: NO_AID, name: '쓰지 않음', noEdit: true },
+          ...library.characterReferences.map(row),
+        ]}
+        checked={[id ?? NO_AID]}
+        onPick={(picked) => patch({ characterReferenceId: picked === NO_AID ? undefined : picked })}
+        editSection="characterReferences"
+        pickTitle="캐릭터 레퍼런스 고르기"
+        hint="한 장에 5 Anlas가 듭니다."
+      />
+    );
+  }
+
+  const ids = project.vibeIds;
+  const full = ids.length >= MAX_VIBES;
+  const names = ids.map((id) => library.vibes.find((item) => item.id === id)?.name ?? '(없음)');
+  const first = library.vibes.find((item) => item.id === ids[0]);
   return (
     <ChecklistChip
-      label={{
-        text: '참고',
-        icon: aid?.kind === 'character' ? 'portrait' : 'vibe',
-        usage: aid
-          ? `${aid.kind === 'character' ? '캐릭터 레퍼런스' : '바이브'}를 씁니다`
-          : '캐릭터 레퍼런스나 바이브 하나를 고릅니다',
-      }}
-      missing={Boolean(aid) && props.missing}
-      value={aid ? (aid.item?.name ?? '(없음)') : '쓰지 않음'}
-      thumb={aid?.item?.image ? pictureMedia(aid.item.image.file) : undefined}
-      items={[
-        { id: NO_AID, name: '쓰지 않음', noEdit: true },
-        ...(txt2img ? library.characterReferences.map((item) => row('character', item)) : []),
-        ...library.vibes.map((item) => row('vibe', item)),
-      ]}
-      checked={[aid ? `${aid.kind}:${aid.id}` : NO_AID]}
-      onPick={pick}
-      editSection={aid?.kind === 'character' || (!aid && txt2img) ? 'characterReferences' : 'vibes'}
-      hint={
-        txt2img
-          ? 'V4.5 전용입니다. 캐릭터 레퍼런스는 한 장에 5 Anlas, 바이브는 처음 인코딩에 2 Anlas가 듭니다.'
-          : 'V4.5 전용입니다. 인페인트에서는 바이브만 씁니다(처음 인코딩에 2 Anlas).'
+      {...common}
+      value={
+        !names.length
+          ? '쓰지 않음'
+          : names.length > 2
+            ? `${names[0]} 외 ${names.length - 1}개`
+            : names.join(', ')
       }
+      thumb={first?.image ? pictureMedia(first.image.file) : undefined}
+      items={[
+        ...library.vibes.map((item) => ({
+          ...row(item),
+          disabled:
+            full && !ids.includes(item.id) ? `바이브는 ${MAX_VIBES}개까지 고릅니다` : undefined,
+        })),
+        ...ids
+          .filter((id) => !library.vibes.some((item) => item.id === id))
+          .map((id) => ({ id, name: '(지워진 바이브)', noEdit: true })),
+      ]}
+      checked={ids}
+      multi
+      onPick={(id) =>
+        patch({
+          vibeIds: ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
+        })
+      }
+      editSection="vibes"
+      pickTitle={`바이브 고르기 · ${MAX_VIBES}개까지`}
+      empty="라이브러리에 바이브가 없습니다."
+      hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas가 듭니다."
     />
   );
 }
@@ -163,7 +225,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
     updateProject(project.id, (current) => ({ ...current, ...value }));
   const aid = projectAid(library, project);
   const aidMissing =
-    !aid?.item?.image ||
+    aidItems(aid).some((item) => !item?.image) ||
     Boolean(resolved.preset && !supportsReferenceAid(resolved.preset.generation.model));
   const thumb = resolved.reference?.image
     ? referenceMedia(

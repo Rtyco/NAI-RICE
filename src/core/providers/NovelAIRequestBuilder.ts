@@ -4,6 +4,7 @@ import type {
   GenerationJobSnapshot,
   GenerationSettings,
   JobAid,
+  ReferenceTarget,
 } from '../domain/types';
 import {
   modelInfo,
@@ -41,8 +42,8 @@ export type NaiPromptInput = {
 
 /** 캐릭터 레퍼런스(캔버스에 맞춘 그림) 또는 바이브(인코딩 결과). */
 export type NaiAidInput =
-  | { kind: 'character'; imageBase64: string; styleAware: boolean; fidelity: number }
-  | { kind: 'vibe'; encodedBase64: string; strength: number };
+  | { kind: 'character'; imageBase64: string; target: ReferenceTarget; fidelity: number }
+  | { kind: 'vibe'; vibes: Array<{ encodedBase64: string; strength: number }> };
 
 /** 요청에 넣는 입력 이미지. 생성 방식마다 NovelAI의 `action`이 다르다. */
 export type NaiImageInput =
@@ -230,8 +231,8 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
     throw new Error('캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다.');
   if (aid.kind === 'vibe')
     return {
-      reference_image_multiple: [aid.encodedBase64],
-      reference_strength_multiple: [clamp(aid.strength, 0, 1)],
+      reference_image_multiple: aid.vibes.map((vibe) => vibe.encodedBase64),
+      reference_strength_multiple: aid.vibes.map((vibe) => clamp(vibe.strength, 0, 1)),
       normalize_reference_strength_multiple: true,
     };
   return {
@@ -239,7 +240,7 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
     director_reference_descriptions: [
       {
         caption: {
-          base_caption: aid.styleAware ? 'character&style' : 'character',
+          base_caption: aid.target,
           char_captions: [],
         },
         legacy_uc: false,
@@ -304,14 +305,22 @@ export function vibeCacheKey(
 
 /**
  * 작업에 필요한 입력 파일(base64). 큐가 스냅샷의 해시를 확인한 뒤 넘긴다. `aidBase64`는 캐릭터 레퍼런스면
- * 맞춘 그림, 바이브면 인코딩 결과다.
+ * 맞춘 그림 하나, 바이브면 바이브 순서대로 인코딩 결과다.
  */
-export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase64?: string };
+export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase64?: string[] };
 
-function jobAidInput(aid: JobAid, base64: string): NaiAidInput {
+function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
+  const count = aid.kind === 'character' ? 1 : aid.vibes.length;
+  if (base64?.length !== count) throw new Error('작업에 참고 그림이 없습니다.');
   return aid.kind === 'character'
-    ? { kind: 'character', imageBase64: base64, styleAware: aid.styleAware, fidelity: aid.fidelity }
-    : { kind: 'vibe', encodedBase64: base64, strength: aid.strength };
+    ? { kind: 'character', imageBase64: base64[0], target: aid.target, fidelity: aid.fidelity }
+    : {
+        kind: 'vibe',
+        vibes: aid.vibes.map((vibe, index) => ({
+          encodedBase64: base64[index],
+          strength: vibe.strength,
+        })),
+      };
 }
 
 function required(value: string | undefined, label: string): string {
@@ -334,7 +343,7 @@ export function buildNovelAIJobRequest(
     height: job.canvasHeight,
     seed: job.seed,
     settings: job.settings,
-    ...(job.aid ? { aid: jobAidInput(job.aid, required(inputs.aidBase64, '참고 그림')) } : {}),
+    ...(job.aid ? { aid: jobAidInput(job.aid, inputs.aidBase64) } : {}),
   };
   switch (job.kind) {
     case 'inpaint':

@@ -14,8 +14,8 @@ export type NovelAIImageRequest = {
   job: GenerationJobSnapshot;
   image?: Buffer;
   mask?: Buffer;
-  /** 캐릭터 레퍼런스 그림 또는 바이브 인코딩 결과. */
-  aid?: Buffer;
+  /** 캐릭터 레퍼런스 그림 하나, 또는 바이브마다 인코딩 결과. */
+  aid?: Buffer[];
   signal?: AbortSignal;
 };
 
@@ -120,7 +120,7 @@ export class NovelAIProvider {
     const { url, body } = buildNovelAIJobRequest(request.job, {
       imageBase64: request.image?.toString('base64'),
       maskBase64: request.mask?.toString('base64'),
-      aidBase64: request.aid?.toString('base64'),
+      aidBase64: request.aid?.map((buffer) => buffer.toString('base64')),
     });
     const response = await requestNovelAI(url, request.token, {
       method: 'POST',

@@ -101,7 +101,6 @@ const LINK_KEY = {
   emotionSets: 'emotionSetId',
   references: 'referenceId',
   characterReferences: 'characterReferenceId',
-  vibes: 'vibeId',
 } as const;
 
 /**
@@ -110,11 +109,25 @@ const LINK_KEY = {
  */
 export function removeItemReassigning(
   library: Library,
-  key: keyof typeof LINK_KEY | 'characters',
+  key: keyof typeof LINK_KEY | 'characters' | 'vibes',
   id: string,
   replacementId?: string,
 ): Library {
   const removed = removeItem(library, key, id);
+  if (key === 'vibes') {
+    // 대신할 바이브가 이미 골라져 있으면 겹치지 않게 뺀다.
+    const replace = (ids: string[]) => [
+      ...new Set(
+        ids.flatMap((entry) => (entry !== id ? [entry] : replacementId ? [replacementId] : [])),
+      ),
+    ];
+    return {
+      ...removed,
+      projects: removed.projects.map((project) =>
+        project.vibeIds.includes(id) ? { ...project, vibeIds: replace(project.vibeIds) } : project,
+      ),
+    };
+  }
   if (key === 'characters') {
     const character = removed.characters.find((entry) => entry.id === replacementId);
     const replace = (slots: CharacterSlot[]) =>
@@ -137,8 +150,8 @@ export function removeItemReassigning(
     };
   }
   const link = LINK_KEY[key];
-  // 캐릭터 레퍼런스·바이브는 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 연결을 뺀다.
-  const optional = key === 'characterReferences' || key === 'vibes';
+  // 캐릭터 레퍼런스는 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 연결을 뺀다.
+  const optional = key === 'characterReferences';
   return {
     ...removed,
     projects: removed.projects.map((project) =>

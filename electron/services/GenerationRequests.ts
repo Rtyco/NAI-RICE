@@ -42,17 +42,20 @@ export class GenerationRequests {
     private readonly vibes?: VibeStore,
   ) {}
 
-  /** 아직 인코딩하지 않은 바이브를 처음 쓰는 작업의 순서. 그 작업에 인코딩 비용을 더한다. */
-  private async vibeEncodes(jobs: GenerationJobSnapshot[]): Promise<Set<number>> {
+  /** 작업 순서별로, 아직 인코딩하지 않은 바이브를 처음 쓰는 수. 그 작업에 인코딩 비용을 더한다. */
+  private async vibeEncodes(jobs: GenerationJobSnapshot[]): Promise<Map<number, number>> {
     const first = new Map<string, number>();
     jobs.forEach((job, index) => {
       if (job.aid?.kind !== 'vibe') return;
-      const key = vibeCacheKey(job.aid.imageSha256, job.settings, job.aid.informationExtracted);
-      if (!first.has(key)) first.set(key, index);
+      for (const vibe of job.aid.vibes) {
+        const key = vibeCacheKey(vibe.imageSha256, job.settings, vibe.informationExtracted);
+        if (!first.has(key)) first.set(key, index);
+      }
     });
-    const encodes = new Set<number>();
+    const encodes = new Map<number, number>();
     for (const [key, index] of first)
-      if (this.vibes && !(await this.vibes.readVibe(key))) encodes.add(index);
+      if (this.vibes && !(await this.vibes.readVibe(key)))
+        encodes.set(index, (encodes.get(index) ?? 0) + 1);
     return encodes;
   }
 
@@ -63,12 +66,14 @@ export class GenerationRequests {
     const account = this.account.latest;
     const warnings = generationCostWarnings(jobs, account);
     const encodes = await this.vibeEncodes(jobs);
-    if (encodes.size)
+    const encodeCount = [...encodes.values()].reduce((sum, count) => sum + count, 0);
+    if (encodeCount)
       warnings.push(
-        '바이브를 이 그림·모델로 처음 써서 인코딩에 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
+        `바이브 ${encodeCount}개를 이 그림·모델로 처음 써서 인코딩에 바이브마다 2 Anlas가 듭니다(다음부터는 다시 씁니다).`,
       );
     const estimates = jobs.map(
-      (job, index) => estimateJobAnlas(job, account) + (encodes.has(index) ? VIBE_ENCODE_ANLAS : 0),
+      (job, index) =>
+        estimateJobAnlas(job, account) + (encodes.get(index) ?? 0) * VIBE_ENCODE_ANLAS,
     );
     const estimate = {
       paidJobs: estimates.filter((anlas) => anlas > 0).length,

@@ -3478,6 +3478,16 @@ textarea.syntax-input::selection {
 .chain-chip-label .icon {
   color: var(--accent-text);
 }
+.chain-chip-switch {
+  margin-left: 4px;
+  padding: 1px;
+  border-radius: 999px;
+}
+.chain-chip-switch button {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
 .chain-chip select {
   width: auto;
   max-width: 220px;

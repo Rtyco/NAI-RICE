@@ -15,6 +15,7 @@ import type {
   Project,
   PromptPiece,
   Reference,
+  AidMode,
   CharacterReference,
   Vibe,
 } from '../domain/types';
@@ -182,7 +183,7 @@ export function createCharacterReference(name: string): CharacterReference {
   return {
     id: newId(),
     name: name.trim() || '새 캐릭터 레퍼런스',
-    styleAware: true,
+    target: 'character&style',
     fidelity: 1,
     updatedAt: new Date().toISOString(),
   };
@@ -214,6 +215,7 @@ export function createProject(
     positionMode: 'ai',
     emotionSetId: parts.emotionSetId,
     referenceId: parts.referenceId,
+    vibeIds: [],
     excludedEmotionIds: [],
     favorites: {},
     createdAt: now,
@@ -290,28 +292,44 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
   return mode === 'reference' ? 'inpaint' : 'txt2img';
 }
 
-/** 작업이 쓰는 캐릭터 레퍼런스나 바이브. 고른 항목이 지워졌으면 `item`이 비어 있다. */
+/** 작업이 쓰는 캐릭터 레퍼런스나 바이브들. 고른 항목이 지워졌으면 `item`이 비어 있다. */
 export type ProjectAid =
   | { kind: 'character'; id: string; item?: CharacterReference }
-  | { kind: 'vibe'; id: string; item?: Vibe };
+  | { kind: 'vibe'; vibes: Array<{ id: string; item?: Vibe }> };
+
+type AidChoice = Pick<Project, 'mode' | 'aidMode' | 'characterReferenceId' | 'vibeIds'>;
 
 /**
- * 작업에 실제로 쓰는 참고. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와 함께 쓰는지는 확인하지 않았다).
- * 화면에서 하나만 고르게 하지만, 둘 다 있으면 캐릭터 레퍼런스를 쓴다.
+ * 작업이 쓰는 참고 방식. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와 함께 쓰는지는 확인하지 않았다).
+ * 방식을 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스다.
  */
+export function projectAidMode(project: AidChoice): AidMode {
+  if (project.mode !== 'txt2img') return 'vibe';
+  return project.aidMode ?? (project.characterReferenceId ? 'character' : 'vibe');
+}
+
 export function projectAid(
   library: Pick<Library, 'characterReferences' | 'vibes'>,
-  project: Pick<Project, 'mode' | 'characterReferenceId' | 'vibeId'>,
+  project: AidChoice,
 ): ProjectAid | undefined {
-  if (project.characterReferenceId && project.mode === 'txt2img') {
+  if (projectAidMode(project) === 'character') {
     const id = project.characterReferenceId;
+    if (!id) return undefined;
     return { kind: 'character', id, item: library.characterReferences.find((x) => x.id === id) };
   }
-  if (project.vibeId) {
-    const id = project.vibeId;
-    return { kind: 'vibe', id, item: library.vibes.find((x) => x.id === id) };
-  }
-  return undefined;
+  if (!project.vibeIds.length) return undefined;
+  return {
+    kind: 'vibe',
+    vibes: project.vibeIds.map((id) => ({ id, item: library.vibes.find((x) => x.id === id) })),
+  };
+}
+
+/** 참고 항목. 지워진 항목은 undefined로 들어 있다. */
+export function aidItems(
+  aid: ProjectAid | undefined,
+): Array<CharacterReference | Vibe | undefined> {
+  if (!aid) return [];
+  return aid.kind === 'character' ? [aid.item] : aid.vibes.map((vibe) => vibe.item);
 }
 
 export function resolveProject(library: Library, project: Project): ResolvedProject {
@@ -324,6 +342,7 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const inpaint = project.mode === 'reference';
   const aid = projectAid(library, project);
   const aidLabel = aid?.kind === 'character' ? '캐릭터 레퍼런스' : '바이브';
+  const items = aidItems(aid);
   const missing = [
     !preset && '생성 설정',
     // 캐릭터 없이도 생성할 수 있다. 고른 캐릭터가 라이브러리에서 지워졌을 때만 막는다.
@@ -331,8 +350,8 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
     inpaint && reference && !reference.image && '참고 이미지',
-    aid && !aid.item && aidLabel,
-    aid?.item && !aid.item.image && `${aidLabel} 그림`,
+    items.some((item) => !item) && aidLabel,
+    items.some((item) => item && !item.image) && `${aidLabel} 그림`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
     aid && preset && !supportsReferenceAid(preset.generation.model) && 'V4.5 모델',
   ].filter(Boolean) as string[];
@@ -360,7 +379,7 @@ export function projectsUsing(
   if (kind === 'pieceSet') return projectsUsingPieceSet(library, id);
   if (kind === 'characterReference')
     return library.projects.filter((project) => project.characterReferenceId === id);
-  if (kind === 'vibe') return library.projects.filter((project) => project.vibeId === id);
+  if (kind === 'vibe') return library.projects.filter((project) => project.vibeIds.includes(id));
   if (kind === 'character')
     return library.projects.filter((project) =>
       project.characters.some((slot) => slot.characterId === id),

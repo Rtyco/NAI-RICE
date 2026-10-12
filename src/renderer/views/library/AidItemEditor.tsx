@@ -1,7 +1,8 @@
 import type { CharacterReference, Picture, Vibe } from '../../../core/domain/types';
 import { patchItem } from '../../../core/model/mutations';
 import { Icon } from '../../components/Icon';
-import { Card, NumberField, Toggle } from '../../components/ui';
+import { MAX_VIBES, REFERENCE_TARGETS } from '../../../core/providers/NaiModels';
+import { Card, NumberField, SelectField } from '../../components/ui';
 import { fileApi, libraryApi } from '../../desktop';
 import { pictureMedia, run, updateLibrary } from '../../store';
 
@@ -47,7 +48,7 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
       <PictureCard image={item.image} onChange={(image) => save({ image })} />
       <Card
         title="값"
-        subtitle="작업의 일반 생성에서 이 캐릭터 레퍼런스를 고르면 그림의 캐릭터(얼굴·머리·옷)를 따라 그립니다"
+        subtitle="작업의 일반 생성에서 이 캐릭터 레퍼런스를 고르면 그림의 캐릭터나 그림체를 따라 그립니다"
       >
         <div className="two-column-fields">
           <NumberField
@@ -58,10 +59,14 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
             step={0.05}
             onChange={(fidelity) => save({ fidelity })}
           />
-          <Toggle
-            label="그림체도 따라가기 (Style Aware)"
-            checked={item.styleAware}
-            onChange={(styleAware) => save({ styleAware })}
+          <SelectField
+            label="따라 그리기"
+            value={item.target}
+            options={REFERENCE_TARGETS.map((target) => ({
+              value: target.value,
+              label: `${target.label} (${target.hint})`,
+            }))}
+            onChange={(target) => save({ target })}
           />
         </div>
         <p className="hint">
@@ -108,8 +113,9 @@ export function VibeEditor({ item }: { item: Vibe }) {
           />
         </div>
         <p className="hint">
-          V4.5 모델 전용입니다. 처음 생성할 때 그림을 인코딩해 2 Anlas가 들고, 같은 그림·모델·정보
-          추출 값이면 인코딩 결과를 다시 씁니다. 그림이나 정보 추출 값을 바꾸면 다시 인코딩합니다.
+          V4.5 모델 전용입니다. 작업에서 바이브를 {MAX_VIBES}개까지 함께 쓸 수 있습니다. 처음 생성할
+          때 그림을 인코딩해 2 Anlas가 들고, 같은 그림·모델·정보 추출 값이면 인코딩 결과를 다시
+          씁니다. 그림이나 정보 추출 값을 바꾸면 다시 인코딩합니다.
         </p>
       </Card>
     </>

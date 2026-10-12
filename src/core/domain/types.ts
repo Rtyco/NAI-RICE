@@ -204,10 +204,15 @@ export type Project = {
   emotionSetId: string;
   /** 인페인트 방식에서만 쓰지만, 모드를 다시 바꿀 때를 위해 남겨 둔다. */
   referenceId: string;
-  /** 고른 캐릭터 레퍼런스. 일반 생성에만 쓰고, 바이브와 함께 쓰지 않는다. 인페인트에서는 남겨만 둔다. */
+  /**
+   * 캐릭터 레퍼런스와 바이브 중 무엇을 쓰는지. 둘은 함께 쓰지 않아, 고른 것은 둘 다 남겨 두고 이 값으로 고른다.
+   * 없으면 캐릭터 레퍼런스를 골라 둔 작업은 캐릭터 레퍼런스, 아니면 바이브다. 인페인트는 늘 바이브다.
+   */
+  aidMode?: AidMode;
+  /** 고른 캐릭터 레퍼런스. 일반 생성에만 쓴다. */
   characterReferenceId?: string;
-  /** 고른 바이브. 일반 생성과 인페인트에 쓴다. */
-  vibeId?: string;
+  /** 고른 바이브(고른 순서). 일반 생성과 인페인트에 쓴다. */
+  vibeIds: string[];
   /** 일괄 생성에서 제외할 감정. */
   excludedEmotionIds: string[];
   /** 감정별 대표 이미지(생성 기록 ID). */
@@ -215,6 +220,11 @@ export type Project = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type AidMode = 'character' | 'vibe';
+
+/** 캐릭터 레퍼런스가 따라 그리는 것. NovelAI 요청의 `base_caption` 값 그대로다. */
+export type ReferenceTarget = 'character&style' | 'character' | 'style';
 
 /** 캐릭터 레퍼런스·바이브의 그림. 작업 폴더의 `pictures/`에 내용 해시 이름으로 둔다. */
 export type Picture = {
@@ -234,8 +244,7 @@ export type CharacterReference = {
   name: string;
   folder?: FolderName;
   image?: Picture;
-  /** 그림체도 따라간다(NovelAI 웹의 Style Aware). */
-  styleAware: boolean;
+  target: ReferenceTarget;
   /** 충실도(0~1). 요청의 secondary strength는 1 - 이 값이다. */
   fidelity: number;
   updatedAt: string;
@@ -254,32 +263,36 @@ export type Vibe = {
   updatedAt: string;
 };
 
+export type JobVibe = {
+  /** 라이브러리 항목 이름. 결과 정보에 보인다. */
+  name: string;
+  /** 인코딩할 원본 그림. 인코딩 결과는 작업 폴더 밖 `vibes/`에 두고 다시 쓴다. */
+  imagePath: string;
+  imageSha256: string;
+  strength: number;
+  informationExtracted: number;
+};
+
 /** 작업에 넣는 참고 방식. 그림은 작업 폴더의 `inputs/`에 해시 이름으로 둔 불변 입력이다. */
 export type JobAid =
   | {
       kind: 'character';
-      /** 라이브러리 항목 이름. 결과 정보에 보인다. */
       name: string;
       /** 정해진 캔버스(1024×1536 등)에 검은 여백을 넣어 맞춘 그림. */
       imagePath: string;
       imageSha256: string;
-      styleAware: boolean;
+      target: ReferenceTarget;
       fidelity: number;
     }
-  | {
-      kind: 'vibe';
-      name: string;
-      /** 인코딩할 원본 그림. 인코딩 결과는 작업 폴더 밖 `vibes/`에 두고 다시 쓴다. */
-      imagePath: string;
-      imageSha256: string;
-      strength: number;
-      informationExtracted: number;
-    };
+  | { kind: 'vibe'; vibes: JobVibe[] };
 
 /** 결과 기록에 남기는 참고 방식(그림 경로는 뺀다). */
 export type RecordAid =
-  | { kind: 'character'; name: string; styleAware: boolean; fidelity: number }
-  | { kind: 'vibe'; name: string; strength: number; informationExtracted: number };
+  | { kind: 'character'; name: string; target: ReferenceTarget; fidelity: number }
+  | {
+      kind: 'vibe';
+      vibes: Array<{ name: string; strength: number; informationExtracted: number }>;
+    };
 
 export type ExportFormat = 'png' | 'webp' | 'avif';
 

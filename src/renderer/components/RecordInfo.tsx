@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { GenerationKind, GenerationRecord, GenerationSummary } from '../../core/domain/types';
 import { AUGMENT_STRENGTHS, augmentToolInfo, moodLabel } from '../../core/providers/NaiAugment';
-import { modelLabel, usesMedium } from '../../core/providers/NaiModels';
+import { modelLabel, referenceTargetLabel, usesMedium } from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
 import { projectMedia } from '../store';
 
@@ -51,8 +51,13 @@ export function RecordInfo({
           <dt>참고 방식</dt>
           <dd>
             {record.aid.kind === 'character'
-              ? `캐릭터 레퍼런스 「${record.aid.name}」 · 충실도 ${record.aid.fidelity}${record.aid.styleAware ? ' · 그림체도 따라감' : ''}`
-              : `바이브 「${record.aid.name}」 · 세기 ${record.aid.strength} · 정보 추출 ${record.aid.informationExtracted}`}
+              ? `캐릭터 레퍼런스 「${record.aid.name}」 · ${referenceTargetLabel(record.aid.target)} · 충실도 ${record.aid.fidelity}`
+              : record.aid.vibes.map((vibe, index) => (
+                  <div key={index}>
+                    바이브 「{vibe.name}」 · 세기 {vibe.strength} · 정보 추출{' '}
+                    {vibe.informationExtracted}
+                  </div>
+                ))}
           </dd>
         </>
       )}

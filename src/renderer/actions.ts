@@ -67,18 +67,21 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
         kind: 'character',
         name: item.name,
         ...image,
-        styleAware: item.styleAware,
+        target: item.target,
         fidelity: item.fidelity,
       };
-    } else if (aid?.kind === 'vibe' && aid.item?.image) {
-      const { item } = aid;
-      const image = await libraryApi().prepareAidInput(project.id, item.image!.file, 'vibe');
+    } else if (aid?.kind === 'vibe') {
+      const vibes = aid.vibes.flatMap(({ item }) => (item?.image ? [item] : []));
       aidInput = {
         kind: 'vibe',
-        name: item.name,
-        ...image,
-        strength: item.strength,
-        informationExtracted: item.informationExtracted,
+        vibes: await Promise.all(
+          vibes.map(async (item) => ({
+            name: item.name,
+            ...(await libraryApi().prepareAidInput(project.id, item.image!.file, 'vibe')),
+            strength: item.strength,
+            informationExtracted: item.informationExtracted,
+          })),
+        ),
       };
     }
     const common = {

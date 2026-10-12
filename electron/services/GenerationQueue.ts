@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import type {
   GenerationRecord,
   GenerationJobSnapshot,
+  JobVibe,
   QueueSnapshot,
   QueueView,
   QueuedGenerationJob,
@@ -26,8 +27,8 @@ import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationStore, ImageGenerator } from './ports';
 
-/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림이거나 바이브로 인코딩할 원본 그림이다. */
-type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer };
+/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림 하나이거나 바이브로 인코딩할 원본 그림들이다. */
+type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
 const REQUEST_TIMEOUT_MS = 180_000;
@@ -246,9 +247,13 @@ export class GenerationQueue {
   }
 
   private async loadInputs(job: QueuedGenerationJob): Promise<JobInputs> {
-    const aid = job.aid
-      ? await this.loadInput(job.projectId, job.aid.imagePath, job.aid.imageSha256)
-      : undefined;
+    const aid =
+      job.aid &&
+      (await Promise.all(
+        (job.aid.kind === 'character' ? [job.aid] : job.aid.vibes).map((file) =>
+          this.loadInput(job.projectId, file.imagePath, file.imageSha256),
+        ),
+      ));
     if (job.kind === 'txt2img') return { aid };
     const image = () => this.loadInput(job.projectId, job.imagePath, job.imageSha256);
     if (job.kind !== 'inpaint') return { image: await image(), aid };
@@ -265,13 +270,12 @@ export class GenerationQueue {
    */
   private async vibeFor(
     job: QueuedGenerationJob,
+    vibe: JobVibe,
     source: Buffer,
     token: string,
     signal: AbortSignal,
   ): Promise<Buffer> {
-    const aid = job.aid;
-    if (aid?.kind !== 'vibe') return source;
-    const key = vibeCacheKey(aid.imageSha256, job.settings, aid.informationExtracted);
+    const key = vibeCacheKey(vibe.imageSha256, job.settings, vibe.informationExtracted);
     const cached = await this.dependencies.library.readVibe(key);
     if (cached) return cached;
     const encode = this.dependencies.provider.encodeVibe;
@@ -282,7 +286,7 @@ export class GenerationQueue {
       token,
       image: source,
       settings: job.settings,
-      informationExtracted: aid.informationExtracted,
+      informationExtracted: vibe.informationExtracted,
       signal,
     });
     this.lastRequestAt = Date.now();
@@ -304,7 +308,13 @@ export class GenerationQueue {
     const token = await this.dependencies.token();
     const anlasBefore = await this.anlasNow(token);
     // 바이브 인코딩 비용도 이 결과의 사용 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
-    const aid = inputs.aid && (await this.vibeFor(job, inputs.aid, token, signal));
+    let aid = inputs.aid;
+    if (aid && job.aid?.kind === 'vibe') {
+      const encoded: Buffer[] = [];
+      for (const [index, vibe] of job.aid.vibes.entries())
+        encoded.push(await this.vibeFor(job, vibe, aid[index], token, signal));
+      aid = encoded;
+    }
     await this.waitRequestDelay(signal);
     this.lastRequestAt = Date.now();
     const generated = await this.dependencies.provider.generate({

@@ -169,26 +169,26 @@ describe('GenerationRequests', () => {
     expect(queued).toHaveLength(0);
   });
 
-  it('처음 쓰는 바이브는 인코딩 2 Anlas를 첫 작업에만 더해 묻고, 인코딩한 적이 있으면 묻지 않아', async () => {
+  it('처음 쓰는 바이브는 바이브마다 인코딩 2 Anlas를 첫 작업에만 더해 묻고, 인코딩한 적이 있으면 묻지 않아', async () => {
+    const vibe = (sha: string) => ({
+      name: '노을',
+      imagePath: `inputs/${sha}.png`,
+      imageSha256: sha,
+      strength: 0.6,
+      informationExtracted: 1,
+    });
     const vibeJob = {
       ...job,
       settings: { ...job.settings, model: 'nai-diffusion-4-5-full-inpainting' },
-      aid: {
-        kind: 'vibe' as const,
-        name: '노을',
-        imagePath: 'inputs/v.png',
-        imageSha256: 'c'.repeat(64),
-        strength: 0.6,
-        informationExtracted: 1,
-      },
+      aid: { kind: 'vibe' as const, vibes: [vibe('c'.repeat(64)), vibe('d'.repeat(64))] },
     };
     const fresh = setup(undefined, true);
     await fresh.requests.enqueue({ jobs: [vibeJob, { ...vibeJob, id: 'j2' }] });
     expect(fresh.asked[0]).toEqual([
-      '바이브를 이 그림·모델로 처음 써서 인코딩에 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
+      '바이브 2개를 이 그림·모델로 처음 써서 인코딩에 바이브마다 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
     ]);
-    expect(fresh.queuedEstimates).toEqual([[2, 0]]);
-    const cached = setup(undefined, false, ['c'.repeat(64)]);
+    expect(fresh.queuedEstimates).toEqual([[4, 0]]);
+    const cached = setup(undefined, false, ['c'.repeat(64), 'd'.repeat(64)]);
     expect((await cached.requests.enqueue({ jobs: [vibeJob] })).cancelled).toBe(false);
     expect(cached.asked).toHaveLength(0);
   });

@@ -73,6 +73,7 @@ export function splitV1Character(
     positionMode: 'ai',
     emotionSetId: emotionSet.id,
     referenceId: reference.id,
+    vibeIds: [],
     excludedEmotionIds: v1.emotions.filter((emotion) => !emotion.enabled).map((emotion) => emotion.id),
     favorites,
     createdAt: v1.createdAt,

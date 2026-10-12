@@ -418,7 +418,7 @@ describe('generation pipeline', () => {
     const reference = makeReference(64, 64);
     const picture = await library.addPicture(dataUrl(await png(64, 96, '#ff0000')));
     let encodes = 0;
-    const sent: Array<Buffer | undefined> = [];
+    const sent: Array<Buffer[] | undefined> = [];
     const records: GenerationRecord[] = [];
     const queue = new GenerationQueue({
       persistencePath: path.join(root, 'queue.json'),
@@ -462,19 +462,20 @@ describe('generation pipeline', () => {
       emotionSet,
       emotionIds: [emotionSet.emotions[0].id],
       settings: DEFAULT_SETTINGS,
-      aid: { kind: 'vibe', name: '노을', ...image, strength: 0.6, informationExtracted: 0.7 },
+      aid: {
+        kind: 'vibe',
+        vibes: [{ name: '노을', ...image, strength: 0.6, informationExtracted: 0.7 }],
+      },
     });
     await queue.enqueue(jobs);
     for (let tries = 0; tries < 250 && records.length < 2; tries += 1)
       await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(encodes).toBe(1);
-    expect(sent.map((buffer) => buffer?.toString())).toEqual(['ENCODED', 'ENCODED']);
+    expect(sent.map((buffers) => buffers?.map(String))).toEqual([['ENCODED'], ['ENCODED']]);
     expect(records[0].aid).toEqual({
       kind: 'vibe',
-      name: '노을',
-      strength: 0.6,
-      informationExtracted: 0.7,
+      vibes: [{ name: '노을', strength: 0.6, informationExtracted: 0.7 }],
     });
   });
 

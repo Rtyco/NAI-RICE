@@ -4,6 +4,7 @@ import type {
   NaiTagFamily,
   NaiTagTable,
   QualityLevel,
+  ReferenceTarget,
   UcPresetId,
 } from '../domain/types';
 
@@ -141,6 +142,20 @@ export function maxCharactersFor(id: string | undefined): number {
 export function supportsReferenceAid(id: string): boolean {
   return modelInfo(id)?.family.startsWith('v4-5') ?? false;
 }
+
+/** NovelAI 웹의 Character & Style · Character · Style. */
+export const REFERENCE_TARGETS: Array<{ value: ReferenceTarget; label: string; hint: string }> = [
+  { value: 'character&style', label: '캐릭터와 그림체', hint: 'Character & Style' },
+  { value: 'character', label: '캐릭터', hint: 'Character' },
+  { value: 'style', label: '그림체', hint: 'Style' },
+];
+
+export function referenceTargetLabel(target: ReferenceTarget): string {
+  return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;
+}
+
+/** 한 작업에 넣는 바이브 수. 더 넣을 때의 비용을 실측하지 않아 4개까지만 고르게 한다. */
+export const MAX_VIBES = 4;
 
 export function supportsEffort(id: string): boolean {
   return Boolean(modelInfo(id)?.mediumRequestIds);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
+import { MAX_VIBES } from '../providers/NaiModels';
 
 export const rectSchema = z.object({
   x: z.number().finite(),
@@ -196,8 +197,16 @@ function readSingleCharacter(value: unknown): unknown {
   };
 }
 
+/** 바이브를 하나만 고르던 때의 `vibeId`는 한 개짜리 목록으로 읽는다. */
+function readSingleVibe(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const { vibeId, ...rest } = value as Record<string, unknown>;
+  if (Array.isArray(rest.vibeIds)) return rest;
+  return { ...rest, vibeIds: typeof vibeId === 'string' && vibeId ? [vibeId] : [] };
+}
+
 export const projectSchema = z.preprocess(
-  readSingleCharacter,
+  (value) => readSingleVibe(readSingleCharacter(value)),
   z.object({
     id: z.string().regex(FOLDER_ID),
     name: z.string(),
@@ -209,8 +218,9 @@ export const projectSchema = z.preprocess(
     positionMode: z.enum(['ai', 'manual']).catch('ai'),
     emotionSetId: z.string(),
     referenceId: z.string(),
+    aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
     characterReferenceId: z.string().min(1).optional().catch(undefined),
-    vibeId: z.string().min(1).optional().catch(undefined),
+    vibeIds: z.array(z.string().min(1)).catch([]),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     createdAt: z.string(),
@@ -230,15 +240,37 @@ const pictureSchema = z
 
 const unitSchema = (fallback: number) => z.number().min(0).max(1).catch(fallback);
 
-export const characterReferenceSchema = z.object({
-  id: z.string().min(1),
-  name: z.string(),
-  folder: folderSchema,
-  image: pictureSchema,
-  styleAware: z.boolean().catch(true),
-  fidelity: unitSchema(1),
-  updatedAt: z.string().catch(''),
-});
+const referenceTargetSchema = z.enum(['character&style', 'character', 'style']);
+
+/** 처음에는 Style Aware 켜기·끄기(`styleAware`)만 있었다. 켜기는 캐릭터와 그림체, 끄기는 캐릭터다. */
+function readStyleAware(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const { styleAware, ...rest } = value as Record<string, unknown>;
+  if (rest.target !== undefined || typeof styleAware !== 'boolean') return rest;
+  return { ...rest, target: styleAware ? 'character&style' : 'character' };
+}
+
+export const characterReferenceSchema = z.preprocess(
+  readStyleAware,
+  z.object({
+    id: z.string().min(1),
+    name: z.string(),
+    folder: folderSchema,
+    image: pictureSchema,
+    target: referenceTargetSchema.catch('character&style'),
+    fidelity: unitSchema(1),
+    updatedAt: z.string().catch(''),
+  }),
+);
+
+/** 바이브를 하나만 넣던 때의 작업·기록 `aid`는 한 개짜리 `vibes`로 읽는다. */
+function readSingleVibeAid(value: unknown): unknown {
+  const read = readStyleAware(value);
+  if (!read || typeof read !== 'object') return read;
+  const { kind, vibes, ...rest } = read as Record<string, unknown>;
+  if (kind !== 'vibe' || Array.isArray(vibes)) return read;
+  return { kind, vibes: [rest] };
+}
 
 export const vibeSchema = z.object({
   id: z.string().min(1),
@@ -393,20 +425,27 @@ export const generationRecordSchema = z.object({
   inputFile: z.string().optional(),
   augment: augmentInfoSchema.optional().catch(undefined),
   aid: z
-    .discriminatedUnion('kind', [
-      z.object({
-        kind: z.literal('character'),
-        name: z.string().catch(''),
-        styleAware: z.boolean(),
-        fidelity: z.number(),
-      }),
-      z.object({
-        kind: z.literal('vibe'),
-        name: z.string().catch(''),
-        strength: z.number(),
-        informationExtracted: z.number(),
-      }),
-    ])
+    .preprocess(
+      readSingleVibeAid,
+      z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('character'),
+          name: z.string().catch(''),
+          target: referenceTargetSchema.catch('character&style'),
+          fidelity: z.number(),
+        }),
+        z.object({
+          kind: z.literal('vibe'),
+          vibes: z.array(
+            z.object({
+              name: z.string().catch(''),
+              strength: z.number(),
+              informationExtracted: z.number(),
+            }),
+          ),
+        }),
+      ]),
+    )
     .optional()
     .catch(undefined),
   width: z.number(),
@@ -473,24 +512,34 @@ const jobSnapshotCommonSchema = z.object({
   warnings: z.array(z.string()),
   sourceRecordId: z.string().min(1).optional(),
   aid: z
-    .discriminatedUnion('kind', [
-      z.object({
-        kind: z.literal('character'),
-        name: z.string(),
-        imagePath: z.string().min(1),
-        imageSha256: sha256Schema,
-        styleAware: z.boolean(),
-        fidelity: z.number().min(0).max(1),
-      }),
-      z.object({
-        kind: z.literal('vibe'),
-        name: z.string(),
-        imagePath: z.string().min(1),
-        imageSha256: sha256Schema,
-        strength: z.number().min(0).max(1),
-        informationExtracted: z.number().min(0).max(1),
-      }),
-    ])
+    .preprocess(
+      readSingleVibeAid,
+      z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('character'),
+          name: z.string(),
+          imagePath: z.string().min(1),
+          imageSha256: sha256Schema,
+          target: referenceTargetSchema,
+          fidelity: z.number().min(0).max(1),
+        }),
+        z.object({
+          kind: z.literal('vibe'),
+          vibes: z
+            .array(
+              z.object({
+                name: z.string(),
+                imagePath: z.string().min(1),
+                imageSha256: sha256Schema,
+                strength: z.number().min(0).max(1),
+                informationExtracted: z.number().min(0).max(1),
+              }),
+            )
+            .min(1)
+            .max(MAX_VIBES),
+        }),
+      ]),
+    )
     .optional(),
 });
 

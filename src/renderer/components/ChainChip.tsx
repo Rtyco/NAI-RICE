@@ -203,6 +203,10 @@ export function ChecklistChip(props: {
   editSection?: LibrarySection;
   empty?: string;
   hint?: string;
+  /** 칩 이름과 값 사이에 두는 조작(참고 칩의 방식 전환 등). */
+  before?: ReactNode;
+  /** 고르기 창 제목. 없으면 「칩 이름 고르기」. */
+  pickTitle?: string;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const chip = useRef<HTMLDivElement>(null);
@@ -272,6 +276,7 @@ export function ChecklistChip(props: {
 
   return (
     <ChainChip chipRef={chip} section={props.section} label={props.label} missing={props.missing}>
+      {props.before}
       <button
         className="chain-chip-value chain-chip-trigger"
         aria-haspopup="dialog"
@@ -286,7 +291,10 @@ export function ChecklistChip(props: {
         <ChecklistPopover
           anchor={anchor}
           close={close}
-          title={props.multi ? `${title} 고르기 · 여럿 고를 수 있습니다` : `${title} 고르기`}
+          title={
+            props.pickTitle ??
+            (props.multi ? `${title} 고르기 · 여럿 고를 수 있습니다` : `${title} 고르기`)
+          }
           query={props.items.length >= SEARCH_FROM ? { value: query, change: setQuery } : undefined}
           footer={
             (props.hint || props.editSection) && (

@@ -108,6 +108,7 @@ describe('import files', () => {
         referenceId: reference.id,
       }),
       characterReferenceId: face.id,
+      vibeIds: [mood.id],
     };
     const full = {
       ...library,
@@ -125,6 +126,7 @@ describe('import files', () => {
     expect(bundle.vibes[0].image).toBeUndefined();
     expect(bundle.pictures).toEqual({ [file]: 'data:image/png;base64,AAAA' });
     expect(bundle.projects[0].characterReferenceId).toBe(bundle.characterReferences[0].id);
+    expect(bundle.projects[0].vibeIds).toEqual([bundle.vibes[0].id]);
     const merged = mergeBundle(full, bundle);
     expect(merged.characterReferences).toHaveLength(2);
     expect(librarySchema.safeParse(merged).success).toBe(true);
