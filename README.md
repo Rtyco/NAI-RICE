@@ -56,7 +56,7 @@ Opus 구독이면 기본 해상도에서 Anlas가 들지 않습니다.
   작가 태그를 줄여 보세요. 실험 결과는 [인페인트 그림체 실험](docs/인페인트-실험.md)에 있습니다.
 
 기능별 설명과 프롬프트 처리 방식은 [자세한 설명](docs/자세한-설명.md)에, 코드 구조와 개발 방법은
-[개발 가이드](docs/개발-가이드.md)에 있습니다.
+[개발 가이드](docs/dev-guide.md)에 있습니다.
 
 [SD Studio](https://github.com/sunho/SDStudio)(원작 sunho, [현행 Dd154663](https://github.com/Dd154663/SDStudio))에서
 파생된 프로젝트입니다. MIT 라이선스 ·
