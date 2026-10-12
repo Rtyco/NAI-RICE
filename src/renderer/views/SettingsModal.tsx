@@ -521,6 +521,8 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['F4', '씬 모음'],
       ['F5', '인페인트'],
       ['F6', '프롬프트 조각'],
+      ['F7', '캐릭터 레퍼런스'],
+      ['F8', '바이브'],
       ['Ctrl+Tab / Ctrl+Shift+Tab', '다음·이전 작업'],
     ],
   },
