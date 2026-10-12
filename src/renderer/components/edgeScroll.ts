@@ -13,13 +13,3 @@ export function edgeScrollStep(bounds: DOMRect, y: number): number {
   if (below > 0) return Math.ceil(Math.min(1, below / edge) * MAX_STEP);
   return 0;
 }
-
-/** 세로로 스크롤되는 가장 가까운 조상. */
-export function scrollParent(element: HTMLElement): HTMLElement | undefined {
-  for (let node = element.parentElement; node; node = node.parentElement) {
-    const overflow = getComputedStyle(node).overflowY;
-    if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight)
-      return node;
-  }
-  return undefined;
-}

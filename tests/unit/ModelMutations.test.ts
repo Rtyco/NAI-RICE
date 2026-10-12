@@ -15,6 +15,7 @@ import {
   duplicateEmotion,
   mergeEmotions,
   moveEmotion,
+  moveEmotions,
   moveItem,
   moveItems,
   removeItemReassigning,
@@ -78,6 +79,15 @@ describe('library model', () => {
     expect(duplicated.copy?.prompt).toBe('기쁨'.toLowerCase());
     set = moveEmotion(set, set.emotions[2].id, 0);
     expect(set.emotions[0].name).toBe('기쁨 2');
+  });
+
+  it('고른 씬 여러 개를 원래 순서대로 한꺼번에 옮겨', () => {
+    const set = setOf('A', 'B', 'C', 'D', 'E');
+    const [a, b, c, d, e] = set.emotions.map((emotion) => emotion.id);
+    const names = (next: typeof set) => next.emotions.map((emotion) => emotion.name).join('');
+    expect(names(moveEmotions(set, [a, c], a, d))).toBe('BDACE');
+    expect(names(moveEmotions(set, [b, e], e, a))).toBe('BEACD');
+    expect(moveEmotions(set, [a, b], a, b)).toBe(set);
   });
 
   it('감정 병합은 같은 이름을 덮어쓰고 ID를 유지해', () => {

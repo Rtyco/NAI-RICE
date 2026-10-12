@@ -75,7 +75,8 @@ Shown with no projects or nothing selected: new project, JSON import, settings.
   (832×1216, 1216×832, 1024²) and **한 줄 카드 수** (3–7).
 - **씬 카드** scene card (`EmotionCard`): favorite image (else newest), **생성 체크** (include in batch), scene name,
   count. Hover shows ▶ (generate this scene) and ⋯ (menu) at the top right. While streaming, the in-progress frame
-  shows over the card (`StreamPreview`).
+  shows over the card (`StreamPreview`). Drag a card onto another to reorder (native drag like the library lists);
+  dragging one of several picked cards moves them all.
   - **카드 고르기** (Ctrl/Shift click, drag on empty space) targets bulk actions; **생성 체크** targets batch
     generation. They are different.
 - **생성 묶음** generate group (queue bar right): 생성할 씬 N/M, check all/none, × per-scene count, estimate,

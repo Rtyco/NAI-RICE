@@ -74,8 +74,27 @@ export function moveItem<K extends Collection>(
 
 /**
  * 여러 항목을 한꺼번에 `targetId` 옆으로 옮긴다. 옮기는 항목끼리는 원래 순서를 지킨다. 한 개를 옮길 때와
- * 같이, 끌어 온 항목(`grabbedId`)이 대상보다 위에 있었으면 대상 뒤에, 아래에 있었으면 앞에 놓는다.
+ * 같이, 끌어 온 항목(`grabbedId`)이 대상보다 위에 있었으면 대상 뒤에, 아래에 있었으면 앞에 놓는다. 옮길 수
+ * 없으면(대상이 옮기는 항목이거나 목록에 없으면) undefined.
  */
+function moveNextToTarget<T extends { id: string }>(
+  list: T[],
+  ids: string[],
+  grabbedId: string,
+  targetId: string,
+): T[] | undefined {
+  const moving = new Set(ids);
+  if (moving.has(targetId)) return undefined;
+  const after =
+    list.findIndex((entry) => entry.id === grabbedId) <
+    list.findIndex((entry) => entry.id === targetId);
+  const rest = list.filter((entry) => !moving.has(entry.id));
+  const at = rest.findIndex((entry) => entry.id === targetId);
+  if (at < 0) return undefined;
+  rest.splice(at + (after ? 1 : 0), 0, ...list.filter((entry) => moving.has(entry.id)));
+  return rest;
+}
+
 export function moveItems<K extends Collection>(
   library: Library,
   key: K,
@@ -83,17 +102,8 @@ export function moveItems<K extends Collection>(
   grabbedId: string,
   targetId: string,
 ): Library {
-  const list = library[key] as ItemOf<K>[];
-  const moving = new Set(ids);
-  if (moving.has(targetId)) return library;
-  const after =
-    list.findIndex((entry) => entry.id === grabbedId) <
-    list.findIndex((entry) => entry.id === targetId);
-  const rest = list.filter((entry) => !moving.has(entry.id));
-  const at = rest.findIndex((entry) => entry.id === targetId);
-  if (at < 0) return library;
-  rest.splice(at + (after ? 1 : 0), 0, ...list.filter((entry) => moving.has(entry.id)));
-  return { ...library, [key]: rest };
+  const moved = moveNextToTarget(library[key] as ItemOf<K>[], ids, grabbedId, targetId);
+  return moved ? { ...library, [key]: moved } : library;
 }
 
 const LINK_KEY = {
@@ -244,6 +254,17 @@ export function moveEmotion(set: EmotionSet, id: string, toIndex: number): Emoti
   const [item] = emotions.splice(from, 1);
   emotions.splice(Math.max(0, Math.min(emotions.length, toIndex)), 0, item);
   return { ...set, emotions };
+}
+
+/** 씬 여러 개를 `targetId` 옆으로 옮긴다. 놓는 자리는 `moveItems`와 같다. */
+export function moveEmotions(
+  set: EmotionSet,
+  ids: string[],
+  grabbedId: string,
+  targetId: string,
+): EmotionSet {
+  const emotions = moveNextToTarget(set.emotions, ids, grabbedId, targetId);
+  return emotions ? { ...set, emotions } : set;
 }
 
 /** 같은 이름은 프롬프트를 덮어쓰고 없는 감정은 추가한다. */

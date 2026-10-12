@@ -1,7 +1,16 @@
-import { memo, useMemo, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
-import { moveEmotion } from '../../core/model/mutations';
+import { moveEmotions } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
 import { showContextMenu } from '../components/ContextMenu';
 import { openDialog } from '../components/Dialogs';
@@ -11,7 +20,12 @@ import { useShortcut } from '../useShortcut';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
-import { useCardReorder, type CardReorder } from '../components/useCardReorder';
+import {
+  dragPayload,
+  readDragPayload,
+  writeDragPayload,
+  type DragPayload,
+} from '../components/listDrag';
 import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
 import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import {
@@ -39,6 +53,7 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
   return null;
 }
 
+const DRAG_TYPE = 'application/x-emotion';
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
 
@@ -49,9 +64,11 @@ const EmotionCard = memo(function EmotionCard(props: {
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
-  startDrag: CardReorder['start'];
+  /** 라이브러리 목록처럼 끌어 옮긴다. 고른 카드 중 하나를 끌면 고른 카드를 모두 옮긴다. */
+  startDrag: (id: string) => DragPayload;
+  endDrag: () => void;
+  dropOn: (payload: DragPayload, targetId: string) => void;
   dragging: boolean;
-  dropTarget: boolean;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
@@ -70,13 +87,30 @@ const EmotionCard = memo(function EmotionCard(props: {
   const included = !excluded && hasScenePrompt(emotion);
   const menu = (event: React.MouseEvent) =>
     showContextMenu(event, emotionMenu(project.id, set, emotion, excluded));
+  const [over, setOver] = useState(false);
 
   return (
     <article
-      className={`emotion-card ${included ? '' : 'disabled'} ${props.dropTarget ? 'drop-target' : ''} ${props.dragging ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
+      className={`emotion-card ${included ? '' : 'disabled'} ${over ? 'drop-target' : ''} ${props.dragging ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
       data-select-id={emotion.id}
+      draggable
       onContextMenu={menu}
-      onPointerDown={(event) => props.startDrag(event, emotion.id)}
+      onDragStart={(event) => writeDragPayload(event, DRAG_TYPE, props.startDrag(emotion.id))}
+      onDragEnd={props.endDrag}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+        event.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(event) => {
+        const payload = readDragPayload(event, DRAG_TYPE);
+        setOver(false);
+        if (!payload || payload.ids.includes(emotion.id)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        props.dropOn(payload, emotion.id);
+      }}
     >
       <button
         className="emotion-thumb"
@@ -185,11 +219,6 @@ export function GalleryView({
     return groups;
   }, [queue.jobs, project.id]);
   const recordsOf = (id: string) => recordsByEmotion.get(id) ?? NO_RECORDS;
-  const reorder = useCardReorder(
-    emotions.map((emotion) => emotion.id),
-    (id, index) =>
-      emotionSet && updateEmotionSet(emotionSet.id, (current) => moveEmotion(current, id, index)),
-  );
   const removeMany = (ids: string[]) => {
     if (emotionSet)
       void deleteEmotions(
@@ -203,6 +232,28 @@ export function GalleryView({
     removeMany,
     { selectAllKey: () => emotions.map((emotion) => emotion.id) },
   );
+  const [dragging, setDragging] = useState<string[]>([]);
+  const latest = useRef({ selected: selection.selected, emotions, setId: emotionSet?.id });
+  latest.current = { selected: selection.selected, emotions, setId: emotionSet?.id };
+  // 카드가 memo라 끌기 함수들은 늘 같은 함수로 두고 최신 값은 ref에서 읽는다.
+  const startDrag = useCallback((id: string) => {
+    const { selected, emotions: order } = latest.current;
+    const payload = dragPayload(
+      id,
+      selected,
+      order.map((emotion) => emotion.id),
+    );
+    setDragging(payload.ids);
+    return payload;
+  }, []);
+  const endDrag = useCallback(() => setDragging([]), []);
+  const dropOn = useCallback((payload: DragPayload, targetId: string) => {
+    const setId = latest.current.setId;
+    if (setId)
+      updateEmotionSet(setId, (current) =>
+        moveEmotions(current, payload.ids, payload.grabbed, targetId),
+      );
+  }, []);
   const openExport = () =>
     void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
@@ -380,9 +431,10 @@ export function GalleryView({
             records={recordsOf(emotion.id)}
             jobs={jobsByEmotion.get(emotion.id) ?? NO_JOBS}
             prefer={library.settings.export.target}
-            startDrag={reorder.start}
-            dragging={reorder.dragging === emotion.id}
-            dropTarget={reorder.over === emotion.id}
+            startDrag={startDrag}
+            endDrag={endDrag}
+            dropOn={dropOn}
+            dragging={dragging.includes(emotion.id)}
             picked={selection.isSelected(emotion.id)}
             onPick={selection.clickItem}
           />
