@@ -78,7 +78,64 @@ describe('TagIndex.search', () => {
   it('respects the limit', () => {
     expect(index.search('h', 2)).toHaveLength(2);
   });
+
+  it('finds the same tags as a full scan of the bundled list', () => {
+    const tags = parseTagCsv(readFileSync('src/renderer/data/danbooru-tags.csv', 'utf8'));
+    const bundled = new TagIndex(tags);
+    const words = tags.flatMap((tag, i) =>
+      i % 7919 === 0 ? [tag.name, ...tag.aliases.slice(0, 1)] : [],
+    );
+    const queries = words.flatMap((word) => [
+      word.slice(0, 2),
+      word.slice(0, 4),
+      `${word.split(' ')[0]} `,
+      word.split(' ').at(-1)!.slice(0, 3),
+      `artist:${word.slice(0, 2)}`,
+    ]);
+    queries.push('xq', 'qzx', 'long h', 'blue ey', '(zz', 'artist:zzq', 'hair_');
+    const shown = (matches: ReturnType<TagIndex['search']>) =>
+      matches.map((match) => `${match.tag.name}|${match.alias ?? ''}`);
+    const scan = scanSearch(tags);
+    for (const query of queries) {
+      expect(shown(bundled.search(query)), query).toEqual(shown(scan(query)));
+    }
+  }, 30_000);
 });
+
+/** 줄 단위 색인 전의 검색. 결과가 같아야 한다. */
+const scanSearch = (tags: ReturnType<typeof parseTagCsv>) => {
+  const keys = tags.map((tag) => tag.name.toLowerCase());
+  const aliasKeys = tags.map((tag) => tag.aliases.map((alias) => alias.toLowerCase()));
+  return (query: string, limit = 12) => {
+    let q = query.replace(/_/g, ' ').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (q && /[\s_]$/.test(query)) q += ' ';
+    const artistOnly = q.startsWith('artist:');
+    if (artistOnly) q = q.slice('artist:'.length).trimStart();
+    if (!q) return [];
+    const prefix: Array<{ tag: (typeof tags)[number]; alias?: string }> = [];
+    const alias: typeof prefix = [];
+    const inner: typeof prefix = [];
+    for (let i = 0; i < keys.length && prefix.length < limit; i++) {
+      if (artistOnly && tags[i].category !== 1) continue;
+      const key = keys[i];
+      if (key.startsWith(q)) {
+        prefix.push({ tag: tags[i] });
+        continue;
+      }
+      if (alias.length < limit) {
+        const found = aliasKeys[i].findIndex((name) => name.startsWith(q));
+        if (found >= 0) {
+          alias.push({ tag: tags[i], alias: tags[i].aliases[found] });
+          continue;
+        }
+      }
+      if (inner.length < limit && (key.includes(` ${q}`) || key.includes(`(${q}`))) {
+        inner.push({ tag: tags[i] });
+      }
+    }
+    return [...prefix, ...alias, ...inner].slice(0, limit);
+  };
+};
 
 describe('tagQueryAt', () => {
   const at = (marked: string) => {

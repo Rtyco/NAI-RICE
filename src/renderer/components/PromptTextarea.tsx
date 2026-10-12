@@ -17,7 +17,7 @@ import {
   type TagQuery,
 } from '../../core/prompts/TagSearch';
 import { useLibrary } from '../store';
-import { loadTagIndex } from '../tagDictionary';
+import { searchTags, warmTagIndex } from '../tagDictionary';
 
 type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
   value: string;
@@ -229,10 +229,9 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
       setSuggestions(null);
       return;
     }
-    void loadTagIndex()
-      .then((index) => {
+    void searchTags(query.text)
+      .then((matches) => {
         if (id !== request.current) return;
-        const matches = index.search(query.text);
         setSuggestions(matches.length ? { query, caret: position, matches, active: 0 } : null);
       })
       .catch(() => setSuggestions(null));
@@ -365,7 +364,7 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
             onSelect?.(event);
           }}
           onFocus={(event) => {
-            if (autocomplete) void loadTagIndex().catch(() => undefined);
+            if (autocomplete) warmTagIndex();
             rest.onFocus?.(event);
           }}
           onBlur={(event) => {
