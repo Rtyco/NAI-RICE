@@ -259,6 +259,9 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     if (strength !== undefined) settings.inpaintStrength = Math.max(0, Math.min(1, strength));
     if (asString(comment.sampler)) settings.sampler = comment.sampler;
     if (asString(comment.noise_schedule)) settings.noiseSchedule = comment.noise_schedule;
+    if (typeof comment.skip_cfg_above_sigma === 'number') settings.variety = true;
+    if (comment.sm === true) settings.smea = comment.sm_dyn === true ? 'dyn' : 'smea';
+    if (comment.dynamic_thresholding === true) settings.decrisp = true;
     result.settings = settings;
     result.seed = asNumber(comment.seed);
     result.width = asNumber(comment.width);

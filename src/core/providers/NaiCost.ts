@@ -4,8 +4,9 @@ import type {
   GenerationJobSnapshot,
   GenerationKind,
   GenerationSettings,
+  SmeaMode,
 } from '../domain/types';
-import { modelInfo } from './NaiModels';
+import { modelInfo, supportsV3Sampling } from './NaiModels';
 
 /** Opus 구독의 무제한(Anlas 미사용) 생성 기준: 1024×1024 이하 면적, 28 steps 이하, 1장. */
 export const FREE_MAX_PIXELS = 1024 * 1024;
@@ -51,6 +52,7 @@ export function imageAnlasCost(input: {
   height: number;
   steps: number;
   strength?: number;
+  smea?: SmeaMode;
 }): number {
   let pixels = Math.max(input.width * input.height, 65_536);
   // 832×1216보다 크고 1024×1024 이하인 해상도는 832×1216과 같은 값을 받는다.
@@ -58,7 +60,9 @@ export function imageAnlasCost(input: {
   const base = Math.ceil(
     2.951823174884865e-6 * pixels + 5.753298233447344e-7 * pixels * input.steps,
   );
-  return Math.max(Math.ceil(base * (input.strength ?? 1)), 2);
+  // NovelAI 웹: SMEA는 1.2배, SMEA DYN은 1.4배.
+  const smea = input.smea === 'dyn' ? 1.4 : input.smea === 'smea' ? 1.2 : 1;
+  return Math.max(Math.ceil(base * smea * (input.strength ?? 1)), 2);
 }
 
 /** 비용을 따지는 데 필요한 작업 내용. 종류가 없으면 인페인트로 본다(작업 화면의 미리 계산). */
@@ -127,6 +131,10 @@ function diffusionAnlas(job: CostJob, account?: CostAccount): number {
         height: job.canvasHeight,
         steps: job.settings.steps,
         strength: job.kind === 'img2img' ? job.strength : 1,
+        smea:
+          job.kind === 'txt2img' && supportsV3Sampling(job.settings.model)
+            ? job.settings.smea
+            : 'off',
       });
 }
 

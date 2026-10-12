@@ -1,7 +1,12 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { GenerationKind, GenerationRecord, GenerationSummary } from '../../core/domain/types';
 import { AUGMENT_STRENGTHS, augmentToolInfo, moodLabel } from '../../core/providers/NaiAugment';
-import { modelLabel, referenceTargetLabel, usesMedium } from '../../core/providers/NaiModels';
+import {
+  modelLabel,
+  referenceTargetLabel,
+  samplingExtras,
+  usesMedium,
+} from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
 import { projectMedia } from '../store';
 
@@ -101,6 +106,7 @@ export function RecordInfo({
       <dd>
         {modelLabel(record.model)}
         {full && usesMedium(full.settings) && ' · Effort Medium'}
+        {full && samplingExtras(full.settings).map((label) => ` · ${label}`)}
       </dd>
       <dt>크기</dt>
       <dd>

@@ -27,6 +27,9 @@ const settings: GenerationSettings = {
   img2imgStrength: 0.4,
   img2imgNoise: 0,
   effort: 'high',
+  variety: false,
+  smea: 'off',
+  decrisp: false,
 };
 
 describe('NovelAIRequestBuilder', () => {
@@ -209,6 +212,73 @@ describe('NovelAIRequestBuilder', () => {
     expect(request('nai-diffusion-4-5-full-inpainting', 'infill').model).toBe(
       'nai-diffusion-4-5-full-inpainting',
     );
+  });
+
+  it('Variety+는 모델의 기준 sigma를 크기에 맞춰 보내고, V5에는 보내지 않아', () => {
+    const sigma = (model: string, width: number, height: number) =>
+      (
+        buildNovelAIDiffusionRequest(
+          {
+            prompt: 'a',
+            negativePrompt: '',
+            characterPrompt: '',
+            characterNegativePrompt: '',
+            width,
+            height,
+            seed: 1,
+            settings: { ...settings, model, variety: true },
+          },
+          { action: 'generate' },
+        ) as any
+      ).parameters.skip_cfg_above_sigma;
+    // NovelAI 웹이 보낸 값과 같다.
+    expect(sigma('nai-diffusion-4-full-inpainting', 1024, 1024)).toBe(19.343056794463642);
+    expect(sigma('nai-diffusion-4-5-full-inpainting', 1280, 1856)).toBe(88.87784456804029);
+    expect(sigma('nai-diffusion-4-5-curated-inpainting', 832, 1216)).toBe(58);
+    expect(sigma('nai-diffusion-3-inpainting', 832, 1216)).toBe(19);
+    expect(sigma('nai-diffusion-5-full-inpainting', 832, 1216)).toBeNull();
+  });
+
+  it('V3 일반 생성에만 SMEA·DYN을 넣고, Decrisp는 i2i에도 넣어', () => {
+    const v3 = {
+      ...settings,
+      model: 'nai-diffusion-3-inpainting',
+      smea: 'dyn' as const,
+      decrisp: true,
+    };
+    const input = {
+      prompt: 'a',
+      negativePrompt: '',
+      characterPrompt: '',
+      characterNegativePrompt: '',
+      width: 832,
+      height: 1216,
+      seed: 1,
+      settings: v3,
+    };
+    const generate = buildNovelAIDiffusionRequest(input, { action: 'generate' }) as any;
+    expect(generate.parameters).toMatchObject({
+      sm: true,
+      sm_dyn: true,
+      dynamic_thresholding: true,
+    });
+    const img2img = buildNovelAIDiffusionRequest(input, {
+      action: 'img2img',
+      imageBase64: 'IMG',
+      strength: 0.5,
+      noise: 0,
+    }) as any;
+    expect(img2img.parameters).toMatchObject({
+      sm: false,
+      sm_dyn: false,
+      dynamic_thresholding: true,
+    });
+    const v45 = buildNovelAIDiffusionRequest(
+      { ...input, settings: { ...v3, model: 'nai-diffusion-4-5-full-inpainting' } },
+      { action: 'generate' },
+    ) as any;
+    expect(v45.parameters.dynamic_thresholding).toBe(false);
+    expect(v45.parameters.sm).toBeUndefined();
   });
 
   it('V4 Full과 Curated 인페인트 모델도 v4 형식으로 만들어', () => {

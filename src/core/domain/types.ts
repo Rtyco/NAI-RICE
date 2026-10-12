@@ -59,7 +59,15 @@ export type GenerationSettings = {
    * 보내지 않는다(`effectiveGenerationSettings`). 저장된 값은 그대로 두어 High로 돌아오면 되살아난다.
    */
   effort: Effort;
+  /** NovelAI의 Variety+. 모델이 지원하지 않으면(V5) 무시한다. */
+  variety: boolean;
+  /** V3 전용 SMEA·SMEA DYN. 다른 모델과 i2i·인페인트에서는 무시한다. */
+  smea: SmeaMode;
+  /** V3 전용 Decrisp(`dynamic_thresholding`). */
+  decrisp: boolean;
 };
+
+export type SmeaMode = 'off' | 'smea' | 'dyn';
 
 /** 사이드바 작업 목록과 라이브러리 목록에서 묶어 둔 폴더 이름. 없으면 폴더 밖에 있다. */
 export type FolderName = string;

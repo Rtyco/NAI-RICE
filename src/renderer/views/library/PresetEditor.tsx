@@ -6,6 +6,7 @@ import type {
   Preset,
   QualityLevel,
   ReferenceInsetPosition,
+  SmeaMode,
   UcPresetId,
 } from '../../../core/domain/types';
 import {
@@ -29,6 +30,7 @@ import {
   naiTagText,
   QUALITY_LEVEL_LABELS,
   qualityLevelsFor,
+  SMEA_LABELS,
   supportsEffort,
   supportsInpaint,
   UC_PRESET_LABELS,
@@ -396,7 +398,46 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             )}
             onChange={(noiseSchedule) => setting({ noiseSchedule })}
           />
+          {isV3 && (
+            <SelectField
+              label="SMEA (일반 생성)"
+              value={g.smea}
+              options={(Object.keys(SMEA_LABELS) as SmeaMode[]).map((value) => ({
+                value,
+                label: SMEA_LABELS[value],
+              }))}
+              onChange={(smea) => setting({ smea })}
+            />
+          )}
         </div>
+        <div className="inset-row">
+          {model?.varietySigma ? (
+            <Toggle
+              label="Variety+"
+              checked={g.variety}
+              onChange={(variety) => setting({ variety })}
+            />
+          ) : (
+            <span className="inset-label">Variety+ 없음 (V5)</span>
+          )}
+          {isV3 && (
+            <Toggle
+              label="Decrisp"
+              checked={g.decrisp}
+              onChange={(decrisp) => setting({ decrisp })}
+            />
+          )}
+        </div>
+        <p className="hint">
+          {[
+            model?.varietySigma &&
+              'Variety+: 구도가 잡힐 때까지 Prompt Guidance를 늦게 걸어 결과가 더 다양해집니다',
+            isV3 && 'SMEA: 큰 해상도에서 형태를 안정시킵니다. 유료일 때 1.2배(DYN 1.4배)가 듭니다',
+            isV3 && 'Decrisp: Guidance가 높을 때 생기는 지나친 대비를 줄입니다',
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
         {shown.steps > 28 && (
           <p className="field-error">Steps가 28을 넘으면 Opus 구독에서도 Anlas가 사용됩니다.</p>
         )}

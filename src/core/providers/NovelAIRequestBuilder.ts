@@ -12,6 +12,7 @@ import {
   naiTagHints,
   requestModelId,
   supportsReferenceAid,
+  varietySigma,
 } from './NaiModels';
 
 export const NAI_IMAGE_ENDPOINT = 'https://image.novelai.net/ai/generate-image';
@@ -119,10 +120,12 @@ export function buildNovelAIDiffusionRequest(
         };
   const infillParams = infill ? { inpaintImg2ImgStrength: strength, add_original_image: true } : {};
 
+  const width = Math.round(input.width);
+  const height = Math.round(input.height);
   const shared = {
     params_version: 3,
-    width: Math.round(input.width),
-    height: Math.round(input.height),
+    width,
+    height,
     noise_schedule: isV5 ? 'karras' : input.settings.noiseSchedule,
     scale: Math.min(model.maxScale, Math.max(0, input.settings.promptGuidance)),
     sampler,
@@ -131,7 +134,7 @@ export function buildNovelAIDiffusionRequest(
     n_samples: 1,
     negative_prompt: negativePrompt,
     cfg_rescale: input.settings.cfgRescale,
-    skip_cfg_above_sigma: null,
+    skip_cfg_above_sigma: varietySigma(input.settings, width, height),
     ...imageParams,
     // 품질 태그와 UC 프리셋은 NovelAI 웹처럼 앱이 프롬프트에 직접 넣고, 무엇을 넣었는지는 힌트로만 알린다.
     ...naiTagHints(model.id, input.settings),
@@ -143,14 +146,16 @@ export function buildNovelAIDiffusionRequest(
   };
 
   if (isV3) {
+    // SMEA는 커뮤니티 구현처럼 일반 생성에만 넣는다. i2i·인페인트에서 받는지는 확인하지 않았다.
+    const smea = image.action === 'generate' ? (input.settings.smea ?? 'off') : 'off';
     return {
       ...request,
       parameters: {
         ...shared,
         ...(image.action === 'generate' ? {} : { extra_noise_seed: seed }),
-        sm: false,
-        sm_dyn: false,
-        dynamic_thresholding: false,
+        sm: smea !== 'off',
+        sm_dyn: smea === 'dyn',
+        dynamic_thresholding: Boolean(input.settings.decrisp),
         controlnet_strength: 1,
         legacy: false,
         legacy_v3_extend: false,

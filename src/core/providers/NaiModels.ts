@@ -5,6 +5,7 @@ import type {
   NaiTagTable,
   QualityLevel,
   ReferenceTarget,
+  SmeaMode,
   UcPresetId,
 } from '../domain/types';
 
@@ -23,6 +24,8 @@ export type NaiModelInfo = {
   maxCharacters: number;
   maxSteps: number;
   maxScale: number;
+  /** Variety+의 기준 sigma(NovelAI 웹의 `cfgDelaySigma`, 2026-10 웹 코드). 없으면 Variety+가 없다(V5). */
+  varietySigma?: number;
 };
 
 export const NAI_MODELS: NaiModelInfo[] = [
@@ -60,6 +63,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     },
     label: 'NAI Diffusion V4.5 Full',
     family: 'v4-5-full',
+    varietySigma: 58,
     generation: 'v4',
     maxCharacters: 6,
     maxSteps: 50,
@@ -73,6 +77,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     },
     label: 'NAI Diffusion V4.5 Curated',
     family: 'v4-5-curated',
+    varietySigma: 58,
     generation: 'v4',
     maxCharacters: 6,
     maxSteps: 50,
@@ -83,6 +88,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     requestIds: { inpaint: 'nai-diffusion-4-full-inpainting', generate: 'nai-diffusion-4-full' },
     label: 'NAI Diffusion V4 Full',
     family: 'v4-full',
+    varietySigma: 19,
     generation: 'v4',
     maxCharacters: 6,
     maxSteps: 50,
@@ -96,6 +102,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     },
     label: 'NAI Diffusion V4 Curated',
     family: 'v4-curated',
+    varietySigma: 19,
     generation: 'v4',
     maxCharacters: 6,
     maxSteps: 50,
@@ -106,6 +113,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     requestIds: { inpaint: 'nai-diffusion-3-inpainting', generate: 'nai-diffusion-3' },
     label: 'NAI Diffusion Anime V3',
     family: 'v3',
+    varietySigma: 19,
     generation: 'v3',
     maxCharacters: 6,
     maxSteps: 50,
@@ -116,6 +124,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     requestIds: { inpaint: 'nai-diffusion-furry-3-inpainting', generate: 'nai-diffusion-furry-3' },
     label: 'NAI Diffusion Furry V3',
     family: 'v3-furry',
+    varietySigma: 19,
     generation: 'v3',
     maxCharacters: 6,
     maxSteps: 50,
@@ -152,6 +161,41 @@ export const REFERENCE_TARGETS: Array<{ value: ReferenceTarget; label: string; h
 
 export function referenceTargetLabel(target: ReferenceTarget): string {
   return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;
+}
+
+/** V3만 SMEA·SMEA DYN·Decrisp를 받는다(NovelAI 웹의 `smea`·`smeaDyn`·`dynamicThresholding`). */
+export function supportsV3Sampling(id: string): boolean {
+  return modelInfo(id)?.generation === 'v3';
+}
+
+/**
+ * Variety+로 보낼 `skip_cfg_above_sigma`. 지원하지 않거나 끄면 null이다. 기준 값은 832×1216 기준이라 면적의
+ * 제곱근 비율로 늘린다(커뮤니티 실측: V4.5 1280×1856에 88.877…, V4 1024×1024에 19.343…).
+ */
+export function varietySigma(
+  settings: Pick<GenerationSettings, 'model' | 'variety'>,
+  width: number,
+  height: number,
+): number | null {
+  const base = modelInfo(settings.model)?.varietySigma;
+  if (!settings.variety || !base) return null;
+  return base * Math.sqrt((width * height) / (832 * 1216));
+}
+
+export const SMEA_LABELS: Record<SmeaMode, string> = {
+  off: '끄기',
+  smea: 'SMEA',
+  dyn: 'SMEA DYN',
+};
+
+/** 생성 정보에 보일 고급 샘플링 값. 그 모델에 쓰이지 않는 값은 뺀다. */
+export function samplingExtras(settings: GenerationSettings): string[] {
+  const v3 = supportsV3Sampling(settings.model);
+  return [
+    settings.variety && modelInfo(settings.model)?.varietySigma && 'Variety+',
+    v3 && settings.smea && settings.smea !== 'off' && SMEA_LABELS[settings.smea],
+    v3 && settings.decrisp && 'Decrisp',
+  ].filter(Boolean) as string[];
 }
 
 export function supportsEffort(id: string): boolean {
