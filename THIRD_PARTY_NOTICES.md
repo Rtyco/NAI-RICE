@@ -136,33 +136,10 @@ LGPLv3로 표시된 라이브러리는 LGPLv2/LGPLv2.1의 "any later version" �
 ## 태그 자동완성 목록
 
 프롬프트 칸의 태그 자동완성은
-[a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete)의
-`tags/danbooru.csv`(커밋 209b1dd, 2025-01-03)를 그대로 씁니다. 태그 이름·분류·게시물 수·별칭은
-[Danbooru](https://danbooru.donmai.us)에서 모은 것입니다. 파일은 `src/renderer/data/danbooru-tags.csv`에 있습니다.
-
-```text
-MIT License
-
-Copyright (c) 2022 Dominik Reh
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+[DraconicDragon/dbr-e621-lists-archive](https://github.com/DraconicDragon/dbr-e621-lists-archive)의
+`tag-lists/danbooru/danbooru_2026-10-01_pt20-ia-dd.csv`(2026-10-01)에서 게시물 25개 이상인 태그만 골라 씁니다.
+태그 이름·분류·게시물 수·별칭은 [Danbooru](https://danbooru.donmai.us)에서 모은 것입니다. 파일은
+`src/renderer/data/danbooru-tags.csv`에 있습니다. 이 목록은 퍼블릭 도메인(The Unlicense)입니다.
 
 ## 개발에만 쓰는 도구
 

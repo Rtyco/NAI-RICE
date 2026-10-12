@@ -348,7 +348,7 @@ function TagsTab() {
         />
         <p className="hint">
           두 글자부터 찾습니다. ↑↓로 고르고 Tab이나 Enter로 넣습니다. 작가 태그는 artist:를 붙여 넣고, artist:로 시작하면 작가만
-          찾습니다. 태그 목록은 2025년 1월 기준입니다.
+          찾습니다. 태그 목록은 2026년 10월 기준입니다.
         </p>
       </Card>
       <Card
@@ -466,7 +466,7 @@ const CREDITS: Array<[string, string]> = [
   ['fflate', 'MIT'],
   ['sharp', 'Apache-2.0'],
   ['libvips (sharp 포함)', 'LGPL-3.0-or-later'],
-  ['태그 목록 (a1111-sd-webui-tagcomplete · Danbooru)', 'MIT'],
+  ['태그 목록 (dbr-e621-lists-archive · Danbooru)', 'Unlicense'],
 ];
 
 function InfoTab() {
