@@ -78,7 +78,7 @@ export const SECTIONS: Array<{
     label: '캐릭터 레퍼런스',
     icon: 'portrait',
     role: '그림의 캐릭터 따라 그리기',
-    usage: '작업의 일반 생성에서 고릅니다(V4.5 전용, 한 장에 5 Anlas)',
+    usage: '',
   },
   {
     id: 'vibes',
@@ -89,7 +89,7 @@ export const SECTIONS: Array<{
     label: '바이브',
     icon: 'vibe',
     role: '그림의 분위기·그림체',
-    usage: '작업의 일반 생성·인페인트에서 고릅니다(V4.5 전용, 인코딩 한 번에 2 Anlas)',
+    usage: '',
   },
   {
     id: 'pieceSets',
@@ -100,7 +100,7 @@ export const SECTIONS: Array<{
     label: '프롬프트 조각',
     icon: 'tag',
     role: '',
-    usage: '<세트이름.조각이름> 형식으로 불러 쓸 수 있습니다',
+    usage: '',
   },
 ];
 

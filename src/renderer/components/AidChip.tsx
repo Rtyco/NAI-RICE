@@ -90,7 +90,7 @@ export function AidChip(props: {
         patch({ [field]: ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id] })
       }
       editSection={section}
-      pickTitle={`${label} 고르기 · 여럿 고를 수 있습니다`}
+      pickTitle={`${label} 선택`}
       empty={`라이브러리에 ${label}가 없습니다.`}
       options={
         character ? (
@@ -109,18 +109,10 @@ export function AidChip(props: {
               checked={value.normalizeVibes ?? true}
               onChange={(normalizeVibes) => patch({ normalizeVibes })}
             />
-            <small>
-              켜면 바이브가 둘 이상이고 세기 합이 1을 넘을 때 합이 1이 되도록 비율대로 줄여
-              보냅니다.
-            </small>
           </>
         )
       }
-      hint={
-        character
-          ? '모두 빼면 쓰지 않습니다. 여럿 고르면 섞여 한 캐릭터가 되고, 레퍼런스마다 한 장에 5 Anlas가 듭니다.'
-          : '모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas, 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 듭니다.'
-      }
+      hint={character ? '' : ''}
     />
   );
 }

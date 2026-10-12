@@ -330,7 +330,7 @@ export function ChecklistChip(props: {
           close={close}
           title={
             props.pickTitle ??
-            (props.multi ? `${title} 고르기 · 여럿 고를 수 있습니다` : `${title} 고르기`)
+            (props.multi ? `${title} 선택` : `${title} 선택`)
           }
           query={props.items.length >= SEARCH_FROM ? { value: query, change: setQuery } : undefined}
           options={props.options}

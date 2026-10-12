@@ -169,7 +169,6 @@ export function PromptPanel(props: {
         </button>
         <div className="library-list-title">
           <b>프롬프트</b>
-          <small>고른 생성 설정과 캐릭터에 바로 저장됩니다</small>
         </div>
       </div>
       <div className="prompt-panel-body">
