@@ -4,7 +4,10 @@ Work after 1.0.0. Version 1.0.0 did one thing: build scene sets with a reference
 other NovelAI generation modes and conveniences, using NovelAI features only (no local models).
 
 **How to read:** read this file, then open only the stage file you are working on. Finished stage files are for
-when you change that feature. Real NovelAI calls: [probes.md](plan/probes.md).
+when you change that feature. Real NovelAI calls: [probes.md](plan/probes.md). Code structure, renderer state and
+performance history: [dev-guide.md](dev-guide.md#renderer).
+
+Last updated 2026-10-13.
 
 ## User decisions
 
@@ -14,7 +17,9 @@ when you change that feature. Real NovelAI calls: [probes.md](plan/probes.md).
 - UI says 「씬」 (scene) instead of 「감정」, and 「인페인트」 instead of 「레퍼런스 생성」. Code names (`emotion`,
   `emotionSets`, mode `reference`) and storage are unchanged. Existing set names are not renamed.
 - Screens are grouped by task order (inputs → run → results), not by widget type.
-- Never call i2i "upscale" in the UI (avoids confusion with NovelAI's real upscaler).
+- Never call i2i "upscale" in the UI (avoids confusion with NovelAI's real upscaler). The resize-and-redraw dialog
+  is 「다듬기」 (NovelAI web: Enhance); moving a result into free i2i is 「자유 생성으로 보내기」.
+- Lists and gallery cards keep the native drag feel (a pointer-driven clone was tried and rejected).
 
 ## Status
 
@@ -67,7 +72,8 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
 - **Pickers:** configuration chips open a checklist popover (`ChecklistChip`) with folders and edit pencils. Chip
   edit buttons were removed once, then restored on request. The resolution chip has a custom size window (64 px
   steps).
-- **Title bar:** one 32 px row (`TitleBar`) with sidebar toggle, app name, location and window buttons.
+- **Title bar:** one 40 px row (`TitleBar`): sidebar toggle, app name with version or update badge, location,
+  icon-only 작업 폴더 and 프로그램 설정, window buttons. JSON import is in settings › 저장 공간 · 백업 and Ctrl+O.
 - **Shortcuts:** 1–8 switch screens in sidebar order (ignored while typing); F1 shortcut list; F2 rename; F5
   reload results and account; Ctrl+A/Ctrl+D select/deselect in main lists; F, Home/End, Ctrl+Shift+S in results;
   Ctrl+P preview; Ctrl+E export; Alt+Up/Down, Ctrl+Shift+N/D and Delete in the library. The in-app list is the
@@ -82,9 +88,10 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   picker shows a warning in inpaint requests instead of blocking.
 - **2026-10-12 list (user request):** free generation without any prompt; Danbooru tags as of 2026-10-01
   (dbr-e621-lists-archive, ≥25 posts); settings window fixed at the 화면 · 테마 size; bigger scene cards in the scene
-  set editor; JSON import, storage folder and settings moved to a 40 px title bar; gallery reordering with pointer
-  events instead of HTML5 drag (OLE drag lag on Windows); background color repaint in place (676 → 7 ms per
-  change); 「그리기」 Draw tab in free i2i (see screens.md).
+  set editor; title bar actions (see Title bar above); background color repaint in place (676 → 7 ms per change);
+  「그리기」 Draw tab in free i2i (see screens.md); inpaint mask fill bug at the top-left (negative `fill` end) and
+  free pan on inpaint canvases; streaming frames in scene detail. Gallery reordering moved to pointer events
+  here and back to native drag on 2026-10-13 (user preference).
 - **2026-10-13 follow-ups (user request):** tag autocomplete stays open after a space or underscore that ends a
   word; whole `{}`/`[]`/weight regions are tinted (nested ones deeper); title bar is icon-only with the version by the
   name, JSON import only in settings; scene grid marquee and reorder no longer re-render every card per move
@@ -94,10 +101,17 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   i2i」 → 「자유 생성으로 보내기」; scene cards went back to native drag like the library lists (the user preferred that
   feel over the pointer-driven clone) and move all picked cards together; Ctrl+wheel zooms the window unless a canvas
   or image viewer already took the wheel (renderer sends `app:zoom`).
+- **Selection bars (2026-10-13):** the 「N개 선택」 bars in the sidebar and library lists are size containers; when
+  narrower than their labels (300 px, vibes 400 px) only the count and icon buttons remain.
+- **Docs (2026-10-13):** dev-guide gained Renderer (state, saving, shared parts) and Performance (measured fixes,
+  traps, how to measure, candidates) sections for an optimization pass.
 
 ## Next
 
 No push yet; local commits only.
+
+0. Code optimization pass (another session): start from [dev-guide § Performance](dev-guide.md#performance);
+   keep behavior and the user's feel preferences; measure before and after on a production build.
 
 1. User checks with `npm run dev`: stage 4 (free-range i2i to settle the default strength, 0.3–0.5), stage 6 and
    stage 8 paid one-image tests (lists in those files), stage 7 (Effort Medium, two characters, positions).

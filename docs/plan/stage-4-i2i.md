@@ -14,15 +14,18 @@ formula × strength, rounded up, minimum 2. Opaque input never becomes transpare
 - **Project i2i mode dropped (user decision):** project i2i mode, an i2i source library and an early free i2i were
   built and removed; inpaint is the better tool for refining. Instead, results can go to:
   - 「인페인트 만들기」: a new reference (inpaint item) using the result.
-  - 「자유 생성 i2i」: free generation [i2i] with 「전체 다시 그리기」 (whole image at the preset's i2i strength/noise)
+  - 「자유 생성으로 보내기」 (was 「자유 생성 i2i」): free generation [i2i] with 「전체 다시 그리기」 (whole image at the preset's i2i strength/noise)
     or 「인페인팅」 (only painted areas; `inpaintStrength` → `inpaintImg2ImgStrength`). The image is stored in
     `sources/<hash>.png`, padded right/bottom to multiples of 64; results are cropped back and saved under
     `projects/free/outputs/<i2i|인페인트>/<date>/`. The mask saves when painting stops. Values are edited in the
     「i2i 이미지」 card with `PresetNumberRow` (±0.05) and saved to the preset. Center tabs: [i2i 이미지 / 마스크
-    칠하기] and [원본과 결과]; a new result switches to the latter.
+    칠하기], 「그리기」 and [원본과 결과]; a new result switches to the latter.
+  - 「그리기」 (2026-10-12): paint over the i2i image like the NovelAI web canvas's Draw (`DrawCanvas`); strokes are
+    baked into a new i2i image on 「이미지에 합치기」, generate or leaving the tab (`replaceFreeImagePixels`).
+    Without an image it starts from a blank white canvas at the preset size (`newBlankFreeImage`).
   - Old i2i-mode projects read as inpaint; the short-lived [자유 인페인팅] mode reads as i2i + inpainting.
 - **Records:** i2i results store the actual input (`inputFile`), shown in record info.
-- **「i2i로 보내기」 dialog:** from the result bar, image context menu, scene card 「대표 이미지」 group, and the
+- **「다듬기」 dialog** (was 「i2i로 보내기」, renamed 2026-10-13 after NovelAI web's Enhance): from the result bar, image context menu, scene card 「대표 이미지」 group, and the
   picked-cards bar (many scenes at once). Target size (closest free resolution by default), fit method, strength,
   noise, count, seed (+1 from source or random). Uses the source's final prompt and settings minus the reference
   inset tag (`buildResultImg2ImgJobs`); results stack on the source scene with `sourceRecordId`.

@@ -3,7 +3,8 @@
 NAI RICE: a Windows Electron app that builds character emotion (scene) image sets with NovelAI inpainting.
 Read [docs/dev-guide.md](docs/dev-guide.md) for structure and workflow and [docs/plan.md](docs/plan.md) for
 current work first. Stage details live in `docs/plan/`; open only the stage you are working on. Screen and region
-names are in [docs/screens.md](docs/screens.md).
+names are in [docs/screens.md](docs/screens.md). For performance or refactoring work, read the Renderer and
+Performance sections of the dev guide: they list measured fixes and the user's feel preferences not to undo.
 
 Agent docs are in English. User-facing docs stay in Korean: `README.md`, `CHANGELOG.md`, `docs/자세한-설명.md`,
 `docs/인페인트-실험.md`.

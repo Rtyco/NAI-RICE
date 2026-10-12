@@ -21,7 +21,9 @@
 - **Library sections** (user request): 캐릭터 레퍼런스 (key 6) and 바이브 (key 7), each item a picture plus values
   (fidelity, target, strength; strength, information extracted). The 참고 chip's mode button sets
   `Project.aidMode`; lists are `characterReferenceIds` and `vibeIds` (any number, picked order). Projects without
-  a mode use character reference if one is picked, else vibe.
+  a mode use character reference if one is picked, else vibe. Free generation has the same fields and chip
+  (2026-10-12). In inpaint requests the chip warns about character references (bad results in the user's test;
+  vibes were fine) but does not block.
 - **Target** (user request): Character & Style / Character / Style (`CharacterReference.target`, the
   `base_caption` value). The old `styleAware` reads as on → character&style, off → character. Style is unmeasured.
 - **Many vibes** (user request): no limit (was 4; the user used double digits on the web; >4 not measured here).

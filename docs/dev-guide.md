@@ -134,6 +134,69 @@ Model list, quality tags, UC preset text and per-model features are in
 [NaiModels.ts](../src/core/providers/NaiModels.ts). Version differences in request bodies (V3, V4/V4.5, V5) are in
 `NovelAIRequestBuilder.ts`; tests pin the actual request shapes.
 
+## Renderer
+
+### State and saving ([store.ts](../src/renderer/store.ts))
+
+- One zustand store. `library` is the whole `library.json` as one immutable object; `updateLibrary(recipe)`
+  replaces it and schedules a save. `useLibrary()` (about 30 components) re-renders on **any** library change,
+  including each keystroke in a prompt field. `useResolvedProject` calls `resolveProject` on every render; it is
+  not memoized.
+- Saving: `scheduleSave(key, task, 400 ms)` debounces per key; `library` saves send the whole object over IPC, and
+  `Library.save` (main) re-validates it with the zod schema and rewrites `library.json` atomically. `flushSaves` runs
+  on unload and before generating. Reference canvases save separately (`ReferenceEditor`, key per reference).
+- Results: `generations[projectId]` is loaded lazily per project (`loadGenerations`) and appended from the
+  `generation:record-added` event. `emotionRecords` filters and sorts a project's records per scene; `GalleryView`
+  groups them once per change instead.
+- Queue: every `generation:queue-update` replaces `queue`; components select `state.queue` (gallery, scene detail,
+  free view, queue bar, sidebar). Streaming frames go to `previews[jobId]`; `StreamPreview` selects only its jobs.
+- UI-only state (column count, folded folders, panel widths …) is in `localStorage` via `readUiState`/`saveUiState`.
+
+### Screens and shared parts
+
+- Views: `ProjectView` (gallery or scene detail), `FreeView`, `LibraryView` (+ `views/library/*Editor`),
+  `ReferenceEditor`, `SettingsModal`/`StorageTab`. Region names: [screens.md](screens.md).
+- Actions that call the main process live in plain modules, not components: `actions.ts` (generate),
+  `generationOps.tsx`, `emotionOps.tsx`, `freeImageOps.ts`, `projectOps.tsx`, `importers.tsx`.
+- Lists: `useBoxSelection` (marquee, Ctrl/Shift click, Delete/Esc/Ctrl+A), native drag with `listDrag.ts` payloads
+  (multi-select moves), `ListFolder`. Gallery cards use the same drag.
+- Canvases: `canvasViewport.ts` (transform viewport: zoom at cursor, free pan), `ReferenceCanvas` (inpaint mask in
+  1/8 cells as `Int8Array` overrides, `core/imaging/MaskBrush`), `DrawCanvas` (three stacked GPU canvases),
+  `ImageStage` (result viewer). `zoom.ts` holds the shared wheel handling.
+- `styles.css` is one file (~4,400 lines) with section title comments as landmarks; colors are theme tokens.
+
+## Performance
+
+What has been measured and fixed, so it is not undone. Numbers are from dev-mode benchmarks unless noted.
+
+| Area                     | Fix                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| Reference area drag      | mask encoded to PNG once on release, not per move (~30 ms per move before)             |
+| Ratio slider             | latest pending value only; canvas passed while editing; row-based mask math (12→2 ms)  |
+| Inpaint background color | repaint the same canvas instead of rebuilding (676→7 ms per change)                    |
+| Mask brush               | paints `Int8Array` cells and redraws once per frame                                    |
+| Draw brush               | GPU canvases, stamps on the visible stroke canvas, undo as canvas copies (no readback) |
+| Gallery marquee          | box drawn to the DOM, item rects measured once per drag, state only on pick change     |
+| Gallery cards            | records/jobs grouped once, `EmotionCard` memoized with stable callbacks                |
+
+Rules and traps:
+
+- **Judge UI speed on a production build.** React 19.2 dev mode logs changed `Uint8Array` props element by
+  element and freezes on mask edits; production does not.
+- Do not use `willReadFrequently` on canvases that are shown or drawn every frame (CPU canvases re-upload to the
+  GPU). Read pixels from a separate copy.
+- Chromium already sends `pointermove` once per frame; deferring the reaction by another rAF makes drags feel late.
+  Use `getCoalescedEvents()` for strokes.
+- **User feel preferences:** lists and gallery cards use native HTML5 drag; a pointer-driven clone was tried and the
+  user preferred the native feel. Mask brush feel is the reference for other brushes.
+- Measuring without the real app: run Vite and drive an Electron window with `executeJavaScript` (synthetic pointer
+  events, `performance.now()` around handlers and rAF). `webContents.sendInputEvent` wheel events do not reliably
+  reach the page; the DevTools protocol `Input.dispatchMouseEvent` does. Synthetic `setPointerCapture` fails for
+  pointer IDs the browser does not know.
+
+Likely candidates (observed, not measured): library-wide re-renders from `useLibrary()` while typing; whole-library
+zod validation and JSON write on each save; `resolveProject` per render.
+
 ## Tests
 
 - `tests/unit`: `src/core` and service units; services use fakes matching `ports.ts`.

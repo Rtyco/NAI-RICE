@@ -71,8 +71,8 @@ Implementation (`core/vibes/VibeFile.ts`, `electron/services/VibeFiles.ts`):
   `event-stream` (`NaiStream.ts`, no dependency).
 - **Final image:** the web asks `image_format: "webp"`; the app does not and expects PNG. Non-PNG finals are
   converted (`ensurePng`), losing NovelAI metadata.
-- **UI:** the main process sends `generation:preview`; scene cards, the free generation stage and the queue bar
-  show the latest frame and a progress bar (`StreamPreview`), cleared when the job ends. Progress uses Steps
+- **UI:** the main process sends `generation:preview`; scene cards, scene detail, the free generation stage and
+  the queue bar show the latest frame and a progress bar (`StreamPreview`), cleared when the job ends. Progress uses Steps
   (× strength for i2i/inpaint).
 
 ## User checks
