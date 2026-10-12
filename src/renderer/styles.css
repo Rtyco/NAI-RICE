@@ -1559,6 +1559,13 @@ textarea.syntax-input::selection {
 .canvas-viewport.panning canvas {
   cursor: grabbing;
 }
+/* 그리기의 그린 것·지금 긋는 획 캔버스. 바탕 캔버스 위에 그대로 겹친다. */
+.canvas-viewport canvas.draw-overlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .draw-color input {
   width: 30px;
   height: 26px;

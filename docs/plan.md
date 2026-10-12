@@ -85,6 +85,11 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   set editor; JSON import, storage folder and settings moved to a 40 px title bar; gallery reordering with pointer
   events instead of HTML5 drag (OLE drag lag on Windows); background color repaint in place (676 → 7 ms per
   change); 「그리기」 Draw tab in free i2i (see screens.md).
+- **2026-10-13 follow-ups (user request):** tag autocomplete stays open after a space or underscore that ends a
+  word; whole `{}`/`[]`/weight regions are tinted (nested ones deeper); title bar is icon-only with the version by the
+  name, JSON import only in settings; scene grid marquee and reorder no longer re-render every card per move
+  (grouped records, memoized cards, DOM-drawn box, per-frame hit tests, edge auto-scroll); Draw stacks three GPU
+  canvases and stamps straight onto the visible stroke canvas (no per-frame full redraw, no undo readbacks).
 
 ## Next
 

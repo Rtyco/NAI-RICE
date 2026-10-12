@@ -40,13 +40,21 @@ const PALETTE = [
   '#6d4c41',
 ];
 
-/** 실행 취소 기록. 한 장이 캔버스 크기 × 4바이트(1216×832이면 약 4MB)라 개수를 줄여 둔다. */
+/** 실행 취소 기록. 한 장이 캔버스 크기 × 4바이트(1216×832이면 약 4MB)의 GPU 메모리라 개수를 줄여 둔다. */
 const HISTORY_LIMIT = 20;
 const MAX_SIZE = 300;
 
 type Point = { x: number; y: number; pressure: number };
 
+/**
+ * 그리는 캔버스는 GPU에 둔다. `willReadFrequently`로 CPU에 두면 화면에 보일 때마다 통째로 GPU에 올려 붓이 늦게
+ * 따라온다. 픽셀을 읽는 채우기·스포이트는 `readable`로 따로 합친 사본에서 읽는다.
+ */
 function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+  return canvas.getContext('2d')!;
+}
+
+function readable(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return canvas.getContext('2d', { willReadFrequently: true })!;
 }
 
@@ -127,6 +135,8 @@ function floodRegion(
 /**
  * NovelAI 웹 캔버스의 Draw처럼 i2i 이미지 위에 덧칠한다. 바탕 이미지는 그대로 두고 그린 것은 따로 한 장에 쌓으며,
  * 지우개는 그린 것만 지운다. 「이미지에 합치기」(또는 생성·탭 이동 때 자동)로 합친 그림이 새 i2i 이미지가 된다.
+ * 바탕·그린 것·지금 긋는 획을 캔버스 세 장으로 겹쳐 보여 주므로, 붓은 화면에 보이는 캔버스에 바로 찍히고 매
+ * 프레임 전체를 다시 그리지 않는다. 획의 불투명도는 CSS로 보여 주고 손을 뗄 때 그 값으로 합친다.
  */
 export function DrawCanvas(props: {
   base: HTMLImageElement;
@@ -138,10 +148,11 @@ export function DrawCanvas(props: {
 }) {
   const { width, height } = props;
   const view = useCanvasViewport(width, height);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const baseRef = useRef<HTMLCanvasElement>(null);
+  /** 닫힐 때 그린 것을 합치는 정리 함수는 React가 ref를 비운 뒤에 돌므로, 요소를 비우지 않고 쥐고 있는다. */
+  const layerRef = useRef<HTMLCanvasElement | null>(null);
+  const strokeRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const layer = useRef(makeCanvas(width, height));
-  const stroke = useRef(makeCanvas(width, height));
   const [tool, setTool] = useState<Tool>('pen');
   const [tip, setTip] = useState<Tip>('round');
   const [size, setSize] = useState(12);
@@ -149,50 +160,32 @@ export function DrawCanvas(props: {
   const [tolerance, setTolerance] = useState(32);
   const [color, setColor] = useState('#000000');
   const [dirty, setDirty] = useState(false);
-  const undoStack = useRef<ImageData[]>([]);
-  const redoStack = useRef<ImageData[]>([]);
+  const undoStack = useRef<HTMLCanvasElement[]>([]);
+  const redoStack = useRef<HTMLCanvasElement[]>([]);
   const [, setHistoryVersion] = useState(0);
   const active = useRef<{ tool: 'pen' | 'eraser'; last: Point } | null>(null);
   const [spaceHeld, setSpaceHeld] = useState(false);
-  const frame = useRef(0);
 
-  const render = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d')!;
+  const layer = () => context2d(layerRef.current!);
+
+  useEffect(() => {
+    const context = baseRef.current && context2d(baseRef.current);
+    if (!context) return;
     context.clearRect(0, 0, width, height);
     context.drawImage(props.base, 0, 0, width, height);
-    context.drawImage(layer.current, 0, 0);
-    if (active.current?.tool === 'pen') {
-      context.globalAlpha = opacity / 100;
-      context.drawImage(stroke.current, 0, 0);
-      context.globalAlpha = 1;
-    }
-  };
-  const scheduleRender = () => {
-    if (frame.current) return;
-    frame.current = requestAnimationFrame(() => {
-      frame.current = 0;
-      render();
-    });
-  };
-  useEffect(() => {
-    render();
-    return () => cancelAnimationFrame(frame.current);
-  });
+  }, [props.base, width, height]);
 
-  const composite = (): HTMLCanvasElement => {
-    const merged = makeCanvas(width, height);
-    const context = context2d(merged);
+  const composite = (): CanvasRenderingContext2D => {
+    const context = readable(makeCanvas(width, height));
     context.drawImage(props.base, 0, 0, width, height);
-    context.drawImage(layer.current, 0, 0);
-    return merged;
+    context.drawImage(layerRef.current!, 0, 0);
+    return context;
   };
 
   const apply = async () => {
     if (!dirty) return;
     setDirty(false);
-    await props.onApply(composite().toDataURL('image/png'));
+    await props.onApply(composite().canvas.toDataURL('image/png'));
   };
   const applyRef = useRef(apply);
   applyRef.current = apply;
@@ -203,46 +196,53 @@ export function DrawCanvas(props: {
   // 탭을 옮기거나 이미지를 바꾸는 등으로 편집기가 닫히면 그린 것을 합친다.
   useEffect(() => () => void applyRef.current(), []);
 
-  const snapshot = () => context2d(layer.current).getImageData(0, 0, width, height);
+  /** GPU 안에서 복사하므로 getImageData처럼 누를 때마다 픽셀을 읽어 오느라 멈칫하지 않는다. */
+  const snapshot = () => {
+    const copy = makeCanvas(width, height);
+    context2d(copy).drawImage(layerRef.current!, 0, 0);
+    return copy;
+  };
   const pushHistory = () => {
     undoStack.current = [...undoStack.current.slice(-(HISTORY_LIMIT - 1)), snapshot()];
     redoStack.current = [];
     setHistoryVersion((version) => version + 1);
   };
-  const restore = (from: { current: ImageData[] }, to: { current: ImageData[] }) => {
+  const restore = (
+    from: { current: HTMLCanvasElement[] },
+    to: { current: HTMLCanvasElement[] },
+  ) => {
     const previous = from.current.at(-1);
     if (!previous) return;
     to.current = [...to.current, snapshot()];
     from.current = from.current.slice(0, -1);
-    context2d(layer.current).putImageData(previous, 0, 0);
+    const context = layer();
+    context.clearRect(0, 0, width, height);
+    context.drawImage(previous, 0, 0);
     setDirty(true);
     setHistoryVersion((version) => version + 1);
-    scheduleRender();
   };
   const undo = () => restore(undoStack, redoStack);
   const redo = () => restore(redoStack, undoStack);
 
   const clearDrawing = () => {
     pushHistory();
-    context2d(layer.current).clearRect(0, 0, width, height);
+    layer().clearRect(0, 0, width, height);
     setDirty(true);
-    scheduleRender();
   };
 
-  const pointOf = (event: ReactPointerEvent<HTMLCanvasElement>): Point => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    return {
-      x: ((event.clientX - bounds.left) / bounds.width) * width,
-      y: ((event.clientY - bounds.top) / bounds.height) * height,
-      // 펜(타블렛)만 필압을 따른다. 마우스는 누르는 동안 0.5로 와서 그대로 쓰면 반만 그려진다.
-      pressure: event.pointerType === 'pen' && event.pressure > 0 ? event.pressure : 1,
-    };
-  };
+  const pointAt = (bounds: DOMRect, event: PointerEvent): Point => ({
+    x: ((event.clientX - bounds.left) / bounds.width) * width,
+    y: ((event.clientY - bounds.top) / bounds.height) * height,
+    // 펜(타블렛)만 필압을 따른다. 마우스는 누르는 동안 0.5로 와서 그대로 쓰면 반만 그려진다.
+    pressure: event.pointerType === 'pen' && event.pressure > 0 ? event.pressure : 1,
+  });
+  const pointOf = (event: ReactPointerEvent<HTMLCanvasElement>): Point =>
+    pointAt(event.currentTarget.getBoundingClientRect(), event.nativeEvent);
 
   const pick = (point: Point) => {
     const x = Math.min(width - 1, Math.max(0, Math.floor(point.x)));
     const y = Math.min(height - 1, Math.max(0, Math.floor(point.y)));
-    const [r, g, b] = context2d(composite()).getImageData(x, y, 1, 1).data;
+    const [r, g, b] = composite().getImageData(x, y, 1, 1).data;
     setColor(rgbToHex(r, g, b));
   };
 
@@ -251,7 +251,7 @@ export function DrawCanvas(props: {
     const y = Math.floor(point.y);
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     pushHistory();
-    const pixels = context2d(composite()).getImageData(0, 0, width, height);
+    const pixels = composite().getImageData(0, 0, width, height);
     const region = floodRegion(new Uint32Array(pixels.data.buffer), width, height, x, y, tolerance);
     const paint = new ImageData(width, height);
     const [r, g, b] = hexToRgb(color);
@@ -264,18 +264,17 @@ export function DrawCanvas(props: {
     }
     const temp = makeCanvas(width, height);
     context2d(temp).putImageData(paint, 0, 0);
-    const context = context2d(layer.current);
+    const context = layer();
     context.globalAlpha = opacity / 100;
     context.drawImage(temp, 0, 0);
     context.globalAlpha = 1;
     setDirty(true);
-    scheduleRender();
   };
 
   const drawSegment = (from: Point, to: Point) => {
     const brush = active.current;
     if (!brush) return;
-    const target = brush.tool === 'pen' ? context2d(stroke.current) : context2d(layer.current);
+    const target = brush.tool === 'pen' ? context2d(strokeRef.current!) : layer();
     target.globalCompositeOperation = brush.tool === 'eraser' ? 'destination-out' : 'source-over';
     const spacing = Math.max(1, size * (tip === 'soft' ? 0.1 : 0.2));
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -295,7 +294,6 @@ export function DrawCanvas(props: {
       );
     }
     target.globalCompositeOperation = 'source-over';
-    scheduleRender();
   };
 
   const moveCursor = (event: ReactPointerEvent<HTMLCanvasElement> | null) => {
@@ -331,7 +329,7 @@ export function DrawCanvas(props: {
     }
     event.currentTarget.setPointerCapture(event.pointerId);
     pushHistory();
-    context2d(stroke.current).clearRect(0, 0, width, height);
+    context2d(strokeRef.current!).clearRect(0, 0, width, height);
     active.current = { tool, last: point };
     drawSegment(point, point);
   };
@@ -341,9 +339,15 @@ export function DrawCanvas(props: {
     moveCursor(event);
     const brush = active.current;
     if (!brush) return;
-    const point = pointOf(event);
-    drawSegment(brush.last, point);
-    brush.last = point;
+    // Chromium은 pointermove를 프레임마다 한 번으로 묶어 보낸다. 묶인 이동을 모두 이어야 빠르게 그은 곡선이
+    // 꺾은선이 되지 않는다.
+    const events = event.nativeEvent.getCoalescedEvents?.() ?? [];
+    const bounds = event.currentTarget.getBoundingClientRect();
+    for (const moved of events.length ? events : [event.nativeEvent]) {
+      const point = pointAt(bounds, moved);
+      drawSegment(brush.last, point);
+      brush.last = point;
+    }
   };
 
   const finish = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -354,13 +358,13 @@ export function DrawCanvas(props: {
     if (!brush) return;
     active.current = null;
     if (brush.tool === 'pen') {
-      const context = context2d(layer.current);
+      const context = layer();
       context.globalAlpha = opacity / 100;
-      context.drawImage(stroke.current, 0, 0);
+      context.drawImage(strokeRef.current!, 0, 0);
       context.globalAlpha = 1;
+      context2d(strokeRef.current!).clearRect(0, 0, width, height);
     }
     setDirty(true);
-    scheduleRender();
   };
 
   useEffect(() => {
@@ -558,11 +562,21 @@ export function DrawCanvas(props: {
         }}
       >
         <div className="canvas-stack" style={view.stackStyle}>
+          <canvas ref={baseRef} width={width} height={height} />
           <canvas
-            ref={canvasRef}
+            ref={(node) => {
+              if (node) layerRef.current = node;
+            }}
+            className="draw-overlay"
             width={width}
             height={height}
-            className={tool === 'fill' || tool === 'picker' ? 'pick-cursor' : ''}
+          />
+          <canvas
+            ref={strokeRef}
+            width={width}
+            height={height}
+            className={`draw-overlay ${tool === 'fill' || tool === 'picker' ? 'pick-cursor' : ''}`}
+            style={{ opacity: opacity / 100 }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={finish}
