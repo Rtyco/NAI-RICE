@@ -1804,6 +1804,58 @@ textarea.syntax-input::selection {
 .director-tools .hint {
   margin: 0;
 }
+.mood-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mood-table-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 320px) 140px;
+  gap: 8px;
+  align-items: center;
+}
+.mood-scene {
+  overflow: hidden;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mood-scene em {
+  color: var(--muted);
+  font-style: normal;
+}
+.scene-set {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.scene-set-source {
+  margin: 0;
+}
+.scene-set-source img {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.scene-set-source figcaption {
+  color: var(--muted);
+  font-size: 11px;
+}
+.scene-set-body > .hint:first-child {
+  margin-top: 0;
+}
+.scene-set .mood-table {
+  margin-bottom: 10px;
+}
+.scene-set .mood-table-row {
+  grid-template-columns: 20px 150px minmax(0, 1fr) 130px;
+}
+.mood-table-row.head {
+  color: var(--muted);
+  font-size: 11.5px;
+}
 .hint.cost-warn {
   color: var(--orange-text);
 }

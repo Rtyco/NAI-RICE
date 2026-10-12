@@ -23,7 +23,12 @@ import {
 } from './store';
 import { libraryApi } from './desktop';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from './freeImageOps';
-import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from './generationOps';
+import {
+  clearEmotionResults,
+  openDirectorToolDialog,
+  openImg2ImgDialog,
+  openSceneSetDialog,
+} from './generationOps';
 
 export function updateEmotionSet(id: string, recipe: (set: EmotionSet) => EmotionSet): void {
   updateLibrary((library) => patchItem(library, 'emotionSets', id, recipe));
@@ -234,6 +239,12 @@ export function emotionMenu(
       hint: 'Emotion·배경 제거 등',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openDirectorToolDialog(projectId, [cover])),
+    },
+    {
+      label: '이 이미지로 씬 표정 만들기',
+      hint: 'Emotion 툴',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => openSceneSetDialog(projectId, cover)),
     },
     {
       label: '자유 생성 i2i',

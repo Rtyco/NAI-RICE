@@ -2,6 +2,8 @@ import type { GenerationSummary } from '../core/domain/types';
 import { confirmDialog, openDialog } from './components/Dialogs';
 import { DirectorToolDialog } from './components/DirectorToolDialog';
 import { Img2ImgDialog } from './components/Img2ImgDialog';
+import { SceneSetDialog } from './components/SceneSetDialog';
+import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { deleteGenerations, emotionRecords, run, toast, useStore } from './store';
 
 /** 작업에서 대표 이미지로 지정한 생성 기록 ID. */
@@ -105,7 +107,24 @@ export function openImg2ImgDialog(projectId: string, records: GenerationSummary[
 /** 결과들에 디렉터 툴(Emotion·배경 제거 등)을 적용하는 대화 상자를 연다. 결과는 원래 씬에 쌓인다. */
 export function openDirectorToolDialog(projectId: string, records: GenerationSummary[]): void {
   if (!records.length) return;
+  // 작업의 결과 한 장이면 씬마다 다른 표정으로 한꺼번에 만드는 창으로 넘어갈 수 있다.
+  const sceneSet =
+    projectId !== FREE_PROJECT_ID && records.length === 1
+      ? () => openSceneSetDialog(projectId, records[0])
+      : undefined;
   void openDialog((close) => (
-    <DirectorToolDialog projectId={projectId} records={records} close={close} />
+    <DirectorToolDialog
+      projectId={projectId}
+      records={records}
+      onSceneSet={sceneSet}
+      close={close}
+    />
+  ));
+}
+
+/** 대표 이미지 한 장에 씬마다 Emotion 툴을 적용해 표정만 다른 씬 세트를 만드는 창을 연다. */
+export function openSceneSetDialog(projectId: string, record: GenerationSummary): void {
+  void openDialog((close) => (
+    <SceneSetDialog projectId={projectId} record={record} close={close} />
   ));
 }

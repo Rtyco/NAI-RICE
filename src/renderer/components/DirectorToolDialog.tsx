@@ -27,6 +27,8 @@ export function DirectorToolDialog(props: {
   projectId: string;
   records: GenerationSummary[];
   tool?: AugmentTool;
+  /** 있으면 Emotion 툴에서 「씬마다 다른 표정으로 만들기」로 넘어갈 수 있다. */
+  onSceneSet?: () => void;
   close: () => void;
 }) {
   const token = useStore((state) => state.token);
@@ -151,6 +153,20 @@ export function DirectorToolDialog(props: {
             />
           )}
         </div>
+      )}
+      {options.tool === 'emotion' && props.onSceneSet && (
+        <p className="hint">
+          씬 모음의 씬마다 다른 표정으로 한꺼번에 만들려면{' '}
+          <button
+            className="link-button"
+            onClick={() => {
+              props.close();
+              props.onSceneSet?.();
+            }}
+          >
+            이 이미지로 씬 표정 만들기 →
+          </button>
+        </p>
       )}
       {info.prompt && (
         <label className="stack-field">

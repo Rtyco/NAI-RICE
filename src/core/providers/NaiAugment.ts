@@ -145,6 +145,11 @@ export function suggestMood(sceneName: string): string | undefined {
   return MOOD_KEYWORDS.find(([, words]) => words.some((word) => name.includes(word)))?.[0];
 }
 
+/** 씬에 정해 둔 Emotion 툴 표정. 없으면 씬 이름으로 추천한 표정이다. */
+export function sceneMood(scene: { name: string; augmentMood?: string }): string | undefined {
+  return scene.augmentMood ?? suggestMood(scene.name);
+}
+
 const FREE_AUGMENT_PIXELS = 1024 * 1024;
 
 /**

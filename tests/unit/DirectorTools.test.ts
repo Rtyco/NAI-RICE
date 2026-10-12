@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GenerationRecord } from '../../src/core/domain/types';
 import { buildResultAugmentJobs } from '../../src/core/jobs/JobBuilder';
 import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
-import { freeAugmentSize, suggestMood } from '../../src/core/providers/NaiAugment';
+import { freeAugmentSize, sceneMood, suggestMood } from '../../src/core/providers/NaiAugment';
 import { buildNovelAIJobRequest } from '../../src/core/providers/NovelAIRequestBuilder';
 import {
   emotionSetSchema,
@@ -108,6 +108,12 @@ describe('디렉터 툴 작업', () => {
       'happy',
       undefined,
     ]);
+  });
+
+  it('씬에 정해 둔 표정이 있으면 이름 추천보다 먼저 써', () => {
+    expect(sceneMood({ name: '기쁨', augmentMood: 'laughing' })).toBe('laughing');
+    expect(sceneMood({ name: '기쁨' })).toBe('happy');
+    expect(sceneMood({ name: '카페' })).toBeUndefined();
   });
 
   it('무료 면적 안이면 크기를 그대로 두고, 넘으면 비율을 지켜 64 배수로 줄여', () => {
