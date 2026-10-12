@@ -318,14 +318,17 @@ export const vibeSchema = z.object({
   updatedAt: z.string().catch(''),
 });
 
+const exportFormatSchema = z.enum(['png', 'webp', 'avif']);
+export const exportQualitySchema = z.number().int().min(1).max(100);
+
 export const appSettingsSchema = z.object({
   outputFilenameTemplate: z.string().min(1).default(DEFAULT_OUTPUT_FILENAME_TEMPLATE),
   keepDiagnosticCanvas: z.boolean().default(true),
   storageFormat: z.enum(['png', 'webp-lossless']).default('webp-lossless'),
   export: z
     .object({
-      format: z.enum(['png', 'webp', 'avif']),
-      quality: z.number().int().min(1).max(100),
+      format: exportFormatSchema,
+      quality: exportQualitySchema,
       target: z.enum(['favorite', 'latest']),
     })
     .default({ format: 'png', quality: 90, target: 'favorite' }),
@@ -516,6 +519,16 @@ export const generationRecordSchema = z.object({
   settings: generationSettingsSchema,
   anlasSpent: z.number().optional(),
   anlasEstimate: z.number().optional(),
+});
+
+/** 내보내기 요청. 형식은 그대로 파일 확장자가 되므로 정해진 값만 받는다. */
+export const exportRequestSchema = z.object({
+  projectId: z.string().regex(FOLDER_ID),
+  name: z.string(),
+  items: z.array(z.object({ generationId: z.string(), name: z.string() })),
+  format: exportFormatSchema,
+  quality: exportQualitySchema,
+  mode: z.enum(['folder', 'zip']),
 });
 
 /** 한 번에 큐에 넣을 수 있는 작업 수. 감정 모음 하나를 변형 여러 장으로 돌려도 넉넉하다. */

@@ -113,7 +113,8 @@ export function createWindow(title: string, moduleDirectory: string): void {
   window.webContents.on('will-navigate', (event, url) => {
     if (url !== window.webContents.getURL()) event.preventDefault();
   });
-  const developmentUrl = process.env.VITE_DEV_SERVER_URL;
+  // 배포판이 환경 변수로 다른 페이지를 불러오면 그 페이지가 preload API를 그대로 받는다.
+  const developmentUrl = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
   if (developmentUrl) void window.loadURL(developmentUrl);
   else void window.loadFile(path.join(moduleDirectory, '..', 'dist-renderer', 'index.html'));
 }

@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
 import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain/types';
+import { exportQualitySchema, exportRequestSchema } from '../src/core/validation/schemas';
 import type {
-  ExportRequest,
   ImageDataSource,
   ImageInputRequest,
   MetadataVibeImport,
@@ -131,11 +131,11 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('file:export-vibes', (_event, list: Vibe[]) => vibes.export(list));
   ipcMain.handle(
     'file:save-image-as',
-    (_event, id: string, generationId: string, name: string, quality: number) =>
-      exporter.saveImageAs(id, generationId, name, quality),
+    (_event, id: string, generationId: string, name: string, quality: unknown) =>
+      exporter.saveImageAs(id, generationId, name, exportQualitySchema.parse(quality)),
   );
-  ipcMain.handle('file:export-images', (_event, request: ExportRequest) =>
-    exporter.exportImages(request),
+  ipcMain.handle('file:export-images', (_event, request: unknown) =>
+    exporter.exportImages(exportRequestSchema.parse(request)),
   );
   ipcMain.handle('file:export-reference', (_event, reference: Reference) =>
     exporter.exportReference(reference),

@@ -5,6 +5,7 @@ import {
   renderOutputFilename,
   validateOutputFilenameTemplate,
 } from '../../src/core/output/OutputFilename';
+import { exportRequestSchema } from '../../src/core/validation/schemas';
 
 const context = {
   character: '나디아-세론티',
@@ -40,5 +41,20 @@ describe('output filename template', () => {
 describe('exportFileNames', () => {
   it('감정 이름을 파일 이름으로 쓰고 중복과 금지 문자를 처리해', () => {
     expect(exportFileNames(['기쁨', '슬픔?', '기쁨'], 'webp')).toEqual(['기쁨.webp', '슬픔_.webp', '기쁨_2.webp']);
+  });
+
+  it('확장자가 되는 형식은 정해진 값만 받아 고른 폴더 밖을 가리키지 못해', () => {
+    const request = {
+      projectId: 'aria-abcdef12',
+      name: '아리아',
+      items: [{ generationId: 'g1', name: '기쁨' }],
+      format: 'webp',
+      quality: 90,
+      mode: 'folder',
+    };
+    expect(exportRequestSchema.parse(request)).toEqual(request);
+    expect(() => exportRequestSchema.parse({ ...request, format: 'png/../../escape' })).toThrow();
+    expect(() => exportRequestSchema.parse({ ...request, projectId: '../other' })).toThrow();
+    expect(() => exportRequestSchema.parse({ ...request, quality: 0 })).toThrow();
   });
 });

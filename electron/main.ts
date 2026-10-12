@@ -102,8 +102,16 @@ function disableSpellChecker(): void {
   }
 }
 
+/** 화면이 쓰는 권한은 프롬프트 복사의 클립보드 쓰기뿐이다. 처리기가 없으면 Electron은 모든 요청을 허락한다. */
+function allowOnlyClipboardWrite(): void {
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
+    callback(permission === 'clipboard-sanitized-write'),
+  );
+}
+
 app.whenReady().then(async () => {
   disableSpellChecker();
+  allowOnlyClipboardWrite();
   const services = await createServices();
   handleMediaProtocol(services.library);
   registerIpc(services);
