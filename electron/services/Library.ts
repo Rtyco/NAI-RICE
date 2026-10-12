@@ -79,6 +79,8 @@ function recordFiles(record: GenerationRecord): string[] {
  *   backups/                     library.json 자동 백업
  *   references/<id>/             레퍼런스 원본·캔버스·마스크
  *   sources/                     자유 인페인팅 이미지·마스크
+ *   pictures/                    캐릭터 레퍼런스·바이브 그림(내용 해시 이름)
+ *   vibes/                       바이브 인코딩 결과(다시 쓰기용)
  *   projects/<id>/               generations.json, inputs/, outputs/<감정>/, thumbs/, diagnostic/
  *   exports/
  */
@@ -252,21 +254,30 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.writeInpaintInputs(projectId, canvas, mask);
   }
 
+  /** 캐릭터 레퍼런스·바이브 그림. 내용 해시로 이름을 지어 같은 그림은 한 번만 저장한다. */
+  pictureFile(file: string): string {
+    return resolveInside(path.join(this.root, 'pictures'), file);
+  }
+
+  async addPicture(dataUrl: string): Promise<{ file: string; width: number; height: number }> {
+    const png = await sharp(decodeDataUrl(dataUrl).buffer).rotate().png().toBuffer();
+    const { width, height } = await imageSize(png);
+    const file = `${sha256(png).slice(0, 24)}.png`;
+    const target = this.pictureFile(file);
+    if (!(await exists(target))) await atomicWrite(target, png);
+    return { file, width, height };
+  }
+
   async prepareAidInput(
     projectId: string,
-    reference: Reference,
+    file: string,
     kind: 'character' | 'vibe',
   ): Promise<PreparedImage> {
-    const image = reference.image;
-    if (!image) throw new Error('인페인트 항목에 참고 그림이 없습니다.');
-    const original = await fs.readFile(
-      await this.resolveReferenceReal(reference.id, image.originalFile),
+    const picture = await fs.readFile(await this.verifyReal(this.pictureFile(file)));
+    return this.writeInput(
+      projectId,
+      kind === 'character' ? await fitCharacterReference(picture) : picture,
     );
-    const png =
-      kind === 'character'
-        ? await fitCharacterReference(original)
-        : await sharp(original).rotate().png().toBuffer();
-    return this.writeInput(projectId, png);
   }
 
   /** 바이브 인코딩 결과. 작업과 상관없이 그림·모델·추출량이 같으면 다시 쓰므로 작업 폴더 밖에 둔다. */
@@ -361,10 +372,12 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     const file =
       source.kind === 'source'
         ? await this.verifyReal(this.sourceFile(source.file))
-        : await this.resolveProjectReal(
-            source.projectId,
-            (await this.findGeneration(source.projectId, source.generationId)).file,
-          );
+        : source.kind === 'picture'
+          ? await this.verifyReal(this.pictureFile(source.file))
+          : await this.resolveProjectReal(
+              source.projectId,
+              (await this.findGeneration(source.projectId, source.generationId)).file,
+            );
     return toDataUrl(await fs.readFile(file), imageMime(file));
   }
 

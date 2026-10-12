@@ -10,7 +10,7 @@ import type {
   NovelAIUserStatus,
   NovelAIVibeRequest,
 } from '../../src/core/providers/NovelAIProvider';
-import type { ProjectInspection, ReferenceImages } from '../../src/shared/ipc';
+import type { ImageDataSource, ProjectInspection, ReferenceImages } from '../../src/shared/ipc';
 import type { TokenVaultStatus } from './TokenVault';
 
 /**
@@ -59,6 +59,7 @@ export interface ExportSource {
   listGenerations(projectId: string): Promise<GenerationRecord[]>;
   resolveProjectReal(projectId: string, relative: string): Promise<string>;
   readReferenceImages(reference: Reference): Promise<ReferenceImages | null>;
+  readImageDataUrl(source: ImageDataSource): Promise<string>;
 }
 
 /** 탐색기로 열거나 휴지통으로 보낼 작업 폴더. Library가 구현한다. */

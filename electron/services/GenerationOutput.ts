@@ -43,8 +43,13 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
 
 function recordAid(aid: JobAid): RecordAid {
   return aid.kind === 'character'
-    ? { kind: 'character', styleAware: aid.styleAware, fidelity: aid.fidelity }
-    : { kind: 'vibe', strength: aid.strength, informationExtracted: aid.informationExtracted };
+    ? { kind: 'character', name: aid.name, styleAware: aid.styleAware, fidelity: aid.fidelity }
+    : {
+        kind: 'vibe',
+        name: aid.name,
+        strength: aid.strength,
+        informationExtracted: aid.informationExtracted,
+      };
 }
 
 function localDate(iso: string): string {

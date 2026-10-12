@@ -5,6 +5,7 @@ import type {
   GenerationSummary,
   GenerationJobSnapshot,
   Library,
+  Picture,
   QueueView,
   Rect,
   Reference,
@@ -54,7 +55,8 @@ export type PreparedInputs = {
 export type ImageInputSource = { kind: 'record'; projectId: string; generationId: string };
 
 /** data URL로 읽을 이미지. `sources/`의 파일이거나 생성 결과다. */
-export type ImageDataSource = { kind: 'source'; file: string } | ImageInputSource;
+export type ImageDataSource =
+  { kind: 'source'; file: string } | { kind: 'picture'; file: string } | ImageInputSource;
 
 /** 자유 인페인팅에 쓸 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
 export type SourceImageAdd = { kind: 'data'; dataUrl: string } | ImageInputSource;
@@ -139,7 +141,8 @@ export type OpenTarget =
   | { kind: 'reference'; referenceId: string };
 
 /** `source`는 id 없이 `sources/<파일>`을 가리킨다. */
-export type MediaOwner = { kind: 'project' | 'reference'; id: string } | { kind: 'source' };
+export type MediaOwner =
+  { kind: 'project' | 'reference'; id: string } | { kind: 'source' } | { kind: 'picture' };
 
 export type LibraryApi = {
   loadLibrary: () => Promise<LibrarySnapshot>;
@@ -149,12 +152,14 @@ export type LibraryApi = {
   copyReferenceFiles: (fromId: string, toId: string) => Promise<void>;
   deleteReferenceFiles: (referenceId: string) => Promise<void>;
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
-  /** 인페인트 항목의 참고 그림을 캐릭터 레퍼런스(캔버스에 맞춤)나 바이브(원본) 입력으로 복사한다. */
+  /** 캐릭터 레퍼런스(캔버스에 맞춤)나 바이브(원본) 그림을 작업 입력으로 복사한다. */
   prepareAidInput: (
     projectId: string,
-    reference: Reference,
+    file: string,
     kind: 'character' | 'vibe',
   ) => Promise<PreparedImage>;
+  /** 캐릭터 레퍼런스·바이브 그림을 `pictures/`에 저장한다. 같은 그림은 같은 파일이 된다. */
+  addPicture: (dataUrl: string) => Promise<Omit<Picture, 'name'>>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
   /** 마스크 PNG를 `sources/`에 넣고 파일 이름을 돌려준다. */

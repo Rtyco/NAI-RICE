@@ -15,8 +15,6 @@ import type {
   GenerationSummary,
   JobAid,
 } from '../core/domain/types';
-
-type EmotionJobAid = { job: JobAid; referenceName: string };
 import {
   augmentToolInfo,
   DEFAULT_AUGMENT_SETTINGS,
@@ -59,24 +57,28 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
 
     const reference = resolved.reference!;
-    const aid = projectAid(project);
-    let aidInput: EmotionJobAid | undefined;
-    if (aid?.kind === 'character') {
-      const image = await libraryApi().prepareAidInput(project.id, reference, 'character');
+    // resolveProject가 그림이 없는 참고 항목을 이미 막았다.
+    const aid = projectAid(library, project);
+    let aidInput: JobAid | undefined;
+    if (aid?.kind === 'character' && aid.item?.image) {
+      const { item } = aid;
+      const image = await libraryApi().prepareAidInput(project.id, item.image!.file, 'character');
       aidInput = {
-        job: { kind: 'character', ...image, styleAware: aid.styleAware, fidelity: aid.fidelity },
-        referenceName: reference.name,
+        kind: 'character',
+        name: item.name,
+        ...image,
+        styleAware: item.styleAware,
+        fidelity: item.fidelity,
       };
-    } else if (aid?.kind === 'vibe') {
-      const image = await libraryApi().prepareAidInput(project.id, reference, 'vibe');
+    } else if (aid?.kind === 'vibe' && aid.item?.image) {
+      const { item } = aid;
+      const image = await libraryApi().prepareAidInput(project.id, item.image!.file, 'vibe');
       aidInput = {
-        job: {
-          kind: 'vibe',
-          ...image,
-          strength: aid.vibeStrength,
-          informationExtracted: aid.vibeInformation,
-        },
-        referenceName: reference.name,
+        kind: 'vibe',
+        name: item.name,
+        ...image,
+        strength: item.strength,
+        informationExtracted: item.informationExtracted,
       };
     }
     const common = {

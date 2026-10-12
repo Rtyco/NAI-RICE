@@ -16,7 +16,14 @@ import {
 import type { TokenStatus } from '../shared/ipc';
 import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
-export type LibrarySection = 'presets' | 'characters' | 'emotionSets' | 'references' | 'pieceSets';
+export type LibrarySection =
+  | 'presets'
+  | 'characters'
+  | 'emotionSets'
+  | 'references'
+  | 'characterReferences'
+  | 'vibes'
+  | 'pieceSets';
 
 export type View =
   | { kind: 'home' }
@@ -503,6 +510,11 @@ export function coverRecord(
 
 export function projectMedia(projectId: string, relative: string): string {
   return libraryApi().mediaUrl({ kind: 'project', id: projectId }, relative);
+}
+
+/** 캐릭터 레퍼런스·바이브 그림. 내용 해시 이름이라 바뀌면 이름도 바뀐다. */
+export function pictureMedia(file: string): string {
+  return libraryApi().mediaUrl({ kind: 'picture' }, file);
 }
 
 export function referenceMedia(referenceId: string, relative: string, version?: string): string {

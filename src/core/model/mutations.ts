@@ -26,6 +26,8 @@ type Collection =
   | 'characters'
   | 'emotionSets'
   | 'references'
+  | 'characterReferences'
+  | 'vibes'
   | 'projects'
   | 'pieceSets';
 type ItemOf<K extends Collection> = Library[K][number];
@@ -98,6 +100,8 @@ const LINK_KEY = {
   presets: 'presetId',
   emotionSets: 'emotionSetId',
   references: 'referenceId',
+  characterReferences: 'characterReferenceId',
+  vibes: 'vibeId',
 } as const;
 
 /**
@@ -133,10 +137,18 @@ export function removeItemReassigning(
     };
   }
   const link = LINK_KEY[key];
+  // 캐릭터 레퍼런스·바이브는 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 연결을 뺀다.
+  const optional = key === 'characterReferences' || key === 'vibes';
   return {
     ...removed,
     projects: removed.projects.map((project) =>
-      project[link] !== id || !replacementId ? project : { ...project, [link]: replacementId },
+      project[link] !== id
+        ? project
+        : replacementId
+          ? { ...project, [link]: replacementId }
+          : optional
+            ? { ...project, [link]: undefined }
+            : project,
     ),
   };
 }

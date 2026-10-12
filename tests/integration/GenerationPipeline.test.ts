@@ -400,13 +400,10 @@ describe('generation pipeline', () => {
 
   it('캐릭터 레퍼런스 그림은 비율이 가까운 캔버스에 검은 여백으로 맞춰', async () => {
     const { root, library } = await setupLibrary();
-    const reference = makeReference(64, 64);
-    await library.saveReferenceImages(reference.id, {
-      originalDataUrl: dataUrl(await png(300, 400, '#ff0000')),
-      canvasDataUrl: dataUrl(await png(64, 64, '#ffffff')),
-      maskDataUrl: dataUrl(await png(64, 64, '#ffffff')),
-    });
-    const input = await library.prepareAidInput('project-a', reference, 'character');
+    const picture = await library.addPicture(dataUrl(await png(300, 400, '#ff0000')));
+    expect(picture).toMatchObject({ width: 300, height: 400 });
+    expect(picture.file).toMatch(/^[0-9a-f]{24}\.png$/);
+    const input = await library.prepareAidInput('project-a', picture.file, 'character');
     const file = await readFile(path.join(root, 'projects', 'project-a', input.imagePath));
     const { data, info } = await sharp(file).raw().toBuffer({ resolveWithObject: true });
     expect([info.width, info.height]).toEqual([1024, 1536]);
@@ -419,11 +416,7 @@ describe('generation pipeline', () => {
   it('바이브는 처음 한 번만 인코딩하고 그 결과를 저장해 다음 작업에 다시 써', async () => {
     const { root, library } = await setupLibrary();
     const reference = makeReference(64, 64);
-    await library.saveReferenceImages(reference.id, {
-      originalDataUrl: dataUrl(await png(64, 96, '#ff0000')),
-      canvasDataUrl: dataUrl(await png(64, 64, '#ffffff')),
-      maskDataUrl: dataUrl(await png(64, 64, '#ffffff')),
-    });
+    const picture = await library.addPicture(dataUrl(await png(64, 96, '#ff0000')));
     let encodes = 0;
     const sent: Array<Buffer | undefined> = [];
     const records: GenerationRecord[] = [];
@@ -461,7 +454,7 @@ describe('generation pipeline', () => {
       emotionSetId: emotionSet.id,
       referenceId: reference.id,
     });
-    const image = await library.prepareAidInput(project.id, reference, 'vibe');
+    const image = await library.prepareAidInput(project.id, picture.file, 'vibe');
     const jobs = buildTxt2ImgJobs({
       project,
       preset,
@@ -469,10 +462,7 @@ describe('generation pipeline', () => {
       emotionSet,
       emotionIds: [emotionSet.emotions[0].id],
       settings: DEFAULT_SETTINGS,
-      aid: {
-        job: { kind: 'vibe', ...image, strength: 0.6, informationExtracted: 0.7 },
-        referenceName: reference.name,
-      },
+      aid: { kind: 'vibe', name: '노을', ...image, strength: 0.6, informationExtracted: 0.7 },
     });
     await queue.enqueue(jobs);
     for (let tries = 0; tries < 250 && records.length < 2; tries += 1)
@@ -480,8 +470,12 @@ describe('generation pipeline', () => {
 
     expect(encodes).toBe(1);
     expect(sent.map((buffer) => buffer?.toString())).toEqual(['ENCODED', 'ENCODED']);
-    expect(records[0].aid).toEqual({ kind: 'vibe', strength: 0.6, informationExtracted: 0.7 });
-    expect(records[0].referenceName).toBe(reference.name);
+    expect(records[0].aid).toEqual({
+      kind: 'vibe',
+      name: '노을',
+      strength: 0.6,
+      informationExtracted: 0.7,
+    });
   });
 
   it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {

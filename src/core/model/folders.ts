@@ -2,7 +2,14 @@ import type { Library } from '../domain/types';
 import { moveItems, uniqueName } from './mutations';
 
 export type FolderCollection =
-  'presets' | 'characters' | 'emotionSets' | 'references' | 'projects' | 'pieceSets';
+  | 'presets'
+  | 'characters'
+  | 'emotionSets'
+  | 'references'
+  | 'characterReferences'
+  | 'vibes'
+  | 'projects'
+  | 'pieceSets';
 
 type Foldered = { id: string; folder?: string };
 

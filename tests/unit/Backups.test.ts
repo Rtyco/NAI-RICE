@@ -14,6 +14,8 @@ import {
   createDefaultLibrary,
   createProject,
   createReference,
+  createCharacterReference,
+  createVibe,
 } from '../../src/core/model/defaults';
 import { librarySchema, v1CharacterSchema, v1WorkspaceSchema } from '../../src/core/validation/schemas';
 
@@ -86,6 +88,46 @@ describe('import files', () => {
     expect(restored.referenceId).toBe(bundle.references[0].id);
     expect(restored.presetId).toBe(bundle.presets[0].id);
     expect(librarySchema.safeParse(mergeBundle(full, bundle)).success).toBe(true);
+  });
+
+  it('전체 백업은 캐릭터 레퍼런스·바이브와 그림을 함께 옮기고 작업의 연결도 맞춰', () => {
+    const library = createDefaultLibrary();
+    const character = createCharacter('A');
+    const reference = createReference('R');
+    const file = `${'e'.repeat(24)}.png`;
+    const face = {
+      ...createCharacterReference('얼굴'),
+      image: { file, width: 4, height: 4, name: 'face.png' },
+    };
+    const mood = { ...createVibe('노을'), image: { file: `${'f'.repeat(24)}.png`, width: 4, height: 4, name: 'x.png' } };
+    const project = {
+      ...createProject('P', {
+        presetId: library.presets[0].id,
+        character,
+        emotionSetId: library.emotionSets[0].id,
+        referenceId: reference.id,
+      }),
+      characterReferenceId: face.id,
+    };
+    const full = {
+      ...library,
+      characters: [character],
+      references: [reference],
+      characterReferences: [face],
+      vibes: [mood],
+      projects: [project],
+    };
+    const exported = exportLibrary(full, {}, { [file]: 'data:image/png;base64,AAAA' });
+    const bundle = parseImportFile(JSON.stringify(exported), 'all.json', PRESET_ID);
+    expect(bundle.characterReferences[0]).toMatchObject({ name: '얼굴', image: { file } });
+    expect(bundle.characterReferences[0].id).not.toBe(face.id);
+    // 그림이 백업에 없으면 그림 없이 가져온다.
+    expect(bundle.vibes[0].image).toBeUndefined();
+    expect(bundle.pictures).toEqual({ [file]: 'data:image/png;base64,AAAA' });
+    expect(bundle.projects[0].characterReferenceId).toBe(bundle.characterReferences[0].id);
+    const merged = mergeBundle(full, bundle);
+    expect(merged.characterReferences).toHaveLength(2);
+    expect(librarySchema.safeParse(merged).success).toBe(true);
   });
 
   it('이전 형식 캐릭터 백업을 네 가지 항목과 작업으로 나눠', () => {
@@ -168,9 +210,12 @@ describe('mergeBundle 덮어쓰기', () => {
       characters: [incomingCharacter],
       emotionSets: [incomingSet],
       references: [],
+      characterReferences: [],
+      vibes: [],
       projects: [],
       pieceSets: [],
       images: {},
+      pictures: {},
       warnings: [],
     };
     const merged = mergeBundle(full, bundle, {
@@ -210,7 +255,7 @@ describe('mergeBundle 덮어쓰기', () => {
     incoming.promptSets[0] = { ...incoming.promptSets[0], name: '다른 이름' };
     const merged = mergeBundle(
       full,
-      { label: 't', presets: [], characters: [incoming], emotionSets: [], references: [], projects: [], pieceSets: [], images: {}, warnings: [] },
+      { label: 't', presets: [], characters: [incoming], emotionSets: [], references: [], characterReferences: [], vibes: [], projects: [], pieceSets: [], images: {}, pictures: {}, warnings: [] },
       { [incoming.id]: character.id },
     );
     expect(merged.projects[0].characters[0].promptSetId).toBe(incoming.promptSets[0].id);

@@ -9,7 +9,14 @@ import type { LibrarySection } from './store';
 export const SECTIONS: Array<{
   id: LibrarySection;
   key: keyof Library;
-  kind: 'preset' | 'character' | 'emotionSet' | 'reference' | 'pieceSet';
+  kind:
+    | 'preset'
+    | 'character'
+    | 'emotionSet'
+    | 'reference'
+    | 'characterReference'
+    | 'vibe'
+    | 'pieceSet';
   projectPart: boolean;
   label: string;
   icon: IconName;
@@ -63,6 +70,28 @@ export const SECTIONS: Array<{
     usage: '',
   },
   {
+    id: 'characterReferences',
+    shortcut: 'F7',
+    key: 'characterReferences',
+    kind: 'characterReference',
+    projectPart: false,
+    label: '캐릭터 레퍼런스',
+    icon: 'portrait',
+    role: '그림의 캐릭터 따라 그리기',
+    usage: '작업의 일반 생성에서 고릅니다(V4.5 전용, 한 장에 5 Anlas)',
+  },
+  {
+    id: 'vibes',
+    shortcut: 'F8',
+    key: 'vibes',
+    kind: 'vibe',
+    projectPart: false,
+    label: '바이브',
+    icon: 'vibe',
+    role: '그림의 분위기·그림체',
+    usage: '작업의 일반 생성·인페인트에서 고릅니다(V4.5 전용, 인코딩 한 번에 2 Anlas)',
+  },
+  {
     id: 'pieceSets',
     shortcut: 'F6',
     key: 'pieceSets',
@@ -76,6 +105,14 @@ export const SECTIONS: Array<{
 ];
 
 export const PROJECT_SECTIONS = SECTIONS.filter((section) => section.projectPart);
+
+/**
+ * 항목 하나를 JSON으로 내보낼 수 있는지. 캐릭터 레퍼런스·바이브는 그림을 `pictures/`에 두어 JSON에 넣지 않으므로,
+ * 전체 백업으로만 옮긴다.
+ */
+export function exportable(section: LibrarySection): boolean {
+  return section !== 'characterReferences' && section !== 'vibes';
+}
 
 export function sectionInfo(id: LibrarySection) {
   return SECTIONS.find((section) => section.id === id)!;

@@ -130,6 +130,18 @@ export class Exporter {
       const data = await this.imagesOf(reference);
       if (data) images[reference.id] = data;
     }
-    return this.saveJson(exportLibrary(library, images), `전체백업_${dateStamp()}`, '전체 백업 저장');
+    const pictures: Record<string, string> = {};
+    for (const item of [...library.characterReferences, ...library.vibes]) {
+      if (!item.image || pictures[item.image.file]) continue;
+      const data = await this.library
+        .readImageDataUrl({ kind: 'picture', file: item.image.file })
+        .catch(() => undefined);
+      if (data) pictures[item.image.file] = data;
+    }
+    return this.saveJson(
+      exportLibrary(library, images, pictures),
+      `전체백업_${dateStamp()}`,
+      '전체 백업 저장',
+    );
   }
 }

@@ -1,10 +1,12 @@
 import type {
   Character,
+  CharacterReference,
   EmotionSet,
   Library,
   PieceSet,
   Preset,
   Reference,
+  Vibe,
 } from '../../../core/domain/types';
 import {
   exportCharacter,
@@ -14,10 +16,13 @@ import {
 } from '../../../core/backup/Backups';
 import {
   createCharacter,
+  createCharacterReference,
   createEmotionSet,
   createPieceSet,
   createPreset,
   createReference,
+  createVibe,
+  newId,
   projectsUsing,
 } from '../../../core/model/defaults';
 import {
@@ -208,6 +213,18 @@ export async function duplicateItem(section: LibrarySection, item: Item) {
     const copy = clonePieceSet(item as PieceSet, name);
     id = copy.id;
     updateLibrary((current) => ({ ...current, pieceSets: [...current.pieceSets, copy] }));
+  } else if (section === 'characterReferences') {
+    // 그림은 내용 해시 이름이라 복사하지 않고 같은 파일을 함께 쓴다.
+    const copy = { ...(item as CharacterReference), id: newId(), name };
+    id = copy.id;
+    updateLibrary((current) => ({
+      ...current,
+      characterReferences: [...current.characterReferences, copy],
+    }));
+  } else if (section === 'vibes') {
+    const copy = { ...(item as Vibe), id: newId(), name };
+    id = copy.id;
+    updateLibrary((current) => ({ ...current, vibes: [...current.vibes, copy] }));
   } else {
     const copy = cloneReferenceMeta(item as Reference, name);
     id = copy.id;
@@ -276,6 +293,19 @@ export function createItem(
     updateLibrary((current) => ({ ...current, pieceSets: [...current.pieceSets, item] }));
     return item.id;
   }
+  if (section === 'characterReferences') {
+    const item = createCharacterReference(uniqueName('새 캐릭터 레퍼런스', taken));
+    updateLibrary((current) => ({
+      ...current,
+      characterReferences: [...current.characterReferences, item],
+    }));
+    return item.id;
+  }
+  if (section === 'vibes') {
+    const item = createVibe(uniqueName('새 바이브', taken));
+    updateLibrary((current) => ({ ...current, vibes: [...current.vibes, item] }));
+    return item.id;
+  }
   const item = createReference(uniqueName('새 인페인트', taken));
   updateLibrary((current) => ({ ...current, references: [...current.references, item] }));
   return item.id;
@@ -289,6 +319,10 @@ export function itemSubtitle(section: LibrarySection, item: Item): string {
   if (section === 'characters') return `프롬프트 세트 ${(item as Character).promptSets.length}개`;
   if (section === 'emotionSets') return `씬 ${(item as EmotionSet).emotions.length}개`;
   if (section === 'pieceSets') return `조각 ${(item as PieceSet).pieces.length}개`;
+  if (section === 'characterReferences' || section === 'vibes') {
+    const image = (item as CharacterReference | Vibe).image;
+    return image ? `${image.width}×${image.height}` : '그림 없음';
+  }
   const reference = item as Reference;
   return reference.image
     ? `${reference.image.canvasWidth}×${reference.image.canvasHeight}`

@@ -1,14 +1,17 @@
 import { useEffect } from 'react';
 import type {
   Character,
+  CharacterReference,
   EmotionSet,
   PieceSet,
   Preset,
   Reference,
+  Vibe,
 } from '../../../core/domain/types';
 import { Modal } from '../../components/Dialogs';
 import { openLibrary, updateLibrary, useLibrary, type LibrarySection } from '../../store';
 import { ReferenceEditor } from '../ReferenceEditor';
+import { CharacterReferenceEditor, VibeEditor } from './AidItemEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { EmotionSetEditor } from './EmotionSetEditor';
 import { LABELS, withName, type Item } from './itemActions';
@@ -22,6 +25,9 @@ export function LibraryItemEditor({ section, item }: { section: LibrarySection; 
   if (section === 'characters') return <CharacterEditor character={item as Character} />;
   if (section === 'emotionSets') return <EmotionSetEditor set={item as EmotionSet} />;
   if (section === 'pieceSets') return <PieceSetEditor set={item as PieceSet} />;
+  if (section === 'characterReferences')
+    return <CharacterReferenceEditor item={item as CharacterReference} />;
+  if (section === 'vibes') return <VibeEditor item={item as Vibe} />;
   return <ReferenceEditor key={item.id} reference={item as Reference} />;
 }
 

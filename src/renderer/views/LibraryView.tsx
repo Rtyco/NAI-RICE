@@ -1,5 +1,5 @@
 import { useRef, useState, type MouseEvent } from 'react';
-import type { Reference } from '../../core/domain/types';
+import type { CharacterReference, Reference, Vibe } from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
 import {
   groupIntoFolder,
@@ -29,6 +29,7 @@ import { ListFolder } from '../components/ListFolder';
 import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
 import {
   openLibrary,
+  pictureMedia,
   referenceMedia,
   toggleFolder,
   toggleLibraryList,
@@ -51,6 +52,7 @@ import {
 } from './library/itemActions';
 import { UsedBy } from './library/UsedBy';
 import { LibraryItemEditor } from './library/LibraryEditorDialog';
+import { exportable } from '../sections';
 
 const DRAG_TYPE = 'application/x-library-item';
 
@@ -89,22 +91,20 @@ function LibraryRow(props: {
     setRenamingState(value);
   };
   const reference = section === 'references' ? (item as Reference) : undefined;
+  const picture =
+    section === 'characterReferences' || section === 'vibes'
+      ? { image: (item as CharacterReference | Vibe).image }
+      : undefined;
+  const thumb = reference?.image
+    ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
+    : picture?.image && pictureMedia(picture.image.file);
 
-  const avatar = reference ? (
-    <span className="avatar">
-      {reference.image ? (
-        <img
-          src={referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)}
-          alt=""
-          draggable={false}
-        />
-      ) : (
-        '?'
-      )}
-    </span>
-  ) : (
-    collapsed && <span className="avatar">{item.name.slice(0, 1) || '?'}</span>
-  );
+  const avatar =
+    reference || picture ? (
+      <span className="avatar">{thumb ? <img src={thumb} alt="" draggable={false} /> : '?'}</span>
+    ) : (
+      collapsed && <span className="avatar">{item.name.slice(0, 1) || '?'}</span>
+    );
 
   const commitName = (value: string) => {
     if (!editing.current) return;
@@ -126,7 +126,7 @@ function LibraryRow(props: {
             open: () => openLibrary(section, item.id),
             rename: collapsed ? undefined : () => setRenaming(true),
             duplicate: () => void duplicateItem(section, item),
-            exportJson: () => exportItem(section, item),
+            exportJson: exportable(section) ? () => exportItem(section, item) : undefined,
             remove: () => void deleteItem(section, item),
             pickedCount: props.picked ? props.pickedCount : 0,
             removePicked: props.removePicked,
@@ -445,10 +445,14 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                   <Icon name="folder" /> 폴더 열기
                 </button>
               )}
-              <button className="with-icon" onClick={() => exportItem(section, selected)}>
-                <Icon name="export" /> JSON 내보내기
-              </button>
-              <span className="zone-divider" />
+              {exportable(section) && (
+                <>
+                  <button className="with-icon" onClick={() => exportItem(section, selected)}>
+                    <Icon name="export" /> JSON 내보내기
+                  </button>
+                  <span className="zone-divider" />
+                </>
+              )}
               <button className="with-icon" onClick={() => void duplicateItem(section, selected)}>
                 <Icon name="copy" /> 복제
               </button>

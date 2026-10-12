@@ -52,6 +52,9 @@ export async function applyBundle(
     );
   }
 
+  // 그림 파일 이름은 내용 해시라, 다시 저장해도 항목이 가리키는 이름 그대로다.
+  for (const dataUrl of Object.values(bundle.pictures)) await libraryApi().addPicture(dataUrl);
+
   updateLibrary((current) => mergeBundle(current, bundle, overwrites));
   toast([bundleSummary(bundle), ...bundle.warnings.slice(0, 3)].join('\n'));
 
@@ -61,17 +64,29 @@ export async function applyBundle(
   else if (bundle.characters.length) openLibrary('characters', shown(bundle.characters[0].id));
   else if (bundle.emotionSets.length) openLibrary('emotionSets', shown(bundle.emotionSets[0].id));
   else if (bundle.references.length) openLibrary('references', bundle.references[0].id);
+  else if (bundle.characterReferences.length)
+    openLibrary('characterReferences', bundle.characterReferences[0].id);
+  else if (bundle.vibes.length) openLibrary('vibes', bundle.vibes[0].id);
   else if (bundle.pieceSets.length) openLibrary('pieceSets', shown(bundle.pieceSets[0].id));
 }
 
 type NamedGroup =
-  'presets' | 'characters' | 'emotionSets' | 'references' | 'projects' | 'pieceSets';
+  | 'presets'
+  | 'characters'
+  | 'emotionSets'
+  | 'references'
+  | 'characterReferences'
+  | 'vibes'
+  | 'projects'
+  | 'pieceSets';
 
 const GROUPS: Array<{ key: NamedGroup; label: string }> = [
   { key: 'presets', label: '생성 설정' },
   { key: 'characters', label: '캐릭터' },
   { key: 'emotionSets', label: '씬 모음' },
   { key: 'references', label: '인페인트' },
+  { key: 'characterReferences', label: '캐릭터 레퍼런스' },
+  { key: 'vibes', label: '바이브' },
   { key: 'projects', label: '작업' },
   { key: 'pieceSets', label: '프롬프트 조각' },
 ];
@@ -101,6 +116,8 @@ function blockedProjects(bundle: ImportBundle, skipped: Set<string>): Set<string
           ...project.characters.map((slot) => slot.characterId),
           project.emotionSetId,
           project.referenceId,
+          project.characterReferenceId ?? '',
+          project.vibeId ?? '',
         ].some((id) => skipped.has(id)),
       )
       .map((project) => project.id),
@@ -170,6 +187,8 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
       characters: keep(bundle.characters),
       emotionSets: keep(bundle.emotionSets),
       references: keep(bundle.references),
+      characterReferences: keep(bundle.characterReferences),
+      vibes: keep(bundle.vibes),
       projects: keep(bundle.projects),
       pieceSets: keep(bundle.pieceSets),
       images: Object.fromEntries(Object.entries(bundle.images).filter(([id]) => !excluded(id))),

@@ -65,8 +65,8 @@ type EmotionJobBuildInput = {
   /** 지정하면 설정의 Seed 방식보다 우선한다. "이 seed로 다시 생성"에 쓴다. */
   seedOverride?: number;
   variantsOverride?: number;
-  /** 캐릭터 레퍼런스·바이브와 그 그림을 가져온 인페인트 항목 이름. */
-  aid?: { job: JobAid; referenceName: string };
+  /** 캐릭터 레퍼런스·바이브. */
+  aid?: JobAid;
   now?: () => Date;
   randomSeed?: () => number;
 };
@@ -309,7 +309,7 @@ function buildEmotionJobs<T>(
           outputFilenameTemplate: input.settings.outputFilenameTemplate,
           settings: { ...settings },
           warnings,
-          ...(input.aid ? { aid: { ...input.aid.job } } : {}),
+          ...(input.aid ? { aid: { ...input.aid } } : {}),
         }),
       );
     }
@@ -699,11 +699,7 @@ export function buildTxt2ImgJobs(input: Txt2ImgJobBuildInput): Txt2ImgJobSnapsho
   return buildEmotionJobs(
     input,
     'txt2img',
-    {
-      referenceName: input.aid?.referenceName ?? '',
-      canvasWidth: settings.width,
-      canvasHeight: settings.height,
-    },
+    { referenceName: '', canvasWidth: settings.width, canvasHeight: settings.height },
     (common) => ({ ...common, kind: 'txt2img' }),
   );
 }

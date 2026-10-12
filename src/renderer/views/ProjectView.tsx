@@ -1,5 +1,11 @@
 import { Fragment, useState } from 'react';
-import type { Preset, Project, ProjectMode } from '../../core/domain/types';
+import type {
+  CharacterReference,
+  Preset,
+  Project,
+  ProjectMode,
+  Vibe,
+} from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   effectiveGenerationSettings,
@@ -13,11 +19,11 @@ import {
   maxCharactersFor,
   modelLabel,
   supportsInpaint,
+  supportsReferenceAid,
   usesMedium,
 } from '../../core/providers/NaiModels';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
-import { ReferenceAidChip } from '../components/ReferenceAid';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
@@ -26,6 +32,7 @@ import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
+  pictureMedia,
   referenceMedia,
   updateLibrary,
   updateProject,
@@ -43,6 +50,45 @@ const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
 ];
 
 const MAX_VARIANTS = 20;
+
+const NO_AID = '__none';
+
+/**
+ * 캐릭터 레퍼런스·바이브 칩. 맨 위 「쓰지 않음」으로 끈다. 둘은 함께 쓰지 않아, 하나를 고르면 다른 하나를
+ * 끈다(부르는 쪽에서).
+ */
+function AidChip(props: {
+  section: 'characterReferences' | 'vibes';
+  items: Array<CharacterReference | Vibe>;
+  selectedId?: string;
+  missing: boolean;
+  onPick: (id: string | undefined) => void;
+}) {
+  const selected = props.items.find((item) => item.id === props.selectedId);
+  return (
+    <ChecklistChip
+      section={props.section}
+      itemId={selected?.id}
+      missing={props.missing}
+      value={props.selectedId ? (selected?.name ?? '(없음)') : '쓰지 않음'}
+      thumb={selected?.image ? pictureMedia(selected.image.file) : undefined}
+      items={[
+        { id: NO_AID, name: '쓰지 않음', noEdit: true },
+        ...props.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          folder: item.folder,
+          thumb: item.image ? pictureMedia(item.image.file) : '',
+          hint: item.image ? undefined : '그림 없음',
+        })),
+      ]}
+      checked={[props.selectedId ?? NO_AID]}
+      onPick={(id) => props.onPick(id === NO_AID ? undefined : id)}
+      editSection={props.section}
+      hint="V4.5 전용입니다. 캐릭터 레퍼런스와 바이브는 하나만 씁니다."
+    />
+  );
+}
 
 function VariantsStepper({ preset }: { preset: Preset }) {
   const value = preset.generation.variantsPerEmotion;
@@ -96,6 +142,10 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
   const { project } = resolved;
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
+  const aid = projectAid(library, project);
+  const aidMissing =
+    !aid?.item?.image ||
+    Boolean(resolved.preset && !supportsReferenceAid(resolved.preset.generation.model));
   const thumb = resolved.reference?.image
     ? referenceMedia(
         resolved.reference.id,
@@ -123,18 +173,9 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         onChange={(characters) => patch({ characters })}
       />
       <PositionChip target={{ projectId: project.id }} />
-      {(project.mode === 'reference' || projectAid(project)) && (
+      {project.mode === 'reference' && (
         <ChecklistChip
           section="references"
-          label={
-            project.mode === 'reference'
-              ? undefined
-              : {
-                  text: '참고 그림',
-                  icon: 'reference',
-                  usage: '캐릭터 레퍼런스·바이브에 쓸 그림(인페인트 항목의 원본 그림)',
-                }
-          }
           itemId={resolved.reference?.id}
           missing={!resolved.reference?.image}
           value={resolved.reference?.name ?? '(없음)'}
@@ -154,7 +195,22 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         />
       )}
       {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
-      <ReferenceAidChip project={project} />
+      {project.mode === 'txt2img' && (
+        <AidChip
+          section="characterReferences"
+          items={library.characterReferences}
+          selectedId={project.characterReferenceId}
+          missing={aid?.kind === 'character' ? aidMissing : false}
+          onPick={(id) => patch({ characterReferenceId: id, ...(id ? { vibeId: undefined } : {}) })}
+        />
+      )}
+      <AidChip
+        section="vibes"
+        items={library.vibes}
+        selectedId={project.vibeId}
+        missing={aid?.kind === 'vibe' ? aidMissing : false}
+        onPick={(id) => patch({ vibeId: id, ...(id ? { characterReferenceId: undefined } : {}) })}
+      />
       <ChecklistChip
         section="emotionSets"
         itemId={resolved.emotionSet?.id}
@@ -260,13 +316,14 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
+  const library = useLibrary();
   if (!resolved) return null;
   const { project, preset, emotionSet, reference } = resolved;
   const batch = batchEmotionIds(project.id);
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
   const generation = preset && effectiveGenerationSettings(preset.generation);
-  const aid = projectAid(project);
+  const aid = projectAid(library, project);
   const costJob =
     project.mode !== 'reference'
       ? generation && {

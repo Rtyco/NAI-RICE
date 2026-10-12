@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import type {
   Character,
+  CharacterReference,
   EmotionSet,
   Library,
   PieceSet,
   Preset,
   Project,
   Reference,
+  Vibe,
 } from '../domain/types';
 import { importSDStudioProject } from '../importers/SDStudioProjectImporter';
 import { createPieceSet, newId, readableId } from '../model/defaults';
@@ -40,7 +42,12 @@ const envelope = <K extends string, T extends z.ZodTypeAny>(kind: K, body: T) =>
 const formats = {
   library: envelope(
     'reference-inpaint-library',
-    z.object({ library: librarySchema, images: z.record(z.string(), imagesSchema).default({}) }),
+    z.object({
+      library: librarySchema,
+      images: z.record(z.string(), imagesSchema).default({}),
+      // 캐릭터 레퍼런스·바이브 그림. `pictures/`의 파일 이름 → data URL. 이 기능 전의 백업에는 없다.
+      pictures: z.record(z.string(), z.string()).default({}),
+    }),
   ),
   preset: envelope('reference-inpaint-preset', z.object({ preset: presetSchema })),
   character: envelope('reference-inpaint-character', z.object({ character: characterSchema })),
@@ -73,10 +80,14 @@ export type ImportBundle = {
   characters: Character[];
   emotionSets: EmotionSet[];
   references: Reference[];
+  characterReferences: CharacterReference[];
+  vibes: Vibe[];
   projects: Project[];
   pieceSets: PieceSet[];
   /** 새 레퍼런스 ID → 이미지 */
   images: Record<string, ReferenceImagesData>;
+  /** 캐릭터 레퍼런스·바이브 그림 파일 이름 → data URL. 내용 해시 이름이라 다시 저장해도 이름이 같다. */
+  pictures: Record<string, string>;
   warnings: string[];
 };
 
@@ -87,9 +98,12 @@ function emptyBundle(label: string): ImportBundle {
     characters: [],
     emotionSets: [],
     references: [],
+    characterReferences: [],
+    vibes: [],
     projects: [],
     pieceSets: [],
     images: {},
+    pictures: {},
     warnings: [],
   };
 }
@@ -125,7 +139,11 @@ function parse<T>(schema: z.ZodType<T>, value: unknown, label: string): T {
 }
 
 /** 라이브러리 백업을 새 ID로 다시 매핑한다(기존 항목과 충돌하지 않게). */
-function remapLibrary(library: Library, images: Record<string, ReferenceImagesData>): ImportBundle {
+function remapLibrary(
+  library: Library,
+  images: Record<string, ReferenceImagesData>,
+  pictures: Record<string, string>,
+): ImportBundle {
   const bundle = emptyBundle('전체 백업');
   const ids = new Map<string, string>();
   const map = (old: string, next: string) => (ids.set(old, next), next);
@@ -138,9 +156,19 @@ function remapLibrary(library: Library, images: Record<string, ReferenceImagesDa
     if (images[item.id]) bundle.images[id] = images[item.id];
     return { ...item, id, image: images[item.id] ? item.image : undefined };
   });
+  const withPicture = <T extends { image?: { file: string } }>(item: T): T =>
+    item.image && pictures[item.image.file] ? item : { ...item, image: undefined };
+  bundle.characterReferences = library.characterReferences.map((item) =>
+    withPicture({ ...item, id: map(item.id, newId()) }),
+  );
+  bundle.vibes = library.vibes.map((item) => withPicture({ ...item, id: map(item.id, newId()) }));
+  bundle.pictures = pictures;
+  const linked = (id: string | undefined) => (id ? ids.get(id) : undefined);
   bundle.projects = library.projects.map((project) => ({
     ...project,
     id: readableId(project.name, 'project'),
+    characterReferenceId: linked(project.characterReferenceId),
+    vibeId: linked(project.vibeId),
     presetId: ids.get(project.presetId) ?? project.presetId,
     characters: project.characters.map((slot) => ({
       ...slot,
@@ -168,7 +196,7 @@ export function parseImportFile(
 
   if (kind === 'reference-inpaint-library') {
     const data = parse(formats.library, value, '전체 백업');
-    return remapLibrary(data.library as Library, data.images);
+    return remapLibrary(data.library as Library, data.images, data.pictures);
   }
   if (kind === 'reference-inpaint-preset') {
     const data = parse(formats.preset, value, '생성 설정');
@@ -310,7 +338,11 @@ export function exportReference(reference: Reference, images?: ReferenceImagesDa
   };
 }
 
-export function exportLibrary(library: Library, images: Record<string, ReferenceImagesData>) {
+export function exportLibrary(
+  library: Library,
+  images: Record<string, ReferenceImagesData>,
+  pictures: Record<string, string> = {},
+) {
   const copy = structuredClone(library);
   delete copy.lastProjectId;
   return {
@@ -319,6 +351,7 @@ export function exportLibrary(library: Library, images: Record<string, Reference
     exportedAt: stamp(),
     library: copy,
     images,
+    pictures,
   };
 }
 
@@ -431,6 +464,8 @@ export function mergeBundle(
     characters,
     emotionSets,
     references: [...library.references, ...bundle.references],
+    characterReferences: [...library.characterReferences, ...bundle.characterReferences],
+    vibes: [...library.vibes, ...bundle.vibes],
     projects,
     pieceSets,
   };
@@ -442,6 +477,8 @@ export function bundleSummary(bundle: ImportBundle): string {
     bundle.characters.length && `캐릭터 ${bundle.characters.length}`,
     bundle.emotionSets.length && `씬 모음 ${bundle.emotionSets.length}`,
     bundle.references.length && `인페인트 ${bundle.references.length}`,
+    bundle.characterReferences.length && `캐릭터 레퍼런스 ${bundle.characterReferences.length}`,
+    bundle.vibes.length && `바이브 ${bundle.vibes.length}`,
     bundle.projects.length && `작업 ${bundle.projects.length}`,
     bundle.pieceSets.length && `프롬프트 조각 ${bundle.pieceSets.length}`,
   ].filter(Boolean);

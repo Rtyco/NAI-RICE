@@ -95,6 +95,8 @@ export function migrateV1(workspace: V1Workspace, characters: V1Character[]): { 
     },
     presets: workspace.presets,
     pieceSets: [],
+    characterReferences: [],
+    vibes: [],
     characters: [],
     emotionSets: workspace.emotionTemplates.map((template) => ({
       id: newId(),

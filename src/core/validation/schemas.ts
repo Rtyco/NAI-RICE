@@ -209,22 +209,46 @@ export const projectSchema = z.preprocess(
     positionMode: z.enum(['ai', 'manual']).catch('ai'),
     emotionSetId: z.string(),
     referenceId: z.string(),
-    referenceAid: z
-      .object({
-        kind: z.enum(['none', 'character', 'vibe']).catch('none'),
-        styleAware: z.boolean().catch(true),
-        fidelity: z.number().min(0).max(1).catch(1),
-        vibeStrength: z.number().min(0).max(1).catch(0.6),
-        vibeInformation: z.number().min(0).max(1).catch(1),
-      })
-      .optional()
-      .catch(undefined),
+    characterReferenceId: z.string().min(1).optional().catch(undefined),
+    vibeId: z.string().min(1).optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     createdAt: z.string(),
     updatedAt: z.string(),
   }),
 );
+
+const pictureSchema = z
+  .object({
+    file: z.string().regex(/^[0-9a-f]{24}\.png$/),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    name: z.string().catch(''),
+  })
+  .optional()
+  .catch(undefined);
+
+const unitSchema = (fallback: number) => z.number().min(0).max(1).catch(fallback);
+
+export const characterReferenceSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  folder: folderSchema,
+  image: pictureSchema,
+  styleAware: z.boolean().catch(true),
+  fidelity: unitSchema(1),
+  updatedAt: z.string().catch(''),
+});
+
+export const vibeSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  folder: folderSchema,
+  image: pictureSchema,
+  strength: unitSchema(0.6),
+  informationExtracted: unitSchema(1),
+  updatedAt: z.string().catch(''),
+});
 
 export const appSettingsSchema = z.object({
   outputFilenameTemplate: z.string().min(1).default(DEFAULT_OUTPUT_FILENAME_TEMPLATE),
@@ -290,6 +314,8 @@ export const librarySchema = z.object({
   characters: z.array(characterSchema),
   emotionSets: z.array(emotionSetSchema),
   references: z.array(referenceSchema),
+  characterReferences: z.array(characterReferenceSchema).default([]),
+  vibes: z.array(vibeSchema).default([]),
   projects: z.array(projectSchema),
   pieceSets: z.array(pieceSetSchema).default([]),
   freeGeneration: z
@@ -368,9 +394,15 @@ export const generationRecordSchema = z.object({
   augment: augmentInfoSchema.optional().catch(undefined),
   aid: z
     .discriminatedUnion('kind', [
-      z.object({ kind: z.literal('character'), styleAware: z.boolean(), fidelity: z.number() }),
+      z.object({
+        kind: z.literal('character'),
+        name: z.string().catch(''),
+        styleAware: z.boolean(),
+        fidelity: z.number(),
+      }),
       z.object({
         kind: z.literal('vibe'),
+        name: z.string().catch(''),
         strength: z.number(),
         informationExtracted: z.number(),
       }),
@@ -444,6 +476,7 @@ const jobSnapshotCommonSchema = z.object({
     .discriminatedUnion('kind', [
       z.object({
         kind: z.literal('character'),
+        name: z.string(),
         imagePath: z.string().min(1),
         imageSha256: sha256Schema,
         styleAware: z.boolean(),
@@ -451,6 +484,7 @@ const jobSnapshotCommonSchema = z.object({
       }),
       z.object({
         kind: z.literal('vibe'),
+        name: z.string(),
         imagePath: z.string().min(1),
         imageSha256: sha256Schema,
         strength: z.number().min(0).max(1),

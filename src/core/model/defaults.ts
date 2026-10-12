@@ -15,7 +15,8 @@ import type {
   Project,
   PromptPiece,
   Reference,
-  ReferenceAid,
+  CharacterReference,
+  Vibe,
 } from '../domain/types';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
 import {
@@ -177,6 +178,26 @@ export function createReference(name: string): Reference {
   };
 }
 
+export function createCharacterReference(name: string): CharacterReference {
+  return {
+    id: newId(),
+    name: name.trim() || '새 캐릭터 레퍼런스',
+    styleAware: true,
+    fidelity: 1,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function createVibe(name: string): Vibe {
+  return {
+    id: newId(),
+    name: name.trim() || '새 바이브',
+    strength: 0.6,
+    informationExtracted: 1,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function createProject(
   name: string,
   parts: { presetId: string; character: Character; emotionSetId: string; referenceId: string },
@@ -219,6 +240,8 @@ export function createDefaultLibrary(): Library {
     characters: [],
     emotionSets: [createEmotionSet('기본 씬 6종')],
     references: [],
+    characterReferences: [],
+    vibes: [],
     projects: [],
     pieceSets: [],
     freeGeneration: {
@@ -267,25 +290,28 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
   return mode === 'reference' ? 'inpaint' : 'txt2img';
 }
 
-export const DEFAULT_REFERENCE_AID: ReferenceAid = {
-  kind: 'none',
-  styleAware: true,
-  fidelity: 1,
-  vibeStrength: 0.6,
-  vibeInformation: 1,
-};
+/** 작업이 쓰는 캐릭터 레퍼런스나 바이브. 고른 항목이 지워졌으면 `item`이 비어 있다. */
+export type ProjectAid =
+  | { kind: 'character'; id: string; item?: CharacterReference }
+  | { kind: 'vibe'; id: string; item?: Vibe };
 
 /**
- * 작업에 실제로 쓰는 참고 방식. 고르지 않았으면 undefined다. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와
- * 함께 쓰는지는 확인하지 않았다).
+ * 작업에 실제로 쓰는 참고. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와 함께 쓰는지는 확인하지 않았다).
+ * 화면에서 하나만 고르게 하지만, 둘 다 있으면 캐릭터 레퍼런스를 쓴다.
  */
 export function projectAid(
-  project: Pick<Project, 'mode' | 'referenceAid'>,
-): ReferenceAid | undefined {
-  const aid = project.referenceAid;
-  if (!aid || aid.kind === 'none') return undefined;
-  if (aid.kind === 'character' && project.mode === 'reference') return undefined;
-  return aid;
+  library: Pick<Library, 'characterReferences' | 'vibes'>,
+  project: Pick<Project, 'mode' | 'characterReferenceId' | 'vibeId'>,
+): ProjectAid | undefined {
+  if (project.characterReferenceId && project.mode === 'txt2img') {
+    const id = project.characterReferenceId;
+    return { kind: 'character', id, item: library.characterReferences.find((x) => x.id === id) };
+  }
+  if (project.vibeId) {
+    const id = project.vibeId;
+    return { kind: 'vibe', id, item: library.vibes.find((x) => x.id === id) };
+  }
+  return undefined;
 }
 
 export function resolveProject(library: Library, project: Project): ResolvedProject {
@@ -296,14 +322,17 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const emotionSet = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const reference = library.references.find((item) => item.id === project.referenceId);
   const inpaint = project.mode === 'reference';
-  const aid = projectAid(project);
+  const aid = projectAid(library, project);
+  const aidLabel = aid?.kind === 'character' ? '캐릭터 레퍼런스' : '바이브';
   const missing = [
     !preset && '생성 설정',
     // 캐릭터 없이도 생성할 수 있다. 고른 캐릭터가 라이브러리에서 지워졌을 때만 막는다.
     characters.length < project.characters.length && '캐릭터',
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
-    (inpaint || aid) && (inpaint ? reference : true) && !reference?.image && '참고 이미지',
+    inpaint && reference && !reference.image && '참고 이미지',
+    aid && !aid.item && aidLabel,
+    aid?.item && !aid.item.image && `${aidLabel} 그림`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
     aid && preset && !supportsReferenceAid(preset.generation.model) && 'V4.5 모델',
   ].filter(Boolean) as string[];
@@ -318,10 +347,20 @@ export function hasScenePrompt(emotion: Pick<Emotion, 'prompt' | 'extraPrompts'>
 /** 이 항목을 쓰고 있는 작업 목록. 삭제 전 확인용. */
 export function projectsUsing(
   library: Library,
-  kind: 'preset' | 'character' | 'emotionSet' | 'reference' | 'pieceSet',
+  kind:
+    | 'preset'
+    | 'character'
+    | 'emotionSet'
+    | 'reference'
+    | 'pieceSet'
+    | 'characterReference'
+    | 'vibe',
   id: string,
 ): Project[] {
   if (kind === 'pieceSet') return projectsUsingPieceSet(library, id);
+  if (kind === 'characterReference')
+    return library.projects.filter((project) => project.characterReferenceId === id);
+  if (kind === 'vibe') return library.projects.filter((project) => project.vibeId === id);
   if (kind === 'character')
     return library.projects.filter((project) =>
       project.characters.some((slot) => slot.characterId === id),

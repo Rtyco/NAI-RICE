@@ -15,8 +15,9 @@ const api: DesktopApi = {
   readReferenceImages: (reference) => ipcRenderer.invoke('reference:read-images', reference),
   copyReferenceFiles: (fromId, toId) => ipcRenderer.invoke('reference:copy-files', fromId, toId),
   deleteReferenceFiles: (id) => ipcRenderer.invoke('reference:delete-files', id),
-  prepareAidInput: (projectId, reference, kind) =>
-    ipcRenderer.invoke('project:prepare-aid-input', projectId, reference, kind),
+  prepareAidInput: (projectId, file, kind) =>
+    ipcRenderer.invoke('project:prepare-aid-input', projectId, file, kind),
+  addPicture: (dataUrl) => ipcRenderer.invoke('picture:add', dataUrl),
   prepareInputs: (projectId, reference) =>
     ipcRenderer.invoke('project:prepare-inputs', projectId, reference),
   prepareImageInput: (request) => ipcRenderer.invoke('project:prepare-image-input', request),
@@ -34,7 +35,9 @@ const api: DesktopApi = {
     `desk-media://local/${[
       ...(owner.kind === 'source'
         ? ['sources']
-        : [owner.kind === 'project' ? 'projects' : 'references', owner.id]),
+        : owner.kind === 'picture'
+          ? ['pictures']
+          : [owner.kind === 'project' ? 'projects' : 'references', owner.id]),
       ...relative.split('/'),
     ]
       .map(encodeURIComponent)

@@ -86,6 +86,8 @@ export type ChecklistItem = {
   thumb?: string;
   /** 누를 수 없으면 그 까닭. */
   disabled?: string;
+  /** 「쓰지 않음」처럼 라이브러리 항목이 아닌 줄. 편집 버튼을 두지 않는다. */
+  noEdit?: boolean;
 };
 
 /** 칩 아래에 붙는 작은 창. 바깥을 누르거나 Esc, 창 크기가 바뀌면 닫힌다. */
@@ -267,7 +269,7 @@ export function ChecklistChip(props: {
           </span>
         </button>
         {on && props.rowTools?.(item.id, order)}
-        {props.editSection && (
+        {props.editSection && !item.noEdit && (
           <button
             className="icon-button checklist-edit"
             title="편집"

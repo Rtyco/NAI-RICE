@@ -8,8 +8,9 @@ import {
   createPreset,
   createProject,
   createPromptSet,
+  createCharacterReference,
+  createVibe,
   DEFAULT_LAYOUT,
-  DEFAULT_REFERENCE_AID,
   DEFAULT_SETTINGS,
   projectAid,
   resolveProject,
@@ -26,6 +27,7 @@ import { generationEnqueueRequestSchema, librarySchema } from '../../src/core/va
 const sha = 'c'.repeat(64);
 const character: JobAid = {
   kind: 'character',
+  name: '아리아 얼굴',
   imagePath: `inputs/${sha}.png`,
   imageSha256: sha,
   styleAware: false,
@@ -33,6 +35,7 @@ const character: JobAid = {
 };
 const vibe: JobAid = {
   kind: 'vibe',
+  name: '노을',
   imagePath: `inputs/${sha}.png`,
   imageSha256: sha,
   strength: 0.5,
@@ -97,9 +100,9 @@ describe('캐릭터 레퍼런스·바이브', () => {
   it('캐릭터 레퍼런스는 일반 생성에 0단계 형식으로 붙이고 충실도를 secondary strength로 바꿔', () => {
     const [job] = buildTxt2ImgJobs({
       ...setup(),
-      aid: { job: character, referenceName: reference.name },
+      aid: character,
     });
-    expect(job).toMatchObject({ kind: 'txt2img', referenceName: '아리아 참고', aid: character });
+    expect(job).toMatchObject({ kind: 'txt2img', referenceName: '', aid: character });
     expect(generationEnqueueRequestSchema.safeParse({ jobs: [job] }).success).toBe(true);
     const { body } = buildNovelAIJobRequest(job, { aidBase64: 'REF' });
     expect(body.parameters).toMatchObject({
@@ -124,7 +127,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
         imageSha256: 'a',
         maskSha256: 'b',
       },
-      aid: { job: vibe, referenceName: reference.name },
+      aid: vibe,
     });
     expect(job.kind).toBe('inpaint');
     expect(generationEnqueueRequestSchema.safeParse({ jobs: [withHashes(job)] }).success).toBe(
@@ -150,7 +153,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
     expect(() =>
       buildTxt2ImgJobs({
         ...setup('nai-diffusion-5-full-inpainting'),
-        aid: { job: vibe, referenceName: '' },
+        aid: vibe,
       }),
     ).toThrow('V4.5');
   });
@@ -167,50 +170,58 @@ describe('캐릭터 레퍼런스·바이브', () => {
   });
 
   it('캐릭터 레퍼런스는 무료 조건 안에서도 장마다 5 Anlas를 더해', () => {
-    const [job] = buildTxt2ImgJobs({ ...setup(), aid: { job: character, referenceName: '' } });
+    const [job] = buildTxt2ImgJobs({ ...setup(), aid: character });
     expect(estimateJobAnlas(job)).toBe(5);
     expect(generationCostWarnings([job])).toContain(
       '캐릭터 레퍼런스는 Opus여도 한 장에 5 Anlas가 듭니다.',
     );
-    const [plain] = buildTxt2ImgJobs({ ...setup(), aid: { job: vibe, referenceName: '' } });
+    const [plain] = buildTxt2ImgJobs({ ...setup(), aid: vibe });
     expect(estimateJobAnlas(plain)).toBe(0);
   });
 
-  it('참고 방식에 필요한 그림과 V4.5 모델이 없으면 알려 주고, 인페인트에는 캐릭터 레퍼런스를 쓰지 않아', () => {
+  it('캐릭터 레퍼런스는 일반 생성에서만 쓰고, 고른 항목·그림·V4.5 모델이 없으면 알려 줘', () => {
     const library = createDefaultLibrary();
     const { project, preset } = setup('nai-diffusion-5-full-inpainting');
-    const full = { ...library, presets: [preset], references: [reference] };
+    const face = {
+      ...createCharacterReference('얼굴'),
+      image: { file: `${'d'.repeat(24)}.png`, width: 10, height: 10, name: 'a.png' },
+    };
+    const mood = createVibe('노을');
+    const full = {
+      ...library,
+      presets: [preset],
+      references: [reference],
+      characterReferences: [face],
+      vibes: [mood],
+    };
     const txt = { ...project, mode: 'txt2img' as const };
-    const aid = { ...DEFAULT_REFERENCE_AID, kind: 'character' as const };
-    expect(projectAid({ ...txt, referenceAid: aid })).toEqual(aid);
-    expect(projectAid({ ...project, referenceAid: aid })).toBeUndefined();
-    expect(projectAid({ ...txt, referenceAid: DEFAULT_REFERENCE_AID })).toBeUndefined();
-    const missing = (value: typeof project, lib = full) => resolveProject(lib, value).missing;
-    expect(missing({ ...txt, referenceAid: aid })).toContain('V4.5 모델');
-    expect(missing({ ...txt, referenceAid: aid }, { ...full, references: [] })).toContain(
-      '참고 이미지',
-    );
-    expect(missing(txt, { ...full, references: [] })).not.toContain('참고 이미지');
+    expect(projectAid(full, { ...txt, characterReferenceId: face.id })).toMatchObject({
+      kind: 'character',
+      item: face,
+    });
+    expect(projectAid(full, { ...project, characterReferenceId: face.id })).toBeUndefined();
+    expect(projectAid(full, { ...project, vibeId: mood.id })?.kind).toBe('vibe');
+    expect(projectAid(full, txt)).toBeUndefined();
+    const missing = (value: typeof project) => resolveProject(full, value).missing;
+    expect(missing({ ...txt, characterReferenceId: face.id })).toContain('V4.5 모델');
+    expect(missing({ ...txt, characterReferenceId: 'gone' })).toContain('캐릭터 레퍼런스');
+    expect(missing({ ...txt, vibeId: mood.id })).toContain('바이브 그림');
+    expect(missing(txt)).not.toContain('V4.5 모델');
   });
 
-  it('작업의 참고 방식 설정을 읽고, 잘못된 값은 기본값으로 바꿔', () => {
+  it('라이브러리의 캐릭터 레퍼런스·바이브를 읽고, 잘못된 값은 기본값으로 바꿔', () => {
     const library = createDefaultLibrary();
-    const { project } = setup();
     const parsed = librarySchema.parse({
       ...library,
-      projects: [
-        {
-          ...project,
-          referenceAid: { kind: 'vibe', styleAware: 'x', fidelity: 2, vibeStrength: 0.3 },
-        },
-      ],
+      characterReferences: [{ id: 'c', name: '얼굴', styleAware: 'x', fidelity: 2 }],
+      vibes: [{ id: 'v', name: '노을', strength: 0.3, image: { file: '../x.png' } }],
     });
-    expect(parsed.projects[0].referenceAid).toEqual({
-      kind: 'vibe',
-      styleAware: true,
-      fidelity: 1,
-      vibeStrength: 0.3,
-      vibeInformation: 1,
-    });
+    expect(parsed.characterReferences[0]).toMatchObject({ styleAware: true, fidelity: 1 });
+    expect(parsed.vibes[0]).toMatchObject({ strength: 0.3, informationExtracted: 1 });
+    expect(parsed.vibes[0].image).toBeUndefined();
+    const old: Record<string, unknown> = { ...library };
+    delete old.characterReferences;
+    delete old.vibes;
+    expect(librarySchema.parse(old)).toMatchObject({ characterReferences: [], vibes: [] });
   });
 });

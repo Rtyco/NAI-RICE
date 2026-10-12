@@ -175,6 +175,7 @@ describe('GenerationRequests', () => {
       settings: { ...job.settings, model: 'nai-diffusion-4-5-full-inpainting' },
       aid: {
         kind: 'vibe' as const,
+        name: '노을',
         imagePath: 'inputs/v.png',
         imageSha256: 'c'.repeat(64),
         strength: 0.6,

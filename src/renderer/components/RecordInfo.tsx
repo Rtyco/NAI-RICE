@@ -51,9 +51,8 @@ export function RecordInfo({
           <dt>참고 방식</dt>
           <dd>
             {record.aid.kind === 'character'
-              ? `캐릭터 레퍼런스 · 충실도 ${record.aid.fidelity}${record.aid.styleAware ? ' · 그림체도 따라감' : ''}`
-              : `바이브 · 세기 ${record.aid.strength} · 정보 추출 ${record.aid.informationExtracted}`}
-            {record.referenceName && ` · ${record.referenceName}`}
+              ? `캐릭터 레퍼런스 「${record.aid.name}」 · 충실도 ${record.aid.fidelity}${record.aid.styleAware ? ' · 그림체도 따라감' : ''}`
+              : `바이브 「${record.aid.name}」 · 세기 ${record.aid.strength} · 정보 추출 ${record.aid.informationExtracted}`}
           </dd>
         </>
       )}
