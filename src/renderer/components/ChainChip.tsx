@@ -12,10 +12,6 @@ import { openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
 import { folderKey } from './listFolders';
 
-/**
- * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 편집 버튼은 마우스를 올렸을 때만 보이고, 고른 항목을 편집
- * 팝업으로 연다(화면을 떠나지 않는다). 고른 항목이 없으면 라이브러리의 그 칸으로 간다.
- */
 function itemExists(section: LibrarySection, id: string): boolean {
   const library = useStore.getState().library;
   return Boolean(
@@ -23,8 +19,9 @@ function itemExists(section: LibrarySection, id: string): boolean {
   );
 }
 
-function editItem(section: LibrarySection, itemId: string | undefined): void {
-  if (!itemId || !itemExists(section, itemId)) {
+/** 편집 팝업으로 연다(화면을 떠나지 않는다). 지워진 항목이면 라이브러리의 그 칸으로 간다. */
+function editItem(section: LibrarySection, itemId: string): void {
+  if (!itemExists(section, itemId)) {
     openLibrary(section, itemId);
     return;
   }
@@ -35,28 +32,20 @@ function editItem(section: LibrarySection, itemId: string | undefined): void {
 
 type ChainLabel = { text: string; icon: IconName; usage: string };
 
+/**
+ * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 항목 편집은 고르기 창의 줄마다 둔 편집 버튼으로만 한다(칩에도 두면
+ * 같은 버튼이 두 군데라 헷갈린다).
+ */
 export function ChainChip(props: {
   section?: LibrarySection;
-  itemId?: string;
   missing?: boolean;
   /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
   label?: ChainLabel;
-  /** null이면 편집 버튼을 두지 않는다. */
-  edit?: { title: string; open: () => void } | null;
-  /** 편집 버튼 앞에 붙는 버튼. 편집 버튼처럼 마우스를 올렸을 때만 보인다. */
-  actions?: ReactNode;
   chipRef?: React.Ref<HTMLDivElement>;
   children: ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
   const label = props.label ?? { text: info!.label, icon: info!.icon, usage: info!.usage };
-  const edit =
-    props.edit === undefined
-      ? {
-          title: `${info!.label} 편집`,
-          open: () => props.section && editItem(props.section, props.itemId),
-        }
-      : props.edit;
   return (
     <div
       ref={props.chipRef}
@@ -68,12 +57,6 @@ export function ChainChip(props: {
         {label.text}
       </span>
       {props.children}
-      {props.actions}
-      {edit && (
-        <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
-          <Icon name="edit" size={14} />
-        </button>
-      )}
     </div>
   );
 }
@@ -88,6 +71,8 @@ export type ChecklistItem = {
   disabled?: string;
   /** 「쓰지 않음」처럼 라이브러리 항목이 아닌 줄. 편집 버튼을 두지 않는다. */
   noEdit?: boolean;
+  /** 여러 칸의 항목을 한 창에 섞어 보일 때 이 줄을 편집할 칸. 없으면 칩의 `editSection`. */
+  editSection?: LibrarySection;
 };
 
 /** 칩 아래에 붙는 작은 창. 바깥을 누르거나 Esc, 창 크기가 바뀌면 닫힌다. */
@@ -204,9 +189,7 @@ function ChecklistFolder(props: {
 export function ChecklistChip(props: {
   section?: LibrarySection;
   label?: ChainLabel;
-  itemId?: string;
   missing?: boolean;
-  edit?: { title: string; open: () => void } | null;
   /** 칩에 보일 값. */
   value: string;
   thumb?: string;
@@ -238,6 +221,7 @@ export function ChecklistChip(props: {
   const row = (item: ChecklistItem) => {
     const order = props.checked.indexOf(item.id) + 1;
     const on = order > 0;
+    const editSection = item.noEdit ? undefined : (item.editSection ?? props.editSection);
     return (
       <div key={item.id} className={`checklist-row ${on ? 'checked' : ''}`}>
         <button
@@ -269,14 +253,14 @@ export function ChecklistChip(props: {
           </span>
         </button>
         {on && props.rowTools?.(item.id, order)}
-        {props.editSection && !item.noEdit && (
+        {editSection && (
           <button
             className="icon-button checklist-edit"
             title="편집"
             aria-label={`${item.name} 편집`}
             onClick={() => {
               close();
-              editItem(props.editSection!, item.id);
+              editItem(editSection, item.id);
             }}
           >
             <Icon name="edit" size={14} />
@@ -287,14 +271,7 @@ export function ChecklistChip(props: {
   };
 
   return (
-    <ChainChip
-      chipRef={chip}
-      section={props.section}
-      label={props.label}
-      itemId={props.itemId}
-      missing={props.missing}
-      edit={props.edit}
-    >
+    <ChainChip chipRef={chip} section={props.section} label={props.label} missing={props.missing}>
       <button
         className="chain-chip-value chain-chip-trigger"
         aria-haspopup="dialog"
@@ -363,7 +340,6 @@ export function SizeChip({ preset }: { preset: Preset }) {
   return (
     <ChecklistChip
       section="presets"
-      itemId={preset.id}
       label={{
         text: '해상도',
         icon: 'expand',

@@ -27,7 +27,7 @@ import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
-import { ChecklistChip, SizeChip } from '../components/ChainChip';
+import { ChecklistChip, SizeChip, type ChecklistItem } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
@@ -54,38 +54,57 @@ const MAX_VARIANTS = 20;
 const NO_AID = '__none';
 
 /**
- * 캐릭터 레퍼런스·바이브 칩. 맨 위 「쓰지 않음」으로 끈다. 둘은 함께 쓰지 않아, 하나를 고르면 다른 하나를
- * 끈다(부르는 쪽에서).
+ * 캐릭터 레퍼런스·바이브 칩. 둘은 함께 쓰지 않아 한 칩에서 하나만 고르고, 맨 위 「쓰지 않음」으로 끈다.
+ * 창에서는 두 칸을 폴더처럼 나눠 보이고, 항목의 원래 폴더는 줄 설명에 적는다.
  */
-function AidChip(props: {
-  section: 'characterReferences' | 'vibes';
-  items: Array<CharacterReference | Vibe>;
-  selectedId?: string;
-  missing: boolean;
-  onPick: (id: string | undefined) => void;
-}) {
-  const selected = props.items.find((item) => item.id === props.selectedId);
+function AidChip(props: { project: Project; missing: boolean }) {
+  const library = useLibrary();
+  const { project } = props;
+  const aid = projectAid(library, project);
+  const txt2img = project.mode === 'txt2img';
+  const row = (kind: 'character' | 'vibe', item: CharacterReference | Vibe): ChecklistItem => ({
+    id: `${kind}:${item.id}`,
+    name: item.name,
+    folder: kind === 'character' ? '캐릭터 레퍼런스' : '바이브',
+    thumb: item.image ? pictureMedia(item.image.file) : '',
+    hint: [item.folder, item.image ? '' : '그림 없음'].filter(Boolean).join(' · ') || undefined,
+    editSection: kind === 'character' ? 'characterReferences' : 'vibes',
+  });
+  const pick = (value: string) => {
+    const at = value.indexOf(':');
+    const kind = value === NO_AID ? '' : value.slice(0, at);
+    const id = value.slice(at + 1);
+    updateProject(project.id, (current) => ({
+      ...current,
+      characterReferenceId: kind === 'character' ? id : undefined,
+      vibeId: kind === 'vibe' ? id : undefined,
+    }));
+  };
   return (
     <ChecklistChip
-      section={props.section}
-      itemId={selected?.id}
-      missing={props.missing}
-      value={props.selectedId ? (selected?.name ?? '(없음)') : '쓰지 않음'}
-      thumb={selected?.image ? pictureMedia(selected.image.file) : undefined}
+      label={{
+        text: '참고',
+        icon: aid?.kind === 'character' ? 'portrait' : 'vibe',
+        usage: aid
+          ? `${aid.kind === 'character' ? '캐릭터 레퍼런스' : '바이브'}를 씁니다`
+          : '캐릭터 레퍼런스나 바이브 하나를 고릅니다',
+      }}
+      missing={Boolean(aid) && props.missing}
+      value={aid ? (aid.item?.name ?? '(없음)') : '쓰지 않음'}
+      thumb={aid?.item?.image ? pictureMedia(aid.item.image.file) : undefined}
       items={[
         { id: NO_AID, name: '쓰지 않음', noEdit: true },
-        ...props.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          folder: item.folder,
-          thumb: item.image ? pictureMedia(item.image.file) : '',
-          hint: item.image ? undefined : '그림 없음',
-        })),
+        ...(txt2img ? library.characterReferences.map((item) => row('character', item)) : []),
+        ...library.vibes.map((item) => row('vibe', item)),
       ]}
-      checked={[props.selectedId ?? NO_AID]}
-      onPick={(id) => props.onPick(id === NO_AID ? undefined : id)}
-      editSection={props.section}
-      hint="V4.5 전용입니다. 캐릭터 레퍼런스와 바이브는 하나만 씁니다."
+      checked={[aid ? `${aid.kind}:${aid.id}` : NO_AID]}
+      onPick={pick}
+      editSection={aid?.kind === 'character' || (!aid && txt2img) ? 'characterReferences' : 'vibes'}
+      hint={
+        txt2img
+          ? 'V4.5 전용입니다. 캐릭터 레퍼런스는 한 장에 5 Anlas, 바이브는 처음 인코딩에 2 Anlas가 듭니다.'
+          : 'V4.5 전용입니다. 인페인트에서는 바이브만 씁니다(처음 인코딩에 2 Anlas).'
+      }
     />
   );
 }
@@ -158,7 +177,6 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
     <div className="chain-bar">
       <ChecklistChip
         section="presets"
-        itemId={resolved.preset?.id}
         missing={!resolved.preset}
         value={resolved.preset?.name ?? '(없음)'}
         items={library.presets}
@@ -176,7 +194,6 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
       {project.mode === 'reference' && (
         <ChecklistChip
           section="references"
-          itemId={resolved.reference?.id}
           missing={!resolved.reference?.image}
           value={resolved.reference?.name ?? '(없음)'}
           thumb={thumb}
@@ -195,25 +212,9 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         />
       )}
       {project.mode !== 'reference' && resolved.preset && <SizeChip preset={resolved.preset} />}
-      {project.mode === 'txt2img' && (
-        <AidChip
-          section="characterReferences"
-          items={library.characterReferences}
-          selectedId={project.characterReferenceId}
-          missing={aid?.kind === 'character' ? aidMissing : false}
-          onPick={(id) => patch({ characterReferenceId: id, ...(id ? { vibeId: undefined } : {}) })}
-        />
-      )}
-      <AidChip
-        section="vibes"
-        items={library.vibes}
-        selectedId={project.vibeId}
-        missing={aid?.kind === 'vibe' ? aidMissing : false}
-        onPick={(id) => patch({ vibeId: id, ...(id ? { characterReferenceId: undefined } : {}) })}
-      />
+      <AidChip project={project} missing={aidMissing} />
       <ChecklistChip
         section="emotionSets"
-        itemId={resolved.emotionSet?.id}
         missing={!resolved.emotionSet}
         value={resolved.emotionSet?.name ?? '(없음)'}
         items={library.emotionSets.map((item) => ({

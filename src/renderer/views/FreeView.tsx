@@ -456,7 +456,6 @@ export function FreeView() {
         <div className="chain-bar">
           <ChecklistChip
             section="presets"
-            itemId={preset?.id}
             missing={!preset}
             value={preset?.name ?? '(없음)'}
             items={library.presets}

@@ -3490,17 +3490,6 @@ textarea.syntax-input::selection {
 .chain-chip select:hover {
   background: var(--bg-4);
 }
-.chain-chip-edit {
-  min-width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-.chain-chip:hover .chain-chip-edit,
-.chain-chip-edit:focus-visible {
-  opacity: 1;
-}
 .icon.rotate-up {
   transform: rotate(-90deg);
 }
