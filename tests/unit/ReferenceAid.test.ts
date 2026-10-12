@@ -190,6 +190,14 @@ describe('캐릭터 레퍼런스·바이브', () => {
     );
     const [plain] = buildTxt2ImgJobs({ ...setup(), aid: vibe });
     expect(estimateJobAnlas(plain)).toBe(0);
+    const [six] = buildTxt2ImgJobs({
+      ...setup(),
+      aid: { kind: 'vibe', vibes: Array(6).fill(sunset) },
+    });
+    expect(estimateJobAnlas(six)).toBe(4);
+    expect(generationCostWarnings([six])).toContain(
+      '바이브가 4개를 넘으면 넘는 바이브마다 Opus여도 한 장에 2 Anlas가 듭니다.',
+    );
   });
 
   it('방식 버튼으로 캐릭터 레퍼런스나 바이브를 쓰고, 고른 항목·그림·V4.5 모델이 없으면 알려 줘', () => {

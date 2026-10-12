@@ -165,7 +165,7 @@ function AidChip(props: { project: Project; missing: boolean }) {
       editSection="vibes"
       pickTitle="바이브 고르기 · 여럿 고를 수 있습니다"
       empty="라이브러리에 바이브가 없습니다."
-      hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas가 듭니다."
+      hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas, 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 듭니다."
     />
   );
 }

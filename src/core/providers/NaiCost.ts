@@ -67,11 +67,22 @@ type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasH
   strength?: number;
   tool?: AugmentTool;
   /** 작업의 참고 방식이나, 화면에서 미리 계산할 때는 작업에 정해 둔 참고 방식. */
-  aid?: { kind: JobAid['kind'] | 'none' };
+  aid?: { kind: JobAid['kind'] | 'none'; vibes?: unknown[] };
 };
 
 /** 0단계 실측: 캐릭터 레퍼런스는 무료 조건 안에서도 한 장에 5 Anlas가 더 든다. */
 const CHARACTER_REFERENCE_ANLAS = 5;
+
+/**
+ * NovelAI 문서(Vibe Transfer): V4 이상에서 바이브가 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 더 든다.
+ * 이 앱에서는 실측하지 않았다.
+ */
+const FREE_VIBES = 4;
+const EXTRA_VIBE_ANLAS = 2;
+
+function extraVibes(job: CostJob): number {
+  return job.aid?.kind === 'vibe' ? Math.max(0, (job.aid.vibes?.length ?? 0) - FREE_VIBES) : 0;
+}
 
 /**
  * 배경 제거 실측: 832×1216에 65 Anlas(0단계), 608×832에 35 Anlas(5단계). 두 점을 잇는 직선(5 + 면적 비례)으로
@@ -98,7 +109,9 @@ function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
 export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
   if (job.kind === 'augment') return augmentAnlas(job);
   return (
-    diffusionAnlas(job, account) + (job.aid?.kind === 'character' ? CHARACTER_REFERENCE_ANLAS : 0)
+    diffusionAnlas(job, account) +
+    (job.aid?.kind === 'character' ? CHARACTER_REFERENCE_ANLAS : 0) +
+    extraVibes(job) * EXTRA_VIBE_ANLAS
   );
 }
 
@@ -134,6 +147,8 @@ export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): 
     }
     if (job.aid?.kind === 'character')
       warnings.add('캐릭터 레퍼런스는 Opus여도 한 장에 5 Anlas가 듭니다.');
+    if (extraVibes(job))
+      warnings.add('바이브가 4개를 넘으면 넘는 바이브마다 Opus여도 한 장에 2 Anlas가 듭니다.');
     for (const reason of checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight)
       .reasons)
       warnings.add(reason);
