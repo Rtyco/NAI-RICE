@@ -235,6 +235,7 @@ export function FreeView() {
   const picking = useBoxSelection<HTMLDivElement>(
     records.map((record) => record.id),
     removeMany,
+    { selectAllKey: () => records.map((record) => record.id) },
   );
   const pickedCount = picking.selected.size;
 
@@ -245,6 +246,12 @@ export function FreeView() {
       if (event.key === 'ArrowRight' && records[position + 1])
         setSelectedId(records[position + 1].id);
       if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
+      if (event.key === 'Home' && records.length) setSelectedId(records[0].id);
+      if (event.key === 'End' && records.length) setSelectedId(records[records.length - 1].id);
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's' && selected) {
+        event.preventDefault();
+        saveAs(selected);
+      }
       // 여러 장을 고른 동안은 useBoxSelection이 고른 것을 지운다. 결과 막대가 보일 때만 그 결과를 지운다.
       if (
         event.key === 'Delete' &&
@@ -259,7 +266,7 @@ export function FreeView() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [records, selected, pickedCount, showSource]);
+  });
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
   // 캐릭터 프롬프트가 없으면 캐릭터 끝을 골라 두었어도 공통 끝에 붙인다(buildFreeJobs와 같은 규칙).
@@ -319,6 +326,17 @@ export function FreeView() {
           },
         ];
 
+  const saveAs = (record: GenerationSummary) =>
+    void run('이미지를 저장하는 중', async () => {
+      const saved = await fileApi().saveImageAs(
+        FREE_PROJECT_ID,
+        record.id,
+        `자유 생성 ${record.seed}`,
+        library.settings.export.quality,
+      );
+      if (saved) toast(`저장했습니다: ${saved}`);
+    });
+
   const resultActions = (record: GenerationSummary): ResultAction[] => [
     ...promptActions(record),
     {
@@ -353,19 +371,11 @@ export function FreeView() {
     },
     {
       label: '다른 이름으로 저장',
+      title: '다른 이름으로 저장 (Ctrl+Shift+S)',
       icon: 'save',
       group: 'file',
       iconOnly: true,
-      onSelect: () =>
-        void run('이미지를 저장하는 중', async () => {
-          const saved = await fileApi().saveImageAs(
-            FREE_PROJECT_ID,
-            record.id,
-            `자유 생성 ${record.seed}`,
-            library.settings.export.quality,
-          );
-          if (saved) toast(`저장했습니다: ${saved}`);
-        }),
+      onSelect: () => saveAs(record),
     },
     {
       label: '폴더에서 보기',
@@ -456,6 +466,7 @@ export function FreeView() {
         <div className="chain-bar">
           <ChecklistChip
             section="presets"
+            itemId={preset?.id}
             missing={!preset}
             value={preset?.name ?? '(없음)'}
             items={library.presets}

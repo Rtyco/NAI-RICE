@@ -54,6 +54,7 @@ import { UsedBy } from './library/UsedBy';
 import { LibraryItemEditor } from './library/LibraryEditorDialog';
 import { useRenameRequest } from '../renameRequest';
 import { exportable } from '../sections';
+import { useShortcut } from '../useShortcut';
 
 const DRAG_TYPE = 'application/x-library-item';
 
@@ -234,16 +235,17 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     );
   const rows = listRows(items);
   const isFolded = useFoldedFolders(section);
-  const selection = useBoxSelection<HTMLElement>(
-    rows.flatMap((row) =>
-      row.kind === 'item'
-        ? [row.item.id]
-        : isFolded(row.name)
-          ? []
-          : row.items.map((item) => item.id),
-    ),
-    removeMany,
+  // 목록에 보이는 순서. 접힌 폴더 안은 건너뛴다.
+  const visibleIds = rows.flatMap((row) =>
+    row.kind === 'item'
+      ? [row.item.id]
+      : isFolded(row.name)
+        ? []
+        : row.items.map((item) => item.id),
   );
+  const selection = useBoxSelection<HTMLElement>(visibleIds, removeMany, {
+    selectAllKey: () => library[section].map((item) => item.id),
+  });
   const [renamingFolder, setRenamingFolder] = useState<string>();
   const group = (ids: string[]) => {
     const name = newFolderName(useStore.getState().library![section] as Item[]);
@@ -257,6 +259,22 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     current: () => (collapsed ? undefined : selected?.id),
     group,
   });
+  const step = (offset: number) => {
+    const next = visibleIds[visibleIds.indexOf(selected?.id ?? '') + offset];
+    if (next) openLibrary(section, next);
+  };
+  useShortcut('Alt+ArrowUp', () => step(-1));
+  useShortcut('Alt+ArrowDown', () => step(1));
+  useShortcut('Ctrl+Shift+N', () =>
+    openLibrary(section, createItem(section, useStore.getState().library!)),
+  );
+  useShortcut('Ctrl+Shift+D', () => selected && void duplicateItem(section, selected));
+  // 여러 개를 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
+  useShortcut(
+    'Delete',
+    () => selected && void deleteItem(section, selected),
+    !selection.selected.size,
+  );
   const renderItem = (item: Item) => {
     const uses = projectsUsing(library, label.kind, item.id).length;
     const picked = !collapsed && selection.isSelected(item.id);

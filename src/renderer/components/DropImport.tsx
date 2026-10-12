@@ -23,7 +23,10 @@ export async function importDroppedFile(file: File): Promise<void> {
   else void openDialog((close) => <PlainImageDialog image={image} close={close} />);
 }
 
-/** 창 어디에 파일을 놓아도 받는다. 감정 카드 정렬용 드래그는 무시한다. */
+/**
+ * 창 어디에 파일을 놓아도 받는다. 감정 카드 정렬용 드래그는 무시한다. 입력 칸 밖에서 Ctrl+V로 붙여 넣은
+ * 이미지도 놓은 것처럼 받는다.
+ */
 export function DropZone() {
   const [active, setActive] = useState(false);
   const depth = useRef(0);
@@ -53,6 +56,21 @@ export function DropZone() {
           await run(`${file.name} 가져오는 중`, () => importDroppedFile(file));
       })();
     };
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('.modal-backdrop')) return;
+      const files = [...(event.clipboardData?.files ?? [])].filter((file) =>
+        file.type.startsWith('image/'),
+      );
+      if (!files.length) return;
+      event.preventDefault();
+      void (async () => {
+        for (const file of files)
+          await run('붙여 넣은 이미지를 읽는 중', () => importDroppedFile(file));
+      })();
+    };
+    window.addEventListener('paste', onPaste);
     window.addEventListener('dragenter', onEnter);
     window.addEventListener('dragleave', onLeave);
     window.addEventListener('dragover', onOver);
@@ -62,6 +80,7 @@ export function DropZone() {
       window.removeEventListener('dragleave', onLeave);
       window.removeEventListener('dragover', onOver);
       window.removeEventListener('drop', onDrop);
+      window.removeEventListener('paste', onPaste);
     };
   }, []);
   if (!active) return null;
@@ -70,7 +89,8 @@ export function DropZone() {
       <div>
         <b>여기에 놓기</b>
         <p>
-          NovelAI 이미지 → 설정 불러오기 · 일반 이미지 → 인페인트 · JSON → 백업/SDStudio 가져오기
+          NovelAI 이미지 → 설정 불러오기 · 일반 이미지 → 인페인트·캐릭터 레퍼런스·바이브 · JSON →
+          백업/SDStudio 가져오기
         </p>
       </div>
     </div>

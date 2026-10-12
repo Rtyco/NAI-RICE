@@ -19,7 +19,6 @@ import {
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
-  MAX_VIBES,
   maxCharactersFor,
   modelLabel,
   supportsInpaint,
@@ -34,6 +33,7 @@ import { AccountMeter } from '../components/AccountMeter';
 import { ChecklistChip, SizeChip, type ChecklistItem } from '../components/ChainChip';
 import type { IconName } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
+import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
@@ -60,7 +60,7 @@ const NO_AID = '__none';
 
 const AID_MODES: Array<{ value: AidMode; label: string; title: string }> = [
   { value: 'character', label: '레퍼런스', title: '캐릭터 레퍼런스 하나를 씁니다' },
-  { value: 'vibe', label: '바이브', title: `바이브를 ${MAX_VIBES}개까지 함께 씁니다` },
+  { value: 'vibe', label: '바이브', title: '바이브 여러 개를 함께 씁니다' },
 ];
 
 /**
@@ -116,6 +116,8 @@ function AidChip(props: { project: Project; missing: boolean }) {
     return (
       <ChecklistChip
         {...common}
+        section="characterReferences"
+        itemId={id}
         value={id ? (selected?.name ?? '(없음)') : '쓰지 않음'}
         thumb={selected?.image ? pictureMedia(selected.image.file) : undefined}
         items={[
@@ -132,12 +134,13 @@ function AidChip(props: { project: Project; missing: boolean }) {
   }
 
   const ids = project.vibeIds;
-  const full = ids.length >= MAX_VIBES;
   const names = ids.map((id) => library.vibes.find((item) => item.id === id)?.name ?? '(없음)');
   const first = library.vibes.find((item) => item.id === ids[0]);
   return (
     <ChecklistChip
       {...common}
+      section="vibes"
+      itemId={ids.length === 1 ? ids[0] : undefined}
       value={
         !names.length
           ? '쓰지 않음'
@@ -147,11 +150,7 @@ function AidChip(props: { project: Project; missing: boolean }) {
       }
       thumb={first?.image ? pictureMedia(first.image.file) : undefined}
       items={[
-        ...library.vibes.map((item) => ({
-          ...row(item),
-          disabled:
-            full && !ids.includes(item.id) ? `바이브는 ${MAX_VIBES}개까지 고릅니다` : undefined,
-        })),
+        ...library.vibes.map(row),
         ...ids
           .filter((id) => !library.vibes.some((item) => item.id === id))
           .map((id) => ({ id, name: '(지워진 바이브)', noEdit: true })),
@@ -164,7 +163,7 @@ function AidChip(props: { project: Project; missing: boolean }) {
         })
       }
       editSection="vibes"
-      pickTitle={`바이브 고르기 · ${MAX_VIBES}개까지`}
+      pickTitle="바이브 고르기 · 여럿 고를 수 있습니다"
       empty="라이브러리에 바이브가 없습니다."
       hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas가 듭니다."
     />
@@ -239,6 +238,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
     <div className="chain-bar">
       <ChecklistChip
         section="presets"
+        itemId={resolved.preset?.id}
         missing={!resolved.preset}
         value={resolved.preset?.name ?? '(없음)'}
         items={library.presets}
@@ -256,6 +256,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
       {project.mode === 'reference' && (
         <ChecklistChip
           section="references"
+          itemId={resolved.reference?.id}
           missing={!resolved.reference?.image}
           value={resolved.reference?.name ?? '(없음)'}
           thumb={thumb}
@@ -277,6 +278,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
       <AidChip project={project} missing={aidMissing} />
       <ChecklistChip
         section="emotionSets"
+        itemId={resolved.emotionSet?.id}
         missing={!resolved.emotionSet}
         value={resolved.emotionSet?.name ?? '(없음)'}
         items={library.emotionSets.map((item) => ({
@@ -380,6 +382,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
   const library = useLibrary();
+  const openPreview = () =>
+    resolved && void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />);
+  useShortcut('Ctrl+P', openPreview);
   if (!resolved) return null;
   const { project, preset, emotionSet, reference } = resolved;
   const batch = batchEmotionIds(project.id);
@@ -426,9 +431,8 @@ export function ProjectView({ projectId }: { projectId: string }) {
           label="⋯"
           items={[
             {
-              label: '최종 요청 미리보기',
-              onSelect: () =>
-                void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />),
+              label: '최종 요청 미리보기 (Ctrl+P)',
+              onSelect: openPreview,
             },
             { label: '작업 폴더 열기', onSelect: () => openProjectFolder(project.id) },
             'divider',

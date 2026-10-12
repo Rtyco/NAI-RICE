@@ -70,6 +70,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const picking = useBoxSelection<HTMLDivElement>(
     records.map((record) => record.id),
     removeMany,
+    { selectAllKey: () => records.map((record) => record.id) },
   );
   const pickedCount = picking.selected.size;
 
@@ -81,6 +82,16 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       const position = records.findIndex((record) => record.id === selected?.id);
       if (event.key === 'ArrowRight' && records[position + 1]) setSelectedId(records[position + 1].id);
       if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
+      if (event.key === 'Home' && records.length) setSelectedId(records[0].id);
+      if (event.key === 'End' && records.length) setSelectedId(records[records.length - 1].id);
+      const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
+      const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
+      if (plain && event.key.toLowerCase() === 'f' && selected && !dialogOpen)
+        setFavorite(favoriteId === selected.id ? undefined : selected.id);
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's' && selected) {
+        event.preventDefault();
+        saveAs(selected);
+      }
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
       // 입력 칸 밖의 Tab은 포커스 이동 대신 씬을 넘긴다(Shift+Tab은 이전 씬). 마지막 씬에서는 그대로 둔다.
@@ -97,7 +108,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [records, selected, next, previous, pickedCount, project.id]);
+  });
 
   const setFavorite = (generationId?: string) =>
     updateProject(project.id, (current) => {
@@ -107,9 +118,21 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       return { ...current, favorites };
     });
 
+  const saveAs = (record: GenerationSummary) =>
+    void run('이미지를 저장하는 중', async () => {
+      const saved = await fileApi().saveImageAs(
+        project.id,
+        record.id,
+        emotion.name,
+        library.settings.export.quality,
+      );
+      if (saved) toast(`저장했습니다: ${saved}`);
+    });
+
   const resultActions = (record: GenerationSummary): ResultAction[] => [
     {
       label: favoriteId === record.id ? '대표 해제' : '대표로 지정',
+      title: `${favoriteId === record.id ? '대표 해제' : '대표로 지정'} (F)`,
       icon: 'star',
       group: 'main',
       active: favoriteId === record.id,
@@ -162,19 +185,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     },
     {
       label: '다른 이름으로 저장',
+      title: '다른 이름으로 저장 (Ctrl+Shift+S)',
       icon: 'save',
       group: 'file',
       iconOnly: true,
-      onSelect: () =>
-        void run('이미지를 저장하는 중', async () => {
-          const saved = await fileApi().saveImageAs(
-            project.id,
-            record.id,
-            emotion.name,
-            library.settings.export.quality,
-          );
-          if (saved) toast(`저장했습니다: ${saved}`);
-        }),
+      onSelect: () => saveAs(record),
     },
     {
       label: '폴더에서 보기',

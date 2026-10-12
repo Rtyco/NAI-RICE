@@ -1,16 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { Preset } from '../../core/domain/types';
-import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
+import {
+  CUSTOM_MAX,
+  CUSTOM_MIN,
+  RESOLUTION_PRESETS,
+  snapDimension,
+} from '../../core/imaging/CanvasLayout';
 import { normalizeGenerationSettings } from '../../core/model/defaults';
 import { listRows } from '../../core/model/folders';
 import { patchItem } from '../../core/model/mutations';
+import { FREE_MAX_PIXELS } from '../../core/providers/NaiCost';
 import { sectionInfo } from '../sections';
 import { openLibrary, toggleFolder, updateLibrary, useStore, type LibrarySection } from '../store';
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
-import { openDialog } from './Dialogs';
+import { Modal, openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
 import { folderKey } from './listFolders';
+import { NumberField } from './ui';
 
 function itemExists(section: LibrarySection, id: string): boolean {
   const library = useStore.getState().library;
@@ -19,9 +26,9 @@ function itemExists(section: LibrarySection, id: string): boolean {
   );
 }
 
-/** 편집 팝업으로 연다(화면을 떠나지 않는다). 지워진 항목이면 라이브러리의 그 칸으로 간다. */
-function editItem(section: LibrarySection, itemId: string): void {
-  if (!itemExists(section, itemId)) {
+/** 편집 팝업으로 연다(화면을 떠나지 않는다). 고른 항목이 없거나 지워졌으면 라이브러리의 그 칸으로 간다. */
+function editItem(section: LibrarySection, itemId: string | undefined): void {
+  if (!itemId || !itemExists(section, itemId)) {
     openLibrary(section, itemId);
     return;
   }
@@ -32,20 +39,32 @@ function editItem(section: LibrarySection, itemId: string): void {
 
 type ChainLabel = { text: string; icon: IconName; usage: string };
 
+/** 칩 편집 버튼. null이면 두지 않는다. */
+type ChainEdit = { title: string; open: () => void } | null;
+
 /**
- * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 항목 편집은 고르기 창의 줄마다 둔 편집 버튼으로만 한다(칩에도 두면
- * 같은 버튼이 두 군데라 헷갈린다).
+ * 한 줄짜리 구성 칩: 아이콘 + 이름 + 값. 편집 버튼은 마우스를 올렸을 때만 보이고, 고른 항목을 편집
+ * 팝업으로 연다. 고르기 창의 줄마다 있는 편집 버튼과 같은 일을 하지만, 지금 쓰는 항목은 칩에서 바로 연다.
  */
 export function ChainChip(props: {
   section?: LibrarySection;
+  itemId?: string;
   missing?: boolean;
   /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
   label?: ChainLabel;
+  edit?: ChainEdit;
   chipRef?: React.Ref<HTMLDivElement>;
   children: ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
   const label = props.label ?? { text: info!.label, icon: info!.icon, usage: info!.usage };
+  const edit =
+    props.edit === undefined && props.section
+      ? {
+          title: `${info!.label} 편집`,
+          open: () => editItem(props.section!, props.itemId),
+        }
+      : props.edit;
   return (
     <div
       ref={props.chipRef}
@@ -57,6 +76,11 @@ export function ChainChip(props: {
         {label.text}
       </span>
       {props.children}
+      {edit && (
+        <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
+          <Icon name="edit" size={14} />
+        </button>
+      )}
     </div>
   );
 }
@@ -189,7 +213,9 @@ function ChecklistFolder(props: {
 export function ChecklistChip(props: {
   section?: LibrarySection;
   label?: ChainLabel;
+  itemId?: string;
   missing?: boolean;
+  edit?: ChainEdit;
   /** 칩에 보일 값. */
   value: string;
   thumb?: string;
@@ -275,7 +301,14 @@ export function ChecklistChip(props: {
   };
 
   return (
-    <ChainChip chipRef={chip} section={props.section} label={props.label} missing={props.missing}>
+    <ChainChip
+      chipRef={chip}
+      section={props.section}
+      label={props.label}
+      itemId={props.itemId}
+      missing={props.missing}
+      edit={props.edit}
+    >
       {props.before}
       <button
         className="chain-chip-value chain-chip-trigger"
@@ -345,9 +378,17 @@ export function SizeChip({ preset }: { preset: Preset }) {
   const { width, height } = normalizeGenerationSettings(preset.generation);
   const current = RESOLUTION_PRESETS.find((item) => item.width === width && item.height === height);
   const custom = `직접 입력 ${width}×${height}`;
+  const save = (size: { width: number; height: number }) =>
+    updateLibrary((library) =>
+      patchItem(library, 'presets', preset.id, (item) => ({
+        ...item,
+        generation: { ...item.generation, ...size },
+      })),
+    );
   return (
     <ChecklistChip
       section="presets"
+      itemId={preset.id}
       label={{
         text: '해상도',
         icon: 'expand',
@@ -356,22 +397,76 @@ export function SizeChip({ preset }: { preset: Preset }) {
       value={current?.label ?? custom}
       items={[
         ...RESOLUTION_PRESETS.map((item) => ({ id: item.id, name: item.label })),
-        ...(current
-          ? []
-          : [{ id: 'custom', name: custom, disabled: '생성 설정 편집에서 바꾼 크기입니다' }]),
+        {
+          id: 'custom',
+          name: current ? '직접 입력…' : `${custom}…`,
+          hint: '가로·세로를 64 단위로 정합니다',
+        },
       ]}
       checked={[current?.id ?? 'custom']}
       onPick={(id) => {
         const next = RESOLUTION_PRESETS.find((item) => item.id === id);
-        if (next)
-          updateLibrary((library) =>
-            patchItem(library, 'presets', preset.id, (item) => ({
-              ...item,
-              generation: { ...item.generation, width: next.width, height: next.height },
-            })),
-          );
+        if (next) save(next);
+        else
+          void openDialog((close) => (
+            <CustomSizeDialog size={{ width, height }} onApply={save} close={close} />
+          ));
       }}
       hint={`생성 설정 「${preset.name}」에 저장됩니다`}
     />
+  );
+}
+
+function CustomSizeDialog(props: {
+  size: { width: number; height: number };
+  onApply: (size: { width: number; height: number }) => void;
+  close: () => void;
+}) {
+  const [size, setSize] = useState(props.size);
+  const apply = () => {
+    props.onApply(size);
+    props.close();
+  };
+  return (
+    <Modal
+      title="해상도 직접 입력"
+      onClose={props.close}
+      footer={
+        <>
+          <button onClick={props.close}>취소</button>
+          <button className="accent" onClick={apply}>
+            적용
+          </button>
+        </>
+      }
+    >
+      <div
+        className="two-column-fields"
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') apply();
+        }}
+      >
+        {(['width', 'height'] as const).map((side) => (
+          <NumberField
+            key={side}
+            label={side === 'width' ? '가로' : '세로'}
+            value={size[side]}
+            min={CUSTOM_MIN}
+            max={CUSTOM_MAX}
+            step={64}
+            integer
+            suffix="px"
+            onChange={(value) =>
+              setSize((current) => ({ ...current, [side]: snapDimension(value) }))
+            }
+          />
+        ))}
+      </div>
+      {size.width * size.height > FREE_MAX_PIXELS && (
+        <p className="field-error">
+          {size.width}×{size.height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
+        </p>
+      )}
+    </Modal>
   );
 }

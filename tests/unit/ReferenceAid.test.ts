@@ -16,7 +16,7 @@ import {
   resolveProject,
 } from '../../src/core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
-import { MAX_VIBES, supportsReferenceAid } from '../../src/core/providers/NaiModels';
+import { supportsReferenceAid } from '../../src/core/providers/NaiModels';
 import {
   buildNovelAIEncodeVibeRequest,
   buildNovelAIJobRequest,
@@ -154,11 +154,12 @@ describe('캐릭터 레퍼런스·바이브', () => {
     expect(() => buildNovelAIJobRequest(job, { imageBase64: 'IMG', maskBase64: 'MASK' })).toThrow(
       '참고 그림',
     );
-    const tooMany = { kind: 'vibe', vibes: Array(MAX_VIBES + 1).fill(sunset) };
+    // NovelAI 웹은 바이브를 두 자리 수까지 받아 4개 넘게도 넣는다.
+    const many = { kind: 'vibe', vibes: Array(12).fill(sunset) };
     expect(
-      generationEnqueueRequestSchema.safeParse({ jobs: [withHashes({ ...job, aid: tooMany })] })
+      generationEnqueueRequestSchema.safeParse({ jobs: [withHashes({ ...job, aid: many })] })
         .success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('V4.5가 아니면 작업을 만들지 않아', () => {

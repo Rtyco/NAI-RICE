@@ -9,16 +9,23 @@ import {
 
 type Box = { left: number; top: number; width: number; height: number };
 
+function isCtrl(event: KeyboardEvent, key: string): boolean {
+  return event.ctrlKey && !event.shiftKey && !event.altKey && event.key.toLowerCase() === key;
+}
+
 const EDGE = 28;
 
 /**
  * 빈 곳에서 끌면 상자가 나타나고 상자에 걸친 항목을 선택한다(탐색기와 같은 방식).
  * 항목은 data-select-id를 가진 요소이고, 항목 위에서 끌면 원래 동작(순서 바꾸기)을 그대로 쓴다.
- * Ctrl+클릭은 하나씩 더하거나 빼고, Shift+클릭은 범위를 고른다. Delete는 선택을 지우고 Esc는 해제한다.
+ * Ctrl+클릭은 하나씩 더하거나 빼고, Shift+클릭은 범위를 고른다. Delete는 선택을 지우고 Esc·Ctrl+D는 해제한다.
+ * `selectAllKey`를 주면 Ctrl+A로 그 항목들을 고른다. 화면의 본문 목록 하나에만 준다(사이드바처럼 늘 떠 있는
+ * 목록에 주면 본문과 함께 골라진다).
  */
 export function useBoxSelection<T extends HTMLElement>(
   ids: string[],
   onDelete: (ids: string[]) => void,
+  options: { selectAllKey?: () => string[] } = {},
 ) {
   const ref = useRef<T>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -55,11 +62,32 @@ export function useBoxSelection<T extends HTMLElement>(
         onDeleteRef.current([...selected]);
       } else if (event.key === 'Escape') {
         setSelected(new Set());
+      } else if (isCtrl(event, 'd')) {
+        event.preventDefault();
+        setSelected(new Set());
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selected]);
+
+  const selectAllKey = useRef(options.selectAllKey);
+  selectAllKey.current = options.selectAllKey;
+  const hasSelectAllKey = Boolean(options.selectAllKey);
+  useEffect(() => {
+    if (!hasSelectAllKey) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (!isCtrl(event, 'a')) return;
+      // 입력 칸에서는 브라우저 기본 동작(글자 전체 선택)을 둔다.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('.modal-backdrop')) return;
+      event.preventDefault();
+      setSelected(new Set(selectAllKey.current?.() ?? []));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hasSelectAllKey]);
 
   /** 컨테이너 안쪽(스크롤 포함) 좌표. */
   const point = (event: { clientX: number; clientY: number }) => {

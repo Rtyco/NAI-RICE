@@ -541,8 +541,25 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Ctrl+,', '프로그램 설정'],
       ['Ctrl+B', '사이드바 접기·펴기'],
       ['Ctrl+G', '고른 작업·라이브러리 항목을 새 폴더로 묶기'],
+      ['Ctrl+V', '이미지 붙여 넣기 (끌어 놓기와 같음)'],
       ['Ctrl+W', '창 닫기'],
       ['Esc', '열린 창·메뉴 닫기'],
+    ],
+  },
+  {
+    title: '여러 개 고르기 (갤러리·결과·라이브러리 목록)',
+    keys: [
+      ['Ctrl+A', '모두 고르기'],
+      ['Ctrl+D / Esc', '고르기 해제'],
+      ['Ctrl+클릭 / Shift+클릭', '하나씩·범위로 고르기'],
+      ['Delete', '고른 것 삭제'],
+    ],
+  },
+  {
+    title: '작업',
+    keys: [
+      ['Ctrl+P', '최종 요청 미리보기'],
+      ['Ctrl+E', '내보내기'],
     ],
   },
   {
@@ -558,10 +575,31 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     title: '씬 상세',
     keys: [
       ['← / →', '이전·다음 결과'],
-      ['Ctrl+클릭 / Shift+클릭', '결과 여러 장 선택'],
-      ['Delete', '고른 결과 삭제 (휴지통)'],
-      ['PageUp / PageDown', '이전·다음 씬'],
+      ['Home / End', '첫·마지막 결과'],
+      ['F', '보고 있는 결과를 대표로 지정·해제'],
+      ['Ctrl+Shift+S', '보고 있는 결과를 다른 이름으로 저장'],
+      ['Delete', '보고 있는 결과 삭제 (휴지통)'],
+      ['PageUp / PageDown / Tab', '이전·다음 씬'],
       ['Esc', '갤러리로 돌아가기'],
+    ],
+  },
+  {
+    title: '자유 생성 결과',
+    keys: [
+      ['← / →', '이전·다음 결과'],
+      ['Home / End', '첫·마지막 결과'],
+      ['Ctrl+Shift+S', '보고 있는 결과를 다른 이름으로 저장'],
+      ['Delete', '보고 있는 결과 삭제 (휴지통)'],
+    ],
+  },
+  {
+    title: '라이브러리',
+    keys: [
+      ['Alt+↑ / Alt+↓', '이전·다음 항목'],
+      ['Ctrl+Shift+N', '이 칸에 새 항목'],
+      ['Ctrl+Shift+D', '보고 있는 항목 복제'],
+      ['Delete', '보고 있는 항목 삭제'],
+      ['F2', '이름 바꾸기'],
     ],
   },
   {

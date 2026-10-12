@@ -154,9 +154,6 @@ export function referenceTargetLabel(target: ReferenceTarget): string {
   return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;
 }
 
-/** 한 작업에 넣는 바이브 수. 더 넣을 때의 비용을 실측하지 않아 4개까지만 고르게 한다. */
-export const MAX_VIBES = 4;
-
 export function supportsEffort(id: string): boolean {
   return Boolean(modelInfo(id)?.mediumRequestIds);
 }

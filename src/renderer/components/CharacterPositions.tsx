@@ -96,6 +96,7 @@ export function PositionChip({ target }: { target: Target }) {
         icon: 'character',
         usage: unavailable ?? '캐릭터를 캔버스 어디에 둘지 정합니다',
       }}
+      edit={unavailable ? null : { title: '캐릭터 위치 정하기', open }}
     >
       <button className="chain-chip-value" disabled={Boolean(unavailable)} onClick={open}>
         {unavailable ? '정할 수 없음' : placement.mode === 'manual' ? '직접 지정' : 'AI가 정함'}

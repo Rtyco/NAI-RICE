@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
@@ -7,6 +7,7 @@ import { showContextMenu } from '../components/ContextMenu';
 import { openDialog } from '../components/Dialogs';
 import { BottomSlot } from '../components/BottomSlot';
 import { ExportDialog } from '../components/ExportDialog';
+import { useShortcut } from '../useShortcut';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { useBoxSelection } from '../components/useBoxSelection';
@@ -186,24 +187,11 @@ export function GalleryView({
   const selection = useBoxSelection<HTMLDivElement>(
     emotions.map((emotion) => emotion.id),
     removeMany,
+    { selectAllKey: () => emotions.map((emotion) => emotion.id) },
   );
-  const { selectAll } = selection;
-  const emotionIds = emotions.map((emotion) => emotion.id).join('\n');
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || event.shiftKey || event.altKey || event.key.toLowerCase() !== 'a')
-        return;
-      // 입력 칸에서는 브라우저 기본 동작(글자 전체 선택)을 둔다.
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
-      if (document.querySelector('.modal-backdrop')) return;
-      event.preventDefault();
-      selectAll(emotionIds ? emotionIds.split('\n') : []);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selectAll, emotionIds]);
+  const openExport = () =>
+    void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
+  useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
 
   if (!emotionSet) {
     return (
@@ -304,10 +292,8 @@ export function GalleryView({
           <button
             className="with-icon"
             disabled={!withResults}
-            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다`}
-            onClick={() =>
-              void openDialog((close) => <ExportDialog resolved={resolved} close={close} />)
-            }
+            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다 (Ctrl+E)`}
+            onClick={openExport}
           >
             <Icon name="export" size={14} /> 내보내기
           </button>

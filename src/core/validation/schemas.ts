@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
-import { MAX_VIBES } from '../providers/NaiModels';
 
 export const rectSchema = z.object({
   x: z.number().finite(),
@@ -535,8 +534,7 @@ const jobSnapshotCommonSchema = z.object({
                 informationExtracted: z.number().min(0).max(1),
               }),
             )
-            .min(1)
-            .max(MAX_VIBES),
+            .min(1),
         }),
       ]),
     )

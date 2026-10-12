@@ -47,7 +47,9 @@ export function CharacterChip(props: {
   return (
     <ChecklistChip
       section="characters"
+      itemId={slots[0]?.characterId}
       missing={missing || (!props.optional && !slots.length)}
+      edit={slots.length > 1 ? null : undefined}
       value={
         !names.length
           ? '캐릭터 없음'

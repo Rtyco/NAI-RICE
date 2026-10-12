@@ -20,6 +20,7 @@ import {
   useLibrary,
   useStore,
 } from '../../store';
+import { addAidFromImage, type AidSection } from '../../aidImport';
 import { Modal } from '../Dialogs';
 
 export type DroppedImage = { name: string; dataUrl: string };
@@ -150,6 +151,12 @@ export function ImageImportDialog({
   const targetEmotionSet = library.emotionSets.find((item) => item.id === emotionSetTargetId);
   const usedMark = (id: string, usedId?: string) => (id === usedId ? ' (현재 작업)' : '');
   const [useReference, setUseReference] = useState(false);
+  // 그림을 캐릭터 레퍼런스·바이브로 보내는 것은 설정 불러오기가 아니라 전체 선택에 넣지 않는다.
+  const [aidTargets, setAidTargets] = useState<AidSection[]>([]);
+  const toggleAid = (section: AidSection, on: boolean) =>
+    setAidTargets((current) =>
+      on ? [...current, section] : current.filter((item) => item !== section),
+    );
   const [makeProject, setMakeProject] = useState(!project);
 
   // 전체 선택·해제는 불러올 항목에만 적용한다. 이미지에 없는 항목은 선택해도 꺼진 채로 보인다.
@@ -208,6 +215,11 @@ export function ImageImportDialog({
         },
       );
       updateLibrary(() => result.library);
+      const linkTo = makeProject ? result.projectId : project?.id;
+      for (const section of aidTargets) {
+        await addAidFromImage(section, image, name || stem, linkTo);
+        result.applied.push(section === 'characterReferences' ? '캐릭터 레퍼런스' : '바이브');
+      }
       if (result.projectId) openProject(result.projectId);
       if (result.referenceId) {
         setPendingReference({
@@ -482,6 +494,21 @@ export function ImageImportDialog({
           <Check checked={useReference} onChange={setUseReference}>
             <b>이 이미지로 새 인페인트 만들기</b>
           </Check>
+
+          <h3>⑤ 캐릭터 레퍼런스 · 바이브</h3>
+          <div className="import-row">
+            <Check
+              checked={aidTargets.includes('characterReferences')}
+              onChange={(on) => toggleAid('characterReferences', on)}
+            >
+              <b>새 캐릭터 레퍼런스로 추가</b>
+              <small>그림의 캐릭터나 그림체를 따라 그립니다</small>
+            </Check>
+            <Check checked={aidTargets.includes('vibes')} onChange={(on) => toggleAid('vibes', on)}>
+              <b>새 바이브로 추가</b>
+              <small>그림의 분위기·그림체를 따라갑니다</small>
+            </Check>
+          </div>
 
           <hr />
           <Check checked={makeProject} onChange={setMakeProject}>
