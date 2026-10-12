@@ -1,6 +1,7 @@
 import type { GenerationJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
+import { vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
 import type { GenerationEnqueueResult, TokenStatus } from '../../src/shared/ipc';
 
@@ -18,6 +19,12 @@ type Queue = {
   getSnapshot(): QueueSnapshot;
 };
 
+/** 바이브 인코딩 결과를 둔 곳. 없으면 인코딩 비용을 따지지 않는다. */
+type VibeStore = { readVibe(key: string): Promise<Buffer | undefined> };
+
+/** 0단계 실측: 바이브 인코딩 한 번에 2 Anlas. 같은 그림·모델이면 다시 쓰므로 처음 한 번만 든다. */
+const VIBE_ENCODE_ANLAS = 2;
+
 type Account = {
   readonly latest: TokenStatus | undefined;
   token(): Promise<string>;
@@ -32,7 +39,22 @@ export class GenerationRequests {
     private readonly queue: Queue,
     private readonly account: Account,
     private readonly confirmCost: CostConfirmation,
+    private readonly vibes?: VibeStore,
   ) {}
+
+  /** 아직 인코딩하지 않은 바이브를 처음 쓰는 작업의 순서. 그 작업에 인코딩 비용을 더한다. */
+  private async vibeEncodes(jobs: GenerationJobSnapshot[]): Promise<Set<number>> {
+    const first = new Map<string, number>();
+    jobs.forEach((job, index) => {
+      if (job.aid?.kind !== 'vibe') return;
+      const key = vibeCacheKey(job.aid.imageSha256, job.settings, job.aid.informationExtracted);
+      if (!first.has(key)) first.set(key, index);
+    });
+    const encodes = new Set<number>();
+    for (const [key, index] of first)
+      if (this.vibes && !(await this.vibes.readVibe(key))) encodes.add(index);
+    return encodes;
+  }
 
   async enqueue(request: unknown): Promise<GenerationEnqueueResult> {
     const parsed = generationEnqueueRequestSchema.safeParse(request);
@@ -40,7 +62,14 @@ export class GenerationRequests {
     const jobs = parsed.data.jobs as GenerationJobSnapshot[];
     const account = this.account.latest;
     const warnings = generationCostWarnings(jobs, account);
-    const estimates = jobs.map((job) => estimateJobAnlas(job, account));
+    const encodes = await this.vibeEncodes(jobs);
+    if (encodes.size)
+      warnings.push(
+        '바이브를 이 그림·모델로 처음 써서 인코딩에 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
+      );
+    const estimates = jobs.map(
+      (job, index) => estimateJobAnlas(job, account) + (encodes.has(index) ? VIBE_ENCODE_ANLAS : 0),
+    );
     const estimate = {
       paidJobs: estimates.filter((anlas) => anlas > 0).length,
       anlas: estimates.reduce((sum, anlas) => sum + anlas, 0),

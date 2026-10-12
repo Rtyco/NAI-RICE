@@ -1,7 +1,12 @@
 import { unzipSync } from 'fflate';
-import type { GenerationJobSnapshot } from '../domain/types';
+import type { GenerationJobSnapshot, GenerationSettings } from '../domain/types';
 import { naiHttpError, naiNetworkError, NaiApiError } from './NaiErrors';
-import { buildNovelAIJobRequest, NAI_USER_ENDPOINT } from './NovelAIRequestBuilder';
+import {
+  buildNovelAIEncodeVibeRequest,
+  buildNovelAIJobRequest,
+  NAI_ENCODE_VIBE_ENDPOINT,
+  NAI_USER_ENDPOINT,
+} from './NovelAIRequestBuilder';
 
 /** 작업 하나를 생성하는 요청. 입력 이미지·마스크는 그 작업 종류가 쓰는 것만 넘긴다. */
 export type NovelAIImageRequest = {
@@ -9,6 +14,16 @@ export type NovelAIImageRequest = {
   job: GenerationJobSnapshot;
   image?: Buffer;
   mask?: Buffer;
+  /** 캐릭터 레퍼런스 그림 또는 바이브 인코딩 결과. */
+  aid?: Buffer;
+  signal?: AbortSignal;
+};
+
+export type NovelAIVibeRequest = {
+  token: string;
+  image: Buffer;
+  settings: Pick<GenerationSettings, 'model'>;
+  informationExtracted: number;
   signal?: AbortSignal;
 };
 
@@ -105,6 +120,7 @@ export class NovelAIProvider {
     const { url, body } = buildNovelAIJobRequest(request.job, {
       imageBase64: request.image?.toString('base64'),
       maskBase64: request.mask?.toString('base64'),
+      aidBase64: request.aid?.toString('base64'),
     });
     const response = await requestNovelAI(url, request.token, {
       method: 'POST',
@@ -112,5 +128,20 @@ export class NovelAIProvider {
       signal: request.signal,
     });
     return pngsFromZip(new Uint8Array(await response.arrayBuffer()));
+  }
+
+  async encodeVibe(request: NovelAIVibeRequest): Promise<Buffer> {
+    const response = await requestNovelAI(NAI_ENCODE_VIBE_ENDPOINT, request.token, {
+      method: 'POST',
+      body: JSON.stringify(
+        buildNovelAIEncodeVibeRequest(
+          request.image.toString('base64'),
+          request.settings,
+          request.informationExtracted,
+        ),
+      ),
+      signal: request.signal,
+    });
+    return Buffer.from(await response.arrayBuffer());
   }
 }

@@ -38,6 +38,7 @@ function createPreviewApi(): DesktopApi {
     copyReferenceFiles: async () => undefined,
     deleteReferenceFiles: async () => undefined,
     prepareInputs: unsupported,
+    prepareAidInput: unsupported,
     prepareImageInput: unsupported,
     addSourceImage: unsupported,
     addSourceMask: unsupported,

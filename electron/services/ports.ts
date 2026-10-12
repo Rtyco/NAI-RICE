@@ -8,6 +8,7 @@ import type {
 import type {
   NovelAIImageRequest,
   NovelAIUserStatus,
+  NovelAIVibeRequest,
 } from '../../src/core/providers/NovelAIProvider';
 import type { ProjectInspection, ReferenceImages } from '../../src/shared/ipc';
 import type { TokenVaultStatus } from './TokenVault';
@@ -21,6 +22,8 @@ import type { TokenVaultStatus } from './TokenVault';
 export interface ImageGenerator {
   /** 응답에 든 이미지 모두. 보통 한 장이고, 배경 제거는 세 장이다. */
   generate(request: NovelAIImageRequest): Promise<Buffer[]>;
+  /** 바이브 인코딩. 바이브를 쓰는 작업에만 필요하다. */
+  encodeVibe?(request: NovelAIVibeRequest): Promise<Buffer>;
 }
 
 /** NovelAI 계정 상태를 조회하는 쪽. NovelAIProvider가 구현한다. */
@@ -45,6 +48,8 @@ export interface GenerationStore {
   emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string;
   toProjectRelative(projectId: string, absolute: string): string;
   addGeneration(record: GenerationRecord): Promise<void>;
+  readVibe(key: string): Promise<Buffer | undefined>;
+  writeVibe(key: string, data: Buffer): Promise<void>;
 }
 
 /** 내보내기가 읽는 작업 폴더. Library가 구현한다. */

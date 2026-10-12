@@ -45,7 +45,14 @@ import {
   toDataUrl,
   toPosix,
 } from './fsUtils';
-import { fitImage, imageSize, maskHasGeneratePixels, padToMultiple } from './Images';
+import {
+  fitCharacterReference,
+  fitImage,
+  imageSize,
+  integerCrop,
+  maskHasGeneratePixels,
+  padToMultiple,
+} from './Images';
 import { migrateV1Workspace } from './LegacyMigration';
 import type { ExportSource, GenerationStore, WorkspaceFolders } from './ports';
 
@@ -245,10 +252,50 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.writeInpaintInputs(projectId, canvas, mask);
   }
 
+  async prepareAidInput(
+    projectId: string,
+    reference: Reference,
+    kind: 'character' | 'vibe',
+  ): Promise<PreparedImage> {
+    const image = reference.image;
+    if (!image) throw new Error('인페인트 항목에 참고 그림이 없습니다.');
+    const original = await fs.readFile(
+      await this.resolveReferenceReal(reference.id, image.originalFile),
+    );
+    const png =
+      kind === 'character'
+        ? await fitCharacterReference(original)
+        : await sharp(original).rotate().png().toBuffer();
+    return this.writeInput(projectId, png);
+  }
+
+  /** 바이브 인코딩 결과. 작업과 상관없이 그림·모델·추출량이 같으면 다시 쓰므로 작업 폴더 밖에 둔다. */
+  private vibeFile(key: string): string {
+    return resolveInside(path.join(this.root, 'vibes'), `${key}.bin`);
+  }
+
+  async readVibe(key: string): Promise<Buffer | undefined> {
+    return fs.readFile(this.vibeFile(key)).catch(() => undefined);
+  }
+
+  async writeVibe(key: string, data: Buffer): Promise<void> {
+    await atomicWrite(this.vibeFile(key), data);
+  }
+
   /** 자유 생성 i2i의 이미지(와 인페인팅 마스크)를 작업 폴더에 해시 이름으로 복사한다. */
   async prepareSourceInput(request: SourceInputRequest): Promise<PreparedSourceInput> {
     const read = async (file: string) => fs.readFile(await this.verifyReal(this.sourceFile(file)));
     const canvas = await read(request.file);
+    if (request.crop && !request.maskFile) {
+      const size = await imageSize(canvas);
+      const rect = integerCrop(request.crop.rect, size.width, size.height);
+      const png = await sharp(canvas)
+        .extract({ left: rect.x, top: rect.y, width: rect.width, height: rect.height })
+        .resize(request.crop.width, request.crop.height, { fit: 'fill' })
+        .png()
+        .toBuffer();
+      return this.writeInput(request.projectId, png);
+    }
     if (!request.maskFile) return this.writeInput(request.projectId, canvas);
     const mask = await read(request.maskFile);
     const [canvasSize, maskSize] = await Promise.all([imageSize(canvas), imageSize(mask)]);

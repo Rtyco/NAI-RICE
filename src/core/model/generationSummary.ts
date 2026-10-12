@@ -13,6 +13,7 @@ export function toGenerationSummary(record: GenerationRecord): GenerationSummary
     thumbFile: record.thumbFile,
     canvasFile: record.canvasFile,
     augment: record.augment,
+    aid: record.aid,
     width: record.width,
     height: record.height,
     seed: record.seed,

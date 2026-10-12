@@ -7,7 +7,12 @@ import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
 import { WorkspaceShell } from '../../electron/services/WorkspaceShell';
 import type { GenerationRecord, QueueView, Reference } from '../../src/core/domain/types';
-import { buildFreeJobs, buildJobs, buildResultAugmentJobs } from '../../src/core/jobs/JobBuilder';
+import {
+  buildFreeJobs,
+  buildJobs,
+  buildResultAugmentJobs,
+  buildTxt2ImgJobs,
+} from '../../src/core/jobs/JobBuilder';
 import { interpretMetadata } from '../../src/core/metadata/NaiMetadata';
 import { insertPngChunks, makeITextChunk } from '../../src/core/metadata/PngChunks';
 import { readImageText } from '../../src/core/metadata/WebpMetadata';
@@ -391,6 +396,92 @@ describe('generation pipeline', () => {
     expect(new Set(results.map((record) => record.file)).size).toBe(3);
     expect(results[1].file).toMatch(/__2\.\w+$/);
     expect(await library.listGenerations(FREE_PROJECT_ID)).toHaveLength(4);
+  });
+
+  it('캐릭터 레퍼런스 그림은 비율이 가까운 캔버스에 검은 여백으로 맞춰', async () => {
+    const { root, library } = await setupLibrary();
+    const reference = makeReference(64, 64);
+    await library.saveReferenceImages(reference.id, {
+      originalDataUrl: dataUrl(await png(300, 400, '#ff0000')),
+      canvasDataUrl: dataUrl(await png(64, 64, '#ffffff')),
+      maskDataUrl: dataUrl(await png(64, 64, '#ffffff')),
+    });
+    const input = await library.prepareAidInput('project-a', reference, 'character');
+    const file = await readFile(path.join(root, 'projects', 'project-a', input.imagePath));
+    const { data, info } = await sharp(file).raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([1024, 1536]);
+    // 300×400을 1024 폭에 맞추면 높이 1365라 위아래에 검은 여백이 생긴다.
+    expect([...data.subarray(0, 3)]).toEqual([0, 0, 0]);
+    const middle = (768 * info.width + 512) * info.channels;
+    expect(data[middle]).toBeGreaterThan(200);
+  });
+
+  it('바이브는 처음 한 번만 인코딩하고 그 결과를 저장해 다음 작업에 다시 써', async () => {
+    const { root, library } = await setupLibrary();
+    const reference = makeReference(64, 64);
+    await library.saveReferenceImages(reference.id, {
+      originalDataUrl: dataUrl(await png(64, 96, '#ff0000')),
+      canvasDataUrl: dataUrl(await png(64, 64, '#ffffff')),
+      maskDataUrl: dataUrl(await png(64, 64, '#ffffff')),
+    });
+    let encodes = 0;
+    const sent: Array<Buffer | undefined> = [];
+    const records: GenerationRecord[] = [];
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async (request) => {
+          sent.push(request.aid);
+          return [await png(64, 64, '#00ff00')];
+        },
+        encodeVibe: async (request) => {
+          encodes += 1;
+          expect(request.informationExtracted).toBe(0.7);
+          return Buffer.from('ENCODED');
+        },
+      },
+      token: async () => 'token',
+      emit: () => undefined,
+      onRecord: (record) => records.push(record),
+      requestDelayMs: () => 0,
+    });
+    await queue.initialize();
+    const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-4-5-full-inpainting',
+      variantsPerEmotion: 2,
+    };
+    const character = createCharacter('아리아', [createPromptSet('기본', {})]);
+    const emotionSet = { id: 'set', name: '씬', emotions: [createEmotion('기쁨', 'smile')] };
+    const project = createProject('작업', {
+      presetId: preset.id,
+      character,
+      emotionSetId: emotionSet.id,
+      referenceId: reference.id,
+    });
+    const image = await library.prepareAidInput(project.id, reference, 'vibe');
+    const jobs = buildTxt2ImgJobs({
+      project,
+      preset,
+      characters: [],
+      emotionSet,
+      emotionIds: [emotionSet.emotions[0].id],
+      settings: DEFAULT_SETTINGS,
+      aid: {
+        job: { kind: 'vibe', ...image, strength: 0.6, informationExtracted: 0.7 },
+        referenceName: reference.name,
+      },
+    });
+    await queue.enqueue(jobs);
+    for (let tries = 0; tries < 250 && records.length < 2; tries += 1)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(encodes).toBe(1);
+    expect(sent.map((buffer) => buffer?.toString())).toEqual(['ENCODED', 'ENCODED']);
+    expect(records[0].aid).toEqual({ kind: 'vibe', strength: 0.6, informationExtracted: 0.7 });
+    expect(records[0].referenceName).toBe(reference.name);
   });
 
   it('생성 마스크가 비어 있으면 입력을 만들지 않고 막아', async () => {

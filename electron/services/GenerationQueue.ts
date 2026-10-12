@@ -21,9 +21,13 @@ import {
 } from '../../src/core/jobs/JobLifecycle';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
+import { vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationStore, ImageGenerator } from './ports';
+
+/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림이거나 바이브로 인코딩할 원본 그림이다. */
+type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
 const REQUEST_TIMEOUT_MS = 180_000;
@@ -241,15 +245,49 @@ export class GenerationQueue {
     return file;
   }
 
-  private async loadInputs(job: QueuedGenerationJob): Promise<{ image?: Buffer; mask?: Buffer }> {
-    if (job.kind === 'txt2img') return {};
+  private async loadInputs(job: QueuedGenerationJob): Promise<JobInputs> {
+    const aid = job.aid
+      ? await this.loadInput(job.projectId, job.aid.imagePath, job.aid.imageSha256)
+      : undefined;
+    if (job.kind === 'txt2img') return { aid };
     const image = () => this.loadInput(job.projectId, job.imagePath, job.imageSha256);
-    if (job.kind !== 'inpaint') return { image: await image() };
+    if (job.kind !== 'inpaint') return { image: await image(), aid };
     const [loaded, mask] = await Promise.all([
       image(),
       this.loadInput(job.projectId, job.maskPath, job.maskSha256),
     ]);
-    return { image: loaded, mask };
+    return { image: loaded, mask, aid };
+  }
+
+  /**
+   * 바이브 인코딩 결과. 같은 그림·모델·추출량으로 인코딩한 적이 있으면 그것을 쓰고, 없으면 인코딩해(2 Anlas)
+   * 저장해 둔다. 인코딩도 생성처럼 요청 간격을 지킨다.
+   */
+  private async vibeFor(
+    job: QueuedGenerationJob,
+    source: Buffer,
+    token: string,
+    signal: AbortSignal,
+  ): Promise<Buffer> {
+    const aid = job.aid;
+    if (aid?.kind !== 'vibe') return source;
+    const key = vibeCacheKey(aid.imageSha256, job.settings, aid.informationExtracted);
+    const cached = await this.dependencies.library.readVibe(key);
+    if (cached) return cached;
+    const encode = this.dependencies.provider.encodeVibe;
+    if (!encode) throw new Error('바이브를 인코딩할 수 없습니다.');
+    await this.waitRequestDelay(signal);
+    this.lastRequestAt = Date.now();
+    const encoded = await encode.call(this.dependencies.provider, {
+      token,
+      image: source,
+      settings: job.settings,
+      informationExtracted: aid.informationExtracted,
+      signal,
+    });
+    this.lastRequestAt = Date.now();
+    await this.dependencies.library.writeVibe(key, encoded);
+    return encoded;
   }
 
   /** 지금 Anlas. 조회하지 않거나 실패하면 undefined다. */
@@ -260,17 +298,20 @@ export class GenerationQueue {
   /** 요청 간격을 지켜 이미지를 생성하고, 전후 Anlas를 비교해 실제 차감량을 구한다. */
   private async requestImage(
     job: QueuedGenerationJob,
-    inputs: { image?: Buffer; mask?: Buffer },
+    inputs: JobInputs,
     signal: AbortSignal,
   ): Promise<{ generated: Buffer[]; anlasSpent?: number }> {
     const token = await this.dependencies.token();
     const anlasBefore = await this.anlasNow(token);
+    // 바이브 인코딩 비용도 이 결과의 사용 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
+    const aid = inputs.aid && (await this.vibeFor(job, inputs.aid, token, signal));
     await this.waitRequestDelay(signal);
     this.lastRequestAt = Date.now();
     const generated = await this.dependencies.provider.generate({
       token,
       job,
       ...inputs,
+      aid,
       signal,
     });
     // 간격은 응답을 받은 시점부터 센다.

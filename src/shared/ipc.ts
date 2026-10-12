@@ -149,6 +149,12 @@ export type LibraryApi = {
   copyReferenceFiles: (fromId: string, toId: string) => Promise<void>;
   deleteReferenceFiles: (referenceId: string) => Promise<void>;
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
+  /** 인페인트 항목의 참고 그림을 캐릭터 레퍼런스(캔버스에 맞춤)나 바이브(원본) 입력으로 복사한다. */
+  prepareAidInput: (
+    projectId: string,
+    reference: Reference,
+    kind: 'character' | 'vibe',
+  ) => Promise<PreparedImage>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
   /** 마스크 PNG를 `sources/`에 넣고 파일 이름을 돌려준다. */

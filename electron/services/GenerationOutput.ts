@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import type { GenerationRecord, QueuedGenerationJob } from '../../src/core/domain/types';
+import type {
+  GenerationRecord,
+  JobAid,
+  QueuedGenerationJob,
+  RecordAid,
+} from '../../src/core/domain/types';
 import { DESK_METADATA_KEY, type DeskMetadata } from '../../src/core/metadata/NaiMetadata';
 import {
   DEFAULT_OUTPUT_FILENAME_TEMPLATE,
@@ -34,6 +39,12 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
     ...(usesMedium(job.settings) ? { effort: 'medium' as const } : {}),
     ...(job.extraCharacters ? { extraCharacters: job.extraCharacters } : {}),
   };
+}
+
+function recordAid(aid: JobAid): RecordAid {
+  return aid.kind === 'character'
+    ? { kind: 'character', styleAware: aid.styleAware, fidelity: aid.fidelity }
+    : { kind: 'vibe', strength: aid.strength, informationExtracted: aid.informationExtracted };
 }
 
 function localDate(iso: string): string {
@@ -151,6 +162,7 @@ export async function saveGenerationOutput(
     ...(job.characterCenters ? { characterCenters: job.characterCenters } : {}),
     emotionPrompt: job.emotionPrompt,
     settings: job.settings,
+    ...(job.aid ? { aid: recordAid(job.aid) } : {}),
     ...(part.index === 0 ? { anlasSpent, anlasEstimate: job.anlasEstimate } : {}),
   };
 }

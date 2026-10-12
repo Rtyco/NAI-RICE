@@ -15,6 +15,8 @@ const api: DesktopApi = {
   readReferenceImages: (reference) => ipcRenderer.invoke('reference:read-images', reference),
   copyReferenceFiles: (fromId, toId) => ipcRenderer.invoke('reference:copy-files', fromId, toId),
   deleteReferenceFiles: (id) => ipcRenderer.invoke('reference:delete-files', id),
+  prepareAidInput: (projectId, reference, kind) =>
+    ipcRenderer.invoke('project:prepare-aid-input', projectId, reference, kind),
   prepareInputs: (projectId, reference) =>
     ipcRenderer.invoke('project:prepare-inputs', projectId, reference),
   prepareImageInput: (request) => ipcRenderer.invoke('project:prepare-image-input', request),

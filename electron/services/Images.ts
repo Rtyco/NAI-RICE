@@ -97,6 +97,32 @@ export async function fitImage(
  * NovelAI는 64의 배수 크기만 받으므로 오른쪽·아래에 흰 여백을 넣어 맞춘다. 늘이거나 자르지 않아 원래 이미지는
  * 왼쪽 위에 그대로 남는다. 투명한 부분은 fitImage처럼 흰색으로 채운다.
  */
+/**
+ * 캐릭터 레퍼런스 그림을 NovelAI 웹이 쓰는 캔버스(세로 1024×1536, 가로 1536×1024, 정사각 1472×1472) 중 비율이
+ * 가장 가까운 것에 검은 여백으로 맞춘다. 0단계에서 1024×1536에 검은 여백을 넣은 그림이 받아들여졌다.
+ */
+export async function fitCharacterReference(buffer: Buffer): Promise<Buffer> {
+  const rotated = await sharp(buffer).rotate().png().toBuffer();
+  const { width, height } = await imageSize(rotated);
+  const canvases: Array<[number, number]> = [
+    [1024, 1536],
+    [1536, 1024],
+    [1472, 1472],
+  ];
+  const ratio = width / height;
+  const [canvasWidth, canvasHeight] = canvases.reduce((best, canvas) =>
+    Math.abs(Math.log(canvas[0] / canvas[1] / ratio)) <
+    Math.abs(Math.log(best[0] / best[1] / ratio))
+      ? canvas
+      : best,
+  );
+  return sharp(rotated)
+    .resize(canvasWidth, canvasHeight, { fit: 'contain', background: '#000000' })
+    .flatten({ background: '#000000' })
+    .png()
+    .toBuffer();
+}
+
 export async function padToMultiple(
   buffer: Buffer,
   unit = 64,

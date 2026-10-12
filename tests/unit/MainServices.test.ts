@@ -114,7 +114,7 @@ describe('GenerationRequests', () => {
     warnings: [],
   } satisfies InpaintJobSnapshot;
 
-  function setup(latest?: TokenStatus, answer = false) {
+  function setup(latest?: TokenStatus, answer = false, cachedVibes: string[] = []) {
     const queued: GenerationJobSnapshot[][] = [];
     const queuedEstimates: (number[] | undefined)[] = [];
     const asked: string[][] = [];
@@ -130,6 +130,10 @@ describe('GenerationRequests', () => {
         estimates.push(estimate),
         answer
       ),
+      {
+        readVibe: async (key) =>
+          cachedVibes.some((cached) => key.startsWith(cached)) ? Buffer.from('V') : undefined,
+      },
     );
     return { requests, queued, queuedEstimates, asked, estimates };
   }
@@ -163,6 +167,29 @@ describe('GenerationRequests', () => {
     expect(result.cancelled).toBe(true);
     expect(asked[0]).toHaveLength(1);
     expect(queued).toHaveLength(0);
+  });
+
+  it('처음 쓰는 바이브는 인코딩 2 Anlas를 첫 작업에만 더해 묻고, 인코딩한 적이 있으면 묻지 않아', async () => {
+    const vibeJob = {
+      ...job,
+      settings: { ...job.settings, model: 'nai-diffusion-4-5-full-inpainting' },
+      aid: {
+        kind: 'vibe' as const,
+        imagePath: 'inputs/v.png',
+        imageSha256: 'c'.repeat(64),
+        strength: 0.6,
+        informationExtracted: 1,
+      },
+    };
+    const fresh = setup(undefined, true);
+    await fresh.requests.enqueue({ jobs: [vibeJob, { ...vibeJob, id: 'j2' }] });
+    expect(fresh.asked[0]).toEqual([
+      '바이브를 이 그림·모델로 처음 써서 인코딩에 2 Anlas가 듭니다(다음부터는 다시 씁니다).',
+    ]);
+    expect(fresh.queuedEstimates).toEqual([[2, 0]]);
+    const cached = setup(undefined, false, ['c'.repeat(64)]);
+    expect((await cached.requests.enqueue({ jobs: [vibeJob] })).cancelled).toBe(false);
+    expect(cached.asked).toHaveLength(0);
   });
 
   it('형식이 어긋난 요청은 거부해', async () => {

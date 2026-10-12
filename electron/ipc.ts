@@ -55,6 +55,14 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('project:prepare-inputs', (_event, projectId: string, reference: Reference) =>
     library.prepareInputs(projectId, reference),
   );
+  ipcMain.handle(
+    'project:prepare-aid-input',
+    (_event, projectId: string, reference: Reference, kind: unknown) => {
+      if (kind !== 'character' && kind !== 'vibe')
+        throw new Error('참고 방식이 올바르지 않습니다.');
+      return library.prepareAidInput(projectId, reference, kind);
+    },
+  );
   ipcMain.handle('project:prepare-image-input', (_event, request: ImageInputRequest) =>
     library.prepareImageInput(request),
   );

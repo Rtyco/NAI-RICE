@@ -61,7 +61,7 @@ async function createServices(): Promise<AppServices> {
     files: new FilePicker(dialog),
     account,
     queue,
-    requests: new GenerationRequests(queue, account, confirmAnlasUse),
+    requests: new GenerationRequests(queue, account, confirmAnlasUse, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
     // 포터블 실행 파일은 electron-builder가 PORTABLE_EXECUTABLE_FILE을 넣어 준다.
     updates: new UpdateChecker(
