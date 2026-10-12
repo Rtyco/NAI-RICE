@@ -137,15 +137,20 @@ export type ComposedCanvas = {
 // 비율 슬라이더를 움직이는 동안 같은 원본을 매번 디코딩하지 않도록 마지막 원본 하나만 남긴다.
 let lastOriginal: { dataUrl: string; image: Promise<HTMLImageElement> } | undefined;
 
-/** 캐릭터 이미지 한 장으로 레퍼런스 + 생성 여백 캔버스를 만든다. */
-export async function composeCanvas(originalDataUrl: string, layout: CanvasLayout): Promise<ComposedCanvas> {
+function loadOriginal(originalDataUrl: string): Promise<HTMLImageElement> {
   if (lastOriginal?.dataUrl !== originalDataUrl) {
     lastOriginal = { dataUrl: originalDataUrl, image: loadHtmlImage(originalDataUrl) };
     lastOriginal.image.catch(() => (lastOriginal = undefined));
   }
-  const image = await lastOriginal.image;
-  const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
-  const { canvas, context } = canvas2d(composed.width, composed.height, false);
+  return lastOriginal.image;
+}
+
+function paintLayout(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  layout: CanvasLayout,
+  composed: ReturnType<typeof computeLayout>,
+): void {
   context.fillStyle = layout.background || '#ffffff';
   context.fillRect(0, 0, composed.width, composed.height);
   context.save();
@@ -157,6 +162,14 @@ export async function composeCanvas(originalDataUrl: string, layout: CanvasLayou
   const place = composed.imagePlacement;
   context.drawImage(image, place.x, place.y, place.width, place.height);
   context.restore();
+}
+
+/** 캐릭터 이미지 한 장으로 레퍼런스 + 생성 여백 캔버스를 만든다. */
+export async function composeCanvas(originalDataUrl: string, layout: CanvasLayout): Promise<ComposedCanvas> {
+  const image = await loadOriginal(originalDataUrl);
+  const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
+  const { canvas, context } = canvas2d(composed.width, composed.height, false);
+  paintLayout(context, image, layout, composed);
   return {
     width: composed.width,
     height: composed.height,
@@ -165,6 +178,22 @@ export async function composeCanvas(originalDataUrl: string, layout: CanvasLayou
     referenceRect: composed.referenceArea,
     outputRect: composed.generationArea,
   };
+}
+
+/**
+ * 자동 구성 캔버스를 그 자리에서 다시 칠한다. 배경색처럼 영역이 그대로인 변경에 쓴다. 새 캔버스를 만들면
+ * 편집기가 배경 마스크·생성 영역을 다시 계산하고 직접 칠한 마스크 보정까지 초기화해 색을 고르는 동안 버벅인다.
+ */
+export async function repaintComposed(
+  canvas: HTMLCanvasElement,
+  originalDataUrl: string,
+  layout: CanvasLayout,
+): Promise<void> {
+  const image = await loadOriginal(originalDataUrl);
+  const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
+  if (composed.width !== canvas.width || composed.height !== canvas.height)
+    throw new Error('캔버스 크기가 구성과 다릅니다.');
+  paintLayout(canvas.getContext('2d')!, image, layout, composed);
 }
 
 /** 저장된 자동 구성 캔버스를 다시 열 때 배경 마스크만 복원한다. */

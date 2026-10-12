@@ -25,6 +25,8 @@ type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type Props = {
   image: CanvasImage;
+  /** `image`를 그 자리에서 다시 칠할 때마다 바뀐다(배경색). 이때는 마스크 보정을 그대로 둔다. */
+  imageVersion?: number;
   width: number;
   height: number;
   backgroundMask: Uint8Array;
@@ -253,7 +255,7 @@ export function ReferenceCanvas(props: Props) {
     tool,
   ]);
 
-  useEffect(draw, [draw]);
+  useEffect(draw, [draw, props.imageVersion]);
 
   useEffect(() => onMaskChange(mask), [mask, onMaskChange]);
 

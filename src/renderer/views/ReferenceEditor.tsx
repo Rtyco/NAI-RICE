@@ -22,6 +22,7 @@ import {
   maskToDataUrl,
   masksEqual,
   prepareImage,
+  repaintComposed,
 } from '../lib/image';
 import { errorMessage, run, scheduleSave, setPendingReference, toast, updateLibrary, useStore } from '../store';
 import { fileApi, libraryApi } from '../desktop';
@@ -77,6 +78,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const queuedRebuild = useRef<[Source, CanvasLayout, number] | null>(null);
   const rebuildRunning = useRef(false);
   const rebuildSeq = useRef(0);
+  /** 그 자리에서 다시 칠한 횟수. 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
+  const [imageVersion, setImageVersion] = useState(0);
+  const queuedRepaint = useRef<CanvasLayout | null>(null);
+  const repaintRunning = useRef(false);
 
   // 저장된 레퍼런스 불러오기
   useEffect(() => {
@@ -215,11 +220,41 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     applySource(pendingReference.dataUrl, pendingReference.name);
   }, [pendingReference, reference.id, loading, applySource]);
 
+  /** 배경색만 바뀌면 영역이 그대로라 캔버스를 새로 만들지 않고 다시 칠한다. 색을 끄는 동안 프레임마다 한 번만 한다. */
+  const repaint = (canvas: HTMLCanvasElement, dataUrl: string, next: CanvasLayout) => {
+    queuedRepaint.current = next;
+    if (repaintRunning.current) return;
+    repaintRunning.current = true;
+    void (async () => {
+      try {
+        for (let target = queuedRepaint.current; target; target = queuedRepaint.current) {
+          queuedRepaint.current = null;
+          await repaintComposed(canvas, dataUrl, target);
+          setImageVersion((version) => version + 1);
+          await new Promise(requestAnimationFrame);
+        }
+      } catch (error) {
+        toast(`캔버스를 다시 칠할 수 없습니다: ${errorMessage(error)}`, 'error');
+      } finally {
+        repaintRunning.current = false;
+      }
+    })();
+  };
+
   const changeLayout = (patch: Partial<CanvasLayout>) => {
     const next = { ...layout, ...patch };
     setLayout(next);
     dirty.current = true;
-    scheduleRebuild(source, next, threshold);
+    const onlyBackground = Object.keys(patch).every((key) => key === 'background');
+    if (
+      onlyBackground &&
+      next.mode === 'auto' &&
+      source &&
+      working?.canvas instanceof HTMLCanvasElement &&
+      !rebuildRunning.current
+    )
+      repaint(working.canvas, source.dataUrl, next);
+    else scheduleRebuild(source, next, threshold);
   };
 
   const handleMaskChange = useCallback((data: Uint8Array) => {
@@ -297,6 +332,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           <ReferenceCanvas
             key={`${working.width}x${working.height}`}
             image={working.canvas}
+            imageVersion={imageVersion}
             width={working.width}
             height={working.height}
             backgroundMask={working.backgroundMask}
