@@ -55,14 +55,14 @@ const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
 
 const MAX_VARIANTS = 20;
 
-const AID_MODES: Array<{ value: AidMode; label: string; title: string }> = [
-  { value: 'character', label: '레퍼런스', title: '캐릭터 레퍼런스를 씁니다' },
-  { value: 'vibe', label: '바이브', title: '바이브를 씁니다' },
-];
+const AID_MODES: Record<AidMode, { label: string; title: string }> = {
+  character: { label: '레퍼런스', title: '캐릭터 레퍼런스를 씁니다' },
+  vibe: { label: '바이브', title: '바이브를 씁니다' },
+};
 
 /**
- * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼으로 방식을 고르고, 그 방식의 목록에서 여럿
- * 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다.
+ * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼을 누를 때마다 방식이 바뀌고, 그 방식의
+ * 목록에서 여럿 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다.
  */
 function AidChip(props: { project: Project; missing: boolean }) {
   const library = useLibrary();
@@ -79,6 +79,7 @@ function AidChip(props: { project: Project; missing: boolean }) {
     hint: item.image ? undefined : '그림 없음',
   });
   const character = mode === 'character';
+  const next: AidMode = character ? 'vibe' : 'character';
   const section = character ? 'characterReferences' : 'vibes';
   const list: Array<CharacterReference | Vibe> = character
     ? library.characterReferences
@@ -97,18 +98,14 @@ function AidChip(props: { project: Project; missing: boolean }) {
       }}
       missing={Boolean(aid) && props.missing}
       before={
-        <span className="segmented chain-chip-switch" role="group" aria-label="참고 방식">
-          {AID_MODES.map((item) => (
-            <button
-              key={item.value}
-              className={mode === item.value ? 'active blue' : ''}
-              aria-pressed={mode === item.value}
-              title={item.title}
-              onClick={() => patch({ aidMode: item.value })}
-            >
-              {item.label}
-            </button>
-          ))}
+        <span className="segmented chain-chip-switch">
+          <button
+            className="active blue"
+            title={`${AID_MODES[mode].title} · 누르면 ${AID_MODES[next].label}로 바꿉니다`}
+            onClick={() => patch({ aidMode: next })}
+          >
+            {AID_MODES[mode].label}
+          </button>
         </span>
       }
       section={section}
