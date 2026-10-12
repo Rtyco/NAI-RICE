@@ -47,19 +47,65 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
     >
       <div className="emotion-table">
         {set.emotions.map((emotion, index) => (
-          <div className="emotion-table-row" key={emotion.id}>
-            <span className="row-index">{index + 1}</span>
-            <input
-              className="emotion-name-input"
-              value={emotion.name}
-              aria-label="씬 이름"
-              onChange={(event) =>
-                save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
-              }
-            />
+          <div className="piece-row emotion-row" key={emotion.id}>
+            <div className="piece-row-head">
+              <span className="row-index">{index + 1}</span>
+              <input
+                className="emotion-name-input"
+                value={emotion.name}
+                aria-label="씬 이름"
+                onChange={(event) =>
+                  save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
+                }
+              />
+              <div className="row-actions">
+                <button
+                  className="icon-button"
+                  title="다음 캐릭터의 씬 프롬프트 칸 추가"
+                  onClick={() =>
+                    setOpened((current) => ({
+                      ...current,
+                      [emotion.id]:
+                        Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) + 1,
+                    }))
+                  }
+                >
+                  ＋
+                </button>
+                <ExpandTextButton
+                  title={`${emotion.name || '씬'} 프롬프트`}
+                  value={emotion.prompt}
+                  placeholder="씬 프롬프트"
+                  onApply={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
+                />
+                <button
+                  className="icon-button"
+                  disabled={index === 0}
+                  title="위로"
+                  onClick={() => save((item) => moveEmotion(item, emotion.id, index - 1))}
+                >
+                  ↑
+                </button>
+                <button
+                  className="icon-button"
+                  disabled={index === set.emotions.length - 1}
+                  title="아래로"
+                  onClick={() => save((item) => moveEmotion(item, emotion.id, index + 1))}
+                >
+                  ↓
+                </button>
+                <button
+                  className="icon-button danger"
+                  title="삭제"
+                  onClick={() => save((item) => removeEmotion(item, emotion.id))}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
             <div className="emotion-prompts">
               <PromptTextarea
-                rows={1}
+                rows={3}
                 value={emotion.prompt}
                 aria-label={`${emotion.name} 프롬프트`}
                 placeholder="씬 프롬프트"
@@ -73,7 +119,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                   <div className="emotion-extra-prompt" key={extra}>
                     <span>캐릭터 {extra + 2}</span>
                     <PromptTextarea
-                      rows={1}
+                      rows={2}
                       value={emotion.extraPrompts?.[extra] ?? ''}
                       aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
                       placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
@@ -86,50 +132,6 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                   </div>
                 ),
               )}
-            </div>
-            <div className="row-actions">
-              <button
-                className="icon-button"
-                title="다음 캐릭터의 씬 프롬프트 칸 추가"
-                onClick={() =>
-                  setOpened((current) => ({
-                    ...current,
-                    [emotion.id]:
-                      Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) + 1,
-                  }))
-                }
-              >
-                ＋
-              </button>
-              <ExpandTextButton
-                title={`${emotion.name || '씬'} 프롬프트`}
-                value={emotion.prompt}
-                placeholder="씬 프롬프트"
-                onApply={(prompt) => save((item) => updateEmotion(item, emotion.id, { prompt }))}
-              />
-              <button
-                className="icon-button"
-                disabled={index === 0}
-                title="위로"
-                onClick={() => save((item) => moveEmotion(item, emotion.id, index - 1))}
-              >
-                ↑
-              </button>
-              <button
-                className="icon-button"
-                disabled={index === set.emotions.length - 1}
-                title="아래로"
-                onClick={() => save((item) => moveEmotion(item, emotion.id, index + 1))}
-              >
-                ↓
-              </button>
-              <button
-                className="icon-button danger"
-                title="삭제"
-                onClick={() => save((item) => removeEmotion(item, emotion.id))}
-              >
-                ×
-              </button>
             </div>
           </div>
         ))}

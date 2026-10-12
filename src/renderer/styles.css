@@ -1137,17 +1137,14 @@ textarea.syntax-input::selection {
 .emotion-table {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
-.emotion-table-row {
-  display: grid;
-  grid-template-columns: 22px 150px minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: start;
+.emotion-row .emotion-name-input {
+  width: 220px;
 }
-.emotion-table-row textarea {
-  min-height: 34px;
-  resize: vertical;
+.emotion-row .row-index {
+  min-width: 14px;
+  margin-top: 0;
 }
 .emotion-prompts {
   display: flex;
@@ -1176,9 +1173,6 @@ textarea.syntax-input::selection {
   background: var(--bg-5);
   color: var(--muted);
   font-size: 10px;
-}
-.emotion-table-row > input[type='checkbox'] {
-  margin-top: 10px;
 }
 .row-actions {
   display: flex;
