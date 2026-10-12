@@ -83,11 +83,16 @@ function Welcome() {
 export default function App() {
   const ready = useStore((state) => state.ready);
   const view = useStore((state) => state.view);
-  const library = useStore((state) => state.library);
+  const hasLibrary = useStore((state) => Boolean(state.library));
   const settingsOpen = useStore((state) => state.settingsOpen);
   const collapsed = useStore((state) => state.sidebarCollapsed);
-
-  const appearance = library?.settings.appearance;
+  const appearance = useStore((state) => state.library?.settings.appearance);
+  const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
+  const projectExists = useStore(
+    (state) =>
+      view.kind === 'project' &&
+      Boolean(state.library?.projects.some((item) => item.id === view.projectId)),
+  );
 
   useEffect(() => subscribeToMain(), []);
   useEffect(() => {
@@ -96,7 +101,6 @@ export default function App() {
   useGlobalShortcuts();
 
   // 작업 폴더를 연 뒤 한 번, 설정에서 켜 두었으면 새 버전을 확인한다.
-  const autoCheck = library?.settings.update.autoCheck;
   const checkedUpdate = useRef(false);
   useEffect(() => {
     if (!ready || autoCheck === undefined || checkedUpdate.current) return;
@@ -116,19 +120,17 @@ export default function App() {
         : view.kind;
   // 화면 종류가 바뀔 때만 전환 효과를 준다. 라이브러리 안에서 항목만 바꿀 때는 편집기만 바뀐다.
   const transitionKey = view.kind === 'library' ? `library:${view.section}` : viewKey;
-  const projectExists =
-    view.kind === 'project' && library?.projects.some((item) => item.id === view.projectId);
 
   return (
     <>
       <TitleBar />
       <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
-        {library ? <Sidebar /> : <aside className="sidebar" />}
+        {hasLibrary ? <Sidebar /> : <aside className="sidebar" />}
         {!collapsed && <PanelResizer panel="sidebar" />}
         <div className="main-area">
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>
-              {!ready || !library ? (
+              {!ready || !hasLibrary ? (
                 <p className="hint pad">
                   {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
                 </p>
@@ -150,7 +152,7 @@ export default function App() {
         </div>
         <QueueBar />
         <Toasts />
-        {settingsOpen && library && <SettingsModal />}
+        {settingsOpen && hasLibrary && <SettingsModal />}
         <DialogHost />
         <ContextMenuHost />
         <DropZone />

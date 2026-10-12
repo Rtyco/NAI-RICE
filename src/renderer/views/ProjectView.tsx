@@ -1,4 +1,5 @@
 import { Fragment, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
@@ -93,7 +94,9 @@ function ModeSwitch({ project }: { project: Project }) {
 
 /** 작업에 쓰는 라이브러리 항목 네 가지를 한 줄에서 바꾼다. 거의 바꾸지 않는 값이라 작게 둔다. */
 function ChainBar({ resolved }: { resolved: ResolvedProject }) {
-  const library = useLibrary();
+  const presets = useStore((state) => state.library!.presets);
+  const references = useStore((state) => state.library!.references);
+  const emotionSets = useStore((state) => state.library!.emotionSets);
   const { project } = resolved;
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
@@ -112,7 +115,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         itemId={resolved.preset?.id}
         missing={!resolved.preset}
         value={resolved.preset?.name ?? '(없음)'}
-        items={library.presets}
+        items={presets}
         checked={[project.presetId]}
         onPick={(presetId) => patch({ presetId })}
         editSection="presets"
@@ -131,7 +134,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
           missing={!resolved.reference?.image}
           value={resolved.reference?.name ?? '(없음)'}
           thumb={thumb}
-          items={library.references.map((item) => ({
+          items={references.map((item) => ({
             id: item.id,
             name: item.name,
             folder: item.folder,
@@ -157,7 +160,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         itemId={resolved.emotionSet?.id}
         missing={!resolved.emotionSet}
         value={resolved.emotionSet?.name ?? '(없음)'}
-        items={library.emotionSets.map((item) => ({
+        items={emotionSets.map((item) => ({
           id: item.id,
           name: item.name,
           folder: item.folder,
@@ -257,7 +260,12 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
-  const library = useLibrary();
+  const aidSources = useStore(
+    useShallow((state) => ({
+      characterReferences: state.library!.characterReferences,
+      vibes: state.library!.vibes,
+    })),
+  );
   const openPreview = () =>
     resolved && void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+P', openPreview);
@@ -267,7 +275,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
   const generation = preset && effectiveGenerationSettings(preset.generation);
-  const aid = projectAid(library, project);
+  const aid = projectAid(aidSources, project);
   const costJob =
     project.mode !== 'reference'
       ? generation && {

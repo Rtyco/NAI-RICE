@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
 import { projectsUsing, type ResolvedCharacter } from '../../core/model/defaults';
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
   resolveFreeGeneration,
+  sameCharacters,
   togglePromptGroup,
   togglePromptPanel,
   updateLibrary,
-  useLibrary,
   useResolvedProject,
   useStore,
+  useStoreMemo,
 } from '../store';
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { PreviewDialog } from '../views/ProjectView';
@@ -94,12 +96,20 @@ export function PromptPanel(props: {
   footer?: ReactNode;
 }) {
   const { preset, characters } = props;
-  const library = useLibrary();
+  const presetUses = useStore((state) =>
+    preset ? projectsUsing(state.library!, 'preset', preset.id).length : 0,
+  );
+  const characterUses = useStore(
+    useShallow((state) =>
+      characters.map(
+        ({ character }) => projectsUsing(state.library!, 'character', character.id).length,
+      ),
+    ),
+  );
   const collapsed = useStore((state) => state.promptPanelCollapsed);
   const foldedGroups = useStore((state) => state.foldedPromptGroups);
   const own = props.projectId ? 1 : 0;
-  const presetShared =
-    preset && sharedHint(projectsUsing(library, 'preset', preset.id).length, own);
+  const presetShared = preset && sharedHint(presetUses, own);
   const unusedInMedium =
     preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
 
@@ -230,10 +240,7 @@ export function PromptPanel(props: {
             )}
           </div>
           {characters.map(({ character, promptSet }, index) => {
-            const shared = sharedHint(
-              projectsUsing(library, 'character', character.id).length,
-              own,
-            );
+            const shared = sharedHint(characterUses[index], own);
             return (
               <PromptCard
                 key={`${index}-${character.id}`}
@@ -320,7 +327,10 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
 }
 
 export function FreePromptPanel() {
-  const { preset, characters } = resolveFreeGeneration(useLibrary());
+  const { preset, characters } = useStoreMemo(
+    (state) => resolveFreeGeneration(state.library!),
+    (a, b) => a.preset === b.preset && sameCharacters(a.characters, b.characters),
+  );
   return (
     <PromptPanel
       preset={preset}

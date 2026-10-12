@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { create } from 'zustand';
 import type {
   FreeGeneration,
@@ -11,6 +12,7 @@ import {
   FREE_PROJECT_ID,
   resolveCharacters,
   resolveProject,
+  type ResolvedCharacter,
   type ResolvedProject,
 } from '../core/model/defaults';
 import type { GenerationPreview, TokenStatus } from '../shared/ipc';
@@ -37,7 +39,7 @@ export type PendingReference = { referenceId: string; dataUrl: string; name: str
 
 export type SidebarSection = 'projects' | 'library';
 
-type State = {
+export type StoreState = {
   ready: boolean;
   root: string;
   version: string;
@@ -147,7 +149,7 @@ const readSidebarSections = (): Record<SidebarSection, boolean> =>
     { projects: false, library: false },
   );
 
-export const useStore = create<State>(() => ({
+export const useStore = create<StoreState>(() => ({
   ready: false,
   root: '',
   version: '',
@@ -333,8 +335,47 @@ export function updateLibrary(recipe: (library: Library) => Library): void {
   scheduleSave('library', () => libraryApi().saveLibrary(get().library!));
 }
 
+/** 라이브러리 전체. 한 글자만 고쳐도 바뀌므로 자주 그려지는 곳에서는 필요한 부분만 고르는 selector를 쓴다. */
 export function useLibrary(): Library {
   return useStore((state) => state.library)!;
+}
+
+/** selector가 매번 새 값을 만들어도 `same`이 참이면 앞의 값을 그대로 돌려줘 다시 그리지 않게 한다. */
+export function useStoreMemo<T>(
+  selector: (state: StoreState) => T,
+  same: (a: T, b: T) => boolean,
+): T {
+  const last = useRef<{ value: T }>(undefined);
+  return useStore((state) => {
+    const value = selector(state);
+    if (last.current && same(last.current.value, value)) return last.current.value;
+    last.current = { value };
+    return value;
+  });
+}
+
+function sameList<T>(a: readonly T[], b: readonly T[], same: (x: T, y: T) => boolean = Object.is) {
+  return a.length === b.length && a.every((item, index) => same(item, b[index]));
+}
+
+export function sameCharacters(a: ResolvedCharacter[], b: ResolvedCharacter[]): boolean {
+  return sameList(
+    a,
+    b,
+    (x, y) => x.character === y.character && x.promptSet === y.promptSet && x.center === y.center,
+  );
+}
+
+function sameResolved(a: ResolvedProject | undefined, b: ResolvedProject | undefined): boolean {
+  if (!a || !b) return a === b;
+  return (
+    a.project === b.project &&
+    a.preset === b.preset &&
+    a.emotionSet === b.emotionSet &&
+    a.reference === b.reference &&
+    sameCharacters(a.characters, b.characters) &&
+    sameList(a.missing, b.missing)
+  );
 }
 
 export function updateProject(id: string, recipe: (project: Project) => Project): void {
@@ -347,9 +388,10 @@ export function updateProject(id: string, recipe: (project: Project) => Project)
 }
 
 export function useResolvedProject(projectId: string): ResolvedProject | undefined {
-  const library = useLibrary();
-  const project = library.projects.find((item) => item.id === projectId);
-  return project ? resolveProject(library, project) : undefined;
+  return useStoreMemo((state) => {
+    const project = state.library?.projects.find((item) => item.id === projectId);
+    return project && resolveProject(state.library!, project);
+  }, sameResolved);
 }
 
 export function currentProject(): Project | undefined {

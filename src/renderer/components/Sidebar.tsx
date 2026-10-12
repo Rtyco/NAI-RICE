@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
-import type { Project } from '../../core/domain/types';
+import { useShallow } from 'zustand/react/shallow';
+import type { Library, Project } from '../../core/domain/types';
 import {
   createCharacter,
   createEmotionSet,
@@ -333,6 +334,29 @@ function ProjectRow(props: {
   );
 }
 
+function projectAvatar(library: Library, project: Project): string | undefined {
+  const reference = library.references.find((item) => item.id === project.referenceId);
+  return reference?.image
+    ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
+    : undefined;
+}
+
+function projectSubtitle(library: Library, project: Project): string {
+  const characterId = project.characters[0]?.characterId;
+  return library.characters.find((item) => item.id === characterId)?.name ?? '캐릭터 없음';
+}
+
+/** 작업마다 `describe`한 값. 프롬프트를 고칠 때마다 사이드바를 다시 그리지 않도록 값이 같으면 그대로 둔다. */
+function useProjectInfo<T>(describe: (library: Library, project: Project) => T): Record<string, T> {
+  return useStore(
+    useShallow((state) =>
+      Object.fromEntries(
+        state.library!.projects.map((project) => [project.id, describe(state.library!, project)]),
+      ),
+    ),
+  );
+}
+
 /**
  * 사이드바 카드의 제목 줄. 제목을 누르면 카드가 제목 줄만 남기고 접힌다.
  * 사이드바 전체를 접은 좁은 막대에서는 아이콘만 보이고 누를 수 없다.
@@ -370,7 +394,14 @@ function SectionTitle(props: {
 }
 
 export function Sidebar() {
-  const library = useLibrary();
+  const projects = useStore((state) => state.library!.projects);
+  const avatars = useProjectInfo(projectAvatar);
+  const subtitles = useProjectInfo(projectSubtitle);
+  const counts = useStore(
+    useShallow((state) =>
+      SECTIONS.map((section) => (state.library![section.key] as unknown[]).length),
+    ),
+  );
   const view = useStore((state) => state.view);
   const queue = useStore((state) => state.queue);
   const collapsed = useStore((state) => state.sidebarCollapsed);
@@ -388,8 +419,8 @@ export function Sidebar() {
   const newProject = () => void openDialog((close) => <NewProjectDialog close={close} />);
   const [dragging, setDragging] = useState<string[]>([]);
   const removeMany = (ids: string[]) =>
-    void deleteProjects(library.projects.filter((project) => ids.includes(project.id)));
-  const rows = listRows(library.projects);
+    void deleteProjects(projects.filter((project) => ids.includes(project.id)));
+  const rows = listRows(projects);
   const isFolded = useFoldedFolders('projects');
   const selection = useBoxSelection<HTMLElement>(
     rows.flatMap((row) =>
@@ -416,10 +447,6 @@ export function Sidebar() {
   });
 
   const renderProject = (project: Project) => {
-    const reference = library.references.find((item) => item.id === project.referenceId);
-    const character = library.characters.find(
-      (item) => item.id === project.characters[0]?.characterId,
-    );
     const picked = !collapsed && selection.isSelected(project.id);
     return (
       <ProjectRow
@@ -428,18 +455,14 @@ export function Sidebar() {
         collapsed={collapsed}
         active={view.kind === 'project' && view.projectId === project.id}
         busy={active.get(project.id)}
-        avatar={
-          reference?.image
-            ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
-            : undefined
-        }
-        subtitle={character?.name ?? '캐릭터 없음'}
+        avatar={avatars[project.id]}
+        subtitle={subtitles[project.id]}
         dragging={dragging}
         startDrag={(id) => {
           const payload = dragPayload(
             id,
             selection.selected,
-            library.projects.map((item) => item.id),
+            projects.map((item) => item.id),
           );
           setDragging(payload.ids);
           return payload;
@@ -553,9 +576,7 @@ export function Sidebar() {
                 </span>
               </button>
             )}
-            {!library.projects.length && !collapsed && (
-              <p className="hint pad-x">아직 작업이 없습니다.</p>
-            )}
+            {!projects.length && !collapsed && <p className="hint pad-x">아직 작업이 없습니다.</p>}
             {!collapsed && selection.boxElement}
           </nav>
           {!collapsed && selection.selected.size > 0 && (
@@ -603,7 +624,7 @@ export function Sidebar() {
         />
         <div className="sidebar-card-body">
           <nav className="library-nav" aria-label="라이브러리">
-            {SECTIONS.map((section) => (
+            {SECTIONS.map((section, index) => (
               <button
                 key={section.id}
                 title={(collapsed
@@ -622,7 +643,7 @@ export function Sidebar() {
                       <b>{section.label}</b>
                       {section.role && <small>{section.role}</small>}
                     </span>
-                    <span className="count">{(library[section.key] as unknown[]).length}</span>
+                    <span className="count">{counts[index]}</span>
                   </>
                 )}
               </button>

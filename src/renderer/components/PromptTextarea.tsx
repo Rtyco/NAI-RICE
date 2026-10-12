@@ -16,7 +16,7 @@ import {
   type TagMatch,
   type TagQuery,
 } from '../../core/prompts/TagSearch';
-import { useLibrary } from '../store';
+import { useStore } from '../store';
 import { searchTags, warmTagIndex } from '../tagDictionary';
 
 type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
@@ -205,9 +205,8 @@ function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
  * textarea는 글자를 투명하게 해 커서·선택만 보여 준다.
  */
 export function PromptTextarea({ value, onChange, className, onScroll, onSelect, ...rest }: Props) {
-  const library = useLibrary();
-  const pieceSets = library.pieceSets;
-  const autocomplete = library.settings.tagAutocomplete;
+  const pieceSets = useStore((state) => state.library!.pieceSets);
+  const autocomplete = useStore((state) => state.library!.settings.tagAutocomplete);
   const area = useRef<HTMLTextAreaElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
   const [caret, setCaret] = useState<number | null>(null);

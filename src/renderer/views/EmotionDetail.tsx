@@ -25,7 +25,6 @@ import {
   run,
   toast,
   updateProject,
-  useLibrary,
   useStore,
 } from '../store';
 import { fileApi, libraryApi } from '../desktop';
@@ -34,7 +33,10 @@ import { ScenePromptFields } from '../components/ScenePromptFields';
 export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject; emotion: Emotion }) {
   const { project } = resolved;
   const set = resolved.emotionSet!;
-  const library = useLibrary();
+  const exportQuality = useStore((state) => state.library!.settings.export.quality);
+  const sharedCount = useStore(
+    (state) => state.library!.projects.filter((item) => item.emotionSetId === set.id).length,
+  );
   const allRecords = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
   const filmstripCollapsed = useStore((state) => state.filmstripCollapsed);
@@ -53,7 +55,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   );
   const pending = sceneJobs.filter((job) => isActive(job.status)).length;
   const running = sceneJobs.filter((job) => job.status === 'generating').map((job) => job.id);
-  const sharedCount = library.projects.filter((item) => item.emotionSetId === set.id).length;
 
   // 새 결과가 오면 그 결과를 보여 준다. 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니므로 그대로 둔다.
   const newest = records[0];
@@ -122,12 +123,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
 
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
-      const saved = await fileApi().saveImageAs(
-        project.id,
-        record.id,
-        emotion.name,
-        library.settings.export.quality,
-      );
+      const saved = await fileApi().saveImageAs(project.id, record.id, emotion.name, exportQuality);
       if (saved) toast(`저장했습니다: ${saved}`);
     });
 

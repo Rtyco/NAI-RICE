@@ -8,7 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
+import type { Emotion, EmotionSet, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotions } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
@@ -38,7 +38,6 @@ import {
   setGalleryAspect,
   setGalleryColumns,
   updateProject,
-  useLibrary,
   useStore,
 } from '../store';
 import { StreamPreview } from '../components/StreamPreview';
@@ -59,8 +58,14 @@ const NO_JOBS: QueueJobView[] = [];
 
 /** 고르기·끌기로 씬 목록이 자주 다시 그려지므로, 바뀐 카드만 다시 그리게 props는 모두 같은 값을 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
-  resolved: ResolvedProject;
+  projectId: string;
+  set: EmotionSet;
   emotion: Emotion;
+  favoriteId?: string;
+  /** 일괄 생성에서 뺀 씬인지. */
+  excluded: boolean;
+  /** 작업에 필요한 항목이 빠져 생성할 수 없는지. */
+  blocked: boolean;
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
@@ -74,19 +79,15 @@ const EmotionCard = memo(function EmotionCard(props: {
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
   onPick: (event: MouseEvent, id: string) => boolean;
 }) {
-  const { resolved, emotion, records } = props;
+  const { projectId, emotion, records, favoriteId, excluded } = props;
   const open = (event: MouseEvent) => {
     if (!props.onPick(event, emotion.id)) openEmotion(emotion.id);
   };
-  const project = resolved.project;
-  const set = resolved.emotionSet!;
-  const favoriteId = project.favorites[emotion.id];
   const cover = coverRecord(records, favoriteId, props.prefer);
   const state = jobState(props.jobs);
-  const excluded = project.excludedEmotionIds.includes(emotion.id);
   const included = !excluded && hasScenePrompt(emotion);
   const menu = (event: React.MouseEvent) =>
-    showContextMenu(event, emotionMenu(project.id, set, emotion, excluded));
+    showContextMenu(event, emotionMenu(projectId, props.set, emotion, excluded));
   const [over, setOver] = useState(false);
 
   return (
@@ -119,7 +120,7 @@ const EmotionCard = memo(function EmotionCard(props: {
       >
         {cover ? (
           <img
-            src={projectMedia(project.id, cover.thumbFile ?? cover.file)}
+            src={projectMedia(projectId, cover.thumbFile ?? cover.file)}
             alt={emotion.name}
             loading="lazy"
             draggable={false}
@@ -148,7 +149,7 @@ const EmotionCard = memo(function EmotionCard(props: {
             hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트를 입력하면 선택할 수 있습니다.'
           }
           onChange={(event) =>
-            updateProject(project.id, (current) => ({
+            updateProject(projectId, (current) => ({
               ...current,
               excludedEmotionIds: event.target.checked
                 ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
@@ -165,8 +166,8 @@ const EmotionCard = memo(function EmotionCard(props: {
         <button
           className="icon-button card-generate"
           title="이 씬만 생성"
-          disabled={!hasScenePrompt(emotion) || resolved.missing.length > 0}
-          onClick={() => void generateEmotions(project.id, [emotion.id])}
+          disabled={!hasScenePrompt(emotion) || props.blocked}
+          onClick={() => void generateEmotions(projectId, [emotion.id])}
         >
           ▶
         </button>
@@ -189,7 +190,7 @@ export function GalleryView({
   /** 예상 Anlas와 생성 버튼. 생성할 씬 체크·장수와 함께 아래 생성 큐 막대에 둔다. */
   generate: ReactNode;
 }) {
-  const library = useLibrary();
+  const prefer = useStore((state) => state.library!.settings.export.target);
   const { project, emotionSet } = resolved;
   const records = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
@@ -426,11 +427,15 @@ export function GalleryView({
         {emotionSet.emotions.map((emotion) => (
           <EmotionCard
             key={emotion.id}
-            resolved={resolved}
+            projectId={project.id}
+            set={emotionSet}
             emotion={emotion}
+            favoriteId={project.favorites[emotion.id]}
+            excluded={excluded.has(emotion.id)}
+            blocked={resolved.missing.length > 0}
             records={recordsOf(emotion.id)}
             jobs={jobsByEmotion.get(emotion.id) ?? NO_JOBS}
-            prefer={library.settings.export.target}
+            prefer={prefer}
             startDrag={startDrag}
             endDrag={endDrag}
             dropOn={dropOn}

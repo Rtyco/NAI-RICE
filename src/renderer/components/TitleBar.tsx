@@ -1,22 +1,19 @@
 import { libraryApi } from '../desktop';
 import { sectionInfo } from '../sections';
-import { run, setSettingsOpen, toggleSidebar, useStore } from '../store';
+import { run, setSettingsOpen, toggleSidebar, useStore, type StoreState } from '../store';
 import { Icon } from './Icon';
 
 /** 지금 보는 화면 이름. 작업 › 리나 › 기쁨, 라이브러리 › 캐릭터 › 아리아처럼 이어 쓴다. */
-function useLocation(): string {
-  const library = useStore((state) => state.library);
-  const view = useStore((state) => state.view);
-  const emotionId = useStore((state) => state.detailEmotionId);
+function locationOf({ library, view, detailEmotionId }: StoreState): string {
   if (!library) return '';
   if (view.kind === 'free') return '자유 생성';
   if (view.kind === 'project') {
     const project = library.projects.find((item) => item.id === view.projectId);
     if (!project) return '';
-    const emotion = emotionId
+    const emotion = detailEmotionId
       ? library.emotionSets
           .find((item) => item.id === project.emotionSetId)
-          ?.emotions.find((item) => item.id === emotionId)
+          ?.emotions.find((item) => item.id === detailEmotionId)
       : undefined;
     return ['작업', project.name, emotion?.name].filter(Boolean).join(' › ');
   }
@@ -35,7 +32,7 @@ function useLocation(): string {
 export function TitleBar() {
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const saveState = useStore((state) => state.saveState);
-  const location = useLocation();
+  const location = useStore(locationOf);
   const version = useStore((state) => state.version);
   const update = useStore((state) => state.update);
   return (
