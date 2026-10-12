@@ -16,7 +16,10 @@ export type CardReorder = {
  * 따라가고 dragover도 띄엄띄엄 와 버벅인다. 그래서 포인터 이벤트로 카드 복제본을 직접 움직이고, React 상태는
  * 놓일 카드가 바뀔 때만 바꾼다.
  */
-export function useCardReorder(ids: string[], onMove: (id: string, index: number) => void): CardReorder {
+export function useCardReorder(
+  ids: string[],
+  onMove: (id: string, index: number) => void,
+): CardReorder {
   const [state, setState] = useState<{ dragging?: string; over?: string }>({});
   const latest = useRef({ ids, onMove });
   latest.current = { ids, onMove };
@@ -32,7 +35,8 @@ export function useCardReorder(ids: string[], onMove: (id: string, index: number
     let over: string | undefined;
 
     const place = (x: number, y: number) => {
-      if (ghost) ghost.style.transform = `translate(${x - (startX - rect.left)}px, ${y - (startY - rect.top)}px)`;
+      if (ghost)
+        ghost.style.transform = `translate(${x - (startX - rect.left)}px, ${y - (startY - rect.top)}px)`;
     };
     const move = (moveEvent: globalThis.PointerEvent) => {
       if (!ghost) {

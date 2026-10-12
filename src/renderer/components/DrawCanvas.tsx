@@ -6,7 +6,12 @@ import { ZOOM_STEP } from './zoom';
 type Tool = 'pen' | 'eraser' | 'fill' | 'picker';
 type Tip = 'round' | 'soft' | 'square';
 
-const TOOLS: Array<{ id: Tool; label: string; key: string; icon: 'pen' | 'eraser' | 'bucket' | 'eyedropper' }> = [
+const TOOLS: Array<{
+  id: Tool;
+  label: string;
+  key: string;
+  icon: 'pen' | 'eraser' | 'bucket' | 'eyedropper';
+}> = [
   { id: 'pen', label: '펜', key: 'b', icon: 'pen' },
   { id: 'eraser', label: '지우개', key: 'e', icon: 'eraser' },
   { id: 'fill', label: '채우기', key: 'g', icon: 'bucket' },
@@ -61,7 +66,13 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${[r, g, b].map((part) => part.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function stamp(context: CanvasRenderingContext2D, point: Point, size: number, tip: Tip, color: string) {
+function stamp(
+  context: CanvasRenderingContext2D,
+  point: Point,
+  size: number,
+  tip: Tip,
+  color: string,
+) {
   const radius = Math.max(0.5, (size * point.pressure) / 2);
   if (tip === 'square') {
     context.fillStyle = color;
@@ -264,8 +275,7 @@ export function DrawCanvas(props: {
   const drawSegment = (from: Point, to: Point) => {
     const brush = active.current;
     if (!brush) return;
-    const target =
-      brush.tool === 'pen' ? context2d(stroke.current) : context2d(layer.current);
+    const target = brush.tool === 'pen' ? context2d(stroke.current) : context2d(layer.current);
     target.globalCompositeOperation = brush.tool === 'eraser' ? 'destination-out' : 'source-over';
     const spacing = Math.max(1, size * (tip === 'soft' ? 0.1 : 0.2));
     const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -355,7 +365,9 @@ export function DrawCanvas(props: {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]'))
+      if (
+        (event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')
+      )
         return;
       if (document.querySelector('.modal-backdrop')) return;
       const key = event.key.toLowerCase();
@@ -558,7 +570,10 @@ export function DrawCanvas(props: {
             onPointerLeave={() => moveCursor(null)}
             aria-label="i2i 이미지 그리기 캔버스"
           />
-          <div ref={cursorRef} className={`brush-cursor ${tip === 'square' ? 'square' : 'circle'} ${tool === 'eraser' ? 'erase' : ''}`} />
+          <div
+            ref={cursorRef}
+            className={`brush-cursor ${tip === 'square' ? 'square' : 'circle'} ${tool === 'eraser' ? 'erase' : ''}`}
+          />
         </div>
       </div>
       <div className="canvas-status">
