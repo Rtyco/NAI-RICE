@@ -141,11 +141,10 @@ export function generateFree(
     const state = useStore.getState();
     const library = state.library;
     if (!library) throw new Error('라이브러리를 읽지 못했습니다.');
-    const { free, preset, characters, promptSet } = resolveFreeGeneration(library);
+    const { free, preset, characters } = resolveFreeGeneration(library);
     if (!preset) throw new Error('생성 설정이 없습니다. 라이브러리에서 하나 만드십시오.');
     if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
     const prompt = options.prompt ?? free.prompt;
-    if (!prompt.trim() && !promptSet?.positive.trim()) throw new Error('프롬프트를 입력하십시오.');
 
     let image;
     if (free.mode === 'img2img') {

@@ -308,7 +308,6 @@ export function FreeView() {
   const canGenerate = director
     ? Boolean(image)
     : Boolean(preset) &&
-      Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
       (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없어 다시 생성·프롬프트 복원을 뺀다.
