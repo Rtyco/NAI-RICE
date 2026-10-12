@@ -107,7 +107,7 @@ describe('import files', () => {
         emotionSetId: library.emotionSets[0].id,
         referenceId: reference.id,
       }),
-      characterReferenceId: face.id,
+      characterReferenceIds: [face.id],
       vibeIds: [mood.id],
     };
     const full = {
@@ -125,7 +125,7 @@ describe('import files', () => {
     // 그림이 백업에 없으면 그림 없이 가져온다.
     expect(bundle.vibes[0].image).toBeUndefined();
     expect(bundle.pictures).toEqual({ [file]: 'data:image/png;base64,AAAA' });
-    expect(bundle.projects[0].characterReferenceId).toBe(bundle.characterReferences[0].id);
+    expect(bundle.projects[0].characterReferenceIds).toEqual([bundle.characterReferences[0].id]);
     expect(bundle.projects[0].vibeIds).toEqual([bundle.vibes[0].id]);
     const merged = mergeBundle(full, bundle);
     expect(merged.characterReferences).toHaveLength(2);

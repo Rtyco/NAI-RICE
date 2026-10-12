@@ -43,7 +43,15 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
 
 function recordAid(aid: JobAid): RecordAid {
   return aid.kind === 'character'
-    ? { kind: 'character', name: aid.name, target: aid.target, fidelity: aid.fidelity }
+    ? {
+        kind: 'character',
+        references: aid.references.map(({ name, target, strength, fidelity }) => ({
+          name,
+          target,
+          strength,
+          fidelity,
+        })),
+      }
     : {
         kind: 'vibe',
         vibes: aid.vibes.map(({ name, strength, informationExtracted }) => ({

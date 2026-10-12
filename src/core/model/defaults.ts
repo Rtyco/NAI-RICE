@@ -187,6 +187,7 @@ export function createCharacterReference(name: string): CharacterReference {
     id: newId(),
     name: name.trim() || '새 캐릭터 레퍼런스',
     target: 'character&style',
+    strength: 1,
     fidelity: 1,
     updatedAt: new Date().toISOString(),
   };
@@ -218,6 +219,7 @@ export function createProject(
     positionMode: 'ai',
     emotionSetId: parts.emotionSetId,
     referenceId: parts.referenceId,
+    characterReferenceIds: [],
     vibeIds: [],
     excludedEmotionIds: [],
     favorites: {},
@@ -297,18 +299,17 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
 
 /** 작업이 쓰는 캐릭터 레퍼런스나 바이브들. 고른 항목이 지워졌으면 `item`이 비어 있다. */
 export type ProjectAid =
-  | { kind: 'character'; id: string; item?: CharacterReference }
+  | { kind: 'character'; references: Array<{ id: string; item?: CharacterReference }> }
   | { kind: 'vibe'; vibes: Array<{ id: string; item?: Vibe }> };
 
-type AidChoice = Pick<Project, 'mode' | 'aidMode' | 'characterReferenceId' | 'vibeIds'>;
+type AidChoice = Pick<Project, 'aidMode' | 'characterReferenceIds' | 'vibeIds'>;
 
 /**
- * 작업이 쓰는 참고 방식. 캐릭터 레퍼런스는 일반 생성에만 쓴다(인페인트와 함께 쓰는지는 확인하지 않았다).
- * 방식을 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스다.
+ * 작업이 쓰는 참고 방식. 방식을 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스다. NovelAI
+ * 웹은 V4.5에서 캐릭터 레퍼런스를 인페인트에도 쓴다(`charRefInpainting`, 2026-10 웹 코드).
  */
 export function projectAidMode(project: AidChoice): AidMode {
-  if (project.mode !== 'txt2img') return 'vibe';
-  return project.aidMode ?? (project.characterReferenceId ? 'character' : 'vibe');
+  return project.aidMode ?? (project.characterReferenceIds.length ? 'character' : 'vibe');
 }
 
 export function projectAid(
@@ -316,9 +317,14 @@ export function projectAid(
   project: AidChoice,
 ): ProjectAid | undefined {
   if (projectAidMode(project) === 'character') {
-    const id = project.characterReferenceId;
-    if (!id) return undefined;
-    return { kind: 'character', id, item: library.characterReferences.find((x) => x.id === id) };
+    if (!project.characterReferenceIds.length) return undefined;
+    return {
+      kind: 'character',
+      references: project.characterReferenceIds.map((id) => ({
+        id,
+        item: library.characterReferences.find((x) => x.id === id),
+      })),
+    };
   }
   if (!project.vibeIds.length) return undefined;
   return {
@@ -332,7 +338,7 @@ export function aidItems(
   aid: ProjectAid | undefined,
 ): Array<CharacterReference | Vibe | undefined> {
   if (!aid) return [];
-  return aid.kind === 'character' ? [aid.item] : aid.vibes.map((vibe) => vibe.item);
+  return (aid.kind === 'character' ? aid.references : aid.vibes).map((entry) => entry.item);
 }
 
 export function resolveProject(library: Library, project: Project): ResolvedProject {
@@ -381,7 +387,7 @@ export function projectsUsing(
 ): Project[] {
   if (kind === 'pieceSet') return projectsUsingPieceSet(library, id);
   if (kind === 'characterReference')
-    return library.projects.filter((project) => project.characterReferenceId === id);
+    return library.projects.filter((project) => project.characterReferenceIds.includes(id));
   if (kind === 'vibe') return library.projects.filter((project) => project.vibeIds.includes(id));
   if (kind === 'character')
     return library.projects.filter((project) =>

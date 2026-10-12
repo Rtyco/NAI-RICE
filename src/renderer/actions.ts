@@ -60,15 +60,19 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     // resolveProject가 그림이 없는 참고 항목을 이미 막았다.
     const aid = projectAid(library, project);
     let aidInput: JobAid | undefined;
-    if (aid?.kind === 'character' && aid.item?.image) {
-      const { item } = aid;
-      const image = await libraryApi().prepareAidInput(project.id, item.image!.file, 'character');
+    if (aid?.kind === 'character') {
+      const items = aid.references.flatMap(({ item }) => (item?.image ? [item] : []));
       aidInput = {
         kind: 'character',
-        name: item.name,
-        ...image,
-        target: item.target,
-        fidelity: item.fidelity,
+        references: await Promise.all(
+          items.map(async (item) => ({
+            name: item.name,
+            ...(await libraryApi().prepareAidInput(project.id, item.image!.file, 'character')),
+            target: item.target,
+            strength: item.strength,
+            fidelity: item.fidelity,
+          })),
+        ),
       };
     } else if (aid?.kind === 'vibe') {
       const vibes = aid.vibes.flatMap(({ item }) => (item?.image ? [item] : []));

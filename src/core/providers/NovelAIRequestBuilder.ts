@@ -43,7 +43,15 @@ export type NaiPromptInput = {
 
 /** 캐릭터 레퍼런스(캔버스에 맞춘 그림) 또는 바이브(인코딩 결과). */
 export type NaiAidInput =
-  | { kind: 'character'; imageBase64: string; target: ReferenceTarget; fidelity: number }
+  | {
+      kind: 'character';
+      references: Array<{
+        imageBase64: string;
+        target: ReferenceTarget;
+        strength: number;
+        fidelity: number;
+      }>;
+    }
   | {
       kind: 'vibe';
       vibes: Array<{ encodedBase64: string; strength: number }>;
@@ -252,25 +260,26 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
     return {
       reference_image_multiple: aid.vibes.map((vibe) => vibe.encodedBase64),
       reference_strength_multiple: vibeStrengths(
-        aid.vibes.map((vibe) => clamp(vibe.strength, 0, 1)),
+        aid.vibes.map((vibe) => vibe.strength),
         aid.normalize,
       ),
       normalize_reference_strength_multiple: aid.normalize,
     };
+  const references = aid.references;
   return {
-    director_reference_images: [aid.imageBase64],
-    director_reference_descriptions: [
-      {
-        caption: {
-          base_caption: aid.target,
-          char_captions: [],
-        },
-        legacy_uc: false,
+    director_reference_images: references.map((reference) => reference.imageBase64),
+    director_reference_descriptions: references.map((reference) => ({
+      caption: {
+        base_caption: reference.target,
+        char_captions: [],
       },
-    ],
-    director_reference_information_extracted: [1],
-    director_reference_strength_values: [1],
-    director_reference_secondary_strength_values: [1 - clamp(aid.fidelity, 0, 1)],
+      legacy_uc: false,
+    })),
+    director_reference_information_extracted: references.map(() => 1),
+    director_reference_strength_values: references.map((reference) => reference.strength),
+    director_reference_secondary_strength_values: references.map(
+      (reference) => 1 - reference.fidelity,
+    ),
   };
 }
 
@@ -327,15 +336,23 @@ export function vibeCacheKey(
 
 /**
  * 작업에 필요한 입력 파일(base64). 큐가 스냅샷의 해시를 확인한 뒤 넘긴다. `aidBase64`는 캐릭터 레퍼런스면
- * 맞춘 그림 하나, 바이브면 바이브 순서대로 인코딩 결과다.
+ * 맞춘 그림들, 바이브면 인코딩 결과들이다(고른 순서).
  */
 export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase64?: string[] };
 
 function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
-  const count = aid.kind === 'character' ? 1 : aid.vibes.length;
+  const count = aid.kind === 'character' ? aid.references.length : aid.vibes.length;
   if (base64?.length !== count) throw new Error('작업에 참고 그림이 없습니다.');
   return aid.kind === 'character'
-    ? { kind: 'character', imageBase64: base64[0], target: aid.target, fidelity: aid.fidelity }
+    ? {
+        kind: 'character',
+        references: aid.references.map((reference, index) => ({
+          imageBase64: base64[index],
+          target: reference.target,
+          strength: reference.strength,
+          fidelity: reference.fidelity,
+        })),
+      }
     : {
         kind: 'vibe',
         vibes: aid.vibes.map((vibe, index) => ({

@@ -27,7 +27,7 @@ import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationStore, ImageGenerator } from './ports';
 
-/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림 하나이거나 바이브로 인코딩할 원본 그림들이다. */
+/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림들이거나 바이브로 인코딩할 원본 그림들이다. */
 type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
@@ -250,7 +250,7 @@ export class GenerationQueue {
     const aid =
       job.aid &&
       (await Promise.all(
-        (job.aid.kind === 'character' ? [job.aid] : job.aid.vibes).map((file) =>
+        (job.aid.kind === 'character' ? job.aid.references : job.aid.vibes).map((file) =>
           this.loadInput(job.projectId, file.imagePath, file.imageSha256),
         ),
       ));

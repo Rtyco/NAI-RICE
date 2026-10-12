@@ -2,6 +2,7 @@ import type { CharacterReference, Picture, Vibe } from '../../../core/domain/typ
 import { patchItem } from '../../../core/model/mutations';
 import { Icon } from '../../components/Icon';
 import { REFERENCE_TARGETS } from '../../../core/providers/NaiModels';
+import { AID_VALUE_LIMIT } from '../../../core/validation/schemas';
 import { Card, NumberField, SelectField } from '../../components/ui';
 import { fileApi, libraryApi } from '../../desktop';
 import { pictureMedia, run, updateLibrary } from '../../store';
@@ -48,14 +49,22 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
       <PictureCard image={item.image} onChange={(image) => save({ image })} />
       <Card
         title="값"
-        subtitle="작업의 일반 생성에서 이 캐릭터 레퍼런스를 고르면 그림의 캐릭터나 그림체를 따라 그립니다"
+        subtitle="작업에서 이 캐릭터 레퍼런스를 고르면 그림의 캐릭터나 그림체를 따라 그립니다(일반 생성·인페인트)"
       >
-        <div className="two-column-fields">
+        <div className="four-column-fields three">
+          <NumberField
+            label="세기 (Strength)"
+            value={item.strength}
+            min={-AID_VALUE_LIMIT}
+            max={AID_VALUE_LIMIT}
+            step={0.05}
+            onChange={(strength) => save({ strength })}
+          />
           <NumberField
             label="충실도 (Fidelity)"
             value={item.fidelity}
-            min={0}
-            max={1}
+            min={-AID_VALUE_LIMIT}
+            max={AID_VALUE_LIMIT}
             step={0.05}
             onChange={(fidelity) => save({ fidelity })}
           />
@@ -70,8 +79,11 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
           />
         </div>
         <p className="hint">
-          V4.5 모델 전용입니다. Opus여도 한 장에 5 Anlas가 들고, 바이브와 함께 쓸 수 없습니다.
-          그림은 비율이 가까운 캔버스(1024×1536·1536×1024·1472×1472)에 검은 여백으로 맞춰 보냅니다.
+          V4.5 모델 전용입니다. Opus여도 레퍼런스마다 한 장에 5 Anlas가 들고, 바이브와 함께 쓸 수
+          없습니다. 작업에서 여럿 고르면 섞여 한 캐릭터가 됩니다. 세기가 높으면 표정·각도·자세까지
+          비슷해지고, 충실도가 높으면 프롬프트로 덮어쓰기 어려워집니다. NovelAI 웹 기본 범위는
+          0~1이지만 ±{AID_VALUE_LIMIT}까지 넣을 수 있습니다. 그림은 비율이 가까운
+          캔버스(1024×1536·1536×1024·1472×1472)에 검은 여백으로 맞춰 보냅니다.
         </p>
       </Card>
     </>
@@ -98,8 +110,8 @@ export function VibeEditor({ item }: { item: Vibe }) {
           <NumberField
             label="세기 (Strength)"
             value={item.strength}
-            min={0}
-            max={1}
+            min={-AID_VALUE_LIMIT}
+            max={AID_VALUE_LIMIT}
             step={0.05}
             onChange={(strength) => save({ strength })}
           />
@@ -114,9 +126,10 @@ export function VibeEditor({ item }: { item: Vibe }) {
         </div>
         <p className="hint">
           V4.5 모델 전용입니다. 작업에서 바이브 여러 개를 함께 쓸 수 있고, 4개를 넘으면 넘는
-          바이브마다 한 장에 2 Anlas가 듭니다. 처음 생성할 때 그림을 인코딩해 2 Anlas가 들고, 같은
-          그림·모델·정보 추출 값이면 인코딩 결과를 다시 씁니다. 그림이나 정보 추출 값을 바꾸면 다시
-          인코딩합니다.
+          바이브마다 한 장에 2 Anlas가 듭니다. 세기는 NovelAI 웹 기본 범위(0~1) 밖으로도
+          {`±${AID_VALUE_LIMIT}`}까지 넣을 수 있습니다. 처음 생성할 때 그림을 인코딩해 2 Anlas가
+          들고, 같은 그림·모델·정보 추출 값이면 인코딩 결과를 다시 씁니다. 그림이나 정보 추출 값을
+          바꾸면 다시 인코딩합니다.
         </p>
       </Card>
     </>

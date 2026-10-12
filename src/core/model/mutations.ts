@@ -100,7 +100,12 @@ const LINK_KEY = {
   presets: 'presetId',
   emotionSets: 'emotionSetId',
   references: 'referenceId',
-  characterReferences: 'characterReferenceId',
+} as const;
+
+/** 작업이 여럿 고르는 항목. 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 목록에서 뺀다. */
+const LIST_KEY = {
+  characterReferences: 'characterReferenceIds',
+  vibes: 'vibeIds',
 } as const;
 
 /**
@@ -109,13 +114,14 @@ const LINK_KEY = {
  */
 export function removeItemReassigning(
   library: Library,
-  key: keyof typeof LINK_KEY | 'characters' | 'vibes',
+  key: keyof typeof LINK_KEY | keyof typeof LIST_KEY | 'characters',
   id: string,
   replacementId?: string,
 ): Library {
   const removed = removeItem(library, key, id);
-  if (key === 'vibes') {
-    // 대신할 바이브가 이미 골라져 있으면 겹치지 않게 뺀다.
+  if (key === 'vibes' || key === 'characterReferences') {
+    const field = LIST_KEY[key];
+    // 대신할 항목이 이미 골라져 있으면 겹치지 않게 뺀다.
     const replace = (ids: string[]) => [
       ...new Set(
         ids.flatMap((entry) => (entry !== id ? [entry] : replacementId ? [replacementId] : [])),
@@ -124,7 +130,7 @@ export function removeItemReassigning(
     return {
       ...removed,
       projects: removed.projects.map((project) =>
-        project.vibeIds.includes(id) ? { ...project, vibeIds: replace(project.vibeIds) } : project,
+        project[field].includes(id) ? { ...project, [field]: replace(project[field]) } : project,
       ),
     };
   }
@@ -150,18 +156,10 @@ export function removeItemReassigning(
     };
   }
   const link = LINK_KEY[key];
-  // 캐릭터 레퍼런스는 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 연결을 뺀다.
-  const optional = key === 'characterReferences';
   return {
     ...removed,
     projects: removed.projects.map((project) =>
-      project[link] !== id
-        ? project
-        : replacementId
-          ? { ...project, [link]: replacementId }
-          : optional
-            ? { ...project, [link]: undefined }
-            : project,
+      project[link] === id && replacementId ? { ...project, [link]: replacementId } : project,
     ),
   };
 }

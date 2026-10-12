@@ -31,7 +31,6 @@ import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { ChecklistChip, SizeChip, type ChecklistItem } from '../components/ChainChip';
-import type { IconName } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu, Toggle } from '../components/ui';
@@ -56,22 +55,19 @@ const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
 
 const MAX_VARIANTS = 20;
 
-const NO_AID = '__none';
-
 const AID_MODES: Array<{ value: AidMode; label: string; title: string }> = [
-  { value: 'character', label: '레퍼런스', title: '캐릭터 레퍼런스 하나를 씁니다' },
-  { value: 'vibe', label: '바이브', title: '바이브 여러 개를 함께 씁니다' },
+  { value: 'character', label: '레퍼런스', title: '캐릭터 레퍼런스를 씁니다' },
+  { value: 'vibe', label: '바이브', title: '바이브를 씁니다' },
 ];
 
 /**
- * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼으로 방식을 고르고, 그 방식의 목록에서
- * 고른다. 캐릭터 레퍼런스는 하나, 바이브는 여럿 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다.
+ * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼으로 방식을 고르고, 그 방식의 목록에서 여럿
+ * 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다.
  */
 function AidChip(props: { project: Project; missing: boolean }) {
   const library = useLibrary();
   const { project } = props;
   const mode = projectAidMode(project);
-  const txt2img = project.mode === 'txt2img';
   const aid = projectAid(library, project);
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
@@ -82,64 +78,40 @@ function AidChip(props: { project: Project; missing: boolean }) {
     thumb: item.image ? pictureMedia(item.image.file) : '',
     hint: item.image ? undefined : '그림 없음',
   });
-  const common = {
-    label: {
-      text: '참고',
-      icon: (mode === 'character' ? 'portrait' : 'vibe') as IconName,
-      usage: '캐릭터 레퍼런스나 바이브를 씁니다(V4.5 전용)',
-    },
-    missing: Boolean(aid) && props.missing,
-    before: (
-      <span className="segmented chain-chip-switch" role="group" aria-label="참고 방식">
-        {AID_MODES.map((item) => {
-          const blocked = item.value === 'character' && !txt2img;
-          return (
+  const character = mode === 'character';
+  const section = character ? 'characterReferences' : 'vibes';
+  const list: Array<CharacterReference | Vibe> = character
+    ? library.characterReferences
+    : library.vibes;
+  const field = character ? 'characterReferenceIds' : 'vibeIds';
+  const ids = project[field];
+  const label = character ? '캐릭터 레퍼런스' : '바이브';
+  const names = ids.map((id) => list.find((item) => item.id === id)?.name ?? '(없음)');
+  const first = list.find((item) => item.id === ids[0]);
+  return (
+    <ChecklistChip
+      label={{
+        text: '참고',
+        icon: character ? 'portrait' : 'vibe',
+        usage: '캐릭터 레퍼런스나 바이브를 씁니다(V4.5 전용)',
+      }}
+      missing={Boolean(aid) && props.missing}
+      before={
+        <span className="segmented chain-chip-switch" role="group" aria-label="참고 방식">
+          {AID_MODES.map((item) => (
             <button
               key={item.value}
               className={mode === item.value ? 'active blue' : ''}
               aria-pressed={mode === item.value}
-              disabled={blocked}
-              title={blocked ? '캐릭터 레퍼런스는 일반 생성에서만 씁니다' : item.title}
+              title={item.title}
               onClick={() => patch({ aidMode: item.value })}
             >
               {item.label}
             </button>
-          );
-        })}
-      </span>
-    ),
-  };
-
-  if (mode === 'character') {
-    const id = project.characterReferenceId;
-    const selected = library.characterReferences.find((item) => item.id === id);
-    return (
-      <ChecklistChip
-        {...common}
-        section="characterReferences"
-        itemId={id}
-        value={id ? (selected?.name ?? '(없음)') : '쓰지 않음'}
-        thumb={selected?.image ? pictureMedia(selected.image.file) : undefined}
-        items={[
-          { id: NO_AID, name: '쓰지 않음', noEdit: true },
-          ...library.characterReferences.map(row),
-        ]}
-        checked={[id ?? NO_AID]}
-        onPick={(picked) => patch({ characterReferenceId: picked === NO_AID ? undefined : picked })}
-        editSection="characterReferences"
-        pickTitle="캐릭터 레퍼런스 고르기"
-        hint="한 장에 5 Anlas가 듭니다."
-      />
-    );
-  }
-
-  const ids = project.vibeIds;
-  const names = ids.map((id) => library.vibes.find((item) => item.id === id)?.name ?? '(없음)');
-  const first = library.vibes.find((item) => item.id === ids[0]);
-  return (
-    <ChecklistChip
-      {...common}
-      section="vibes"
+          ))}
+        </span>
+      }
+      section={section}
       itemId={ids.length === 1 ? ids[0] : undefined}
       value={
         !names.length
@@ -150,34 +122,39 @@ function AidChip(props: { project: Project; missing: boolean }) {
       }
       thumb={first?.image ? pictureMedia(first.image.file) : undefined}
       items={[
-        ...library.vibes.map(row),
+        ...list.map(row),
         ...ids
-          .filter((id) => !library.vibes.some((item) => item.id === id))
-          .map((id) => ({ id, name: '(지워진 바이브)', noEdit: true })),
+          .filter((id) => !list.some((item) => item.id === id))
+          .map((id) => ({ id, name: `(지워진 ${label})`, noEdit: true })),
       ]}
       checked={ids}
       multi
       onPick={(id) =>
-        patch({
-          vibeIds: ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
-        })
+        patch({ [field]: ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id] })
       }
-      editSection="vibes"
-      pickTitle="바이브 고르기 · 여럿 고를 수 있습니다"
-      empty="라이브러리에 바이브가 없습니다."
+      editSection={section}
+      pickTitle={`${label} 고르기 · 여럿 고를 수 있습니다`}
+      empty={`라이브러리에 ${label}가 없습니다.`}
       options={
-        <>
-          <Toggle
-            label="세기 합 맞추기 (Normalize Reference Strengths)"
-            checked={project.normalizeVibes ?? true}
-            onChange={(normalizeVibes) => patch({ normalizeVibes })}
-          />
-          <small>
-            켜면 바이브가 둘 이상이고 세기 합이 1을 넘을 때 합이 1이 되도록 비율대로 줄여 보냅니다.
-          </small>
-        </>
+        !character && (
+          <>
+            <Toggle
+              label="세기 합 맞추기 (Normalize Reference Strengths)"
+              checked={project.normalizeVibes ?? true}
+              onChange={(normalizeVibes) => patch({ normalizeVibes })}
+            />
+            <small>
+              켜면 바이브가 둘 이상이고 세기 합이 1을 넘을 때 합이 1이 되도록 비율대로 줄여
+              보냅니다.
+            </small>
+          </>
+        )
       }
-      hint="모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas, 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 듭니다."
+      hint={
+        character
+          ? '모두 빼면 쓰지 않습니다. 여럿 고르면 섞여 한 캐릭터가 되고, 레퍼런스마다 한 장에 5 Anlas가 듭니다.'
+          : '모두 빼면 쓰지 않습니다. 처음 쓰는 바이브는 인코딩에 2 Anlas, 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 듭니다.'
+      }
     />
   );
 }

@@ -167,7 +167,7 @@ function remapLibrary(
   bundle.projects = library.projects.map((project) => ({
     ...project,
     id: readableId(project.name, 'project'),
-    characterReferenceId: linked(project.characterReferenceId),
+    characterReferenceIds: project.characterReferenceIds.flatMap((id) => linked(id) ?? []),
     vibeIds: project.vibeIds.flatMap((id) => linked(id) ?? []),
     presetId: ids.get(project.presetId) ?? project.presetId,
     characters: project.characters.map((slot) => ({

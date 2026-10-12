@@ -14,7 +14,7 @@ export type NovelAIImageRequest = {
   job: GenerationJobSnapshot;
   image?: Buffer;
   mask?: Buffer;
-  /** 캐릭터 레퍼런스 그림 하나, 또는 바이브마다 인코딩 결과. */
+  /** 캐릭터 레퍼런스마다 맞춘 그림, 또는 바이브마다 인코딩 결과. */
   aid?: Buffer[];
   signal?: AbortSignal;
 };

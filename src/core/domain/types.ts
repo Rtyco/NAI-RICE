@@ -214,11 +214,11 @@ export type Project = {
   referenceId: string;
   /**
    * 캐릭터 레퍼런스와 바이브 중 무엇을 쓰는지. 둘은 함께 쓰지 않아, 고른 것은 둘 다 남겨 두고 이 값으로 고른다.
-   * 없으면 캐릭터 레퍼런스를 골라 둔 작업은 캐릭터 레퍼런스, 아니면 바이브다. 인페인트는 늘 바이브다.
+   * 없으면 캐릭터 레퍼런스를 골라 둔 작업은 캐릭터 레퍼런스, 아니면 바이브다.
    */
   aidMode?: AidMode;
-  /** 고른 캐릭터 레퍼런스. 일반 생성에만 쓴다. */
-  characterReferenceId?: string;
+  /** 고른 캐릭터 레퍼런스(고른 순서). 여럿이면 NovelAI가 섞어 한 캐릭터로 그린다. */
+  characterReferenceIds: string[];
   /** 고른 바이브(고른 순서). 일반 생성과 인페인트에 쓴다. */
   vibeIds: string[];
   /** NovelAI의 Normalize Reference Strengths. 없으면 켠다(NovelAI 웹 기본값). */
@@ -246,8 +246,8 @@ export type Picture = {
 };
 
 /**
- * 캐릭터 레퍼런스: 그림의 캐릭터를 따라 일반 생성으로 그린다. V4.5 전용이고(0단계: V5는 500 오류) Opus여도
- * 한 장에 5 Anlas가 든다.
+ * 캐릭터 레퍼런스: 그림의 캐릭터를 따라 그린다(일반 생성·인페인트). V4.5 전용이고(0단계: V5는 500 오류) Opus여도
+ * 레퍼런스마다 한 장에 5 Anlas가 든다.
  */
 export type CharacterReference = {
   id: string;
@@ -255,7 +255,9 @@ export type CharacterReference = {
   folder?: FolderName;
   image?: Picture;
   target: ReferenceTarget;
-  /** 충실도(0~1). 요청의 secondary strength는 1 - 이 값이다. */
+  /** 세기(Strength). NovelAI 웹 슬라이더는 0~1이지만 그 밖의 값도 그대로 보낸다. */
+  strength: number;
+  /** 충실도(Fidelity). 요청의 secondary strength는 1 - 이 값이다. */
   fidelity: number;
   updatedAt: string;
 };
@@ -266,7 +268,7 @@ export type Vibe = {
   name: string;
   folder?: FolderName;
   image?: Picture;
-  /** 세기(0~1). */
+  /** 세기. NovelAI 웹 슬라이더는 0~1이지만 그 밖의 값도 그대로 보낸다. */
   strength: number;
   /** 인코딩의 information_extracted(0~1). 바꾸면 다시 인코딩한다. */
   informationExtracted: number;
@@ -283,17 +285,19 @@ export type JobVibe = {
   informationExtracted: number;
 };
 
+export type JobReference = {
+  name: string;
+  /** 정해진 캔버스(1024×1536 등)에 검은 여백을 넣어 맞춘 그림. */
+  imagePath: string;
+  imageSha256: string;
+  target: ReferenceTarget;
+  strength: number;
+  fidelity: number;
+};
+
 /** 작업에 넣는 참고 방식. 그림은 작업 폴더의 `inputs/`에 해시 이름으로 둔 불변 입력이다. */
 export type JobAid =
-  | {
-      kind: 'character';
-      name: string;
-      /** 정해진 캔버스(1024×1536 등)에 검은 여백을 넣어 맞춘 그림. */
-      imagePath: string;
-      imageSha256: string;
-      target: ReferenceTarget;
-      fidelity: number;
-    }
+  | { kind: 'character'; references: JobReference[] }
   | {
       kind: 'vibe';
       vibes: JobVibe[];
@@ -303,7 +307,15 @@ export type JobAid =
 
 /** 결과 기록에 남기는 참고 방식(그림 경로는 뺀다). */
 export type RecordAid =
-  | { kind: 'character'; name: string; target: ReferenceTarget; fidelity: number }
+  | {
+      kind: 'character';
+      references: Array<{
+        name: string;
+        target: ReferenceTarget;
+        strength: number;
+        fidelity: number;
+      }>;
+    }
   | {
       kind: 'vibe';
       vibes: Array<{ name: string; strength: number; informationExtracted: number }>;

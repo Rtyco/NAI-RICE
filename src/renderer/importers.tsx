@@ -116,7 +116,7 @@ function blockedProjects(bundle: ImportBundle, skipped: Set<string>): Set<string
           ...project.characters.map((slot) => slot.characterId),
           project.emotionSetId,
           project.referenceId,
-          project.characterReferenceId ?? '',
+          ...project.characterReferenceIds,
           ...project.vibeIds,
         ].some((id) => skipped.has(id)),
       )

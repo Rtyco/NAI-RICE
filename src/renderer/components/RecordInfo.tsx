@@ -56,7 +56,12 @@ export function RecordInfo({
           <dt>참고 방식</dt>
           <dd>
             {record.aid.kind === 'character'
-              ? `캐릭터 레퍼런스 「${record.aid.name}」 · ${referenceTargetLabel(record.aid.target)} · 충실도 ${record.aid.fidelity}`
+              ? record.aid.references.map((reference, index) => (
+                  <div key={index}>
+                    캐릭터 레퍼런스 「{reference.name}」 · {referenceTargetLabel(reference.target)}{' '}
+                    · 세기 {reference.strength} · 충실도 {reference.fidelity}
+                  </div>
+                ))
               : [
                   ...record.aid.vibes.map((vibe, index) => (
                     <div key={index}>

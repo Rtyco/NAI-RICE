@@ -207,8 +207,22 @@ function readSingleVibe(value: unknown): unknown {
   return { ...rest, vibeIds: typeof vibeId === 'string' && vibeId ? [vibeId] : [] };
 }
 
+/** 캐릭터 레퍼런스를 하나만 고르던 때의 `characterReferenceId`는 한 개짜리 목록으로 읽는다. */
+function readSingleCharacterReference(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const { characterReferenceId, ...rest } = value as Record<string, unknown>;
+  if (Array.isArray(rest.characterReferenceIds)) return rest;
+  return {
+    ...rest,
+    characterReferenceIds:
+      typeof characterReferenceId === 'string' && characterReferenceId
+        ? [characterReferenceId]
+        : [],
+  };
+}
+
 export const projectSchema = z.preprocess(
-  (value) => readSingleVibe(readSingleCharacter(value)),
+  (value) => readSingleCharacterReference(readSingleVibe(readSingleCharacter(value))),
   z.object({
     id: z.string().regex(FOLDER_ID),
     name: z.string(),
@@ -221,7 +235,7 @@ export const projectSchema = z.preprocess(
     emotionSetId: z.string(),
     referenceId: z.string(),
     aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
-    characterReferenceId: z.string().min(1).optional().catch(undefined),
+    characterReferenceIds: z.array(z.string().min(1)).catch([]),
     vibeIds: z.array(z.string().min(1)).catch([]),
     normalizeVibes: z.boolean().optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
@@ -243,6 +257,14 @@ const pictureSchema = z
 
 const unitSchema = (fallback: number) => z.number().min(0).max(1).catch(fallback);
 
+/**
+ * 캐릭터 레퍼런스·바이브의 세기와 충실도. NovelAI 웹 슬라이더는 0~1이지만 숫자를 직접 넣으면 음수 등도 받아,
+ * 사용자 요청으로 넓게 열어 둔다.
+ */
+export const AID_VALUE_LIMIT = 10;
+const aidValue = z.number().min(-AID_VALUE_LIMIT).max(AID_VALUE_LIMIT);
+const aidValueSchema = (fallback: number) => aidValue.catch(fallback);
+
 const referenceTargetSchema = z.enum(['character&style', 'character', 'style']);
 
 /** 처음에는 Style Aware 켜기·끄기(`styleAware`)만 있었다. 켜기는 캐릭터와 그림체, 끄기는 캐릭터다. */
@@ -261,18 +283,24 @@ export const characterReferenceSchema = z.preprocess(
     folder: folderSchema,
     image: pictureSchema,
     target: referenceTargetSchema.catch('character&style'),
-    fidelity: unitSchema(1),
+    strength: aidValueSchema(1),
+    fidelity: aidValueSchema(1),
     updatedAt: z.string().catch(''),
   }),
 );
 
-/** 바이브를 하나만 넣던 때의 작업·기록 `aid`는 한 개짜리 `vibes`로 읽는다. */
-function readSingleVibeAid(value: unknown): unknown {
+/**
+ * 바이브·캐릭터 레퍼런스를 하나만 넣던 때의 작업·기록 `aid`는 한 개짜리 `vibes`·`references`로 읽는다. 그때의
+ * 캐릭터 레퍼런스는 세기를 늘 1로 보냈다.
+ */
+function readSingleAid(value: unknown): unknown {
   const read = readStyleAware(value);
   if (!read || typeof read !== 'object') return read;
-  const { kind, vibes, ...rest } = read as Record<string, unknown>;
-  if (kind !== 'vibe' || Array.isArray(vibes)) return read;
-  return { kind, vibes: [rest] };
+  const { kind, vibes, references, ...rest } = read as Record<string, unknown>;
+  if (kind === 'vibe' && !Array.isArray(vibes)) return { kind, vibes: [rest] };
+  if (kind === 'character' && !Array.isArray(references))
+    return { kind, references: [{ strength: 1, ...rest }] };
+  return read;
 }
 
 export const vibeSchema = z.object({
@@ -280,7 +308,7 @@ export const vibeSchema = z.object({
   name: z.string(),
   folder: folderSchema,
   image: pictureSchema,
-  strength: unitSchema(0.6),
+  strength: aidValueSchema(0.6),
   informationExtracted: unitSchema(1),
   updatedAt: z.string().catch(''),
 });
@@ -429,13 +457,18 @@ export const generationRecordSchema = z.object({
   augment: augmentInfoSchema.optional().catch(undefined),
   aid: z
     .preprocess(
-      readSingleVibeAid,
+      readSingleAid,
       z.discriminatedUnion('kind', [
         z.object({
           kind: z.literal('character'),
-          name: z.string().catch(''),
-          target: referenceTargetSchema.catch('character&style'),
-          fidelity: z.number(),
+          references: z.array(
+            z.object({
+              name: z.string().catch(''),
+              target: referenceTargetSchema.catch('character&style'),
+              strength: z.number().catch(1),
+              fidelity: z.number(),
+            }),
+          ),
         }),
         z.object({
           kind: z.literal('vibe'),
@@ -517,15 +550,22 @@ const jobSnapshotCommonSchema = z.object({
   sourceRecordId: z.string().min(1).optional(),
   aid: z
     .preprocess(
-      readSingleVibeAid,
+      readSingleAid,
       z.discriminatedUnion('kind', [
         z.object({
           kind: z.literal('character'),
-          name: z.string(),
-          imagePath: z.string().min(1),
-          imageSha256: sha256Schema,
-          target: referenceTargetSchema,
-          fidelity: z.number().min(0).max(1),
+          references: z
+            .array(
+              z.object({
+                name: z.string(),
+                imagePath: z.string().min(1),
+                imageSha256: sha256Schema,
+                target: referenceTargetSchema,
+                strength: aidValue,
+                fidelity: aidValue,
+              }),
+            )
+            .min(1),
         }),
         z.object({
           kind: z.literal('vibe'),
@@ -535,7 +575,7 @@ const jobSnapshotCommonSchema = z.object({
                 name: z.string(),
                 imagePath: z.string().min(1),
                 imageSha256: sha256Schema,
-                strength: z.number().min(0).max(1),
+                strength: aidValue,
                 informationExtracted: z.number().min(0).max(1),
               }),
             )

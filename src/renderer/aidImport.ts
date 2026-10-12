@@ -23,7 +23,7 @@ export async function addAidFromImage(
       ? library
       : patchItem(library, 'projects', projectId, (project) =>
           section === 'characterReferences'
-            ? { ...project, characterReferenceId: id, aidMode: 'character' }
+            ? { ...project, characterReferenceIds: [id], aidMode: 'character' }
             : { ...project, vibeIds: [...project.vibeIds, id], aidMode: 'vibe' },
         );
   if (section === 'characterReferences') {
