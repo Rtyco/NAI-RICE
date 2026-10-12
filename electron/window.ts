@@ -44,8 +44,8 @@ export function anyWindowVisible(): boolean {
   );
 }
 
-/** styles.css의 .titlebar(32px)보다 1px 낮게 해서 아래 경계선이 창 버튼 밑까지 이어지게 한다. */
-const TITLE_BAR_HEIGHT = 31;
+/** styles.css의 --titlebar-height(40px)보다 1px 낮게 해서 아래 경계선이 창 버튼 밑까지 이어지게 한다. */
+const TITLE_BAR_HEIGHT = 39;
 
 /** 원격 콘텐츠를 불러오지 않는 격리된 창. 외부 링크와 페이지 이동은 막는다. */
 export function createWindow(title: string, moduleDirectory: string): void {

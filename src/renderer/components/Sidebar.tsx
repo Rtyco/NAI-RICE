@@ -19,7 +19,6 @@ import {
   setFolder,
   ungroupFolder,
 } from '../../core/model/folders';
-import { importJsonFromPicker } from '../importers';
 import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
 import { useRenameRequest } from '../renameRequest';
 import { SECTIONS } from '../sections';
@@ -28,8 +27,6 @@ import {
   openLibrary,
   openProject,
   referenceMedia,
-  run,
-  setSettingsOpen,
   toggleFolder,
   toggleSidebarSection,
   updateLibrary,
@@ -41,7 +38,6 @@ import { showContextMenu } from './ContextMenu';
 import { Modal, openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
 import { focusAndSelect } from './focusAndSelect';
-import { libraryApi } from '../desktop';
 import { useBoxSelection } from './useBoxSelection';
 import { dragPayload, readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
 import { listMenu } from './listMenu';
@@ -377,10 +373,8 @@ export function Sidebar() {
   const library = useLibrary();
   const view = useStore((state) => state.view);
   const queue = useStore((state) => state.queue);
-  const version = useStore((state) => state.version);
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const sections = useStore((state) => state.sidebarSections);
-  const update = useStore((state) => state.update);
   // 좁은 막대에서는 카드 접기를 무시하고 아이콘을 모두 보여 준다.
   const projectsFolded = !collapsed && sections.projects;
   const libraryFolded = !collapsed && sections.library;
@@ -627,41 +621,6 @@ export function Sidebar() {
         </div>
       </section>
 
-      <div className="sidebar-footer">
-        <button
-          onClick={() => void importJsonFromPicker()}
-          title="백업, 내보낸 항목, SDStudio JSON (Ctrl+O)"
-        >
-          <Icon name="import" />
-          {!collapsed && <span>JSON 가져오기</span>}
-        </button>
-        <button
-          title="작업 폴더 열기"
-          onClick={() =>
-            void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'root' }))
-          }
-        >
-          <Icon name="folder" />
-          {!collapsed && <span>작업 폴더 열기</span>}
-        </button>
-        <button
-          className="settings-entry"
-          title="프로그램 설정 (NovelAI 토큰·요청 간격·결과 파일·백업) · Ctrl+,"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <Icon name="settings" size={17} />
-          {!collapsed && (
-            <>
-              <span>프로그램 설정</span>
-              {update?.newer ? (
-                <small className="update-badge">새 버전 {update.latest}</small>
-              ) : (
-                <small>v{version}</small>
-              )}
-            </>
-          )}
-        </button>
-      </div>
     </aside>
   );
 }

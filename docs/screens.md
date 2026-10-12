@@ -12,8 +12,9 @@ first, then the English meaning and the code name (component or CSS class) to se
 [사이드바] [ 생성 큐 막대 queue bar ············ 생성 묶음 ]
 ```
 
-- **위 줄** title bar (`TitleBar`, 32 px, full width): sidebar toggle (Ctrl+B), app name (「저장 실패」 on save
-  failure), current location (e.g. 작업 › 리나 › 기쁨), Windows buttons on the right. Drag to move the window.
+- **위 줄** title bar (`TitleBar`, 40 px, full width): sidebar toggle (Ctrl+B), app name (「저장 실패」 on save
+  failure), current location in the middle (e.g. 작업 › 리나 › 기쁨), then JSON 가져오기 (Ctrl+O), 작업 폴더 and
+  프로그램 설정 (Ctrl+, with version or update badge) before the Windows buttons. Drag to move the window.
 - **사이드바** sidebar (`Sidebar`): always visible; Ctrl+B folds it to icons.
 - **왼쪽 패널** left panel: 프롬프트 패널 on project/free screens, 라이브러리 목록 in the library.
 - **가운데** body: images, canvas, cards.
@@ -38,7 +39,6 @@ generation and the inpaint editor.
 2. **작업** projects card: project list (header folds; ＋ new project, Ctrl+N); supports list folders.
 3. **라이브러리** card: 생성 설정 (2), 캐릭터 (3), 씬 모음 (4), 인페인트 (5), 캐릭터 레퍼런스 (6), 바이브 (7),
    프롬프트 조각 (8). Numbers are shortcut keys; 1 opens the last project.
-4. Bottom row: JSON import (Ctrl+O), open storage folder, **프로그램 설정** settings (Ctrl+,).
 
 ## Screens
 
@@ -166,7 +166,7 @@ One level of folders in the sidebar project list and library lists.
 
 | Name (UI)                | Code                      | Opened from                                   |
 | ------------------------ | ------------------------- | --------------------------------------------- |
-| 프로그램 설정            | `SettingsModal`           | sidebar bottom, Ctrl+,                        |
+| 프로그램 설정            | `SettingsModal`           | title bar, Ctrl+,                             |
 | 새 작업                  | `NewProjectDialog`        | sidebar ＋, Ctrl+N                            |
 | 편집 팝업                | `LibraryEditorDialog`     | chip pencils, prompt panel pencils            |
 | i2i로 보내기             | `Img2ImgDialog`           | result bar, picked-cards bar, scene card menu |

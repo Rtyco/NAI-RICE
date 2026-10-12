@@ -1,5 +1,7 @@
+import { libraryApi } from '../desktop';
+import { importJsonFromPicker } from '../importers';
 import { sectionInfo } from '../sections';
-import { toggleSidebar, useStore } from '../store';
+import { run, setSettingsOpen, toggleSidebar, useStore } from '../store';
 import { Icon } from './Icon';
 
 /** 지금 보는 화면 이름. 작업 › 리나 › 기쁨, 라이브러리 › 캐릭터 › 아리아처럼 이어 쓴다. */
@@ -29,12 +31,14 @@ function useLocation(): string {
 
 /**
  * 창 맨 위 줄. 끌어서 창을 옮기고, 오른쪽에는 Windows 창 버튼이 겹쳐 그려진다. 왼쪽에 사이드바 접기와 앱
- * 이름·저장 실패 표시를, 가운데에 지금 화면 이름을 둔다.
+ * 이름·저장 실패 표시를, 가운데에 지금 화면 이름을, 창 버튼 왼쪽에 JSON 가져오기·작업 폴더·프로그램 설정을 둔다.
  */
 export function TitleBar() {
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const saveState = useStore((state) => state.saveState);
   const location = useLocation();
+  const version = useStore((state) => state.version);
+  const update = useStore((state) => state.update);
   return (
     <div className="titlebar">
       <button
@@ -59,6 +63,39 @@ export function TitleBar() {
           {location}
         </span>
       )}
+      <div className="titlebar-actions">
+        <button
+          className="titlebar-action"
+          title="백업, 내보낸 항목, SDStudio JSON 가져오기 (Ctrl+O)"
+          onClick={() => void importJsonFromPicker()}
+        >
+          <Icon name="import" size={15} />
+          <span>JSON 가져오기</span>
+        </button>
+        <button
+          className="titlebar-action"
+          title="작업 폴더 열기"
+          onClick={() =>
+            void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'root' }))
+          }
+        >
+          <Icon name="folder" size={15} />
+          <span>작업 폴더</span>
+        </button>
+        <button
+          className="titlebar-action settings-entry"
+          title="프로그램 설정 (NovelAI 토큰·요청 간격·결과 파일·백업) · Ctrl+,"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Icon name="settings" size={15} />
+          <span>프로그램 설정</span>
+          {update?.newer ? (
+            <small className="update-badge">새 버전 {update.latest}</small>
+          ) : (
+            <small>v{version}</small>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
