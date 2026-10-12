@@ -45,6 +45,8 @@ type State = {
   view: View;
   detailEmotionId?: string;
   settingsOpen: boolean;
+  /** 설정 창을 열 때 처음 보일 탭. */
+  settingsTab?: string;
   sidebarCollapsed: boolean;
   /** 접힌 사이드바 카드. 사이드바 전체 접기(Ctrl+B)와는 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
@@ -381,8 +383,8 @@ export function openEmotion(emotionId?: string): void {
   set({ detailEmotionId: emotionId });
 }
 
-export function setSettingsOpen(open: boolean): void {
-  set({ settingsOpen: open });
+export function setSettingsOpen(open: boolean, tab?: string): void {
+  set({ settingsOpen: open, settingsTab: tab });
 }
 
 /** 사이드바를 아이콘만 남긴 좁은 막대로 접거나 편다. 다음 실행에도 기억한다. */

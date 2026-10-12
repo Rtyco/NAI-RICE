@@ -22,12 +22,12 @@ export const SECTIONS: Array<{
   icon: IconName;
   role: string;
   usage: string;
-  /** 이 화면으로 바로 가는 키. F1은 작업 화면이다. */
+  /** 이 화면으로 바로 가는 숫자 키. 1은 작업 화면이다. */
   shortcut: string;
 }> = [
   {
     id: 'presets',
-    shortcut: 'F2',
+    shortcut: '2',
     key: 'presets',
     kind: 'preset',
     projectPart: true,
@@ -38,7 +38,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'characters',
-    shortcut: 'F3',
+    shortcut: '3',
     key: 'characters',
     kind: 'character',
     projectPart: true,
@@ -49,7 +49,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'emotionSets',
-    shortcut: 'F4',
+    shortcut: '4',
     key: 'emotionSets',
     kind: 'emotionSet',
     projectPart: true,
@@ -60,7 +60,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'references',
-    shortcut: 'F5',
+    shortcut: '5',
     key: 'references',
     kind: 'reference',
     projectPart: true,
@@ -71,7 +71,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'characterReferences',
-    shortcut: 'F7',
+    shortcut: '6',
     key: 'characterReferences',
     kind: 'characterReference',
     projectPart: false,
@@ -82,7 +82,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'vibes',
-    shortcut: 'F8',
+    shortcut: '7',
     key: 'vibes',
     kind: 'vibe',
     projectPart: false,
@@ -93,7 +93,7 @@ export const SECTIONS: Array<{
   },
   {
     id: 'pieceSets',
-    shortcut: 'F6',
+    shortcut: '8',
     key: 'pieceSets',
     kind: 'pieceSet',
     projectPart: false,

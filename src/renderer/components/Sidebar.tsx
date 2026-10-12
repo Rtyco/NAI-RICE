@@ -21,6 +21,7 @@ import {
 } from '../../core/model/folders';
 import { importJsonFromPicker } from '../importers';
 import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
+import { useRenameRequest } from '../renameRequest';
 import { SECTIONS } from '../sections';
 import {
   openFree,
@@ -204,6 +205,7 @@ function ProjectRow(props: {
     editing.current = value;
     setRenamingState(value);
   };
+  useRenameRequest(Boolean(props.active) && !collapsed, () => setRenaming(true));
 
   const commitName = (value: string) => {
     if (!editing.current) return;
@@ -482,7 +484,7 @@ export function Sidebar() {
           section="projects"
           icon="project"
           label="작업"
-          title="생성 결과가 쌓이는 곳 · F1 · Ctrl+Tab으로 다음 작업"
+          title="생성 결과가 쌓이는 곳 · 단축키 1 · Ctrl+Tab으로 다음 작업"
           narrow={collapsed}
           folded={projectsFolded}
         >
@@ -601,8 +603,8 @@ export function Sidebar() {
               <button
                 key={section.id}
                 title={(collapsed
-                  ? [section.label, section.role, section.shortcut]
-                  : [section.usage, section.shortcut]
+                  ? [section.label, section.role, `단축키 ${section.shortcut}`]
+                  : [section.usage, `단축키 ${section.shortcut}`]
                 )
                   .filter(Boolean)
                   .join(' · ')}

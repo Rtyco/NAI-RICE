@@ -515,20 +515,23 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
   {
     title: '화면 이동',
     keys: [
-      ['F1', '작업 (보던 작업 또는 마지막으로 연 작업)'],
-      ['F2', '생성 설정'],
-      ['F3', '캐릭터'],
-      ['F4', '씬 모음'],
-      ['F5', '인페인트'],
-      ['F6', '프롬프트 조각'],
-      ['F7', '캐릭터 레퍼런스'],
-      ['F8', '바이브'],
+      ['1', '작업 (보던 작업 또는 마지막으로 연 작업)'],
+      ['2', '생성 설정'],
+      ['3', '캐릭터'],
+      ['4', '씬 모음'],
+      ['5', '인페인트'],
+      ['6', '캐릭터 레퍼런스'],
+      ['7', '바이브'],
+      ['8', '프롬프트 조각'],
       ['Ctrl+Tab / Ctrl+Shift+Tab', '다음·이전 작업'],
     ],
   },
   {
     title: '전체',
     keys: [
+      ['F1', '단축키 보기'],
+      ['F2', '고른 작업·라이브러리 항목 이름 바꾸기'],
+      ['F5', '새로 고침 (결과 목록·Anlas 다시 읽기)'],
       ['F11', '전체 화면 켜기·끄기'],
       ['Ctrl++ / Ctrl+-', '화면 확대·축소'],
       ['Ctrl+0', '화면 크기 되돌리기'],
@@ -607,7 +610,10 @@ const TABS: Array<{ id: Tab; label: string; icon: IconName }> = [
 ];
 
 export function SettingsModal() {
-  const [tab, setTab] = useState<Tab>('account');
+  const [tab, setTab] = useState<Tab>(() => {
+    const initial = useStore.getState().settingsTab;
+    return TABS.find((item) => item.id === initial)?.id ?? 'account';
+  });
   return (
     <Modal title="프로그램 설정" onClose={() => setSettingsOpen(false)} wide>
       <div className="settings-layout">

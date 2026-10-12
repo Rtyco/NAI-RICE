@@ -52,6 +52,7 @@ import {
 } from './library/itemActions';
 import { UsedBy } from './library/UsedBy';
 import { LibraryItemEditor } from './library/LibraryEditorDialog';
+import { useRenameRequest } from '../renameRequest';
 import { exportable } from '../sections';
 
 const DRAG_TYPE = 'application/x-library-item';
@@ -90,6 +91,7 @@ function LibraryRow(props: {
     editing.current = value;
     setRenamingState(value);
   };
+  useRenameRequest(Boolean(props.selected) && !collapsed, () => setRenaming(true));
   const reference = section === 'references' ? (item as Reference) : undefined;
   const picture =
     section === 'characterReferences' || section === 'vibes'

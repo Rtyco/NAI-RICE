@@ -4,11 +4,15 @@ import { NewProjectDialog } from './components/Sidebar';
 import { appApi } from './desktop';
 import { importJsonFromPicker } from './importers';
 import { groupFromShortcut } from './components/listFolders';
+import { FREE_PROJECT_ID } from '../core/model/defaults';
+import { requestRename } from './renameRequest';
 import { SECTIONS } from './sections';
 import {
   flushSaves,
+  loadGenerations,
   openLibrary,
   openProject,
+  refreshAccount,
   setSettingsOpen,
   toast,
   toggleSidebar,
@@ -43,8 +47,18 @@ function cycleProject(step: 1 | -1): void {
   openProject(projects[next].id);
 }
 
+/** 보고 있는 작업(또는 자유 생성)의 결과 목록과 계정 상태를 디스크·NovelAI에서 다시 읽는다. */
+async function refreshView(): Promise<void> {
+  const { view } = useStore.getState();
+  const projectId =
+    view.kind === 'project' ? view.projectId : view.kind === 'free' ? FREE_PROJECT_ID : undefined;
+  await Promise.all([projectId && loadGenerations(projectId), refreshAccount()]);
+  toast('새로 고쳤습니다.');
+}
+
 /**
- * 창 어디서나 쓰는 단축키. 창 단위 단축키(F11 전체 화면, Ctrl +/-/0 확대, Ctrl+W)는 메인 프로세스가 처리한다.
+ * 창 어디서나 쓰는 단축키. 화면 이동은 숫자 키, F키는 흔한 프로그램의 쓰임(F1 도움말, F2 이름 바꾸기,
+ * F5 새로 고침, F11 전체 화면)을 따른다. 창 단위 단축키(F11 전체 화면, Ctrl +/-/0 확대, Ctrl+W)는 메인 프로세스가 처리한다.
  * 대화상자가 열려 있으면 화면 이동은 하지 않는다. 생성처럼 Anlas를 쓰는 동작에는 단축키를 두지 않는다.
  */
 export function useGlobalShortcuts(): void {
@@ -55,11 +69,21 @@ export function useGlobalShortcuts(): void {
       const ctrl = event.ctrlKey && !event.altKey && !event.metaKey;
       const plain = !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       const key = event.key;
+      const typing = (event.target as HTMLElement | null)?.closest?.(
+        'input, textarea, select, [contenteditable="true"]',
+      );
       let action: (() => void) | undefined;
 
-      if (plain && key === 'F1') action = openLastProject;
-      const section = SECTIONS.find((item) => item.shortcut === key);
-      if (plain && section) action = () => openLibrary(section.id);
+      // 숫자 키는 글을 쓰는 중이면 그대로 입력되게 둔다. 숫자 패드도 같은 화면으로 간다.
+      const digit = /^(?:Digit|Numpad)([1-9])$/.exec(event.code)?.[1];
+      if (plain && digit && !typing) {
+        if (digit === '1') action = openLastProject;
+        const section = SECTIONS.find((item) => item.shortcut === digit);
+        if (section) action = () => openLibrary(section.id);
+      }
+      if (plain && key === 'F1') action = () => setSettingsOpen(true, 'keys');
+      if (plain && key === 'F2') action = requestRename;
+      if (plain && key === 'F5') action = () => void refreshView();
       if (ctrl && key === 'Tab') action = () => cycleProject(event.shiftKey ? -1 : 1);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);
@@ -67,9 +91,6 @@ export function useGlobalShortcuts(): void {
         action = () => void importJsonFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = toggleSidebar;
-      const typing = (event.target as HTMLElement | null)?.closest?.(
-        'input, textarea, select, [contenteditable="true"]',
-      );
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;
