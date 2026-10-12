@@ -50,21 +50,50 @@ function tokenClass(token: SyntaxToken, matched: boolean): string {
   return names.join(' ');
 }
 
+/** 여는 괄호·가중치면 그 영역의 class. 짝이 없는 괄호는 영역으로 보지 않는다. 닫지 않은 가중치는 끝까지 간다. */
+function regionClass(report: SyntaxReport, index: number): string | undefined {
+  const token = report.tokens[index];
+  if (token.kind !== 'brace' && token.kind !== 'bracket' && token.kind !== 'weight') return;
+  const close = token.pair === undefined ? undefined : report.tokens[token.pair];
+  if (close ? close.start < token.start : token.kind !== 'weight') return;
+  const kind = token.kind === 'weight' && token.value! < 1 ? 'weaken' : token.kind;
+  return `syn-region syn-r-${kind} syn-r${(token.depth ?? 0) % 3}`;
+}
+
+/**
+ * 괄호·가중치가 걸친 영역 전체를 span으로 감싼다. 영역은 스택처럼 중첩되므로(`::`는 여럿을 한 번에 닫는다)
+ * span도 그대로 중첩되고, 반투명 배경이 겹쳐 안쪽일수록 진해진다.
+ */
 function renderHighlights(text: string, report: SyntaxReport, matched: Set<number>): ReactNode[] {
-  const nodes: ReactNode[] = [];
+  const root: ReactNode[] = [];
+  const frames: Array<{ nodes: ReactNode[]; className: string; key: number; closer?: number }> = [];
+  const top = () => frames.at(-1)?.nodes ?? root;
+  const closeFrame = () => {
+    const frame = frames.pop()!;
+    top().push(
+      <span key={`r${frame.key}`} className={frame.className}>
+        {frame.nodes}
+      </span>,
+    );
+  };
   let cursor = 0;
   report.tokens.forEach((token, index) => {
-    if (token.start > cursor) nodes.push(text.slice(cursor, token.start));
-    nodes.push(
+    if (token.start > cursor) top().push(text.slice(cursor, token.start));
+    const region = regionClass(report, index);
+    if (region) frames.push({ nodes: [], className: region, key: index, closer: token.pair });
+    top().push(
       <span key={index} className={tokenClass(token, matched.has(index))}>
         {text.slice(token.start, token.end)}
       </span>,
     );
+    while (frames.length && frames.at(-1)!.closer === index) closeFrame();
     cursor = token.end;
   });
+  top().push(text.slice(cursor));
+  while (frames.length) closeFrame();
   // 마지막 줄바꿈 뒤의 빈 줄도 높이를 차지하도록 공백 하나를 붙인다.
-  nodes.push(`${text.slice(cursor)} `);
-  return nodes;
+  root.push(' ');
+  return root;
 }
 
 /** 배경 레이어에서 글자 위치 offset의 화면 좌표. */

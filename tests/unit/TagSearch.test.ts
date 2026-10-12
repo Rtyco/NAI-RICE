@@ -62,6 +62,14 @@ describe('TagIndex.search', () => {
     expect(names('Long_H')).toEqual(['long hair', 'very long hair']);
   });
 
+  it('keeps a finished word when a space or underscore follows', () => {
+    expect(names('hat')).toEqual(['hatsune miku', 'hat']);
+    expect(names('hatsune ')).toEqual(['hatsune miku']);
+    expect(names('hatsune_')).toEqual(['hatsune miku']);
+    expect(names('long ')).toEqual(['long hair', 'very long hair']);
+    expect(names('artist:hado ')).toEqual(['hado (zzzhadozzz)']);
+  });
+
   it('limits artist: queries to artists', () => {
     expect(names('artist:w')).toEqual(['wlop']);
     expect(names('artist:ha')).toEqual(['hado (zzzhadozzz)']);
@@ -85,6 +93,12 @@ describe('tagQueryAt', () => {
     expect(at('1.5::sm|')?.text).toBe('sm');
     expect(at('source#hug|')?.text).toBe('hug');
     expect(at('a\nbl|')?.text).toBe('bl');
+  });
+
+  it('stays on the tag after a space typed at its end', () => {
+    expect(at('1girl, long |')).toEqual({ start: 7, end: 12, text: 'long ' });
+    expect(at('1girl, long_|')).toEqual({ start: 7, end: 12, text: 'long_' });
+    expect(at('long  |, smile')?.text).toBe('long  ');
   });
 
   it('skips weights, piece references and empty tags', () => {

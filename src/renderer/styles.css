@@ -1081,6 +1081,27 @@ textarea.syntax-input::selection {
   color: transparent;
   background: var(--accent-a33);
 }
+/* 괄호·가중치가 걸친 영역. 배경이 반투명이라 중첩되면 안쪽이 더 진해진다. 크기를 바꾸면 입력칸 글자와 어긋나므로
+   padding·border는 주지 않는다. */
+.syn-region {
+  --region: var(--accent);
+  color: color-mix(in srgb, var(--region) 65%, var(--text));
+  background: color-mix(in srgb, var(--region) 20%, transparent);
+  border-radius: 3px;
+}
+.syn-r-brace.syn-r1 {
+  --region: var(--green);
+}
+.syn-r-brace.syn-r2 {
+  --region: var(--teal);
+}
+.syn-r-bracket,
+.syn-r-weaken {
+  --region: var(--orange);
+}
+.syn-r-weight {
+  --region: var(--teal);
+}
 .syn-brace {
   color: var(--accent);
 }

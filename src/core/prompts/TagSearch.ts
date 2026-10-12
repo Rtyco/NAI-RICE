@@ -71,9 +71,11 @@ export class TagIndex {
    */
   search(query: string, limit = 12): TagMatch[] {
     let q = normalizeTagQuery(query);
+    // `long `·`long_`처럼 단어를 끝낸 채면 그 단어로 끝나는 `longsword`는 빼고 `long hair`를 찾는다.
+    if (q && /[\s_]$/.test(query)) q += ' ';
     // `artist:`로 시작하면 작가 태그만 찾는다.
     const artistOnly = q.startsWith(ARTIST_PREFIX);
-    if (artistOnly) q = q.slice(ARTIST_PREFIX.length).trim();
+    if (artistOnly) q = q.slice(ARTIST_PREFIX.length).trimStart();
     if (!q) return [];
     const prefix: TagMatch[] = [];
     const alias: TagMatch[] = [];
@@ -104,7 +106,7 @@ export class TagIndex {
 }
 
 export type TagQuery = {
-  /** 바꿀 범위. 앞뒤 공백은 뺀다. */
+  /** 바꿀 범위. 앞 공백은 빼고, 커서 앞의 뒤 공백은 넣는다(그 자리까지 바꾼다). */
   start: number;
   end: number;
   text: string;
@@ -123,6 +125,8 @@ export function tagQueryAt(text: string, caret: number): TagQuery | null {
   while (end < text.length && !BOUNDARY.test(text[end]) && !text.startsWith('::', end)) end++;
   while (start < end && /\s/.test(text[start])) start++;
   while (end > start && /\s/.test(text[end - 1])) end--;
+  // `long |`처럼 단어 뒤에 띄어 쓴 채 이어 입력하는 중이면 후보를 닫지 않는다.
+  if (end > start && caret > end && !text.slice(end, caret).trim()) end = caret;
   if (caret < start || caret > end) return null;
   const query = text.slice(start, end);
   // 비어 있거나 `1.5::`의 숫자 부분을 입력하는 중.
