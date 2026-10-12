@@ -116,6 +116,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
       />
       <CharacterChip
         slots={project.characters}
+        optional
         max={maxCharactersFor(resolved.preset?.generation.model)}
         onChange={(characters) => patch({ characters })}
       />

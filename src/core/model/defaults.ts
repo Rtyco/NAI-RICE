@@ -270,7 +270,8 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const inpaint = project.mode === 'reference';
   const missing = [
     !preset && '생성 설정',
-    (!project.characters.length || characters.length < project.characters.length) && '캐릭터',
+    // 캐릭터 없이도 생성할 수 있다. 고른 캐릭터가 라이브러리에서 지워졌을 때만 막는다.
+    characters.length < project.characters.length && '캐릭터',
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
     inpaint && reference && !reference.image && '참고 이미지',

@@ -64,6 +64,8 @@ describe('library model', () => {
     };
     expect(resolveProject(full, project).missing).toEqual(['참고 이미지']);
     expect(resolveProject({ ...full, characters: [] }, project).missing).toContain('캐릭터');
+    // 캐릭터를 하나도 고르지 않은 작업도 생성할 수 있다.
+    expect(resolveProject(full, { ...project, characters: [] }).missing).not.toContain('캐릭터');
     expect(projectsUsing(full, 'emotionSet', library.emotionSets[0].id)).toHaveLength(1);
   });
 

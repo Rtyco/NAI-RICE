@@ -1797,16 +1797,6 @@ textarea.syntax-input::selection {
 .director-tools {
   margin-bottom: 10px;
 }
-.director-tools .segmented.full {
-  margin-bottom: 6px;
-}
-.director-tools .segmented .director-more {
-  flex: none;
-  color: var(--muted);
-}
-.director-tools .director-more.open {
-  color: var(--text);
-}
 .director-tools .hint {
   margin: 0;
 }

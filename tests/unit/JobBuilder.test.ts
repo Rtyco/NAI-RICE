@@ -366,6 +366,24 @@ describe('여러 캐릭터', () => {
     expect(generationEnqueueRequestSchema.safeParse({ jobs: [hashed] }).success).toBe(true);
   });
 
+  it('캐릭터가 없으면 씬과 reference inset을 캐릭터 쪽 대신 공통 쪽에 붙여', () => {
+    const { preset, project, emotionSet } = cast();
+    preset.generation = { ...preset.generation, referenceInsetPosition: 'character-end' };
+    const [job] = buildJobs({
+      project: { ...project, characters: [] },
+      preset,
+      characters: [],
+      emotionSet,
+      reference,
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job.prompt.startsWith('masterpiece, smile, reference inset')).toBe(true);
+    expect(job).toMatchObject({ characterName: '', characterPrompt: '', warnings: [] });
+    expect(job.extraCharacters).toBeUndefined();
+  });
+
   it('두 번째 캐릭터 칸만 채운 씬도 생성 대상이고, 빈 칸의 캐릭터에는 아무것도 붙이지 않아', () => {
     const { preset, project, emotionSet, characters } = cast();
     emotionSet.emotions[1].extraPrompts = ['waving'];

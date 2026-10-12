@@ -4,7 +4,7 @@ export type AugmentToolInfo = {
   id: AugmentTool;
   label: string;
   description: string;
-  /** 디렉터 툴 창 첫 줄에 둔다. 나머지는 「더 보기」에 둔다. */
+  /** 툴 목록에서 「주요 툴」로 앞에 둔다. 나머지는 「그 밖의 툴」이다. */
   primary: boolean;
   /** 덧붙이는 프롬프트를 받는다. */
   prompt: boolean;

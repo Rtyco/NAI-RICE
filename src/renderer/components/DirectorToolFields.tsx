@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { AugmentSettings } from '../../core/domain/types';
 import {
   AUGMENT_STRENGTHS,
@@ -21,38 +21,28 @@ export function DirectorToolFields(props: {
 }) {
   const { value, onChange } = props;
   const info = augmentToolInfo(value.tool);
-  const [moreOpen, setMoreOpen] = useState(!info.primary);
-  const toolButton = (tool: (typeof AUGMENT_TOOLS)[number]) => (
-    <button
-      key={tool.id}
-      className={value.tool === tool.id ? 'active blue' : ''}
-      aria-pressed={value.tool === tool.id}
-      title={tool.description}
-      onClick={() => onChange({ tool: tool.id })}
-    >
+  const option = (tool: (typeof AUGMENT_TOOLS)[number]) => (
+    <option key={tool.id} value={tool.id}>
       {tool.label}
-    </button>
+    </option>
   );
   return (
     <>
-      <div className="director-tools">
-        <div className="segmented full" role="group" aria-label="툴">
-          {AUGMENT_TOOLS.filter((tool) => tool.primary).map(toolButton)}
-          <button
-            className={`director-more ${moreOpen ? 'open' : ''}`}
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen(!moreOpen)}
-          >
-            더 보기
-          </button>
-        </div>
-        {moreOpen && (
-          <div className="segmented full" role="group" aria-label="다른 툴">
-            {AUGMENT_TOOLS.filter((tool) => !tool.primary).map(toolButton)}
-          </div>
-        )}
-        <p className="hint">{info.description}</p>
-      </div>
+      <label className="stack-field director-tools">
+        툴
+        <select
+          value={value.tool}
+          onChange={(event) => onChange({ tool: event.target.value as AugmentSettings['tool'] })}
+        >
+          <optgroup label="주요 툴">
+            {AUGMENT_TOOLS.filter((tool) => tool.primary).map(option)}
+          </optgroup>
+          <optgroup label="그 밖의 툴">
+            {AUGMENT_TOOLS.filter((tool) => !tool.primary).map(option)}
+          </optgroup>
+        </select>
+        <span className="hint">{info.description}</span>
+      </label>
       <div className="director-fields">
         {value.tool === 'emotion' && (
           <SelectField

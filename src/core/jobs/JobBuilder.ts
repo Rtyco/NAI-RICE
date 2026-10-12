@@ -152,10 +152,17 @@ export function composeRequestPrompts(
     qualityTags: naiTagText(settings.model, settings).quality,
     characterPositive: first.positive,
     emotion: emotionPrompt,
-    emotionPosition: settings.emotionPosition,
+    // 캐릭터가 없으면 캐릭터 쪽에 붙일 곳이 없어 V4 캐릭터 프롬프트에 그것만 들어가므로 공통 쪽에 붙인다.
+    emotionPosition: characters.length ? settings.emotionPosition : 'common-end',
     referenceInset: {
       enabled: settings.referenceInset && kind === 'inpaint' && !insetWritten,
-      position: settings.referenceInsetPosition,
+      position: characters.length
+        ? settings.referenceInsetPosition
+        : settings.referenceInsetPosition === 'character-start'
+          ? 'common-start'
+          : settings.referenceInsetPosition === 'character-end'
+            ? 'common-end'
+            : settings.referenceInsetPosition,
     },
   });
   // 네거티브에는 UC 프리셋(과 NovelAI 웹처럼 자동 nsfw)을 앞에 붙인다. nsfw는 완성된 포지티브를 보고 정한다.
@@ -258,7 +265,7 @@ function buildEmotionJobs<T>(
         );
       }
       const warnings: string[] = [];
-      if (!first?.promptSet.positive.trim())
+      if (first && !first.promptSet.positive.trim())
         warnings.push('캐릭터 포지티브 프롬프트가 비어 있습니다.');
       const insets =
         referenceInsetCount(prompts.prompt) + referenceInsetCount(prompts.characterPrompt);
