@@ -5,6 +5,7 @@ import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults'
 import { generateEmotions } from '../actions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
+import { StreamPreview } from '../components/StreamPreview';
 import { PanelResizer } from '../components/PanelResizer';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { useBoxSelection } from '../components/useBoxSelection';
@@ -47,10 +48,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const previous = set.emotions[index - 1];
   const next = set.emotions[index + 1];
   const excluded = project.excludedEmotionIds.includes(emotion.id);
-  const pending = queue.jobs.filter(
-    (job) =>
-      job.projectId === project.id && job.emotionId === emotion.id && isActive(job.status),
-  ).length;
+  const sceneJobs = queue.jobs.filter(
+    (job) => job.projectId === project.id && job.emotionId === emotion.id,
+  );
+  const pending = sceneJobs.filter((job) => isActive(job.status)).length;
+  const running = sceneJobs.filter((job) => job.status === 'generating').map((job) => job.id);
   const sharedCount = library.projects.filter((item) => item.emotionSetId === set.id).length;
 
   // 새 결과가 오면 그 결과를 보여 준다. 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니므로 그대로 둔다.
@@ -258,7 +260,14 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                 <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
               </div>
             }
-            overlay={pending > 0 && <span className="card-status busy stage-status">생성 대기 {pending}</span>}
+            overlay={
+              <>
+                <StreamPreview jobIds={running} className="stage-preview" />
+                {pending > 0 && (
+                  <span className="card-status busy stage-status">생성 대기 {pending}</span>
+                )}
+              </>
+            }
             onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
           />
           {selected && (
