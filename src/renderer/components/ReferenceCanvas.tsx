@@ -18,7 +18,8 @@ import {
 import { clampRect, contains } from '../../core/imaging/rects';
 import type { CanvasImage } from '../lib/image';
 import { Icon } from './Icon';
-import { clampZoom, usePan, useWheel, useZoomAnchor, ZOOM_STEP } from './zoom';
+import { useCanvasViewport } from './canvasViewport';
+import { ZOOM_STEP } from './zoom';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep';
 type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
@@ -111,14 +112,12 @@ export function ReferenceCanvas(props: Props) {
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
   const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
-  const scrollRef = useRef<HTMLDivElement>(null);
   /** 원본 픽셀 대비 배율. 처음에는 화면에 맞춘다. */
-  const [zoom, setZoom] = useState<number | 'fit'>('fit');
-  const [box, setBox] = useState({ width: 0, height: 0 });
   /** 붓이 지나간 마지막 위치(칸 좌표). 다음 이벤트까지의 사이를 채운다. */
   const lastStampRef = useRef<{ x: number; y: number } | null>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [panning, setPanning] = useState(false);
+  /** Space를 누르고 있는 동안은 왼쪽 버튼으로도 화면을 옮긴다(손 도구). */
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const [opacity, setOpacity] = useState(42);
   /** 붓 크기(칸 수). NovelAI 웹 기본값 4칸 = 32px. */
   const [brushSize, setBrushSize] = useState(4);
@@ -162,38 +161,8 @@ export function ReferenceCanvas(props: Props) {
 
   const hasGeneratePixels = useMemo(() => maskHasGeneratePixels(mask), [mask]);
 
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (!node) return;
-    const observer = new ResizeObserver(() =>
-      setBox({ width: node.clientWidth, height: node.clientHeight }),
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-  // canvas-scroll의 안쪽 여백(16px)을 빼고 맞춘다.
-  const fitScale = box.width
-    ? Math.max(0.05, Math.min((box.width - 32) / props.width, (box.height - 32) / props.height))
-    : 0.5;
-  const scale = zoom === 'fit' ? fitScale : zoom;
-  // 렌더 사이에 휠 이벤트가 여러 번 오면 렌더된 값이 아니라 마지막으로 정한 배율에서 이어 간다.
-  const scaleRef = useRef(scale);
-  scaleRef.current = scale;
-  const anchor = useZoomAnchor(scrollRef, canvasRef);
-  const pan = usePan(scrollRef);
-  const zoomTo = (next: number, x?: number, y?: number) => {
-    anchor(x, y);
-    scaleRef.current = clampZoom(next);
-    setZoom(scaleRef.current);
-  };
-  useWheel(scrollRef, (event) => {
-    event.preventDefault();
-    zoomTo(
-      scaleRef.current * (event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP),
-      event.clientX,
-      event.clientY,
-    );
-  });
+  const view = useCanvasViewport(props.width, props.height);
+  const scale = view.scale;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -317,9 +286,8 @@ export function ReferenceCanvas(props: Props) {
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (event.button === 1) {
-      pan.begin(event);
-      setPanning(true);
+    if (event.button === 1 || (event.button === 0 && spaceHeld)) {
+      view.pan.begin(event);
       moveCursor(null);
       return;
     }
@@ -348,7 +316,7 @@ export function ReferenceCanvas(props: Props) {
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (pan.move(event)) return;
+    if (view.pan.move(event)) return;
     moveCursor(event);
     const drag = dragRef.current;
     if (!drag) return;
@@ -374,10 +342,7 @@ export function ReferenceCanvas(props: Props) {
   const finishPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
-    if (pan.end()) {
-      setPanning(false);
-      return;
-    }
+    if (view.pan.end()) return;
     dragRef.current = null;
     lastStampRef.current = null;
     const stroke = strokeRef.current;
@@ -408,6 +373,15 @@ export function ReferenceCanvas(props: Props) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (
+        event.code === 'Space' &&
+        !event.repeat &&
+        !document.querySelector('.modal-backdrop .modal:not(.large)')
+      ) {
+        event.preventDefault();
+        setSpaceHeld(true);
+        return;
+      }
       if (!(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       if (key === 'z' && !event.shiftKey) {
@@ -418,8 +392,15 @@ export function ReferenceCanvas(props: Props) {
         redo();
       }
     };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') setSpaceHeld(false);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   });
 
   const invert = () => {
@@ -556,45 +537,42 @@ export function ReferenceCanvas(props: Props) {
           </label>
           <span
             className="canvas-zoom"
-            title="휠: 확대·축소 · 가운데 버튼(휠)을 누른 채 끌기: 화면 이동"
+            title="휠: 확대·축소 · 가운데 버튼(휠)이나 Space를 누른 채 끌기: 화면 이동"
           >
             <button
               className="icon-button"
               aria-label="축소"
               title="축소 (휠)"
-              onClick={() => zoomTo(scale / ZOOM_STEP)}
+              onClick={() => view.zoomTo(scale / ZOOM_STEP)}
             >
               <Icon name="zoom-out" size={15} />
             </button>
-            <button className="zoom-level" title="화면에 맞추기" onClick={() => setZoom('fit')}>
+            <button className="zoom-level" title="화면에 맞추고 가운데로" onClick={view.fit}>
               {Math.round(scale * 100)}%
             </button>
             <button
               className="icon-button"
               aria-label="확대"
               title="확대 (휠)"
-              onClick={() => zoomTo(scale * ZOOM_STEP)}
+              onClick={() => view.zoomTo(scale * ZOOM_STEP)}
             >
               <Icon name="zoom-in" size={15} />
             </button>
-            <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
+            <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => view.zoomTo(1)}>
               1:1
             </button>
           </span>
         </div>
       </div>
       <div
-        ref={scrollRef}
-        className={`canvas-scroll ${panning ? 'panning' : ''}`}
+        ref={view.viewport}
+        className={`canvas-viewport ${view.panning ? 'panning' : ''} ${spaceHeld ? 'hand' : ''}`}
         onMouseDown={(event) => {
           // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
           if (event.button === 1) event.preventDefault();
         }}
       >
-        <div
-          className="canvas-stack"
-          style={{ width: props.width * scale, height: props.height * scale }}
-        >
+        <div className="canvas-stack" style={view.stackStyle}>
           <canvas
             ref={canvasRef}
             width={props.width}

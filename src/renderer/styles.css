@@ -1496,21 +1496,6 @@ textarea.syntax-input::selection {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.canvas-scroll {
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  /* 캔버스가 화면보다 크면 가운데 정렬이 왼쪽·위를 스크롤 밖으로 밀어내므로 safe를 쓴다. */
-  align-items: safe center;
-  justify-content: safe center;
-  overflow: auto;
-  padding: 16px;
-  border: 1px solid var(--bg-4);
-  background: var(--bg-0);
-}
-.canvas-scroll.panning canvas {
-  cursor: grabbing;
-}
 .canvas-stack {
   position: relative;
   flex: none;
@@ -1600,15 +1585,6 @@ textarea.syntax-input::selection {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-}
-.canvas-scroll canvas {
-  display: block;
-  flex: none;
-  max-width: none;
-  background: white;
-  box-shadow: 0 10px 40px #000d;
-  touch-action: none;
-  cursor: crosshair;
 }
 .canvas-status {
   display: flex;

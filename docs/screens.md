@@ -151,6 +151,7 @@ Character references and vibes: values go to ±10 beyond the web's 0–1. Pictur
 
 - Center **캔버스** (`ReferenceCanvas`): toolbar [영역 상자: 참고 영역·결과 영역] | [붓: 칠하기·지우기·모양·크기] |
   [반전·모두 지우기·↶↷] …… [보기: 불투명도·확대]; status line (saved size, free size or not, warnings).
+  Wheel zooms at the cursor; middle button or Space drag pans freely (`canvasViewport`, also in free i2i masks).
 - Right panel cards: **참고 이미지**, **캔버스 구성** (auto/prepared canvas, resolution, position, ratio, fit,
   background, reset), **영역** (참고 영역 여백, result area numbers).
 - Areas: **참고 영역** reference area (not redrawn), **결과 영역** result area (cropped and saved), **생성 영역**
