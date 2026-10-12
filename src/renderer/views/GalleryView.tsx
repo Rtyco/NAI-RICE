@@ -1,4 +1,4 @@
-import { type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { memo, useMemo, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotion } from '../../core/model/mutations';
@@ -16,7 +16,6 @@ import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../
 import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import {
   coverRecord,
-  emotionRecords,
   GALLERY_ASPECTS,
   GALLERY_COLUMN_CHOICES,
   openEmotion,
@@ -40,21 +39,27 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
   return null;
 }
 
-function EmotionCard(props: {
+const NO_RECORDS: GenerationSummary[] = [];
+const NO_JOBS: QueueJobView[] = [];
+
+/** 고르기·끌기로 씬 목록이 자주 다시 그려지므로, 바뀐 카드만 다시 그리게 props는 모두 같은 값을 유지한다. */
+const EmotionCard = memo(function EmotionCard(props: {
   resolved: ResolvedProject;
   emotion: Emotion;
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
-  reorder: CardReorder;
+  startDrag: CardReorder['start'];
+  dragging: boolean;
+  dropTarget: boolean;
   /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
   /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
-  onPick: (event: MouseEvent) => boolean;
+  onPick: (event: MouseEvent, id: string) => boolean;
 }) {
   const { resolved, emotion, records } = props;
   const open = (event: MouseEvent) => {
-    if (!props.onPick(event)) openEmotion(emotion.id);
+    if (!props.onPick(event, emotion.id)) openEmotion(emotion.id);
   };
   const project = resolved.project;
   const set = resolved.emotionSet!;
@@ -68,10 +73,10 @@ function EmotionCard(props: {
 
   return (
     <article
-      className={`emotion-card ${included ? '' : 'disabled'} ${props.reorder.over === emotion.id ? 'drop-target' : ''} ${props.reorder.dragging === emotion.id ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
+      className={`emotion-card ${included ? '' : 'disabled'} ${props.dropTarget ? 'drop-target' : ''} ${props.dragging ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
       data-select-id={emotion.id}
       onContextMenu={menu}
-      onPointerDown={(event) => props.reorder.start(event, emotion.id)}
+      onPointerDown={(event) => props.startDrag(event, emotion.id)}
     >
       <button
         className="emotion-thumb"
@@ -137,7 +142,7 @@ function EmotionCard(props: {
       </div>
     </article>
   );
-}
+});
 
 export function GalleryView({
   resolved,
@@ -157,6 +162,29 @@ export function GalleryView({
   const columns = useStore((state) => state.galleryColumns);
   const aspect = useStore((state) => state.galleryAspect);
   const emotions = emotionSet?.emotions ?? [];
+  const recordsByEmotion = useMemo(() => {
+    const groups = new Map<string, GenerationSummary[]>();
+    for (const record of records ?? []) {
+      if (!record.emotionId) continue;
+      const group = groups.get(record.emotionId);
+      if (group) group.push(record);
+      else groups.set(record.emotionId, [record]);
+    }
+    for (const group of groups.values())
+      group.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return groups;
+  }, [records]);
+  const jobsByEmotion = useMemo(() => {
+    const groups = new Map<string, QueueJobView[]>();
+    for (const job of queue.jobs) {
+      if (job.projectId !== project.id || !job.emotionId) continue;
+      const group = groups.get(job.emotionId);
+      if (group) group.push(job);
+      else groups.set(job.emotionId, [job]);
+    }
+    return groups;
+  }, [queue.jobs, project.id]);
+  const recordsOf = (id: string) => recordsByEmotion.get(id) ?? NO_RECORDS;
   const reorder = useCardReorder(
     emotions.map((emotion) => emotion.id),
     (id, index) =>
@@ -190,14 +218,11 @@ export function GalleryView({
     );
   }
 
-  const projectJobs = queue.jobs.filter((job) => job.projectId === project.id);
   const excluded = new Set(project.excludedEmotionIds);
   const included = emotionSet.emotions.filter(
     (emotion) => !excluded.has(emotion.id) && hasScenePrompt(emotion),
   ).length;
-  const withResults = emotionSet.emotions.filter(
-    (emotion) => emotionRecords(records, emotion.id).length,
-  ).length;
+  const withResults = emotionSet.emotions.filter((emotion) => recordsOf(emotion.id).length).length;
 
   const addAndOpen = () => {
     const id = addEmotionTo(emotionSet.id);
@@ -207,9 +232,7 @@ export function GalleryView({
   const pickedCovers = () =>
     emotions
       .filter((emotion) => selection.isSelected(emotion.id))
-      .map((emotion) =>
-        coverRecord(emotionRecords(records, emotion.id), project.favorites[emotion.id]),
-      )
+      .map((emotion) => coverRecord(recordsOf(emotion.id), project.favorites[emotion.id]))
       .filter((record): record is GenerationSummary => Boolean(record));
 
   return (
@@ -354,12 +377,14 @@ export function GalleryView({
             key={emotion.id}
             resolved={resolved}
             emotion={emotion}
-            records={emotionRecords(records, emotion.id)}
-            jobs={projectJobs.filter((job) => job.emotionId === emotion.id)}
+            records={recordsOf(emotion.id)}
+            jobs={jobsByEmotion.get(emotion.id) ?? NO_JOBS}
             prefer={library.settings.export.target}
-            reorder={reorder}
+            startDrag={reorder.start}
+            dragging={reorder.dragging === emotion.id}
+            dropTarget={reorder.over === emotion.id}
             picked={selection.isSelected(emotion.id)}
-            onPick={(event) => selection.clickItem(event, emotion.id)}
+            onPick={selection.clickItem}
           />
         ))}
         <button className="emotion-card add-card" onClick={addAndOpen}>

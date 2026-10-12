@@ -2287,7 +2287,9 @@ textarea.syntax-input::selection {
 .selectable {
   position: relative;
 }
+/* useBoxSelection이 끄는 동안 직접 보이고 위치를 정한다. */
 .select-box {
+  display: none;
   position: absolute;
   z-index: 5;
   border: 1px solid var(--accent);

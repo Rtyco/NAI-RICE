@@ -7,13 +7,14 @@ import {
   type PointerEvent,
 } from 'react';
 
-type Box = { left: number; top: number; width: number; height: number };
+import { edgeScrollStep } from './edgeScroll';
+
+/** 항목 위치. 컨테이너 안쪽(스크롤 포함) 좌표라 스크롤해도 다시 잴 필요가 없다. */
+type ItemRect = { id: string; left: number; top: number; right: number; bottom: number };
 
 function isCtrl(event: KeyboardEvent, key: string): boolean {
   return event.ctrlKey && !event.shiftKey && !event.altKey && event.key.toLowerCase() === key;
 }
-
-const EDGE = 28;
 
 /**
  * 빈 곳에서 끌면 상자가 나타나고 상자에 걸친 항목을 선택한다(탐색기와 같은 방식).
@@ -29,13 +30,21 @@ export function useBoxSelection<T extends HTMLElement>(
 ) {
   const ref = useRef<T>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
-  const [box, setBox] = useState<Box | null>(null);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const idsRef = useRef(ids);
+  idsRef.current = ids;
+  const boxRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{
     x: number;
     y: number;
     pointerId: number;
     base: Set<string>;
     moved: boolean;
+    clientX: number;
+    clientY: number;
+    items?: ItemRect[];
+    frame: number;
   } | null>(null);
   const anchor = useRef<string | undefined>(undefined);
   const key = ids.join('\n');
@@ -99,36 +108,78 @@ export function useBoxSelection<T extends HTMLElement>(
     };
   };
 
-  /** 포인터 위치까지 상자를 늘리고 상자에 걸친 항목을 고른다. */
-  const extend = (event: { clientX: number; clientY: number }) => {
+  /**
+   * 포인터 위치까지 상자를 늘리고 상자에 걸친 항목을 고른다. 끄는 동안 매 이동마다 React로 다시 그리면 항목이
+   * 많은 목록에서 버벅이므로, 상자는 DOM에 바로 그리고 고른 것이 달라질 때만 상태를 바꾼다.
+   */
+  const extend = () => {
     const current = drag.current;
     const element = ref.current;
     if (!current || !element) return;
-    const bounds = element.getBoundingClientRect();
-    const end = point(event);
+    const end = point({ clientX: current.clientX, clientY: current.clientY });
     if (!current.moved && Math.hypot(end.x - current.x, end.y - current.y) < 4) return;
     current.moved = true;
-    const next: Box = {
-      left: Math.min(current.x, end.x),
-      top: Math.min(current.y, end.y),
-      width: Math.abs(end.x - current.x),
-      height: Math.abs(end.y - current.y),
-    };
-    setBox(next);
-    const hits = new Set(current.base);
-    for (const item of Array.from(element.querySelectorAll<HTMLElement>('[data-select-id]'))) {
-      const rect = item.getBoundingClientRect();
-      const left = rect.left - bounds.left + element.scrollLeft;
-      const top = rect.top - bounds.top + element.scrollTop;
-      if (
-        left < next.left + next.width &&
-        left + rect.width > next.left &&
-        top < next.top + next.height &&
-        top + rect.height > next.top
-      )
-        hits.add(item.dataset.selectId!);
+    const left = Math.min(current.x, end.x);
+    const top = Math.min(current.y, end.y);
+    const right = Math.max(current.x, end.x);
+    const bottom = Math.max(current.y, end.y);
+    const box = boxRef.current;
+    if (box)
+      Object.assign(box.style, {
+        display: 'block',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${right - left}px`,
+        height: `${bottom - top}px`,
+      });
+    if (!current.items) {
+      const bounds = element.getBoundingClientRect();
+      current.items = Array.from(element.querySelectorAll<HTMLElement>('[data-select-id]')).map(
+        (item) => {
+          const rect = item.getBoundingClientRect();
+          const itemLeft = rect.left - bounds.left + element.scrollLeft;
+          const itemTop = rect.top - bounds.top + element.scrollTop;
+          return {
+            id: item.dataset.selectId!,
+            left: itemLeft,
+            top: itemTop,
+            right: itemLeft + rect.width,
+            bottom: itemTop + rect.height,
+          };
+        },
+      );
     }
-    setSelected(hits);
+    const hits = new Set(current.base);
+    for (const item of current.items)
+      if (item.left < right && item.right > left && item.top < bottom && item.bottom > top)
+        hits.add(item.id);
+    const previous = selectedRef.current;
+    if (hits.size !== previous.size || [...hits].some((id) => !previous.has(id))) {
+      selectedRef.current = hits;
+      setSelected(hits);
+    }
+  };
+
+  /** 한 프레임에 한 번 상자를 늘린다. 포인터가 위아래 끝에 있으면 멈춰 있어도 계속 스크롤한다. */
+  const tick = () => {
+    const current = drag.current;
+    const element = ref.current;
+    if (!current || !element) return;
+    current.frame = 0;
+    const step = current.moved
+      ? edgeScrollStep(element.getBoundingClientRect(), current.clientY)
+      : 0;
+    const before = element.scrollTop;
+    if (step) element.scrollTop += step;
+    extend();
+    if (element.scrollTop !== before) current.frame = requestAnimationFrame(tick);
+  };
+
+  const endDrag = () => {
+    const current = drag.current;
+    if (current?.frame) cancelAnimationFrame(current.frame);
+    drag.current = null;
+    if (boxRef.current) boxRef.current.style.display = 'none';
   };
 
   const containerProps = {
@@ -148,40 +199,40 @@ export function useBoxSelection<T extends HTMLElement>(
         pointerId: event.pointerId,
         base: event.ctrlKey || event.shiftKey ? new Set(selected) : new Set(),
         moved: false,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        frame: 0,
       };
       ref.current.setPointerCapture(event.pointerId);
       event.preventDefault();
     },
     onPointerMove: (event: PointerEvent<T>) => {
       const current = drag.current;
-      const element = ref.current;
-      if (!current || !element || current.pointerId !== event.pointerId) return;
-      const bounds = element.getBoundingClientRect();
-      if (event.clientY < bounds.top + EDGE) element.scrollTop -= 12;
-      else if (event.clientY > bounds.bottom - EDGE) element.scrollTop += 12;
-      extend(event);
+      if (!current || current.pointerId !== event.pointerId) return;
+      current.clientX = event.clientX;
+      current.clientY = event.clientY;
+      if (!current.frame) current.frame = requestAnimationFrame(tick);
     },
     onPointerUp: (event: PointerEvent<T>) => {
       const current = drag.current;
       if (!current || current.pointerId !== event.pointerId) return;
-      // 마지막 이동이 앞 이동과 합쳐져 빠질 수 있으므로 놓은 위치로 한 번 더 계산한다.
-      extend(event);
-      drag.current = null;
-      setBox(null);
+      // 아직 그리지 않은 마지막 이동이 남아 있을 수 있으므로 놓은 위치로 한 번 더 계산한다.
+      current.clientX = event.clientX;
+      current.clientY = event.clientY;
+      extend();
+      endDrag();
       // 빈 곳을 그냥 누르면 선택을 해제한다(Ctrl·Shift를 누르고 있으면 그대로 둔다).
       if (!current.moved) setSelected(current.base);
     },
-    onPointerCancel: () => {
-      drag.current = null;
-      setBox(null);
-    },
+    onPointerCancel: endDrag,
   };
 
   /**
    * 항목을 누를 때 부른다. Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다.
    * 그냥 클릭이면 선택을 비우고 false를 돌려주므로 원래 동작(열기)을 이어서 하면 된다.
    */
-  const clickItem = (event: MouseEvent, id: string): boolean => {
+  const clickItem = useCallback((event: MouseEvent, id: string): boolean => {
+    const ids = idsRef.current;
     if (event.ctrlKey || event.metaKey) {
       setSelected((previous) => {
         const next = new Set(previous);
@@ -198,18 +249,13 @@ export function useBoxSelection<T extends HTMLElement>(
       return true;
     }
     anchor.current = id;
-    if (selected.size) setSelected(new Set());
+    if (selectedRef.current.size) setSelected(new Set());
     return false;
-  };
+  }, []);
 
   const selectAll = useCallback((only: string[]) => setSelected(new Set(only)), []);
 
-  const boxElement = box && (
-    <div
-      className="select-box"
-      style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
-    />
-  );
+  const boxElement = <div ref={boxRef} className="select-box" />;
 
   return {
     containerProps,
