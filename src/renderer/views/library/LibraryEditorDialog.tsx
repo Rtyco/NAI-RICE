@@ -10,7 +10,7 @@ import { Modal } from '../../components/Dialogs';
 import { openLibrary, updateLibrary, useLibrary, type LibrarySection } from '../../store';
 import { ReferenceEditor } from '../ReferenceEditor';
 import { CharacterEditor } from './CharacterEditor';
-import { EmotionMoodEditor, EmotionSetEditor } from './EmotionSetEditor';
+import { EmotionSetEditor } from './EmotionSetEditor';
 import { LABELS, withName, type Item } from './itemActions';
 import { PieceSetEditor } from './PieceSetEditor';
 import { PresetEditor } from './PresetEditor';
@@ -20,13 +20,7 @@ import { UsedBy } from './UsedBy';
 export function LibraryItemEditor({ section, item }: { section: LibrarySection; item: Item }) {
   if (section === 'presets') return <PresetEditor preset={item as Preset} />;
   if (section === 'characters') return <CharacterEditor character={item as Character} />;
-  if (section === 'emotionSets')
-    return (
-      <>
-        <EmotionSetEditor set={item as EmotionSet} />
-        <EmotionMoodEditor set={item as EmotionSet} />
-      </>
-    );
+  if (section === 'emotionSets') return <EmotionSetEditor set={item as EmotionSet} />;
   if (section === 'pieceSets') return <PieceSetEditor set={item as PieceSet} />;
   return <ReferenceEditor key={item.id} reference={item as Reference} />;
 }

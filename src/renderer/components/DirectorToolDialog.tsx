@@ -1,26 +1,16 @@
 import { useState } from 'react';
-import type { AugmentTool, GenerationSummary } from '../../core/domain/types';
+import type { AugmentSettings, AugmentTool, GenerationSummary } from '../../core/domain/types';
 import { DEFAULT_GENERATION_SETTINGS } from '../../core/model/defaults';
-import {
-  AUGMENT_STRENGTHS,
-  AUGMENT_TOOLS,
-  augmentToolInfo,
-  EMOTION_MOODS,
-} from '../../core/providers/NaiAugment';
+import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { directorToolSize, runDirectorTool, type DirectorToolOptions } from '../actions';
 import { projectMedia, useStore } from '../store';
 import { Modal } from './Dialogs';
-import { NumberField, SelectField, Toggle } from './ui';
+import { BgRemovalWarning, DirectorToolFields } from './DirectorToolFields';
+import { Toggle } from './ui';
 
 // 같은 실행 동안 마지막으로 고른 툴과 값을 다음 창의 기본값으로 쓴다.
-let lastOptions: Omit<DirectorToolOptions, 'shrink'> = {
-  tool: 'emotion',
-  mood: 'happy',
-  toolPrompt: '',
-  defry: 0,
-  count: 1,
-};
+let lastOptions: AugmentSettings = DEFAULT_AUGMENT_SETTINGS;
 
 const FREE_PIXELS = 1024 * 1024;
 
@@ -40,8 +30,6 @@ export function DirectorToolDialog(props: {
   });
   const patch = (value: Partial<DirectorToolOptions>) =>
     setOptions((current) => ({ ...current, ...value }));
-  const info = augmentToolInfo(options.tool);
-  const [moreOpen, setMoreOpen] = useState(!info.primary);
   const oversized = props.records.some((record) => record.width * record.height > FREE_PIXELS);
   const costJobs = props.records.map((record) => {
     const size = directorToolSize(record, options.shrink);
@@ -78,17 +66,6 @@ export function DirectorToolDialog(props: {
     );
   };
 
-  const toolButton = (tool: (typeof AUGMENT_TOOLS)[number]) => (
-    <button
-      key={tool.id}
-      className={options.tool === tool.id ? 'active blue' : ''}
-      title={tool.description}
-      onClick={() => patch({ tool: tool.id })}
-    >
-      {tool.label}
-    </button>
-  );
-
   return (
     <Modal
       title={count > 1 ? `결과 ${count}장에 디렉터 툴 적용` : '디렉터 툴'}
@@ -120,82 +97,26 @@ export function DirectorToolDialog(props: {
         ))}
         {count > 12 && <p className="hint">외 {count - 12}장</p>}
       </div>
-      <div className="director-tools">
-        <div className="segmented full" role="group" aria-label="툴">
-          {AUGMENT_TOOLS.filter((tool) => tool.primary).map(toolButton)}
-          <button
-            className={`director-more ${moreOpen ? 'open' : ''}`}
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen(!moreOpen)}
-          >
-            더 보기
-          </button>
-        </div>
-        {moreOpen && (
-          <div className="segmented full" role="group" aria-label="다른 툴">
-            {AUGMENT_TOOLS.filter((tool) => !tool.primary).map(toolButton)}
-          </div>
+      <DirectorToolFields
+        value={options}
+        onChange={patch}
+        countLabel={count > 1 ? '결과마다 장수' : '장수'}
+      >
+        {options.tool === 'emotion' && props.onSceneSet && (
+          <p className="hint">
+            씬 모음의 씬마다 다른 표정으로 한꺼번에 만들려면{' '}
+            <button
+              className="link-button"
+              onClick={() => {
+                props.close();
+                props.onSceneSet?.();
+              }}
+            >
+              이 이미지로 씬 표정 만들기 →
+            </button>
+          </p>
         )}
-        <p className="hint">{info.description}</p>
-      </div>
-      <div className="four-column-fields">
-        {options.tool === 'emotion' && (
-          <SelectField
-            label="표정"
-            value={options.mood}
-            options={EMOTION_MOODS.map((mood) => ({
-              value: mood.id,
-              label: `${mood.label} (${mood.id})`,
-            }))}
-            onChange={(mood) => patch({ mood })}
-          />
-        )}
-        {info.strength && (
-          <SelectField
-            label="강도"
-            value={String(options.defry)}
-            options={AUGMENT_STRENGTHS.map((label, index) => ({
-              value: String(index),
-              label,
-            }))}
-            onChange={(value) => patch({ defry: Number(value) })}
-          />
-        )}
-        <NumberField
-          label={count > 1 ? '결과마다 장수' : '장수'}
-          value={options.count}
-          min={1}
-          max={4}
-          integer
-          onChange={(value) => patch({ count: value })}
-        />
-      </div>
-      {options.tool === 'emotion' && props.onSceneSet && (
-        <p className="hint">
-          씬 모음의 씬마다 다른 표정으로 한꺼번에 만들려면{' '}
-          <button
-            className="link-button"
-            onClick={() => {
-              props.close();
-              props.onSceneSet?.();
-            }}
-          >
-            이 이미지로 씬 표정 만들기 →
-          </button>
-        </p>
-      )}
-      {info.prompt && (
-        <label className="stack-field">
-          {options.tool === 'emotion' ? '추가 문구 (선택)' : '프롬프트 (선택)'}
-          <input
-            value={options.toolPrompt}
-            placeholder={
-              options.tool === 'emotion' ? '예: tears, blush' : '예: blonde hair, blue eyes'
-            }
-            onChange={(event) => patch({ toolPrompt: event.target.value })}
-          />
-        </label>
-      )}
+      </DirectorToolFields>
       {oversized && (
         <Toggle
           label="무료 면적(1024×1024)을 넘는 결과는 비율을 지켜 줄여 보내기"
@@ -203,13 +124,7 @@ export function DirectorToolDialog(props: {
           onChange={(shrink) => patch({ shrink })}
         />
       )}
-      {options.tool === 'bg-removal' && (
-        <p className="warning-box">
-          배경 제거는 Opus여도 Anlas가 듭니다(832×1216 한 번에 65, 608×832 한 번에 35). 한 번에
-          배경이 투명한 이미지 세 장(원본 그대로 오린 것, 다시 그린 것, 거의 원본과 같은 것)이 와서
-          모두 {resultCount}장이 쌓입니다.
-        </p>
-      )}
+      {options.tool === 'bg-removal' && <BgRemovalWarning results={resultCount} />}
       <p className="hint">
         {options.tool === 'emotion' &&
           '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. 같은 설정이어도 매번 조금씩 다르게 나옵니다. '}

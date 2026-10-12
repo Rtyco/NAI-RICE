@@ -8,6 +8,7 @@ import { directorToolSize, runDirectorTool } from '../actions';
 import { projectMedia, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { MoodSelect, StrengthSelect } from './MoodFields';
+import { PromptTextarea } from './PromptTextarea';
 import { NumberField, Toggle } from './ui';
 
 type Row = { checked: boolean; mood: string; defry: number };
@@ -195,12 +196,13 @@ export function SceneSetDialog(props: {
             })}
           </div>
           <div className="scene-set-options">
-            <label className="stack-field">
-              모든 씬에 덧붙일 문구 (선택)
-              <input
+            <label className="prompt-field director-prompt">
+              <span>프롬프트 (선택, 모든 씬에 붙음)</span>
+              <PromptTextarea
+                rows={2}
                 value={toolPrompt}
                 placeholder="예: blush"
-                onChange={(event) => setToolPrompt(event.target.value)}
+                onChange={setToolPrompt}
               />
             </label>
             <NumberField

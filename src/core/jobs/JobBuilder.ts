@@ -1,6 +1,7 @@
 import type {
   AppSettings,
   AugmentJobSnapshot,
+  AugmentSettings,
   AugmentTool,
   CharacterCenter,
   CharacterPositionMode,
@@ -22,6 +23,7 @@ import type {
 } from '../domain/types';
 import {
   createPromptSet,
+  DEFAULT_GENERATION_SETTINGS,
   effectiveGenerationSettings,
   FREE_PROJECT_ID,
   hasScenePrompt,
@@ -560,6 +562,62 @@ export type AugmentTarget = {
   mood?: string;
   defry?: number;
 };
+
+export type FreeAugmentInput = {
+  image: ImageInput;
+  width: number;
+  height: number;
+  settings: AugmentSettings;
+  /** 생성 결과를 가져온 이미지면 그 기록(자유 생성 결과일 때만). */
+  sourceRecordId?: string;
+  now?: () => Date;
+};
+
+/**
+ * 자유 생성의 디렉터 툴: 고른 이미지에 툴을 `count`번 적용한다. 프롬프트·생성 설정이 없어 빈 값과 기본 설정을
+ * 넣고, seed도 받지 않아 0으로 둔다. 결과는 자유 생성의 날짜별 폴더에 쌓인다.
+ */
+export function buildFreeAugmentJobs(input: FreeAugmentInput): AugmentJobSnapshot[] {
+  const now = input.now ?? (() => new Date());
+  const { tool, mood, toolPrompt, defry } = input.settings;
+  return Array.from({ length: Math.max(1, input.settings.count) }, (_, index) => {
+    const variantIndex = index + 1;
+    const createdAt = now().toISOString();
+    return {
+      kind: 'augment',
+      id: `${FREE_PROJECT_ID}-${tool}-${variantIndex}-${createdAt}`,
+      createdAt,
+      projectId: FREE_PROJECT_ID,
+      projectName: '자유 생성',
+      characterName: '',
+      emotionId: '',
+      emotionName: '',
+      emotionPrompt: '',
+      presetName: '',
+      promptSetName: '',
+      emotionSetName: '',
+      referenceName: '',
+      prompt: '',
+      negativePrompt: '',
+      characterPrompt: '',
+      characterNegativePrompt: '',
+      source: { commonPositive: '', commonNegative: '', characterPositive: '' },
+      seed: 0,
+      variantIndex,
+      canvasWidth: input.width,
+      canvasHeight: input.height,
+      outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
+      settings: { ...DEFAULT_GENERATION_SETTINGS },
+      warnings: [],
+      ...(input.sourceRecordId ? { sourceRecordId: input.sourceRecordId } : {}),
+      ...input.image,
+      tool,
+      ...(tool === 'emotion' ? { mood } : {}),
+      toolPrompt,
+      defry,
+    };
+  });
+}
 
 export type ResultAugmentInput = {
   record: GenerationRecord;

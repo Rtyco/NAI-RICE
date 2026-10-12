@@ -1,4 +1,4 @@
-import type { AugmentTool } from '../domain/types';
+import type { AugmentSettings, AugmentTool } from '../domain/types';
 
 export type AugmentToolInfo = {
   id: AugmentTool;
@@ -63,6 +63,14 @@ export const AUGMENT_TOOLS: AugmentToolInfo[] = [
     strength: true,
   },
 ];
+
+export const DEFAULT_AUGMENT_SETTINGS: AugmentSettings = {
+  tool: 'emotion',
+  mood: 'happy',
+  toolPrompt: '',
+  defry: 0,
+  count: 1,
+};
 
 export function augmentToolInfo(tool: AugmentTool): AugmentToolInfo {
   return AUGMENT_TOOLS.find((item) => item.id === tool) ?? AUGMENT_TOOLS[0];

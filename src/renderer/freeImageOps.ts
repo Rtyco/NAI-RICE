@@ -37,7 +37,12 @@ function dropSourceFiles(previous: FreeImage | undefined, next: FreeImage | unde
         .catch(() => undefined);
 }
 
-function setFreeImage(stored: StoredSource, name: string, fromRecord?: FreeImage['fromRecord']) {
+function setFreeImage(
+  stored: StoredSource,
+  name: string,
+  mode: 'img2img' | 'augment',
+  fromRecord?: FreeImage['fromRecord'],
+) {
   const previous = useStore.getState().library?.freeGeneration.image;
   pendingMask = undefined;
   const image: FreeImage = {
@@ -47,19 +52,35 @@ function setFreeImage(stored: StoredSource, name: string, fromRecord?: FreeImage
     ...(previous?.file === stored.file && previous.maskFile ? { maskFile: previous.maskFile } : {}),
     ...(fromRecord ? { fromRecord } : {}),
   };
-  updateFreeGeneration({ mode: 'img2img', image });
+  updateFreeGeneration({ mode, image });
   dropSourceFiles(previous, image);
 }
 
 /** 생성 결과를 자유 생성 i2i 이미지로 정하고 자유 생성 화면으로 간다. 인페인팅 토글은 그대로 둔다. */
 export function sendToFreeImg2Img(projectId: string, record: GenerationSummary): Promise<void> {
-  return run('자유 생성 i2i를 준비하는 중', async () => {
+  return sendToFree(projectId, record, 'img2img');
+}
+
+/** 생성 결과를 자유 생성 디렉터 툴의 이미지로 정하고 자유 생성 화면으로 간다. */
+export function sendToFreeDirector(projectId: string, record: GenerationSummary): Promise<void> {
+  return sendToFree(projectId, record, 'augment');
+}
+
+function sendToFree(
+  projectId: string,
+  record: GenerationSummary,
+  mode: 'img2img' | 'augment',
+): Promise<void> {
+  return run('자유 생성 이미지를 준비하는 중', async () => {
     const stored = await libraryApi().addSourceImage({
       kind: 'record',
       projectId,
       generationId: record.id,
     });
-    setFreeImage(stored, recordName(projectId, record), { projectId, generationId: record.id });
+    setFreeImage(stored, recordName(projectId, record), mode, {
+      projectId,
+      generationId: record.id,
+    });
     openFree();
   }).then(() => undefined);
 }
@@ -69,7 +90,9 @@ export function loadFreeImageFromFile(): Promise<void> {
     const file = await fileApi().openImageFile();
     if (!file) return;
     const stored = await libraryApi().addSourceImage({ kind: 'data', dataUrl: file.dataUrl });
-    setFreeImage(stored, file.name.replace(/\.[^.]+$/, ''));
+    const mode =
+      useStore.getState().library?.freeGeneration.mode === 'augment' ? 'augment' : 'img2img';
+    setFreeImage(stored, file.name.replace(/\.[^.]+$/, ''), mode);
   }).then(() => undefined);
 }
 

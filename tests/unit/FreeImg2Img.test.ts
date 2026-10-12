@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fitImage } from '../../electron/services/Images';
 import { Library } from '../../electron/services/Library';
-import { buildFreeJobs } from '../../src/core/jobs/JobBuilder';
+import { buildFreeAugmentJobs, buildFreeJobs } from '../../src/core/jobs/JobBuilder';
 import {
   createCharacter,
   createDefaultLibrary,
@@ -182,6 +182,79 @@ describe('자유 인페인팅 입력', () => {
 
     await library.deleteSource(blank);
     await expect(readFile(library.sourceFile(blank))).rejects.toThrow();
+  });
+});
+
+describe('자유 생성 디렉터 툴', () => {
+  it('여백을 뺀 원래 영역만 잘라 정한 크기로 입력을 만들어', async () => {
+    const { root, library } = await openLibrary();
+    const image = await sharp({
+      create: { width: 300, height: 100, channels: 3, background: '#336699' },
+    })
+      .png()
+      .toBuffer();
+    const stored = await library.addSourceImage({ kind: 'data', dataUrl: pngUrl(image) });
+    const input = await library.prepareSourceInput({
+      projectId: 'free',
+      file: stored.file,
+      crop: { rect: stored.outputRect, width: 150, height: 50 },
+    });
+    const meta = await sharp(
+      await readFile(path.join(root, 'projects', 'free', input.imagePath)),
+    ).metadata();
+    expect([meta.width, meta.height]).toEqual([150, 50]);
+  });
+
+  it('고른 이미지에 툴을 장수만큼 적용하고 프롬프트·seed는 비워 둬', () => {
+    const image = { imagePath: `inputs/${'a'.repeat(64)}.png`, imageSha256: 'a'.repeat(64) };
+    const jobs = buildFreeAugmentJobs({
+      image,
+      width: 517,
+      height: 771,
+      settings: { tool: 'emotion', mood: 'sad', toolPrompt: 'tears', defry: 2, count: 2 },
+      sourceRecordId: 'rec-1',
+    });
+    expect(jobs.map((job) => job.variantIndex)).toEqual([1, 2]);
+    expect(jobs[0]).toMatchObject({
+      kind: 'augment',
+      projectId: 'free',
+      emotionId: '',
+      prompt: '',
+      seed: 0,
+      canvasWidth: 517,
+      canvasHeight: 771,
+      mood: 'sad',
+      toolPrompt: 'tears',
+      defry: 2,
+      sourceRecordId: 'rec-1',
+    });
+    expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+    const lineart = buildFreeAugmentJobs({
+      image,
+      width: 64,
+      height: 64,
+      settings: { tool: 'lineart', mood: 'happy', toolPrompt: '', defry: 0, count: 1 },
+    });
+    expect(lineart[0].mood).toBeUndefined();
+  });
+
+  it('디렉터 툴 모드와 설정을 읽고, 잘못된 설정은 버려', () => {
+    const library = createDefaultLibrary();
+    const parsed = librarySchema.parse({
+      ...library,
+      freeGeneration: {
+        ...library.freeGeneration,
+        mode: 'augment',
+        augment: { tool: 'colorize', mood: 'happy', toolPrompt: 'red', defry: 1, count: 3 },
+      },
+    });
+    expect(parsed.freeGeneration.mode).toBe('augment');
+    expect(parsed.freeGeneration.augment?.tool).toBe('colorize');
+    const broken = librarySchema.parse({
+      ...library,
+      freeGeneration: { ...library.freeGeneration, augment: { tool: 'nope' } },
+    });
+    expect(broken.freeGeneration.augment).toBeUndefined();
   });
 });
 

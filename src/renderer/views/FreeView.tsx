@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { effectiveGenerationSettings, FREE_PROJECT_ID } from '../../core/model/defaults';
+import {
+  DEFAULT_GENERATION_SETTINGS,
+  effectiveGenerationSettings,
+  FREE_PROJECT_ID,
+} from '../../core/model/defaults';
+import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
-import { generateFree } from '../actions';
+import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
+import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
@@ -18,7 +24,7 @@ import { PresetNumberRow } from '../components/PresetNumberRow';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { ExpandTextButton } from '../components/TextEditorDialog';
-import { NumberField } from '../components/ui';
+import { NumberField, Toggle } from '../components/ui';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { fileApi, libraryApi } from '../desktop';
 import {
@@ -26,17 +32,13 @@ import {
   loadFreeImageFromFile,
   makeReferenceFromRecord,
   saveFreeMask,
+  sendToFreeDirector,
   sendToFreeImg2Img,
   setFreeMask,
   sourceDataUrl,
   sourceMedia,
 } from '../freeImageOps';
-import {
-  deleteResults,
-  deleteShownResult,
-  openDirectorToolDialog,
-  openImg2ImgDialog,
-} from '../generationOps';
+import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import { decodeMask, loadHtmlImage } from '../lib/image';
 import {
   projectMedia,
@@ -120,14 +122,15 @@ function FreeMaskCanvas({ image }: { image: FreeImage }) {
 
 /**
  * i2i로 다시 그릴 이미지, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅), 그 방식의 강도·노이즈. i2i에만
- * 쓰는 입력을 한 카드에 모은다.
+ * 쓰는 입력을 한 카드에 모은다. 디렉터 툴 모드도 같은 이미지를 쓰고, 이미지 칸만 보인다.
  */
 function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Preset }) {
   const { image } = free;
+  const director = free.mode === 'augment';
   return (
     <section className="detail-card free-source">
       <div className="detail-card-head">
-        <b>i2i 이미지</b>
+        <b>{director ? '디렉터 툴 이미지' : 'i2i 이미지'}</b>
         {image && (
           <button className="link-button" onClick={clearFreeImage}>
             비우기
@@ -145,31 +148,36 @@ function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Prese
             ? `${image.name} · ${image.outputRect.width}×${image.outputRect.height}`
             : '아직 고르지 않았습니다'}
           <br />
-          결과의 「자유 생성 i2i」로 보내거나 파일에서 불러옵니다.
+          {director
+            ? '결과의 「이 결과로 디렉터 툴」로 보내거나 파일에서 불러옵니다.'
+            : '결과의 「자유 생성 i2i」로 보내거나 파일에서 불러옵니다.'}
         </span>
       </div>
       <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
         <Icon name="plus" size={14} /> 파일에서 불러오기
       </button>
-      <div className="segmented free-source-mode" role="group" aria-label="다시 그릴 범위">
-        <button
-          className={free.inpaint ? '' : 'active'}
-          aria-pressed={!free.inpaint}
-          title="이미지 전체를 강도만큼 다시 그립니다"
-          onClick={() => updateFreeGeneration({ inpaint: false })}
-        >
-          <Icon name="refresh" size={14} /> 전체 다시 그리기
-        </button>
-        <button
-          className={free.inpaint ? 'active' : ''}
-          aria-pressed={free.inpaint}
-          title="가운데 이미지에 마스크로 칠한 곳만 다시 그립니다"
-          onClick={() => updateFreeGeneration({ inpaint: true })}
-        >
-          <Icon name="brush" size={14} /> 인페인팅
-        </button>
-      </div>
+      {!director && (
+        <div className="segmented free-source-mode" role="group" aria-label="다시 그릴 범위">
+          <button
+            className={free.inpaint ? '' : 'active'}
+            aria-pressed={!free.inpaint}
+            title="이미지 전체를 강도만큼 다시 그립니다"
+            onClick={() => updateFreeGeneration({ inpaint: false })}
+          >
+            <Icon name="refresh" size={14} /> 전체 다시 그리기
+          </button>
+          <button
+            className={free.inpaint ? 'active' : ''}
+            aria-pressed={free.inpaint}
+            title="가운데 이미지에 마스크로 칠한 곳만 다시 그립니다"
+            onClick={() => updateFreeGeneration({ inpaint: true })}
+          >
+            <Icon name="brush" size={14} /> 인페인팅
+          </button>
+        </div>
+      )}
       {preset &&
+        !director &&
         (free.inpaint ? (
           <PresetNumberRow preset={preset} field="inpaintStrength" />
         ) : (
@@ -186,7 +194,10 @@ function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Prese
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, character, promptSet } = resolveFreeGeneration(library);
-  const image = free.mode === 'img2img' ? free.image : undefined;
+  const director = free.mode === 'augment';
+  const augment = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
+  const image = free.mode === 'txt2img' ? undefined : free.image;
+  const [shrink, setShrink] = useState(true);
   const allRecords = useStore((state) => state.generations[FREE_PROJECT_ID]) ?? NO_RECORDS;
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
@@ -256,37 +267,60 @@ export function FreeView() {
   const promptPosition =
     free.promptPosition === 'character-end' && hasCharacterPrompt ? 'character-end' : 'common-end';
   const generation = preset && effectiveGenerationSettings(preset.generation);
-  const costJob = generation && {
-    kind: inpainting ? ('inpaint' as const) : free.mode,
-    strength: generation.img2imgStrength,
-    settings: generation,
-    canvasWidth: image?.width ?? generation.width,
-    canvasHeight: image?.height ?? generation.height,
-  };
-  const estimate = costJob ? estimateJobAnlas(costJob, token) * free.count : undefined;
+  const directorSize = image && directorToolSize(image.outputRect, shrink);
+  const oversized = Boolean(
+    image && image.outputRect.width * image.outputRect.height > 1024 * 1024,
+  );
+  const costJob = director
+    ? directorSize && {
+        kind: 'augment' as const,
+        tool: augment.tool,
+        settings: DEFAULT_GENERATION_SETTINGS,
+        canvasWidth: directorSize.width,
+        canvasHeight: directorSize.height,
+      }
+    : generation && {
+        kind: inpainting ? ('inpaint' as const) : free.mode,
+        strength: generation.img2imgStrength,
+        settings: generation,
+        canvasWidth: image?.width ?? generation.width,
+        canvasHeight: image?.height ?? generation.height,
+      };
+  const runs = director ? augment.count : free.count;
+  const sourceLabel = director ? '디렉터 툴 이미지' : 'i2i 이미지';
+  const estimate = costJob ? estimateJobAnlas(costJob, token) * runs : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const inpaintModelMissing = inpainting && preset && !supportsInpaint(preset.generation.model);
-  const canGenerate =
-    Boolean(preset) &&
-    Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
-    (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
+  const canGenerate = director
+    ? Boolean(image)
+    : Boolean(preset) &&
+      Boolean(free.prompt.trim() || promptSet?.positive.trim()) &&
+      (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
+
+  // 디렉터 툴 결과에는 프롬프트와 seed가 없어 다시 생성·프롬프트 복원을 뺀다.
+  const promptActions = (record: GenerationSummary): ResultAction[] =>
+    record.kind === 'augment'
+      ? []
+      : [
+          {
+            label: '이 seed로 다시',
+            icon: 'refresh',
+            group: 'main',
+            title: '지금 프롬프트와 이 결과의 seed로 다시 생성',
+            onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
+          },
+          {
+            label: '프롬프트 복원',
+            icon: 'undo',
+            group: 'main',
+            title: '이 결과를 만들 때 입력한 프롬프트로 되돌립니다',
+            disabled: record.emotionPrompt === free.prompt,
+            onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
+          },
+        ];
 
   const resultActions = (record: GenerationSummary): ResultAction[] => [
-    {
-      label: '이 seed로 다시',
-      icon: 'refresh',
-      group: 'main',
-      title: '지금 프롬프트와 이 결과의 seed로 다시 생성',
-      onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
-    },
-    {
-      label: '프롬프트 복원',
-      icon: 'undo',
-      group: 'main',
-      title: '이 결과를 만들 때 입력한 프롬프트로 되돌립니다',
-      disabled: record.emotionPrompt === free.prompt,
-      onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
-    },
+    ...promptActions(record),
     {
       label: 'i2i로 보내기',
       icon: 'upscale',
@@ -295,12 +329,12 @@ export function FreeView() {
       onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
     },
     {
-      label: '디렉터 툴',
+      label: '이 결과로 디렉터 툴',
       icon: 'wand',
       group: 'send',
-      title:
-        'Emotion(표정 바꾸기)·배경 제거·Declutter 같은 NovelAI 디렉터 툴을 이 결과에 적용합니다',
-      onSelect: () => openDirectorToolDialog(FREE_PROJECT_ID, [record]),
+      title: '이 결과를 디렉터 툴 이미지로 정해 Emotion·배경 제거·Declutter 같은 툴을 적용합니다',
+      onSelect: () =>
+        void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
     },
     {
       label: '이 결과로 i2i',
@@ -358,7 +392,11 @@ export function FreeView() {
       empty={
         <div className="stage-empty">
           <p>아직 생성된 이미지가 없습니다.</p>
-          <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
+          <p className="hint">
+            {director
+              ? '오른쪽에서 이미지와 툴을 고른 뒤 적용'
+              : '오른쪽에서 프롬프트 입력 후 생성'}
+          </p>
         </div>
       }
       overlay={
@@ -382,6 +420,11 @@ export function FreeView() {
             [
               ['txt2img', '일반 생성', '프롬프트로만 그립니다'],
               ['img2img', 'i2i', '고른 이미지를 다시 그리거나, 칠한 곳만 다시 그립니다'],
+              [
+                'augment',
+                '디렉터 툴',
+                '고른 이미지에 Emotion·배경 제거 같은 NovelAI 디렉터 툴을 적용합니다',
+              ],
             ] as const
           ).map(([mode, label, title]) => (
             <button
@@ -409,26 +452,28 @@ export function FreeView() {
           <Icon name="folder" size={14} /> 폴더
         </button>
       </header>
-      <div className="chain-bar">
-        <ChecklistChip
-          section="presets"
-          itemId={preset?.id}
-          missing={!preset}
-          value={preset?.name ?? '(없음)'}
-          items={library.presets}
-          checked={preset ? [preset.id] : []}
-          onPick={(presetId) => updateFreeGeneration({ presetId })}
-          editSection="presets"
-        />
-        <CharacterChip
-          slots={free.characters}
-          optional
-          max={maxCharactersFor(preset?.generation.model)}
-          onChange={(characters) => updateFreeGeneration({ characters })}
-        />
-        <PositionChip target="free" />
-        {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
-      </div>
+      {!director && (
+        <div className="chain-bar">
+          <ChecklistChip
+            section="presets"
+            itemId={preset?.id}
+            missing={!preset}
+            value={preset?.name ?? '(없음)'}
+            items={library.presets}
+            checked={preset ? [preset.id] : []}
+            onPick={(presetId) => updateFreeGeneration({ presetId })}
+            editSection="presets"
+          />
+          <CharacterChip
+            slots={free.characters}
+            optional
+            max={maxCharactersFor(preset?.generation.model)}
+            onChange={(characters) => updateFreeGeneration({ characters })}
+          />
+          <PositionChip target="free" />
+          {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
+        </div>
+      )}
       {inpaintModelMissing && (
         <div className="missing-banner">
           ⚠ {modelLabel(preset.generation.model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서
@@ -447,8 +492,8 @@ export function FreeView() {
                     aria-pressed={stage === 'source'}
                     onClick={() => setStage('source')}
                   >
-                    <Icon name={free.inpaint ? 'brush' : 'reference'} size={14} />
-                    {free.inpaint ? '마스크 칠하기' : 'i2i 이미지'}
+                    <Icon name={inpainting ? 'brush' : director ? 'wand' : 'reference'} size={14} />
+                    {inpainting ? '마스크 칠하기' : sourceLabel}
                   </button>
                   <button
                     className={stage === 'result' ? 'active' : ''}
@@ -460,7 +505,7 @@ export function FreeView() {
                 </div>
               )}
               {showSource && image ? (
-                free.inpaint ? (
+                inpainting ? (
                   <div className="free-mask-stage">
                     <FreeMaskCanvas key={image.file} image={image} />
                   </div>
@@ -471,8 +516,8 @@ export function FreeView() {
                 <div className="compare-stage">
                   <ImageStage
                     src={sourceMedia(image.file)}
-                    alt="i2i 이미지"
-                    overlay={<span className="stage-label">i2i 이미지</span>}
+                    alt={sourceLabel}
+                    overlay={<span className="stage-label">{sourceLabel}</span>}
                   />
                   {resultStage}
                 </div>
@@ -547,72 +592,105 @@ export function FreeView() {
             </section>
 
             <aside className="detail-side">
-              {free.mode === 'img2img' && <FreeImagePanel free={free} preset={preset} />}
-              <label className="prompt-field">
-                <span>
-                  프롬프트
-                  <span className="prompt-field-tools">
-                    <ExpandTextButton
-                      title="자유 생성 프롬프트"
+              {free.mode !== 'txt2img' && <FreeImagePanel free={free} preset={preset} />}
+              {director ? (
+                <section className="detail-card">
+                  <div className="detail-card-head">
+                    <b>디렉터 툴</b>
+                  </div>
+                  <DirectorToolFields
+                    value={augment}
+                    onChange={(patch) =>
+                      updateFreeGeneration({ augment: { ...augment, ...patch } })
+                    }
+                  />
+                  {oversized && (
+                    <Toggle
+                      label="무료 면적(1024×1024)을 넘으니 비율을 지켜 줄여 보내기"
+                      checked={shrink}
+                      onChange={setShrink}
+                    />
+                  )}
+                  {augment.tool === 'bg-removal' && (
+                    <BgRemovalWarning results={augment.count * 3} />
+                  )}
+                  <p className="hint">
+                    {augment.tool === 'emotion' &&
+                      '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. 같은 설정이어도 매번 조금씩 다르게 나옵니다. '}
+                    생성 설정과 캐릭터는 쓰지 않습니다.
+                  </p>
+                </section>
+              ) : (
+                <>
+                  <label className="prompt-field">
+                    <span>
+                      프롬프트
+                      <span className="prompt-field-tools">
+                        <ExpandTextButton
+                          title="자유 생성 프롬프트"
+                          value={free.prompt}
+                          placeholder="예: sitting, cafe, window, warm lighting"
+                          onApply={(prompt) => updateFreeGeneration({ prompt })}
+                        />
+                      </span>
+                    </span>
+                    <PromptTextarea
+                      rows={8}
                       value={free.prompt}
                       placeholder="예: sitting, cafe, window, warm lighting"
-                      onApply={(prompt) => updateFreeGeneration({ prompt })}
+                      onChange={(prompt) => updateFreeGeneration({ prompt })}
                     />
-                  </span>
-                </span>
-                <PromptTextarea
-                  rows={8}
-                  value={free.prompt}
-                  placeholder="예: sitting, cafe, window, warm lighting"
-                  onChange={(prompt) => updateFreeGeneration({ prompt })}
-                />
-              </label>
-              <div className="prompt-position">
-                <span>붙일 위치</span>
-                <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
-                  {(['common-end', 'character-end'] as const).map((value) => {
-                    const blocked = value === 'character-end' && !hasCharacterPrompt;
-                    return (
-                      <button
-                        key={value}
-                        className={promptPosition === value ? 'active' : ''}
-                        aria-pressed={promptPosition === value}
-                        disabled={blocked}
-                        title={
-                          blocked
-                            ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
-                            : value === 'character-end'
-                              ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
-                              : undefined
-                        }
-                        onClick={() => updateFreeGeneration({ promptPosition: value })}
-                      >
-                        {PROMPT_POSITIONS[value]}
-                      </button>
-                    );
-                  })}
-                </span>
-              </div>
-              <p className="hint">
-                생성 설정의 공통 프롬프트{character ? `와 ${character.name}의 캐릭터 프롬프트` : ''}
-                에 더해 보냅니다.
-              </p>
+                  </label>
+                  <div className="prompt-position">
+                    <span>붙일 위치</span>
+                    <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
+                      {(['common-end', 'character-end'] as const).map((value) => {
+                        const blocked = value === 'character-end' && !hasCharacterPrompt;
+                        return (
+                          <button
+                            key={value}
+                            className={promptPosition === value ? 'active' : ''}
+                            aria-pressed={promptPosition === value}
+                            disabled={blocked}
+                            title={
+                              blocked
+                                ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
+                                : value === 'character-end'
+                                  ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
+                                  : undefined
+                            }
+                            onClick={() => updateFreeGeneration({ promptPosition: value })}
+                          >
+                            {PROMPT_POSITIONS[value]}
+                          </button>
+                        );
+                      })}
+                    </span>
+                  </div>
+                  <p className="hint">
+                    생성 설정의 공통 프롬프트
+                    {character ? `와 ${character.name}의 캐릭터 프롬프트` : ''}에 더해 보냅니다.
+                  </p>
+                </>
+              )}
 
               <div className="generate-dock">
-                <NumberField
-                  label="장수"
-                  value={free.count}
-                  min={1}
-                  max={20}
-                  integer
-                  onChange={(count) => updateFreeGeneration({ count })}
-                />
+                {!director && (
+                  <NumberField
+                    label="장수"
+                    value={free.count}
+                    min={1}
+                    max={20}
+                    integer
+                    onChange={(count) => updateFreeGeneration({ count })}
+                  />
+                )}
                 <button
                   className="generate-button"
                   disabled={!canGenerate || Boolean(busy)}
-                  onClick={() => void generateFree()}
+                  onClick={() => void (director ? runFreeDirectorTool(shrink) : generateFree())}
                 >
-                  ▶ {free.count}장 생성
+                  {director ? `▶ ${runs}번 적용` : `▶ ${free.count}장 생성`}
                 </button>
                 {estimate !== undefined && (
                   <p

@@ -393,7 +393,8 @@ export function GalleryView({
           />
         ))}
         <button className="emotion-card add-card" onClick={addAndOpen}>
-          <span>＋</span>씬 추가
+          <span className="add-card-thumb">＋</span>
+          <footer>씬 추가</footer>
         </button>
       </div>
       {selection.boxElement}

@@ -80,7 +80,13 @@ export type PreparedImage = { imagePath: string; imageSha256: string };
 export type StoredSource = { file: string; width: number; height: number; outputRect: Rect };
 
 /** 자유 생성 i2i의 `sources/` 이미지(와 인페인팅 마스크)를 작업 입력으로 복사해 달라는 요청. */
-export type SourceInputRequest = { projectId: string; file: string; maskFile?: string };
+export type SourceInputRequest = {
+  projectId: string;
+  file: string;
+  maskFile?: string;
+  /** 마스크 없이 보낼 때 이 영역만 잘라(여백 빼기) 이 크기로 맞춘다. 디렉터 툴이 쓴다. */
+  crop?: { rect: Rect; width: number; height: number };
+};
 
 export type PreparedSourceInput = PreparedImage & {
   mask?: Pick<PreparedInputs, 'maskPath' | 'maskSha256'>;

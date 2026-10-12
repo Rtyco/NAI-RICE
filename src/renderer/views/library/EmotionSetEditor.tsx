@@ -9,8 +9,6 @@ import {
   updateEmotion,
   withExtraPrompt,
 } from '../../../core/model/mutations';
-import { moodLabel, suggestMood } from '../../../core/providers/NaiAugment';
-import { MoodSelect, StrengthSelect } from '../../components/MoodFields';
 import { Card, Menu } from '../../components/ui';
 import { toast, updateLibrary, useLibrary } from '../../store';
 import { PromptTextarea } from '../../components/PromptTextarea';
@@ -136,49 +134,6 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
           </div>
         ))}
         {!set.emotions.length && <p className="hint">씬이 없습니다.</p>}
-      </div>
-    </Card>
-  );
-}
-
-/** 대표 이미지 한 장으로 씬 표정 세트를 만들 때(Emotion 툴) 씬마다 쓰는 표정과 강도. */
-export function EmotionMoodEditor({ set }: { set: EmotionSet }) {
-  const save = (recipe: (item: EmotionSet) => EmotionSet) =>
-    updateLibrary((current) => patchItem(current, 'emotionSets', set.id, recipe));
-  if (!set.emotions.length) return null;
-  return (
-    <Card
-      title="Emotion 툴 표정"
-      subtitle="대표 이미지 한 장으로 씬마다 표정만 바꾼 세트를 만들 때 씁니다 · 비워 두면 씬 이름으로 추천합니다"
-    >
-      <div className="mood-table">
-        {set.emotions.map((emotion) => {
-          const suggested = suggestMood(emotion.name);
-          return (
-            <div className="mood-table-row" key={emotion.id}>
-              <span className="mood-scene">{emotion.name || '(이름 없음)'}</span>
-              <MoodSelect
-                value={emotion.augmentMood ?? ''}
-                label={`${emotion.name} 표정`}
-                emptyLabel={suggested ? `추천: ${moodLabel(suggested)}` : '고르지 않음'}
-                onChange={(mood) =>
-                  save((item) =>
-                    updateEmotion(item, emotion.id, { augmentMood: mood || undefined }),
-                  )
-                }
-              />
-              <StrengthSelect
-                value={emotion.augmentDefry ?? 0}
-                label={`${emotion.name} 강도`}
-                onChange={(defry) =>
-                  save((item) =>
-                    updateEmotion(item, emotion.id, { augmentDefry: defry || undefined }),
-                  )
-                }
-              />
-            </div>
-          );
-        })}
       </div>
     </Card>
   );

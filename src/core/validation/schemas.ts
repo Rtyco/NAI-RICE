@@ -264,6 +264,15 @@ function readFreeInpaintMode(value: unknown): unknown {
   };
 }
 
+export const augmentToolSchema = z.enum([
+  'emotion',
+  'bg-removal',
+  'declutter',
+  'lineart',
+  'sketch',
+  'colorize',
+]);
+
 export const librarySchema = z.object({
   schemaVersion: z.literal(2),
   settings: appSettingsSchema,
@@ -282,7 +291,7 @@ export const librarySchema = z.object({
         positionMode: z.enum(['ai', 'manual']).catch('ai'),
         prompt: z.string(),
         count: z.number().int().min(1).max(20),
-        mode: z.enum(['txt2img', 'img2img']).catch('txt2img'),
+        mode: z.enum(['txt2img', 'img2img', 'augment']).catch('txt2img'),
         image: z
           .object({
             name: z.string(),
@@ -295,6 +304,16 @@ export const librarySchema = z.object({
           })
           .optional(),
         inpaint: z.boolean().default(false),
+        augment: z
+          .object({
+            tool: augmentToolSchema,
+            mood: z.string().min(1).max(40),
+            toolPrompt: z.string(),
+            defry: z.number().int().min(0).max(5),
+            count: z.number().int().min(1).max(4),
+          })
+          .optional()
+          .catch(undefined),
         // 이 설정이 생기기 전에는 늘 공통 포지티브 끝에 붙였다.
         promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
       }),
@@ -313,15 +332,6 @@ export const librarySchema = z.object({
 });
 
 export const generationKindSchema = z.enum(['inpaint', 'txt2img', 'img2img', 'augment']);
-
-export const augmentToolSchema = z.enum([
-  'emotion',
-  'bg-removal',
-  'declutter',
-  'lineart',
-  'sketch',
-  'colorize',
-]);
 
 const augmentInfoSchema = z.object({
   tool: augmentToolSchema,

@@ -527,15 +527,21 @@ textarea {
   color: var(--green-text);
   font-size: 12px;
 }
+/* 씬 카드와 같은 모양(카드 비율의 칸 + 아래 줄)이라, 높이를 따로 잡아 그 줄의 카드를 늘리지 않는다. */
 .add-card {
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
+  padding: 0;
   border-style: dashed;
   color: var(--muted);
 }
-.add-card span {
+.add-card-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: var(--thumb-aspect, 832 / 1216);
   font-size: 28px;
+}
+.add-card footer {
+  justify-content: center;
+  border-top-style: dashed;
 }
 
 /* ── 감정 상세 ───────────────────────────────── */
@@ -1804,6 +1810,14 @@ textarea.syntax-input::selection {
 .director-tools .hint {
   margin: 0;
 }
+.director-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.director-prompt {
+  margin-bottom: 8px;
+}
 .mood-table {
   display: flex;
   flex-direction: column;
@@ -1850,6 +1864,7 @@ textarea.syntax-input::selection {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 120px;
   gap: 8px;
+  align-items: start;
 }
 .scene-set .mood-table {
   margin-bottom: 10px;

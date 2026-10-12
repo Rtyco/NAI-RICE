@@ -270,9 +270,11 @@ export type FreeGeneration = {
   prompt: string;
   /** 한 번에 만들 장수. 한 장씩 따로 요청해 Opus 무료 범위를 지킨다. */
   count: number;
-  mode: 'txt2img' | 'img2img';
-  /** i2i로 다시 그릴 이미지. */
+  mode: 'txt2img' | 'img2img' | 'augment';
+  /** i2i로 다시 그리거나 디렉터 툴을 적용할 이미지. */
   image?: FreeImage;
+  /** 디렉터 툴 모드의 설정. 비어 있으면 기본값(`DEFAULT_AUGMENT_SETTINGS`)이다. */
+  augment?: AugmentSettings;
   /** i2i에서 마스크로 칠한 곳만 다시 그린다(인페인팅). 끄면 이미지 전체를 i2i한다. */
   inpaint: boolean;
   /** 입력한 프롬프트를 붙일 곳. 캐릭터 프롬프트가 비어 있으면 공통 포지티브 끝에 붙인다. */
@@ -317,6 +319,18 @@ export type GenerationKind = 'inpaint' | 'txt2img' | 'img2img' | 'augment';
 /** 디렉터 툴 종류. NovelAI `augment-image`의 `req_type` 값이다. */
 export type AugmentTool =
   'emotion' | 'bg-removal' | 'declutter' | 'lineart' | 'sketch' | 'colorize';
+
+/** 디렉터 툴에 고른 값. 디렉터 툴 창과 자유 생성의 디렉터 툴이 쓴다. */
+export type AugmentSettings = {
+  tool: AugmentTool;
+  /** Emotion 툴의 표정(NovelAI 값). */
+  mood: string;
+  /** Emotion·Colorize에 덧붙이는 프롬프트. */
+  toolPrompt: string;
+  defry: number;
+  /** 한 번에 보낼 횟수. */
+  count: number;
+};
 
 /** 디렉터 툴 결과에 남기는 툴 설정. */
 export type AugmentInfo = {
