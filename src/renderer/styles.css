@@ -1250,6 +1250,9 @@ textarea.syntax-input::selection {
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  /* 입력 한 번에 목록의 모든 행을 다시 배치했다(씬 40개에서 약 2.7ms). 화면 밖 행은 건너뛴다. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 130px;
 }
 .piece-row-head {
   display: flex;
