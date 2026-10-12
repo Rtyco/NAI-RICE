@@ -1,10 +1,6 @@
 import type { MenuItem } from './ContextMenu';
 
-/**
- * 사이드바 작업 목록과 라이브러리 목록이 함께 쓰는 우클릭 메뉴. 여러 개를 고른 채 그 중 하나에서 우클릭하면
- * 묶기와 삭제는 고른 것 모두에 한다.
- */
-export function listMenu(actions: {
+export type ListMenuActions = {
   open: () => void;
   /** 비어 있으면 이름 변경을 막는다(사이드바를 접었을 때). */
   rename?: () => void;
@@ -20,7 +16,13 @@ export function listMenu(actions: {
   group?: () => void;
   /** 폴더 안의 항목일 때만 준다. */
   ungroup?: () => void;
-}): MenuItem[] {
+};
+
+/**
+ * 사이드바 작업 목록과 라이브러리 목록이 함께 쓰는 우클릭 메뉴. 여러 개를 고른 채 그 중 하나에서 우클릭하면
+ * 묶기와 삭제는 고른 것 모두에 한다.
+ */
+export function listMenu(actions: ListMenuActions): MenuItem[] {
   return [
     { label: '열기', onSelect: actions.open },
     { label: '이름 변경', disabled: !actions.rename, onSelect: () => actions.rename?.() },

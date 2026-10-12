@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Library, Project } from '../../core/domain/types';
 import {
@@ -21,7 +21,6 @@ import {
   ungroupFolder,
 } from '../../core/model/folders';
 import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
-import { useRenameRequest } from '../renameRequest';
 import { SECTIONS } from '../sections';
 import {
   openFree,
@@ -31,18 +30,17 @@ import {
   toggleFolder,
   toggleSidebarSection,
   updateLibrary,
+  updateProject,
   useLibrary,
   useStore,
   type SidebarSection,
 } from '../store';
-import { showContextMenu } from './ContextMenu';
 import { Modal, openDialog } from './Dialogs';
 import { Icon, type IconName } from './Icon';
-import { focusAndSelect } from './focusAndSelect';
 import { useBoxSelection } from './useBoxSelection';
-import { dragPayload, readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
-import { listMenu } from './listMenu';
+import { dragPayload } from './listDrag';
 import { ListFolder } from './ListFolder';
+import { ListRow } from './ListRow';
 import { folderKey, useFoldedFolders, useGroupTarget } from './listFolders';
 
 const NEW = '__new__';
@@ -167,168 +165,6 @@ export function NewProjectDialog({ close }: { close: () => void }) {
   );
 }
 
-function ProjectRow(props: {
-  project: Project;
-  collapsed: boolean;
-  active: boolean;
-  busy?: number;
-  avatar?: string;
-  subtitle: string;
-  dragging: string[];
-  /** 끌기를 시작할 때 옮길 작업들을 정한다(고른 작업 중 하나를 끌면 고른 것 모두). */
-  startDrag: (id: string) => DragPayload;
-  endDrag: () => void;
-  /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
-  picked: boolean;
-  /** 지금 고른 작업 수. 고른 작업에서 우클릭하면 삭제를 한꺼번에 한다. */
-  pickedCount: number;
-  removePicked: () => void;
-  /** 이 작업(고른 작업 중 하나면 고른 것 모두)을 새 폴더로 묶는다. */
-  group: () => void;
-  /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
-  onPick: (event: MouseEvent) => boolean;
-}) {
-  const { project, collapsed } = props;
-  const [over, setOver] = useState(false);
-  const [renaming, setRenamingState] = useState(false);
-  // 엔터·Esc로 끝낸 뒤 따라오는 blur가 다시 저장하지 않게 한다.
-  const editing = useRef(false);
-  const setRenaming = (value: boolean) => {
-    editing.current = value;
-    setRenamingState(value);
-  };
-  useRenameRequest(Boolean(props.active) && !collapsed, () => setRenaming(true));
-
-  const commitName = (value: string) => {
-    if (!editing.current) return;
-    setRenaming(false);
-    const name = value.trim();
-    if (name && name !== project.name)
-      updateLibrary((current) => ({
-        ...current,
-        projects: current.projects.map((item) =>
-          item.id === project.id ? { ...item, name, updatedAt: new Date().toISOString() } : item,
-        ),
-      }));
-  };
-
-  const avatar = (
-    <span className="avatar">
-      {props.avatar ? (
-        <img src={props.avatar} alt="" draggable={false} />
-      ) : (
-        project.name.slice(0, 1)
-      )}
-    </span>
-  );
-
-  return (
-    <div
-      className={`library-item project-row ${props.active ? 'selected' : ''} ${props.picked ? 'picked' : ''} ${over ? 'drop-target' : ''} ${props.dragging.includes(project.id) ? 'dragging' : ''}`}
-      data-select-id={collapsed ? undefined : project.id}
-      draggable={!renaming}
-      onContextMenu={(event) =>
-        showContextMenu(
-          event,
-          listMenu({
-            open: () => openProject(project.id),
-            rename: collapsed ? undefined : () => setRenaming(true),
-            duplicate: () => duplicateProject(project),
-            folder: () => openProjectFolder(project.id),
-            remove: () => void deleteProject(project),
-            pickedCount: props.picked ? props.pickedCount : 0,
-            removePicked: props.removePicked,
-            group: collapsed ? undefined : props.group,
-            ungroup:
-              collapsed || !project.folder
-                ? undefined
-                : () =>
-                    updateLibrary((current) =>
-                      setFolder(current, 'projects', [project.id], undefined),
-                    ),
-          }),
-        )
-      }
-      onDragStart={(event) => writeDragPayload(event, DRAG_TYPE, props.startDrag(project.id))}
-      onDragEnd={props.endDrag}
-      onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
-        event.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(event) => {
-        const payload = readDragPayload(event, DRAG_TYPE);
-        setOver(false);
-        if (!payload || payload.ids.includes(project.id)) return;
-        event.preventDefault();
-        event.stopPropagation();
-        updateLibrary((current) =>
-          moveNextTo(
-            current,
-            'projects',
-            payload.ids,
-            payload.grabbed,
-            project.id,
-            Boolean(payload.folder),
-          ),
-        );
-      }}
-    >
-      {renaming ? (
-        <div className="library-item-main project-item">
-          {avatar}
-          <span className="project-meta">
-            <input
-              className="library-item-rename"
-              defaultValue={project.name}
-              aria-label="작업 이름"
-              ref={focusAndSelect}
-              onBlur={(event) => commitName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') commitName(event.currentTarget.value);
-                if (event.key === 'Escape') setRenaming(false);
-              }}
-            />
-            <small>{props.subtitle}</small>
-          </span>
-        </div>
-      ) : (
-        <button
-          className="library-item-main project-item"
-          title={
-            collapsed
-              ? project.name
-              : '두 번 클릭: 이름 변경 · 끌어서 순서 변경 · Ctrl·Shift 클릭: 여러 개 선택'
-          }
-          onClick={(event) => {
-            if (collapsed || !props.onPick(event)) openProject(project.id);
-          }}
-          onDoubleClick={() => !collapsed && setRenaming(true)}
-        >
-          {avatar}
-          {!collapsed && (
-            <span className="project-meta">
-              <b>{project.name || '(이름 없음)'}</b>
-              <small>{props.subtitle}</small>
-            </span>
-          )}
-          {props.busy ? <span className="pill busy">{props.busy}</span> : null}
-        </button>
-      )}
-      {!collapsed && !renaming && (
-        <button
-          className="icon-button danger item-actions"
-          title="작업 삭제"
-          onClick={() => void deleteProject(project)}
-        >
-          <Icon name="trash" size={14} />
-        </button>
-      )}
-    </div>
-  );
-}
-
 function projectAvatar(library: Library, project: Project): string | undefined {
   const reference = library.references.find((item) => item.id === project.referenceId);
   return reference?.image
@@ -439,16 +275,27 @@ export function Sidebar() {
 
   const renderProject = (project: Project) => {
     const picked = !collapsed && selection.isSelected(project.id);
+    const busy = active.get(project.id);
+    const avatar = avatars[project.id];
     return (
-      <ProjectRow
+      <ListRow
         key={project.id}
-        project={project}
+        project
+        id={project.id}
+        name={project.name}
+        avatar={
+          <span className="avatar">
+            {avatar ? <img src={avatar} alt="" draggable={false} /> : project.name.slice(0, 1)}
+          </span>
+        }
+        subtitle={subtitles[project.id]}
+        badge={busy ? <span className="pill busy">{busy}</span> : null}
+        renameLabel="작업 이름"
+        deleteTitle="작업 삭제"
         collapsed={collapsed}
         active={view.kind === 'project' && view.projectId === project.id}
-        busy={active.get(project.id)}
-        avatar={avatars[project.id]}
-        subtitle={subtitles[project.id]}
-        dragging={dragging}
+        dragType={DRAG_TYPE}
+        dragging={dragging.includes(project.id)}
         startDrag={(id) => {
           const payload = dragPayload(
             id,
@@ -459,11 +306,34 @@ export function Sidebar() {
           return payload;
         }}
         endDrag={() => setDragging([])}
+        dropHere={(payload) =>
+          updateLibrary((current) =>
+            moveNextTo(
+              current,
+              'projects',
+              payload.ids,
+              payload.grabbed,
+              project.id,
+              Boolean(payload.folder),
+            ),
+          )
+        }
         picked={picked}
-        pickedCount={selection.selected.size}
-        removePicked={() => removeMany([...selection.selected])}
-        group={() => group(picked ? [...selection.selected] : [project.id])}
         onPick={(event) => selection.clickItem(event, project.id)}
+        open={() => openProject(project.id)}
+        rename={(name) => updateProject(project.id, (current) => ({ ...current, name }))}
+        remove={() => void deleteProject(project)}
+        menu={{
+          duplicate: () => duplicateProject(project),
+          folder: () => openProjectFolder(project.id),
+          pickedCount: selection.selected.size,
+          removePicked: () => removeMany([...selection.selected]),
+          group: () => group(picked ? [...selection.selected] : [project.id]),
+          ungroup: project.folder
+            ? () =>
+                updateLibrary((current) => setFolder(current, 'projects', [project.id], undefined))
+            : undefined,
+        }}
       />
     );
   };
