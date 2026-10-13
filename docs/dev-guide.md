@@ -50,7 +50,12 @@ src/renderer/              only window.referenceDesk    → electron/services/*
 - **The main process does not trust the renderer.** Generation and export requests are re-validated with zod and
   Anlas warnings are recomputed ([GenerationRequests.ts](../electron/services/GenerationRequests.ts)). IDs and file
   names become paths only through `Library` helpers (`FOLDER_ID`, `resolveInside`, `verifyReal` for links and
-  junctions). `Library` keeps each project's `generations.json` through `GenerationIndex` (parse cache + lock).
+  junctions).
+- **`Library` is the workspace:** it reads and saves `library.json` (with backups) and hands the rest to
+  `WorkspacePaths` (layout and path checks, its base class), `StoredFiles` (`references/<id>`, `pictures/`,
+  `sources/`, `vibes/`), `ProjectInputs` (hashed `inputs/`), `GenerationIndex` (`generations.json` with a parse
+  cache and lock) and `WorkspaceMaintenance` (trash staging, inspection, usage). `GenerationQueue` uses
+  `RequestPacer` (gap between NovelAI requests) and `VibeEncoder` (vibe encoding cache).
 - **Window hardening** ([main.ts](../electron/main.ts), [window.ts](../electron/window.ts)): sandboxed renderer,
   navigation blocked, only clipboard writes allowed among permission requests, packaged builds ignore
   `VITE_DEV_SERVER_URL`, Electron fuses off for run-as-node, `NODE_OPTIONS` and inspect.
@@ -116,7 +121,7 @@ Four places must agree for stored values:
 1. `src/core/domain/types.ts`: the field
 2. `src/core/validation/schemas.ts`: schema with `.default(...)` (old files lack the value)
 3. `src/core/model/defaults.ts`: the value for new items
-4. UI: `views/library/PresetEditor.tsx` for presets, `views/SettingsModal.tsx` for app settings
+4. UI: `views/library/PresetEditor.tsx` for presets, a tab under `views/settings/` for app settings
 
 If it goes into requests, also change `NovelAIRequestBuilder.ts` and its tests. Bump `schemaVersion` and add code
 to `src/core/backup/Migration.ts` only for incompatible format changes.
@@ -161,8 +166,11 @@ Model list, quality tags, UC preset text and per-model features are in
 
 ### Screens and shared parts
 
-- Views: `ProjectView` (gallery or scene detail), `FreeView`, `LibraryView` (+ `views/library/*Editor`),
-  `ReferenceEditor`, `SettingsModal`/`StorageTab`. Region names: [screens.md](screens.md).
+- Views: `ProjectView` (gallery or scene detail), `FreeView` (+ `views/free/` source panels), `LibraryView`
+  (+ `views/library/*Editor`), `ReferenceEditor`, `SettingsModal` (+ one file per tab in `views/settings/`).
+  Region names: [screens.md](screens.md).
+- Result screens (scene detail, free generation) share `useResultBrowser` (shown result, jump to new results,
+  picking, ←/→/Home/End, Ctrl+Shift+S, Delete) and `Filmstrip`.
 - Actions that call the main process live in plain modules, not components: `actions.ts` (generate),
   `generationOps.tsx`, `emotionOps.tsx`, `freeImageOps.ts`, `projectOps.tsx`, `importers.tsx`.
 - Lists: `ListRow` (one row of the sidebar project list and the library lists: rename, drag, context menu),

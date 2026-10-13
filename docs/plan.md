@@ -111,16 +111,15 @@ Stage 5: the user tried the director tools in the app on 2026-10-12 and they wor
   Security: export requests validated with zod (a format with `../` could write outside the chosen folder), only
   clipboard writes allowed among permission requests, packaged builds ignore `VITE_DEV_SERVER_URL`. Refactors:
   `ListRow` shared by the sidebar and library lists, `GenerationIndex` split out of `Library`.
+- **Refactoring backlog done (2026-10-13, user request):** `GenerationQueue` → `RequestPacer` + `VibeEncoder`;
+  `Library` → `WorkspacePaths`, `StoredFiles`, `ProjectInputs`, `WorkspaceMaintenance`; scene detail and free
+  generation share `useResultBrowser`/`Filmstrip`; settings tabs and free-generation panels in their own files;
+  `global-agent` overridden to 4.x (npm audit 0). UI refactors were checked with scripted runs and pixel
+  comparisons on a production build.
 
 ## Next
 
 No push yet; local commits only.
-
-0. Refactoring backlog from the 2026-10-13 review (none urgent): `EmotionDetail` and `FreeView` repeat result
-   browsing (newest auto-select, filmstrip picking, ←/→/Home/End/Delete/Ctrl+Shift+S) and could share a hook;
-   `FreeView.tsx` (~800 lines) and `SettingsModal.tsx` (~700) hold several components each; `Library` still mixes
-   reference images, pictures/sources/inputs and storage inspection; `GenerationQueue` also owns vibe encoding
-   (`vibeFor`). `npm audit` reports moderate issues only in dev tooling (sprintf-js under electron-builder).
 
 1. User checks with `npm run dev`: stage 4 (free-range i2i to settle the default strength, 0.3–0.5), stage 6 and
    stage 8 paid one-image tests (lists in those files), stage 7 (Effort Medium, two characters, positions).
