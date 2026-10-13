@@ -9,7 +9,7 @@ coverage/
 legacy/
 .cache/
 ForTest/
-docs/아카라이브-소개글.html
+docs/아카라이브-*.html
 
 # Local only: agent instructions and working notes
 AGENTS.md
