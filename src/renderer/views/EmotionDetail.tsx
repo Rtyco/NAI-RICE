@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { generateEmotions } from '../actions';
-import { Icon } from '../components/Icon';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
 import { PanelResizer } from '../components/PanelResizer';
+import { Filmstrip } from '../components/Filmstrip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
-import { useBoxSelection } from '../components/useBoxSelection';
+import { useResultBrowser } from '../components/useResultBrowser';
 import { Menu, NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import {
-  deleteResults,
   deleteShownResult,
   openDirectorToolDialog,
   openImg2ImgDialog,
@@ -39,13 +38,17 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   );
   const allRecords = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
-  const filmstripCollapsed = useStore((state) => state.filmstripCollapsed);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
-  const [selectedId, setSelectedId] = useState<string>();
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
   const favoriteId = project.favorites[emotion.id];
-  const selected =
-    records.find((record) => record.id === selectedId) ?? records.find((record) => record.id === favoriteId) ?? records[0];
+  const saveAs = (record: GenerationSummary) =>
+    void run('이미지를 저장하는 중', async () => {
+      const saved = await fileApi().saveImageAs(project.id, record.id, emotion.name, exportQuality);
+      if (saved) toast(`저장했습니다: ${saved}`);
+    });
+
+  const browser = useResultBrowser(project.id, records, { preferredId: favoriteId, saveAs });
+  const { selected, setSelectedId, picking } = browser;
   const index = set.emotions.findIndex((item) => item.id === emotion.id);
   const previous = set.emotions[index - 1];
   const next = set.emotions[index + 1];
@@ -56,24 +59,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const pending = sceneJobs.filter((job) => isActive(job.status)).length;
   const running = sceneJobs.filter((job) => job.status === 'generating').map((job) => job.id);
 
-  // 새 결과가 오면 그 결과를 보여 준다. 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니므로 그대로 둔다.
-  const newest = records[0];
-  const seenNewest = useRef(newest?.createdAt);
-  useEffect(() => {
-    if (newest && (!seenNewest.current || newest.createdAt > seenNewest.current)) setSelectedId(undefined);
-    seenNewest.current = newest?.createdAt;
-  }, [newest]);
-
-  const removeMany = (ids: string[]) =>
-    void deleteResults(
-      project.id,
-      records.filter((record) => ids.includes(record.id)),
-    );
-  const picking = useBoxSelection<HTMLDivElement>(
-    records.map((record) => record.id),
-    removeMany,
-    { selectAllKey: () => records.map((record) => record.id) },
-  );
   const pickedCount = picking.selected.size;
 
   useEffect(() => {
@@ -81,19 +66,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       if ((event.target as HTMLElement).closest('input, textarea, select')) return;
       // 여러 장을 고른 동안의 Esc는 선택만 푼다(useBoxSelection이 처리).
       if (event.key === 'Escape' && !pickedCount) openEmotion(undefined);
-      const position = records.findIndex((record) => record.id === selected?.id);
-      if (event.key === 'ArrowRight' && records[position + 1]) setSelectedId(records[position + 1].id);
-      if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
-      if (event.key === 'Home' && records.length) setSelectedId(records[0].id);
-      if (event.key === 'End' && records.length) setSelectedId(records[records.length - 1].id);
       const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
       const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
       if (plain && event.key.toLowerCase() === 'f' && selected && !dialogOpen)
         setFavorite(favoriteId === selected.id ? undefined : selected.id);
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's' && selected) {
-        event.preventDefault();
-        saveAs(selected);
-      }
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
       // 입력 칸 밖의 Tab은 포커스 이동 대신 씬을 넘긴다(Shift+Tab은 이전 씬). 마지막 씬에서는 그대로 둔다.
@@ -101,11 +77,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         event.preventDefault();
         const target = event.shiftKey ? previous : next;
         if (target) openEmotion(target.id);
-      }
-      // 여러 장을 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
-      if (event.key === 'Delete' && !pickedCount && selected && !document.querySelector('.modal-backdrop')) {
-        event.preventDefault();
-        void deleteShownResult(project.id, records, selected, setSelectedId);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -118,12 +89,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       if (generationId) favorites[emotion.id] = generationId;
       else delete favorites[emotion.id];
       return { ...current, favorites };
-    });
-
-  const saveAs = (record: GenerationSummary) =>
-    void run('이미지를 저장하는 중', async () => {
-      const saved = await fileApi().saveImageAs(project.id, record.id, emotion.name, exportQuality);
-      if (saved) toast(`저장했습니다: ${saved}`);
     });
 
   const resultActions = (record: GenerationSummary): ResultAction[] => [
@@ -269,66 +234,28 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
           {selected && (
             <ResultBar projectId={project.id} record={selected} actions={resultActions(selected)} />
           )}
-          {records.length > 0 && !filmstripCollapsed && (
-            <div
-              className="filmstrip selectable"
-              role="listbox"
-              aria-label="생성 기록"
-              aria-multiselectable
-              {...picking.containerProps}
-            >
-              {records.map((record) => (
+          <Filmstrip
+            projectId={project.id}
+            records={records}
+            browser={browser}
+            menu={resultActions}
+            favoriteId={favoriteId}
+            tools={
+              <>
+                <div className="header-spacer" />
                 <button
-                  key={record.id}
-                  role="option"
-                  data-select-id={record.id}
-                  aria-selected={record.id === selected?.id}
-                  className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
-                  onClick={(event) => {
-                    if (!picking.clickItem(event, record.id)) setSelectedId(record.id);
-                  }}
-                  onContextMenu={(event) => {
-                    setSelectedId(record.id);
-                    showResultMenu(event, resultActions(record));
-                  }}
-                  title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()} · Ctrl·Shift 클릭: 여러 장 선택`}
+                  className="link-button"
+                  onClick={() =>
+                    picking.selectAll(
+                      records.filter((record) => record.id !== favoriteId).map((record) => record.id),
+                    )
+                  }
                 >
-                  <img src={projectMedia(project.id, record.thumbFile ?? record.file)} alt="" loading="lazy" />
-                  {record.id === favoriteId && <span className="card-favorite">★</span>}
+                  대표 빼고 모두 선택
                 </button>
-              ))}
-              {picking.boxElement}
-            </div>
-          )}
-          {records.length > 0 && !filmstripCollapsed && (
-            <div className="filmstrip-bar">
-              {picking.selected.size > 0 ? (
-                <>
-                  <span>{picking.selected.size}장 선택</span>
-                  <button
-                    className="with-icon danger-quiet"
-                    onClick={() => removeMany([...picking.selected])}
-                  >
-                    <Icon name="trash" size={14} /> 삭제
-                  </button>
-                  <button className="link-button" onClick={picking.clear}>
-                    선택 취소
-                  </button>
-                </>
-              ) : (
-                <span className="hint">
-                  결과 {records.length}장 · Ctrl·Shift 클릭이나 빈 곳을 끌어 여러 장 선택
-                </span>
-              )}
-              <div className="header-spacer" />
-              <button
-                className="link-button"
-                onClick={() => picking.selectAll(records.filter((record) => record.id !== favoriteId).map((record) => record.id))}
-              >
-                대표 빼고 모두 선택
-              </button>
-            </div>
-          )}
+              </>
+            }
+          />
         </section>
 
         <aside className="detail-side">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -19,6 +19,7 @@ import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { DrawCanvas } from '../components/DrawCanvas';
+import { Filmstrip } from '../components/Filmstrip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
@@ -29,7 +30,7 @@ import { PromptTextarea } from '../components/PromptTextarea';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 import { NumberField, Toggle } from '../components/ui';
-import { useBoxSelection } from '../components/useBoxSelection';
+import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
 import {
   clearFreeImage,
@@ -45,7 +46,7 @@ import {
   sourceDataUrl,
   sourceMedia,
 } from '../freeImageOps';
-import { deleteResults, deleteShownResult, openImg2ImgDialog } from '../generationOps';
+import { deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import { decodeMask, loadHtmlImage } from '../lib/image';
 import {
   projectMedia,
@@ -241,76 +242,36 @@ export function FreeView() {
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
-  const filmstripCollapsed = useStore((state) => state.filmstripCollapsed);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],
   );
-  const [selectedId, setSelectedId] = useState<string>();
   const [stage, setStage] = useState<'source' | 'draw' | 'result'>('source');
   const drawing = free.mode === 'img2img' && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
-  const selected = records.find((record) => record.id === selectedId) ?? records[0];
+  const saveAs = (record: GenerationSummary) =>
+    void run('이미지를 저장하는 중', async () => {
+      const saved = await fileApi().saveImageAs(
+        FREE_PROJECT_ID,
+        record.id,
+        `자유 생성 ${record.seed}`,
+        library.settings.export.quality,
+      );
+      if (saved) toast(`저장했습니다: ${saved}`);
+    });
+
+  const browser = useResultBrowser(FREE_PROJECT_ID, records, {
+    onNewResult: () => setStage('result'),
+    saveAs,
+    canDeleteShown: !showSource && !drawing,
+  });
+  const { selected, setSelectedId } = browser;
   const pending = queue.jobs.filter(
     (job) => job.projectId === FREE_PROJECT_ID && isActive(job.status),
   ).length;
   const running = queue.jobs
     .filter((job) => job.projectId === FREE_PROJECT_ID && job.status === 'generating')
     .map((job) => job.id);
-
-  const newest = records[0];
-  // 새 결과가 생기면 그 결과를 원본과 나란히 보여 준다. 처음 열 때 이미 있던 결과나, 최신 결과를 지워 맨
-  // 앞이 바뀐 것으로는 넘어가지 않는다.
-  const seenNewest = useRef(newest?.createdAt);
-  useEffect(() => {
-    if (newest && (!seenNewest.current || newest.createdAt > seenNewest.current)) {
-      setSelectedId(undefined);
-      if (seenNewest.current) setStage('result');
-    }
-    seenNewest.current = newest?.createdAt;
-  }, [newest]);
-
-  const removeMany = (ids: string[]) =>
-    void deleteResults(
-      FREE_PROJECT_ID,
-      records.filter((record) => ids.includes(record.id)),
-    );
-  const picking = useBoxSelection<HTMLDivElement>(
-    records.map((record) => record.id),
-    removeMany,
-    { selectAllKey: () => records.map((record) => record.id) },
-  );
-  const pickedCount = picking.selected.size;
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
-      const position = records.findIndex((record) => record.id === selected?.id);
-      if (event.key === 'ArrowRight' && records[position + 1])
-        setSelectedId(records[position + 1].id);
-      if (event.key === 'ArrowLeft' && position > 0) setSelectedId(records[position - 1].id);
-      if (event.key === 'Home' && records.length) setSelectedId(records[0].id);
-      if (event.key === 'End' && records.length) setSelectedId(records[records.length - 1].id);
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's' && selected) {
-        event.preventDefault();
-        saveAs(selected);
-      }
-      // 여러 장을 고른 동안은 useBoxSelection이 고른 것을 지운다. 결과 막대가 보일 때만 그 결과를 지운다.
-      if (
-        event.key === 'Delete' &&
-        !pickedCount &&
-        !showSource &&
-        !drawing &&
-        selected &&
-        !document.querySelector('.modal-backdrop')
-      ) {
-        event.preventDefault();
-        void deleteShownResult(FREE_PROJECT_ID, records, selected, setSelectedId);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
   // 캐릭터 프롬프트가 없으면 캐릭터 끝을 골라 두었어도 공통 끝에 붙인다(buildFreeJobs와 같은 규칙).
@@ -369,17 +330,6 @@ export function FreeView() {
             onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
           },
         ];
-
-  const saveAs = (record: GenerationSummary) =>
-    void run('이미지를 저장하는 중', async () => {
-      const saved = await fileApi().saveImageAs(
-        FREE_PROJECT_ID,
-        record.id,
-        `자유 생성 ${record.seed}`,
-        library.settings.export.quality,
-      );
-      if (saved) toast(`저장했습니다: ${saved}`);
-    });
 
   const resultActions = (record: GenerationSummary): ResultAction[] => [
     ...promptActions(record),
@@ -633,64 +583,13 @@ export function FreeView() {
                   actions={resultActions(selected)}
                 />
               )}
-              {records.length > 0 && !filmstripCollapsed && (
-                <div
-                  className="filmstrip selectable"
-                  role="listbox"
-                  aria-label="생성 기록"
-                  aria-multiselectable
-                  {...picking.containerProps}
-                >
-                  {records.map((record) => (
-                    <button
-                      key={record.id}
-                      role="option"
-                      data-select-id={record.id}
-                      aria-selected={record.id === selected?.id}
-                      className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
-                      onClick={(event) => {
-                        if (picking.clickItem(event, record.id)) return;
-                        setSelectedId(record.id);
-                        setStage('result');
-                      }}
-                      onContextMenu={(event) => {
-                        setSelectedId(record.id);
-                        showResultMenu(event, resultActions(record));
-                      }}
-                      title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()} · Ctrl·Shift 클릭: 여러 장 선택`}
-                    >
-                      <img
-                        src={projectMedia(FREE_PROJECT_ID, record.thumbFile ?? record.file)}
-                        alt=""
-                        loading="lazy"
-                      />
-                    </button>
-                  ))}
-                  {picking.boxElement}
-                </div>
-              )}
-              {records.length > 0 && !filmstripCollapsed && (
-                <div className="filmstrip-bar">
-                  {picking.selected.size > 0 ? (
-                    <>
-                      <span>{picking.selected.size}장 선택</span>
-                      <button
-                        className="with-icon danger-quiet"
-                        onClick={() => removeMany([...picking.selected])}
-                      >
-                        <Icon name="trash" size={14} /> 삭제
-                      </button>
-                      <button className="link-button" onClick={picking.clear}>
-                        선택 취소
-                      </button>
-                    </>
-                  ) : (
-                    <span className="hint">
-                      결과 {records.length}장 · Ctrl·Shift 클릭이나 빈 곳을 끌어 여러 장 선택
-                    </span>
-                  )}
-                </div>
-              )}
+              <Filmstrip
+                projectId={FREE_PROJECT_ID}
+                records={records}
+                browser={browser}
+                menu={resultActions}
+                onOpen={() => setStage('result')}
+              />
             </section>
 
             <aside className="detail-side">
