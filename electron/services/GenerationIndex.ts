@@ -22,6 +22,12 @@ export class GenerationIndex {
     return this.mutex.run(projectId, () => this.read(projectId));
   }
 
+  async find(projectId: string, generationId: string): Promise<GenerationRecord> {
+    const record = (await this.list(projectId)).find((item) => item.id === generationId);
+    if (!record) throw new Error('생성 기록을 찾을 수 없습니다.');
+    return record;
+  }
+
   add(record: GenerationRecord): Promise<void> {
     return this.edit(record.projectId, (records, write) => write([...records, record]));
   }

@@ -1,99 +1,55 @@
-import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import sharp from 'sharp';
 import type {
-  GenerationKind,
   GenerationRecord,
   Library as LibraryData,
   Reference,
 } from '../../src/core/domain/types';
 import { createDefaultLibrary } from '../../src/core/model/defaults';
-import { KIND_FOLDERS, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
-import { FOLDER_ID, librarySchema } from '../../src/core/validation/schemas';
+import { librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
   ImageDataSource,
   ImageInputRequest,
-  ImageInputSource,
   LibrarySnapshot,
   PreparedImage,
   PreparedInputs,
-  ProjectInspection,
-  ProjectUsage,
-  StorageUsage,
-  ReferenceImages,
-  ReferenceImageSave,
-  SourceImageAdd,
   PreparedSourceInput,
+  ProjectInspection,
+  ReferenceImages,
+  SourceImageAdd,
   SourceInputRequest,
+  StorageUsage,
   StoredSource,
 } from '../../src/shared/ipc';
-import {
-  atomicWrite,
-  decodeDataUrl,
-  directorySize,
-  exists,
-  fileSize,
-  listFiles,
-  extensionForMime,
-  imageMime,
-  assertRealInside,
-  KeyedMutex,
-  resolveInside,
-  sha256,
-  toDataUrl,
-  toPosix,
-} from './fsUtils';
+import { atomicWrite, exists, KeyedMutex } from './fsUtils';
 import { GenerationIndex } from './GenerationIndex';
-import {
-  fitCharacterReference,
-  fitImage,
-  imageSize,
-  integerCrop,
-  maskHasGeneratePixels,
-  padToMultiple,
-} from './Images';
 import { migrateV1Workspace } from './LegacyMigration';
 import type { ExportSource, GenerationStore, WorkspaceFolders } from './ports';
-
-export type ReferenceImageWrite = Omit<ReferenceImageSave, 'referenceId'>;
+import { ProjectInputs } from './ProjectInputs';
+import { StoredFiles, type ReferenceImageWrite } from './StoredFiles';
+import { WorkspaceMaintenance } from './WorkspaceMaintenance';
+import { WorkspacePaths } from './WorkspacePaths';
 
 const KEEP_BACKUPS = 20;
-/** 지울 생성 결과를 휴지통에 보내기 전에 모아 두는 폴더(작업 폴더 기준). */
-const TRASH_DIR = '.trash';
-/** 생성 기록이 가리키는 파일이 들어 있는 폴더. 점검할 때 이 안에서 고아 파일을 찾는다. */
-const RESULT_FOLDERS = ['outputs', 'thumbs', 'diagnostic'];
-
-/** 생성 기록 하나가 가진 파일(이미지·썸네일·진단 캔버스). */
-function recordFiles(record: GenerationRecord): string[] {
-  return [record.file, record.thumbFile, record.canvasFile].filter((file): file is string =>
-    Boolean(file),
-  );
-}
 
 /**
- * 문서 폴더 아래의 전용 작업 폴더.
- *
- * NAI RICE/
- *   library.json                 프리셋·캐릭터·감정 모음·레퍼런스·작업 정보
- *   backups/                     library.json 자동 백업
- *   references/<id>/             레퍼런스 원본·캔버스·마스크
- *   sources/                     자유 인페인팅 이미지·마스크
- *   pictures/                    캐릭터 레퍼런스·바이브 그림(내용 해시 이름)
- *   vibes/                       바이브 인코딩 결과(다시 쓰기용)
- *   projects/<id>/               generations.json, inputs/, outputs/<감정>/, thumbs/, diagnostic/
- *   exports/
+ * 작업 폴더 전체. library.json 읽기·저장과 백업은 여기서 하고, 나머지는 맡은 객체에 넘긴다. 서비스들은
+ * `ports.ts`의 좁은 인터페이스로 이 객체를 받는다.
  */
-export class Library implements GenerationStore, ExportSource, WorkspaceFolders {
+export class Library
+  extends WorkspacePaths
+  implements GenerationStore, ExportSource, WorkspaceFolders
+{
   private readonly mutex = new KeyedMutex();
   private readonly generations = new GenerationIndex((projectId) =>
     path.join(this.projectDir(projectId), 'generations.json'),
   );
+  private readonly files = new StoredFiles(this, this.generations);
+  private readonly inputs = new ProjectInputs(this, this.files);
+  private readonly maintenance = new WorkspaceMaintenance(this, this.generations);
   /** 마지막으로 읽거나 저장한 라이브러리. 생성 큐가 요청 지연 같은 설정을 읽는다. */
   private latest?: LibraryData;
-
-  constructor(readonly root: string) {}
 
   get settings(): LibraryData['settings'] | undefined {
     return this.latest?.settings;
@@ -101,43 +57,6 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
 
   private get libraryFile(): string {
     return path.join(this.root, 'library.json');
-  }
-
-  referenceDir(id: string): string {
-    if (!FOLDER_ID.test(id)) throw new Error('잘못된 인페인트 ID입니다.');
-    return resolveInside(path.join(this.root, 'references'), id);
-  }
-
-  projectDir(id: string): string {
-    if (!FOLDER_ID.test(id)) throw new Error('잘못된 작업 ID입니다.');
-    return resolveInside(path.join(this.root, 'projects'), id);
-  }
-
-  resolveProject(projectId: string, relative: string): string {
-    return resolveInside(this.projectDir(projectId), relative);
-  }
-
-  resolveReference(referenceId: string, relative: string): string {
-    return resolveInside(this.referenceDir(referenceId), relative);
-  }
-
-  /** 미디어 프로토콜용: 작업 폴더 기준 상대 경로를 절대 경로로. */
-  resolveMedia(relative: string): string {
-    return resolveInside(this.root, relative);
-  }
-
-  /** 링크·정션을 따라가도 작업 폴더 안인지 확인한 뒤 그대로 돌려준다. 읽기·삭제 직전에 쓴다. */
-  async verifyReal(absolute: string): Promise<string> {
-    await assertRealInside(this.root, absolute);
-    return absolute;
-  }
-
-  resolveProjectReal(projectId: string, relative: string): Promise<string> {
-    return this.verifyReal(this.resolveProject(projectId, relative));
-  }
-
-  resolveReferenceReal(referenceId: string, relative: string): Promise<string> {
-    return this.verifyReal(this.resolveReference(referenceId, relative));
   }
 
   async load(): Promise<LibrarySnapshot> {
@@ -188,233 +107,75 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     }
   }
 
-  async saveReferenceImages(
+  saveReferenceImages(
     referenceId: string,
     payload: ReferenceImageWrite,
   ): Promise<{ originalFile?: string }> {
-    const directory = await this.verifyReal(this.referenceDir(referenceId));
-    const canvas = decodeDataUrl(payload.canvasDataUrl);
-    const mask = decodeDataUrl(payload.maskDataUrl);
-    const writes = [
-      atomicWrite(path.join(directory, 'canvas.png'), canvas.buffer),
-      atomicWrite(path.join(directory, 'mask.png'), mask.buffer),
-    ];
-    let originalFile: string | undefined;
-    if (payload.originalDataUrl) {
-      const original = decodeDataUrl(payload.originalDataUrl);
-      originalFile = `original${extensionForMime(original.mimeType)}`;
-      for (const entry of await fs.readdir(directory).catch(() => [] as string[])) {
-        if (entry.startsWith('original.') && entry !== originalFile)
-          await fs.rm(path.join(directory, entry), { force: true });
-      }
-      writes.push(atomicWrite(path.join(directory, originalFile), original.buffer));
-    }
-    await Promise.all(writes);
-    return { originalFile };
+    return this.files.saveReferenceImages(referenceId, payload);
   }
 
-  async readReferenceImages(reference: Reference): Promise<ReferenceImages | null> {
-    const image = reference.image;
-    if (!image) return null;
-    const read = async (relative: string) => {
-      const file = await this.resolveReferenceReal(reference.id, relative);
-      return toDataUrl(await fs.readFile(file), imageMime(file));
-    };
-    const [originalDataUrl, canvasDataUrl, maskDataUrl] = await Promise.all([
-      read(image.originalFile),
-      read(image.canvasFile),
-      read(image.maskFile),
-    ]);
-    return { originalDataUrl, canvasDataUrl, maskDataUrl };
+  readReferenceImages(reference: Reference): Promise<ReferenceImages | null> {
+    return this.files.readReferenceImages(reference);
   }
 
-  async copyReferenceFiles(fromId: string, toId: string): Promise<void> {
-    const from = await this.verifyReal(this.referenceDir(fromId));
-    const to = await this.verifyReal(this.referenceDir(toId));
-    if (await exists(from)) await fs.cp(from, to, { recursive: true });
+  copyReferenceFiles(fromId: string, toId: string): Promise<void> {
+    return this.files.copyReferenceFiles(fromId, toId);
   }
 
-  /**
-   * 레퍼런스의 현재 캔버스·마스크를 작업 폴더에 해시 이름으로 복사해 불변 입력으로 만든다.
-   * 대기 중에 레퍼런스를 고쳐도 이미 등록한 작업은 원래 입력으로 생성된다.
-   */
-  async prepareInputs(projectId: string, reference: Reference): Promise<PreparedInputs> {
-    const image = reference.image;
-    if (!image) throw new Error('인페인트에 참고 이미지가 없습니다.');
-    const canvas = await fs.readFile(
-      await this.resolveReferenceReal(reference.id, image.canvasFile),
-    );
-    const mask = await fs.readFile(await this.resolveReferenceReal(reference.id, image.maskFile));
-    // 마스크가 비면 다시 그릴 영역이 없으므로, 요청을 보내기 전에 막는다.
-    if (!(await maskHasGeneratePixels(mask)))
-      throw new Error(
-        '생성 영역(청록색)이 비어 있어 생성할 수 없습니다. 인페인트 편집에서 생성 영역을 칠하십시오.',
-      );
-    return this.writeInpaintInputs(projectId, canvas, mask);
+  addPicture(dataUrl: string): Promise<{ file: string; width: number; height: number }> {
+    return this.files.addPicture(dataUrl);
   }
 
-  /** 캐릭터 레퍼런스·바이브 그림. 내용 해시로 이름을 지어 같은 그림은 한 번만 저장한다. */
-  pictureFile(file: string): string {
-    return resolveInside(path.join(this.root, 'pictures'), file);
+  readPicture(file: string): Promise<Buffer> {
+    return this.files.readPicture(file);
   }
 
-  async addPicture(dataUrl: string): Promise<{ file: string; width: number; height: number }> {
-    const png = await sharp(decodeDataUrl(dataUrl).buffer).rotate().png().toBuffer();
-    const { width, height } = await imageSize(png);
-    const file = `${sha256(png).slice(0, 24)}.png`;
-    const target = this.pictureFile(file);
-    if (!(await exists(target))) await atomicWrite(target, png);
-    return { file, width, height };
+  readVibe(key: string): Promise<Buffer | undefined> {
+    return this.files.readVibe(key);
   }
 
-  async readPicture(file: string): Promise<Buffer> {
-    return fs.readFile(await this.verifyReal(this.pictureFile(file)));
+  vibeNames(owner: string): Promise<string[]> {
+    return this.files.vibeNames(owner);
   }
 
-  async prepareAidInput(
+  writeVibe(key: string, data: Buffer): Promise<void> {
+    return this.files.writeVibe(key, data);
+  }
+
+  addSourceImage(request: SourceImageAdd): Promise<StoredSource> {
+    return this.files.addSourceImage(request);
+  }
+
+  addSourceMask(dataUrl: string): Promise<string> {
+    return this.files.addSourceMask(dataUrl);
+  }
+
+  deleteSource(file: string): Promise<void> {
+    return this.files.deleteSource(file);
+  }
+
+  readImageDataUrl(source: ImageDataSource): Promise<string> {
+    return this.files.readImageDataUrl(source);
+  }
+
+  prepareInputs(projectId: string, reference: Reference): Promise<PreparedInputs> {
+    return this.inputs.prepareInputs(projectId, reference);
+  }
+
+  prepareAidInput(
     projectId: string,
     file: string,
     kind: 'character' | 'vibe',
   ): Promise<PreparedImage> {
-    const picture = await fs.readFile(await this.verifyReal(this.pictureFile(file)));
-    return this.writeInput(
-      projectId,
-      kind === 'character' ? await fitCharacterReference(picture) : picture,
-    );
+    return this.inputs.prepareAidInput(projectId, file, kind);
   }
 
-  /** 바이브 인코딩 결과. 작업과 상관없이 그림·모델·추출량이 같으면 다시 쓰므로 작업 폴더 밖에 둔다. */
-  private vibeFile(key: string): string {
-    return resolveInside(path.join(this.root, 'vibes'), `${key}.bin`);
+  prepareSourceInput(request: SourceInputRequest): Promise<PreparedSourceInput> {
+    return this.inputs.prepareSourceInput(request);
   }
 
-  async readVibe(key: string): Promise<Buffer | undefined> {
-    return fs.readFile(this.vibeFile(key)).catch(() => undefined);
-  }
-
-  async vibeNames(owner: string): Promise<string[]> {
-    const names = await fs.readdir(path.join(this.root, 'vibes')).catch(() => [] as string[]);
-    return names
-      .filter((name) => name.startsWith(`${owner}-`) && name.endsWith('.bin'))
-      .map((name) => name.slice(0, -'.bin'.length));
-  }
-
-  async writeVibe(key: string, data: Buffer): Promise<void> {
-    await atomicWrite(this.vibeFile(key), data);
-  }
-
-  /** 자유 생성 i2i의 이미지(와 인페인팅 마스크)를 작업 폴더에 해시 이름으로 복사한다. */
-  async prepareSourceInput(request: SourceInputRequest): Promise<PreparedSourceInput> {
-    const read = async (file: string) => fs.readFile(await this.verifyReal(this.sourceFile(file)));
-    const canvas = await read(request.file);
-    if (request.crop && !request.maskFile) {
-      const size = await imageSize(canvas);
-      const rect = integerCrop(request.crop.rect, size.width, size.height);
-      const png = await sharp(canvas)
-        .extract({ left: rect.x, top: rect.y, width: rect.width, height: rect.height })
-        .resize(request.crop.width, request.crop.height, { fit: 'fill' })
-        .png()
-        .toBuffer();
-      return this.writeInput(request.projectId, png);
-    }
-    if (!request.maskFile) return this.writeInput(request.projectId, canvas);
-    const mask = await read(request.maskFile);
-    const [canvasSize, maskSize] = await Promise.all([imageSize(canvas), imageSize(mask)]);
-    if (canvasSize.width !== maskSize.width || canvasSize.height !== maskSize.height)
-      throw new Error('마스크 크기가 이미지와 다릅니다. 마스크를 다시 칠하십시오.');
-    if (!(await maskHasGeneratePixels(mask)))
-      throw new Error('다시 그릴 영역이 비어 있습니다. 이미지에 마스크를 칠하십시오.');
-    const { maskPath, maskSha256, ...image } = await this.writeInpaintInputs(
-      request.projectId,
-      canvas,
-      mask,
-    );
-    return { ...image, mask: { maskPath, maskSha256 } };
-  }
-
-  private async writeInpaintInputs(
-    projectId: string,
-    canvas: Buffer,
-    mask: Buffer,
-  ): Promise<PreparedInputs> {
-    const imageSha256 = sha256(canvas);
-    const maskSha256 = sha256(mask);
-    const imagePath = `inputs/${imageSha256}.png`;
-    const maskPath = `inputs/${maskSha256}.png`;
-    for (const [relative, buffer] of [
-      [imagePath, canvas],
-      [maskPath, mask],
-    ] as const) {
-      const target = await this.resolveProjectReal(projectId, relative);
-      if (!(await exists(target))) await atomicWrite(target, buffer);
-    }
-    return { imagePath, maskPath, imageSha256, maskSha256 };
-  }
-
-  private async readImageSource(source: ImageInputSource): Promise<Buffer> {
-    const record = await this.findGeneration(source.projectId, source.generationId);
-    return fs.readFile(await this.resolveProjectReal(source.projectId, record.file));
-  }
-
-  /** 자유 인페인팅의 이미지·마스크. 작업·인페인트와 따로 `sources/`에 둔다. */
-  sourceFile(file: string): string {
-    return resolveInside(path.join(this.root, 'sources'), file);
-  }
-
-  /** 같은 내용은 해시로 같은 파일 이름이 되어 한 번만 저장된다. */
-  private async writeSource(png: Buffer): Promise<string> {
-    const file = `${sha256(png).slice(0, 24)}.png`;
-    const target = this.sourceFile(file);
-    if (!(await exists(target))) await atomicWrite(target, png);
-    return file;
-  }
-
-  async addSourceImage(request: SourceImageAdd): Promise<StoredSource> {
-    const original =
-      request.kind === 'data'
-        ? decodeDataUrl(request.dataUrl).buffer
-        : await this.readImageSource(request);
-    const { png, width, height, content } = await padToMultiple(original);
-    return { file: await this.writeSource(png), width, height, outputRect: content };
-  }
-
-  async readImageDataUrl(source: ImageDataSource): Promise<string> {
-    const file =
-      source.kind === 'source'
-        ? await this.verifyReal(this.sourceFile(source.file))
-        : source.kind === 'picture'
-          ? await this.verifyReal(this.pictureFile(source.file))
-          : await this.resolveProjectReal(
-              source.projectId,
-              (await this.findGeneration(source.projectId, source.generationId)).file,
-            );
-    return toDataUrl(await fs.readFile(file), imageMime(file));
-  }
-
-  async addSourceMask(dataUrl: string): Promise<string> {
-    return this.writeSource(await sharp(decodeDataUrl(dataUrl).buffer).png().toBuffer());
-  }
-
-  async deleteSource(file: string): Promise<void> {
-    await fs.rm(await this.verifyReal(this.sourceFile(file)), { force: true });
-  }
-
-  /** 해시 이름으로 저장하므로 같은 입력은 한 번만 쓰고, 대기 중에 원본이 바뀌어도 작업 입력은 그대로다. */
-  private async writeInput(projectId: string, png: Buffer): Promise<PreparedImage> {
-    const imageSha256 = sha256(png);
-    const imagePath = `inputs/${imageSha256}.png`;
-    const target = await this.resolveProjectReal(projectId, imagePath);
-    if (!(await exists(target))) await atomicWrite(target, png);
-    return { imagePath, imageSha256 };
-  }
-
-  async prepareImageInput(request: ImageInputRequest): Promise<PreparedImage> {
-    const side = (value: number) => Number.isInteger(value) && value >= 64 && value <= 4096;
-    if (!side(request.width) || !side(request.height))
-      throw new Error('i2i 크기가 올바르지 않습니다.');
-    const source = await this.readImageSource(request.source);
-    const png = await fitImage(source, request.width, request.height, request.fit);
-    return this.writeInput(request.projectId, png);
+  prepareImageInput(request: ImageInputRequest): Promise<PreparedImage> {
+    return this.inputs.prepareImageInput(request);
   }
 
   listGenerations(projectId: string): Promise<GenerationRecord[]> {
@@ -425,170 +186,34 @@ export class Library implements GenerationStore, ExportSource, WorkspaceFolders 
     return this.generations.add(record);
   }
 
-  async findGeneration(projectId: string, generationId: string): Promise<GenerationRecord> {
-    const record = (await this.listGenerations(projectId)).find((item) => item.id === generationId);
-    if (!record) throw new Error('생성 기록을 찾을 수 없습니다.');
-    return record;
+  findGeneration(projectId: string, generationId: string): Promise<GenerationRecord> {
+    return this.generations.find(projectId, generationId);
   }
 
-  /**
-   * 지울 생성 결과(이미지·썸네일·진단 캔버스)를 작업 폴더 안의 `.trash/<시각>` 폴더로 옮기고
-   * 기록에서 뺀다. 같은 드라이브 안의 이름 바꾸기라 수천 장도 금방 끝나고, 옮긴 폴더는 휴지통에 한 번에
-   * 보낼 수 있다. 옮긴 파일이 없으면 null.
-   */
   stageGenerations(projectId: string, generationIds: string[]): Promise<string | null> {
-    const targets = new Set(generationIds);
-    return this.generations.edit(projectId, async (records, write) => {
-      const removed = records.filter((item) => targets.has(item.id));
-      if (!removed.length) return null;
-      const staging = await this.moveToStaging(projectId, removed.flatMap(recordFiles));
-      await write(records.filter((item) => !targets.has(item.id)));
-      return staging;
-    });
+    return this.maintenance.stageGenerations(projectId, generationIds);
   }
 
-  /** 작업 폴더 기준 상대 경로의 파일을 새 `.trash/<시각>` 폴더로 옮긴다. 옮긴 것이 없으면 null. */
-  private async moveToStaging(projectId: string, relatives: string[]): Promise<string | null> {
-    if (!relatives.length) return null;
-    const stamp = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
-    const staging = this.resolveProject(projectId, `${TRASH_DIR}/${stamp}`);
-    let moved = 0;
-    for (const relative of relatives) {
-      const source = await this.resolveProjectReal(projectId, relative);
-      const target = resolveInside(staging, relative);
-      await fs.mkdir(path.dirname(target), { recursive: true });
-      try {
-        await fs.rename(source, target);
-        moved++;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      }
-    }
-    if (!moved) {
-      await fs.rm(staging, { recursive: true, force: true });
-      return null;
-    }
-    return staging;
+  measureGenerations(projectId: string, generationIds: string[]): Promise<GenerationMeasure> {
+    return this.maintenance.measureGenerations(projectId, generationIds);
   }
 
-  /** 고른 생성 결과가 차지하는 장수와 바이트(이미지·썸네일·진단 캔버스). */
-  async measureGenerations(projectId: string, generationIds: string[]): Promise<GenerationMeasure> {
-    const targets = new Set(generationIds);
-    const records = (await this.listGenerations(projectId)).filter((item) => targets.has(item.id));
-    let bytes = 0;
-    for (const relative of records.flatMap(recordFiles))
-      bytes += await fileSize(this.resolveProject(projectId, relative));
-    return { count: records.length, bytes };
-  }
-
-  /**
-   * 기록과 파일이 맞는지 본다. 기록 없이 남은 결과 파일(고아)과 이미지가 없어진 기록을 센다.
-   * fix면 고아 파일과 없어진 기록의 남은 썸네일·캔버스를 대기 폴더로 옮기고 그 기록을 뺀다.
-   */
   inspectProject(
     projectId: string,
     fix = false,
   ): Promise<ProjectInspection & { staging: string | null }> {
-    return this.generations.edit(projectId, async (records, write) => {
-      const directory = this.projectDir(projectId);
-      const referenced = new Set(records.flatMap(recordFiles));
-      const orphans: string[] = [];
-      for (const folder of RESULT_FOLDERS) {
-        for (const file of await listFiles(path.join(directory, folder), folder))
-          if (!referenced.has(file)) orphans.push(file);
-      }
-      let orphanBytes = 0;
-      for (const file of orphans) orphanBytes += await fileSize(path.join(directory, file));
-      const missing: GenerationRecord[] = [];
-      for (const record of records)
-        if (!(await exists(this.resolveProject(projectId, record.file)))) missing.push(record);
-      const report = { orphanFiles: orphans.length, orphanBytes, missingRecords: missing.length };
-      if (!fix || (!orphans.length && !missing.length)) return { ...report, staging: null };
-      const staging = await this.moveToStaging(projectId, [
-        ...orphans,
-        ...missing.flatMap(recordFiles),
-      ]);
-      if (missing.length) {
-        const gone = new Set(missing.map((record) => record.id));
-        await write(records.filter((record) => !gone.has(record.id)));
-      }
-      return { ...report, staging };
-    });
+    return this.maintenance.inspectProject(projectId, fix);
   }
 
-  /** 작업 폴더별 사용량과 레퍼런스·백업·내보내기 폴더 크기. */
-  async usage(): Promise<Omit<StorageUsage, 'app'>> {
-    const projectsRoot = path.join(this.root, 'projects');
-    const projects: ProjectUsage[] = [];
-    for (const projectId of await fs.readdir(projectsRoot).catch(() => [] as string[])) {
-      if (!FOLDER_ID.test(projectId)) continue;
-      const directory = path.join(projectsRoot, projectId);
-      if (!(await fs.stat(directory)).isDirectory()) continue;
-      const bytes = { outputs: 0, diagnostic: 0, thumbs: 0, inputs: 0, trash: 0, other: 0 };
-      for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
-        const full = path.join(directory, entry.name);
-        const size = entry.isDirectory() ? await directorySize(full) : await fileSize(full);
-        const key = (
-          {
-            outputs: 'outputs',
-            diagnostic: 'diagnostic',
-            thumbs: 'thumbs',
-            inputs: 'inputs',
-            [TRASH_DIR]: 'trash',
-          } as const
-        )[entry.name as 'outputs'];
-        bytes[key ?? 'other'] += size;
-      }
-      const records = await this.listGenerations(projectId).catch(() => []);
-      projects.push({
-        projectId,
-        records: records.length,
-        bytes,
-        total: Object.values(bytes).reduce((sum, value) => sum + value, 0),
-      });
-    }
-    return {
-      projects,
-      references: await directorySize(path.join(this.root, 'references')),
-      backups: await directorySize(path.join(this.root, 'backups')),
-      exports: await directorySize(path.join(this.root, 'exports')),
-    };
+  usage(): Promise<Omit<StorageUsage, 'app'>> {
+    return this.maintenance.usage();
   }
 
-  /** 지난번에 휴지통으로 보내지 못하고 남은 `.trash/<시각>` 폴더. */
-  async leftoverStaging(): Promise<string[]> {
-    const projects = path.join(this.root, 'projects');
-    const found: string[] = [];
-    for (const project of await fs.readdir(projects).catch(() => [] as string[])) {
-      const trash = path.join(projects, project, TRASH_DIR);
-      for (const entry of await fs.readdir(trash).catch(() => [] as string[]))
-        found.push(path.join(trash, entry));
-    }
-    return found;
+  leftoverStaging(): Promise<string[]> {
+    return this.maintenance.leftoverStaging();
   }
 
-  /** atomicWrite가 쓰다가 남긴 임시 파일이 있을 수 있는 폴더. */
-  async temporaryFileFolders(): Promise<string[]> {
-    const folders = [this.root, path.join(this.root, 'backups')];
-    for (const parent of ['projects', 'references']) {
-      const directory = path.join(this.root, parent);
-      for (const entry of await fs.readdir(directory).catch(() => [] as string[]))
-        folders.push(path.join(directory, entry));
-    }
-    return folders;
-  }
-
-  /** 방식·감정별 결과 폴더. 감정 이름이 바뀌면 이후 결과는 새 이름 폴더에 저장된다. */
-  emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string {
-    return path.join(
-      this.projectDir(projectId),
-      'outputs',
-      KIND_FOLDERS[kind],
-      sanitizeFilenameStem(folder),
-    );
-  }
-
-  toProjectRelative(projectId: string, absolute: string): string {
-    return toPosix(path.relative(this.projectDir(projectId), absolute));
+  temporaryFileFolders(): Promise<string[]> {
+    return this.maintenance.temporaryFileFolders();
   }
 }
