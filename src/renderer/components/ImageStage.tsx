@@ -4,16 +4,12 @@ import { toggleFilmstrip, useStore } from '../store';
 import { Icon } from './Icon';
 import { clampZoom, useWheel, ZOOM_STEP } from './zoom';
 
-/** 화면에 맞출 때 가장자리에 남기는 여백(px). */
 const PAD = 14;
 
 type Offset = { x: number; y: number };
 const CENTER: Offset = { x: 0, y: 0 };
 
-/**
- * 다른 이미지로 넘겨도 배율과 자리를 그대로 두어 같은 곳을 비교할 수 있게 한다. 처음 맞출 때(`fit`)는 원본보다
- * 크게 늘리지 않는다.
- */
+/** 다른 이미지로 넘겨도 배율과 자리를 두어 같은 곳을 비교한다. 처음 맞출 때는 원본보다 키우지 않는다. */
 function ZoomView(props: {
   src: string;
   alt?: string;
@@ -38,7 +34,7 @@ function ZoomView(props: {
     return () => observer.disconnect();
   }, []);
 
-  // 렌더 사이에 휠 이벤트가 여러 번 오면 렌더된 값이 아니라 마지막으로 정한 값에서 이어 간다.
+  // 렌더 사이에 휠이 여러 번 오면 마지막으로 정한 값에서 이어 간다.
   const scaleRef = useRef(1);
   const offsetRef = useRef<Offset>(CENTER);
   const setOffset = (next: Offset) => {
@@ -53,7 +49,7 @@ function ZoomView(props: {
   const scale = zoom === 'fit' ? fitScale : zoom;
   scaleRef.current = scale;
 
-  /** 화면의 한 점(없으면 가운데) 아래에 있던 이미지 지점이 그 자리에 남도록 배율을 바꾼다. */
+  /** 커서(없으면 가운데) 아래 지점이 그 자리에 남는다. */
   const zoomTo = (next: number, clientX?: number, clientY?: number) => {
     const rect = viewport.current?.getBoundingClientRect();
     const target = clampZoom(next);
@@ -99,7 +95,7 @@ function ZoomView(props: {
         ref={viewport}
         className={`zoom-viewport ${panning ? 'panning' : ''}`}
         onMouseDown={(event) => {
-          // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
+          // 가운데 버튼 자동 스크롤 대신 끌어서 옮기기
           if (event.button === 1) event.preventDefault();
         }}
         onPointerDown={(event) => {
@@ -190,7 +186,7 @@ function ZoomView(props: {
   );
 }
 
-/** 이미지를 창 전체에 원본 크기로 띄운다. Esc는 뒤의 화면(갤러리로 돌아가기 등)보다 먼저 받는다. */
+/** Esc를 뒤 화면보다 먼저 받는다. */
 function Lightbox({ src, alt, close }: { src: string; alt?: string; close: () => void }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -223,9 +219,7 @@ export function ImageStage(props: {
   alt?: string;
   empty?: ReactNode;
   overlay?: ReactNode;
-  /** 아래에 이미지 목록이 있을 때만 접기 버튼을 둔다. */
   filmstrip?: boolean;
-  /** 이미지 위 우클릭. 이미지가 없을 때는 부르지 않는다. */
   onContextMenu?: (event: MouseEvent) => void;
 }) {
   const [lightbox, setLightbox] = useState(false);

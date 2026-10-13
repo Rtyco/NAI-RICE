@@ -28,7 +28,7 @@ import {
   usesMedium,
 } from '../providers/NaiModels';
 
-/** 자유 생성 결과가 쌓이는 폴더(`projects/free/`). 작업 ID는 항상 무작위 접미사가 붙어 겹치지 않는다. */
+/** 작업 ID에는 무작위 접미사가 붙어 겹치지 않는다. */
 export const FREE_PROJECT_ID = 'free';
 
 export function newId(): string {
@@ -45,7 +45,7 @@ export function slugify(value: string, fallback = 'item'): string {
   return normalized.slice(0, 40) || fallback;
 }
 
-/** 폴더 이름으로도 쓰이므로 사람이 읽을 수 있는 접두사와 짧은 무작위 접미사를 붙인다. */
+/** 폴더 이름으로도 써서 읽을 수 있는 접두사를 붙인다. */
 export function readableId(name: string, fallback: string): string {
   return `${slugify(name, fallback)}-${newId().slice(0, 8)}`;
 }
@@ -87,7 +87,7 @@ export function normalizeGenerationSettings(settings: GenerationSettings): Gener
   };
 }
 
-/** 실제로 생성에 쓰이는 설정. Medium이면 고정값을 덮어쓴다. 작업·비용 계산·미리보기가 이것을 쓴다. */
+/** medium이면 고정값을 덮어쓴다. 작업·비용·미리보기 모두 이것을 쓴다. */
 export function effectiveGenerationSettings(settings: GenerationSettings): GenerationSettings {
   const normalized = normalizeGenerationSettings(settings);
   return usesMedium(normalized) ? { ...normalized, ...MEDIUM_FIXED } : normalized;
@@ -267,7 +267,7 @@ export function createDefaultLibrary(): Library {
   };
 }
 
-/** 라이브러리에서 찾은 캐릭터 한 명. 지워진 캐릭터는 빠진다. */
+/** 지워진 캐릭터는 빠진다. */
 export type ResolvedCharacter = {
   character: Character;
   promptSet: CharacterPromptSet;
@@ -287,7 +287,7 @@ export function resolveCharacters(library: Library, slots: CharacterSlot[]): Res
 export type ResolvedProject = {
   project: Project;
   preset?: Preset;
-  /** 첫 캐릭터. 참고 이미지가 참고하는 캐릭터이고, 씬 프롬프트의 `prompt`가 붙는다. */
+  /** 참고 이미지의 캐릭터 */
   character?: Character;
   promptSet?: CharacterPromptSet;
   characters: ResolvedCharacter[];
@@ -300,7 +300,7 @@ export function generationKindFor(mode: Project['mode']): GenerationKind {
   return mode === 'reference' ? 'inpaint' : 'txt2img';
 }
 
-/** 작업이 쓰는 캐릭터 레퍼런스나 바이브들. 고른 항목이 지워졌으면 `item`이 비어 있다. */
+/** 지워졌으면 `item`이 없다. */
 export type ProjectAid =
   | { kind: 'character'; references: Array<{ id: string; item?: CharacterReference }> }
   | { kind: 'vibe'; vibes: Array<{ id: string; item?: Vibe }> };
@@ -308,8 +308,7 @@ export type ProjectAid =
 export type AidChoice = Pick<Project, 'aidMode' | 'characterReferenceIds' | 'vibeIds'>;
 
 /**
- * 작업이 쓰는 참고 방식. 방식을 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스다. NovelAI
- * 웹은 V4.5에서 캐릭터 레퍼런스를 인페인트에도 쓴다(`charRefInpainting`, 2026-10 웹 코드).
+ * 고른 적이 없으면 캐릭터 레퍼런스를 골라 둔 작업만 캐릭터 레퍼런스. NovelAI 웹은 V4.5 인페인트에도 캐릭터 레퍼런스를 쓴다(`charRefInpainting`, 2026-10).
  */
 export function projectAidMode(project: AidChoice): AidMode {
   return project.aidMode ?? (project.characterReferenceIds.length ? 'character' : 'vibe');
@@ -336,7 +335,7 @@ export function projectAid(
   };
 }
 
-/** 참고 항목. 지워진 항목은 undefined로 들어 있다. */
+/** 지워진 항목은 undefined */
 export function aidItems(
   aid: ProjectAid | undefined,
 ): Array<CharacterReference | Vibe | undefined> {
@@ -357,7 +356,7 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const items = aidItems(aid);
   const missing = [
     !preset && '생성 설정',
-    // 캐릭터 없이도 생성할 수 있다. 고른 캐릭터가 라이브러리에서 지워졌을 때만 막는다.
+    // 캐릭터 없이도 생성할 수 있고, 고른 캐릭터가 지워졌을 때만 막는다.
     characters.length < project.characters.length && '캐릭터',
     !emotionSet && '씬 모음',
     inpaint && !reference && '인페인트',
@@ -370,12 +369,10 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }
 
-/** 어느 캐릭터 칸이든 씬 프롬프트가 있으면 생성할 수 있다. */
 export function hasScenePrompt(emotion: Pick<Emotion, 'prompt' | 'extraPrompts'>): boolean {
   return [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim());
 }
 
-/** 이 항목을 쓰고 있는 작업 목록. 삭제 전 확인용. */
 export function projectsUsing(
   library: Library,
   kind:
@@ -404,7 +401,6 @@ export function projectsUsing(
   return library.projects.filter((project) => project[key] === id);
 }
 
-/** 생성 설정·캐릭터 프롬프트 세트·감정 모음 중 하나라도 이 세트의 조각을 부르는 작업. */
 function projectsUsingPieceSet(library: Library, id: string): Project[] {
   const set = library.pieceSets.find((item) => item.id === id);
   if (!set?.name.trim()) return [];

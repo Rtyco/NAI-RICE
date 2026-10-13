@@ -19,7 +19,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const save = (recipe: (item: EmotionSet) => EmotionSet) =>
     updateLibrary((current) => patchItem(current, 'emotionSets', set.id, recipe));
   const others = library.emotionSets.filter((item) => item.id !== set.id);
-  // 새로 연 빈 칸은 저장하지 않으므로(끝의 빈 칸은 지운다) 화면에서만 센다.
+  // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState<Record<string, number>>({});
   return (
     <Card

@@ -64,7 +64,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select')) return;
-      // 여러 장을 고른 동안의 Esc는 선택만 푼다(useBoxSelection이 처리).
+      // 여러 장을 고른 동안의 Esc는 useBoxSelection이 처리한다.
       if (event.key === 'Escape' && !pickedCount) openEmotion(undefined);
       const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
       const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
@@ -72,7 +72,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         setFavorite(favoriteId === selected.id ? undefined : selected.id);
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
-      // 입력 칸 밖의 Tab은 포커스 이동 대신 씬을 넘긴다(Shift+Tab은 이전 씬). 마지막 씬에서는 그대로 둔다.
+      // 입력 칸 밖의 Tab은 씬을 넘긴다. 마지막 씬에서는 그대로 둔다.
       if (event.key === 'Tab' && !event.ctrlKey && !event.altKey && !document.querySelector('.modal-backdrop')) {
         event.preventDefault();
         const target = event.shiftKey ? previous : next;
@@ -177,7 +177,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     <div className="emotion-detail">
       <div className="detail-nav">
         <button onClick={() => openEmotion(undefined)}>← 갤러리</button>
-        {/* 씬 삭제를 결과 막대의 결과 삭제와 헷갈리지 않게 메뉴 안에 둔다. */}
+        {/* 결과 막대의 결과 삭제와 헷갈리지 않게 메뉴 안에 둔다. */}
         <Menu
           label="씬 ⋯"
           align="left"

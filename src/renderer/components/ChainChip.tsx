@@ -26,7 +26,7 @@ function itemExists(section: LibrarySection, id: string): boolean {
   );
 }
 
-/** 편집 팝업으로 연다(화면을 떠나지 않는다). 고른 항목이 없거나 지워졌으면 라이브러리의 그 칸으로 간다. */
+/** 고른 항목이 없거나 지워졌으면 라이브러리의 그 칸으로 간다. */
 function editItem(section: LibrarySection, itemId: string | undefined): void {
   if (!itemId || !itemExists(section, itemId)) {
     openLibrary(section, itemId);
@@ -39,15 +39,14 @@ function editItem(section: LibrarySection, itemId: string | undefined): void {
 
 type ChainLabel = { text: string; icon: IconName; usage: string };
 
-/** 칩 편집 버튼. null이면 두지 않는다. */
+/** null이면 버튼이 없다. */
 type ChainEdit = { title: string; open: () => void } | null;
 
-/** 한 줄짜리 구성 칩. 편집 버튼은 지금 쓰는 항목을 화면을 떠나지 않고 팝업으로 연다. */
 export function ChainChip(props: {
   section?: LibrarySection;
   itemId?: string;
   missing?: boolean;
-  /** 라이브러리 항목이 아니라 그 안의 값 하나를 고를 때 칩 이름과 설명을 바꾼다. */
+  /** 항목 안의 값 하나를 고를 때 */
   label?: ChainLabel;
   edit?: ChainEdit;
   chipRef?: React.Ref<HTMLDivElement>;
@@ -88,15 +87,14 @@ export type ChecklistItem = {
   folder?: string;
   hint?: string;
   thumb?: string;
-  /** 누를 수 없으면 그 까닭. */
+  /** 누를 수 없는 까닭 */
   disabled?: string;
-  /** 「쓰지 않음」처럼 라이브러리 항목이 아닌 줄. 편집 버튼을 두지 않는다. */
   noEdit?: boolean;
-  /** 여러 칸의 항목을 한 창에 섞어 보일 때 이 줄을 편집할 칸. 없으면 칩의 `editSection`. */
+  /** 여러 칸을 섞어 보일 때. 없으면 칩의 `editSection`. */
   editSection?: LibrarySection;
 };
 
-/** 칩 아래에 붙는 작은 창. 바깥을 누르거나 Esc, 창 크기가 바뀌면 닫힌다. */
+/** 바깥 클릭, Esc, 창 크기 변경에 닫힌다. */
 function ChecklistPopover(props: {
   anchor: HTMLElement;
   close: () => void;
@@ -173,10 +171,7 @@ function ChecklistPopover(props: {
 
 const SEARCH_FROM = 9;
 
-/**
- * 고르기 창의 폴더. 라이브러리 목록의 폴더와 따로 접히고 다음에 열 때도 기억한다. 접혀 있어도 고른 항목 수가
- * 보이고, 이름으로 찾는 중에는 펼쳐 둔다.
- */
+/** 라이브러리 목록 폴더와 따로 접힌다. 이름으로 찾는 중에는 펼친다. */
 function ChecklistFolder(props: {
   foldKey: string;
   name: string;
@@ -205,10 +200,7 @@ function ChecklistFolder(props: {
   );
 }
 
-/**
- * 라이브러리 항목을 고르는 칩. 여럿 고르는 칸(`multi`)은 체크 대신 고른 순서가 번호로 보이고, 눌러도 창이
- * 닫히지 않는다.
- */
+/** `multi`는 고른 순서가 번호로 보이고, 눌러도 창이 닫히지 않는다. */
 export function ChecklistChip(props: {
   section?: LibrarySection;
   label?: ChainLabel;
@@ -221,17 +213,14 @@ export function ChecklistChip(props: {
   checked: string[];
   multi?: boolean;
   onPick: (id: string) => void;
-  /** 고른 줄 끝에 붙는 조작. `order`는 1부터다. */
+  /** `order`는 1부터 */
   rowTools?: (id: string, order: number) => ReactNode;
-  /** 줄마다 편집 버튼을 둘 라이브러리 칸. */
   editSection?: LibrarySection;
   empty?: string;
   hint?: string;
-  /** 칩 이름과 값 사이에 두는 조작(참고 칩의 방식 전환 등). */
   before?: ReactNode;
-  /** 고르기 창 제목. 없으면 「칩 이름 고르기」. */
+  /** 없으면 「칩 이름 고르기」 */
   pickTitle?: string;
-  /** 고르기 창 목록 아래에 두는 설정. */
   options?: ReactNode;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -374,7 +363,7 @@ export function ChecklistChip(props: {
   );
 }
 
-/** 일반 생성 해상도. 생성 설정에 저장되므로 같은 생성 설정을 쓰는 곳 모두에 반영된다. */
+/** 생성 설정에 저장되어 같은 생성 설정을 쓰는 곳 모두에 반영된다. */
 export function SizeChip({ preset }: { preset: Preset }) {
   const { width, height } = normalizeGenerationSettings(preset.generation);
   const current = RESOLUTION_PRESETS.find((item) => item.width === width && item.height === height);

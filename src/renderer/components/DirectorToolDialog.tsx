@@ -9,7 +9,7 @@ import { Modal } from './Dialogs';
 import { BgRemovalWarning, DirectorToolFields } from './DirectorToolFields';
 import { Toggle } from './ui';
 
-// 같은 실행 동안 마지막으로 고른 툴과 값을 다음 창의 기본값으로 쓴다.
+// 같은 실행 동안 다음 창의 기본값이 된다.
 let lastOptions: AugmentSettings = DEFAULT_AUGMENT_SETTINGS;
 
 const FREE_PIXELS = 1024 * 1024;
@@ -18,7 +18,6 @@ export function DirectorToolDialog(props: {
   projectId: string;
   records: GenerationSummary[];
   tool?: AugmentTool;
-  /** 있으면 Emotion 툴에서 「씬마다 다른 표정으로 만들기」로 넘어갈 수 있다. */
   onSceneSet?: () => void;
   close: () => void;
 }) {
@@ -50,7 +49,7 @@ export function DirectorToolDialog(props: {
 
   const submit = () => {
     const { tool, mood, toolPrompt, defry } = options;
-    // 배경 제거는 Anlas가 들어 장수를 다음 창으로 넘기지 않는다.
+    // 배경 제거는 Anlas가 들어 장수를 넘기지 않는다.
     lastOptions = {
       tool,
       mood,

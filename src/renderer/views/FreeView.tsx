@@ -53,7 +53,7 @@ import { FreeMaskCanvas } from './free/FreeMaskCanvas';
 
 const NO_RECORDS: GenerationSummary[] = [];
 
-/** 감정 없이 프롬프트만으로 여러 장을 뽑는 화면. 결과는 작업과 따로 `projects/free/`에 쌓인다. */
+/** 결과는 `projects/free/`에 쌓인다. */
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, character, promptSet } = resolveFreeGeneration(library);
@@ -97,7 +97,7 @@ export function FreeView() {
     .map((job) => job.id);
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
-  // 캐릭터 프롬프트가 없으면 캐릭터 끝을 골라 두었어도 공통 끝에 붙인다(buildFreeJobs와 같은 규칙).
+  // buildFreeJobs와 같은 규칙
   const hasCharacterPrompt = Boolean(promptSet?.positive.trim());
   const promptPosition =
     free.promptPosition === 'character-end' && hasCharacterPrompt ? 'character-end' : 'common-end';
@@ -132,7 +132,7 @@ export function FreeView() {
     : Boolean(preset) &&
       (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
 
-  // 디렉터 툴 결과에는 프롬프트와 seed가 없어 다시 생성·프롬프트 복원을 뺀다.
+  // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
   const promptActions = (record: GenerationSummary): ResultAction[] =>
     record.kind === 'augment'
       ? []

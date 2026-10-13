@@ -7,12 +7,11 @@ import {
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** GitHub의 최신 릴리스를 조회해 지금 버전과 비교한다. 저장소가 공개되어 있어야 한다. */
+/** 저장소가 공개되어 있어야 한다. */
 export class UpdateChecker {
   constructor(
     private readonly currentVersion: string,
     private readonly fetch: Fetch,
-    /** 포터블로 실행 중이면 포터블 파일을, 아니면 설치 파일을 새 버전으로 안내한다. */
     private readonly portable = false,
     private readonly repository = UPDATE_REPOSITORY,
   ) {}

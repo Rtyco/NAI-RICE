@@ -29,12 +29,11 @@ import type { GenerationStore, ImageGenerator } from './ports';
 import { RequestPacer } from './RequestPacer';
 import { VibeEncoder } from './VibeEncoder';
 
-/** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림들이거나 바이브로 인코딩할 원본 그림들이다. */
+/** `aid`는 캐릭터 레퍼런스 그림들 또는 인코딩할 바이브 원본들. */
 type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
 const REQUEST_TIMEOUT_MS = 180_000;
-/** 큐 목록에 남겨 두는 완료·취소 기록 수. */
 const MAX_FINISHED_KEPT = 300;
 
 type QueueDependencies = {
@@ -44,19 +43,16 @@ type QueueDependencies = {
   token: () => Promise<string>;
   emit: (view: QueueView) => void;
   onRecord: (record: GenerationRecord) => void;
-  /** 생성 전후 Anlas를 비교해 실제 차감량을 기록한다. 조회 실패는 무시한다. */
+  /** 조회 실패는 무시한다. */
   anlas?: (token: string) => Promise<number | undefined>;
-  /** 연속 요청 사이에 둘 간격(ms). 설정에서 바꾸면 다음 요청부터 반영된다. */
+  /** ms. 요청마다 읽는다. */
   requestDelayMs?: () => number;
-  /** 켜져 있으면 스트리밍으로 받아 중간 그림을 `onPreview`로 넘긴다. 설정에서 바꾸면 다음 요청부터 반영된다. */
+  /** 요청마다 읽는다. */
   streaming?: () => boolean;
   onPreview?: (preview: GenerationPreview) => void;
 };
 
-/**
- * 진행 표시용 전체 단계 수. NovelAI 웹처럼 i2i·인페인트는 세기만큼만 돈다고 보고, 2차 샘플러가 단계를 반만
- * 보내는 것은 따지지 않는다(넘치면 화면이 100%로 자른다).
- */
+/** NovelAI 웹처럼 i2i·인페인트는 세기만큼만 돈다고 본다. 넘치면 화면이 100%로 자른다. */
 function previewSteps(job: QueuedGenerationJob): number {
   const strength =
     job.kind === 'img2img'
@@ -94,7 +90,7 @@ export class GenerationQueue {
         .map(restoreQueuedJob)
         .filter((job): job is QueuedGenerationJob => Boolean(job));
       this.snapshot = {
-        // 재시작 직후 의도치 않은 생성(Anlas 사용)을 막기 위해 일시 중지 상태로 복원한다.
+        // 재시작 직후 의도치 않은 생성(Anlas 사용)을 막는다.
         paused: jobs.some((job) => job.status === 'queued'),
         updatedAt: new Date().toISOString(),
         jobs: jobs.map(interruptIfRunning),
@@ -109,7 +105,7 @@ export class GenerationQueue {
     return structuredClone(this.snapshot);
   }
 
-  /** `anlasEstimates`는 작업마다 메인 프로세스가 계산한 예상 Anlas다(화면 표시용). */
+  /** `anlasEstimates`는 표시용. */
   async enqueue(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot> {
     const existing = new Set(this.snapshot.jobs.map((job) => job.id));
     const queued = jobs.map((job, index) => {
@@ -153,10 +149,7 @@ export class GenerationQueue {
     return this.getSnapshot();
   }
 
-  /**
-   * 작업이 삭제되면 그 작업의 대기 작업을 취소하고, 끝난 기록도 목록에서 뺀다.
-   * 작업마다 따로 저장하면 기록이 많을 때 큐 파일을 수천 번 다시 쓰게 되므로 한 번만 저장한다.
-   */
+  /** 작업마다 저장하면 큐 파일을 수천 번 다시 쓰게 되어 한 번만 저장한다. */
   async cancelProject(projectId: string): Promise<void> {
     let touched = false;
     for (const job of this.snapshot.jobs) {
@@ -165,14 +158,13 @@ export class GenerationQueue {
       if (cancelJob(job) && this.activeJobId === job.id) this.stopActive();
     }
     if (!touched) return;
-    // 진행 중이던 작업은 처리 루프가 마무리할 수 있게 남긴다.
+    // 진행 중인 작업은 처리 루프가 마무리한다.
     this.snapshot.jobs = this.snapshot.jobs.filter(
       (job) => job.projectId !== projectId || job.id === this.activeJobId,
     );
     await this.commit();
   }
 
-  /** 일시 중지를 풀고 저장한 뒤, 처리 루프가 돌고 있지 않으면 시작한다. */
   private async run(): Promise<QueueSnapshot> {
     this.snapshot.paused = false;
     await this.commit();
@@ -180,17 +172,12 @@ export class GenerationQueue {
     return this.getSnapshot();
   }
 
-  /** 진행 중인 요청을 끊고, 다시 시도를 기다리는 중이면 바로 깨운다. */
   private stopActive(): void {
     this.activeController?.abort();
     this.wakeRetry?.();
   }
 
-  /**
-   * 완료·취소된 기록은 최근 것만 남긴다. 큐 파일은 상태가 바뀔 때마다 통째로 저장되고 화면에도
-   * 보내지므로, 기록이 쌓이면 생성할 때마다 수십 MB를 다시 쓰게 된다. 실패·중단은 다시 시도할 수
-   * 있게 모두 남긴다.
-   */
+  /** 큐 파일은 바뀔 때마다 통째로 저장·전송되어 기록이 쌓이면 수십 MB가 된다. 실패·중단은 다시 시도하도록 남긴다. */
   private pruneFinished(): void {
     let kept = 0;
     const drop = new Set<QueuedGenerationJob>();
@@ -240,7 +227,7 @@ export class GenerationQueue {
     });
   }
 
-  /** 입력 파일 하나를 읽고, 등록 뒤에 바뀌지 않았는지 해시로 확인한다. */
+  /** 등록 뒤 바뀌지 않았는지 해시로 확인한다. */
   private async loadInput(projectId: string, relative: string, hash: string): Promise<Buffer> {
     const file = await fs.readFile(
       await this.dependencies.library.resolveProjectReal(projectId, relative),
@@ -271,12 +258,10 @@ export class GenerationQueue {
     return { image: loaded, mask, aid };
   }
 
-  /** 지금 Anlas. 조회하지 않거나 실패하면 undefined다. */
   private anlasNow(token: string): Promise<number | undefined> {
     return this.dependencies.anlas?.(token).catch(() => undefined) ?? Promise.resolve(undefined);
   }
 
-  /** 요청 간격을 지켜 이미지를 생성하고, 전후 Anlas를 비교해 실제 차감량을 구한다. */
   private async requestImage(
     job: QueuedGenerationJob,
     inputs: JobInputs,
@@ -284,7 +269,7 @@ export class GenerationQueue {
   ): Promise<{ generated: Buffer[]; anlasSpent?: number }> {
     const token = await this.dependencies.token();
     const anlasBefore = await this.anlasNow(token);
-    // 바이브 인코딩 비용도 이 결과의 사용 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
+    // 인코딩 비용도 이 결과의 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
     const aid =
       inputs.aid && job.aid?.kind === 'vibe'
         ? await this.vibes.encodeAll(job.settings, job.aid.vibes, inputs.aid, token, signal)
@@ -338,10 +323,7 @@ export class GenerationQueue {
     return records;
   }
 
-  /**
-   * 실패를 기록한다. 다시 시도할 수 있는 오류면 정해진 시간만큼 기다린 뒤, 그사이 취소나 일시 중지가
-   * 없었으면 true를 돌려준다.
-   */
+  /** 다시 시도할 수 있고 기다리는 사이 취소·일시 중지가 없었으면 true. */
   private async retryAfterFailure(job: QueuedGenerationJob, error: unknown): Promise<boolean> {
     if (String(job.status) === 'cancelled') {
       await this.commit();
@@ -384,7 +366,7 @@ export class GenerationQueue {
         for (const record of records) this.dependencies.onRecord(record);
         return;
       } catch (error) {
-        // 다시 시도를 기다리는 동안에도 취소할 수 있게, 진행 중 표시를 풀기 전에 기다린다.
+        // 진행 중 표시를 풀기 전에 기다려야 기다리는 동안에도 취소할 수 있다.
         if (await this.retryAfterFailure(job, error)) continue;
         return;
       } finally {

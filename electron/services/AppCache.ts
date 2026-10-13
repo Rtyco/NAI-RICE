@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Session } from 'electron';
 import { directorySize, fileSize } from './fsUtils';
 
-/** userData 안에서 Chromium이 쓰는 캐시 폴더. 지워도 다음에 필요하면 다시 만든다. */
+/** 지워도 필요하면 다시 만든다. */
 const CACHE_FOLDERS = [
   'Cache',
   'Code Cache',
@@ -11,11 +11,10 @@ const CACHE_FOLDERS = [
   'DawnGraphiteCache',
   'DawnWebGPUCache',
   'GrShaderCache',
-  // 맞춤법 검사 사전. 맞춤법 검사를 끄면 더는 받지 않는다.
+  // 맞춤법 검사를 끄면 더는 받지 않는다.
   'Dictionaries',
 ];
 
-/** 앱 캐시와 생성 큐 기록 파일 크기. */
 export class AppCache {
   constructor(
     private readonly userData: string,
@@ -30,17 +29,14 @@ export class AppCache {
     return { cache, queue: await fileSize(this.queueFile) };
   }
 
-  /**
-   * 예전에 받은 맞춤법 사전을 지운다. 맞춤법 검사기를 끄기 전 버전이 사전을 열어 둔 채라면 지워지지 않을 수
-   * 있는데, 그때는 넘어가고 다음 실행 때 다시 지운다.
-   */
+  /** 예전 버전이 사전을 열어 둔 채면 지워지지 않아 다음 실행 때 다시 지운다. */
   async removeDictionaries(): Promise<void> {
     await fs
       .rm(path.join(this.userData, 'Dictionaries'), { recursive: true, force: true })
       .catch(() => undefined);
   }
 
-  /** HTTP·코드·셰이더 캐시를 비우고 맞춤법 사전을 지운다. 비운 바이트(대략)를 돌려준다. */
+  /** 비운 바이트(대략) */
   async clear(): Promise<number> {
     const before = (await this.usage()).cache;
     const session = this.session();

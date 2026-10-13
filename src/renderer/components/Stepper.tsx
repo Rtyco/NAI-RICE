@@ -18,7 +18,7 @@ export function Stepper(props: {
     if (!focused.current) setDraft(String(value));
   }, [value]);
 
-  // 0.1 + 0.2 같은 부동소수 오차가 화면과 설정에 남지 않게 step의 자릿수로 자른다.
+  // 0.1 + 0.2 같은 부동소수 오차를 step의 자릿수로 자른다.
   const settle = (next: number) => Number(Math.min(max, Math.max(min, next)).toFixed(decimals));
   const change = (next: number) => {
     const settled = settle(next);

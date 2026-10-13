@@ -6,10 +6,7 @@ import { focusAndSelect } from './focusAndSelect';
 import { Icon } from './Icon';
 import { readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
 
-/**
- * 사이드바 작업 목록과 라이브러리 목록의 폴더 하나. 제목을 누르면 접히고, 두 번 누르면 이름을 바꾼다. 항목을
- * 제목에 놓으면 폴더 끝으로 들어가고, 제목을 끌면 폴더째 자리를 옮긴다.
- */
+/** 제목에 항목을 놓으면 폴더 끝으로 들어가고, 제목을 끌면 폴더째 옮긴다. */
 export function ListFolder(props: {
   scope: string;
   name: string;
@@ -20,7 +17,6 @@ export function ListFolder(props: {
   onRename: (name: string) => void;
   onUngroup: () => void;
   onPickAll: () => void;
-  /** 끌기를 시작할 때 폴더 안 항목 모두를 옮길 것으로 정한다. */
   startDrag: () => DragPayload;
   endDrag: () => void;
   onDrop: (payload: DragPayload) => void;
@@ -30,7 +26,7 @@ export function ListFolder(props: {
     state.foldedFolders.includes(folderKey(props.scope, props.name)),
   );
   const [over, setOver] = useState(false);
-  // 엔터·Esc로 끝낸 뒤 따라오는 blur가 다시 저장하지 않게 한다.
+  // 엔터·Esc 뒤에 따라오는 blur가 다시 저장하지 않게 한다.
   const done = useRef(false);
   useEffect(() => {
     if (props.renaming) done.current = false;

@@ -29,7 +29,7 @@ export class Exporter {
     return path.join(this.library.root, 'exports');
   }
 
-  /** JSON을 저장 위치를 물어 저장한다. 이름 끝의 .json은 있어도 없어도 된다. */
+  /** 이름 끝의 .json은 있어도 된다. */
   async saveJson(data: unknown, name: string, title: string): Promise<string | null> {
     await fs.mkdir(this.exportsDir(), { recursive: true });
     const stem = sanitizeFilenameStem(name.replace(/\.json$/i, ''));
@@ -123,7 +123,7 @@ export class Exporter {
     );
   }
 
-  /** 라이브러리 전체(레퍼런스 이미지 포함)를 JSON 하나로 백업한다. 생성 결과 이미지는 포함하지 않는다. */
+  /** 레퍼런스 이미지는 포함하고 생성 결과는 뺀다. */
   async exportLibrary(library: LibraryData): Promise<string | null> {
     const images: Record<string, ReferenceImagesData> = {};
     for (const reference of library.references) {

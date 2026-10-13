@@ -1,11 +1,10 @@
 /**
- * NovelAI V4.5·V5 프롬프트 문법 검사. docs.novelai.net 기준:
- * - `{}` 강조(×1.05), `[]` 약화(÷1.05). 중첩하면 곱해진다.
- * - `1.5::텍스트 ::` 숫자 가중치. 음수(`-1::hat ::`)는 V4.5부터. 닫지 않으면 끝까지 적용된다.
+ * docs.novelai.net 기준 V4.5·V5 문법:
+ * - `{}` ×1.05, `[]` ÷1.05, 중첩하면 곱한다.
+ * - `1.5::텍스트 ::` 가중치. 음수는 V4.5부터. 닫지 않으면 끝까지.
  * - 숫자 없는 `::`는 열린 가중치와 괄호를 모두 닫는다.
- * - `|`는 캐릭터 구분자인데 캐릭터 프롬프트 칸과 함께 쓸 수 없다(이 앱은 칸을 쓴다).
- * - `source#`·`target#`·`mutual#` 캐릭터 상호작용 태그.
- * - `<세트.조각>` 이 앱의 프롬프트 조각 참조.
+ * - `|` 캐릭터 구분자는 캐릭터 프롬프트 칸과 함께 쓸 수 없다.
+ * - `source#`·`target#`·`mutual#` 상호작용 태그, `<세트.조각>` 이 앱의 조각 참조.
  */
 
 export type SyntaxKind =
@@ -21,11 +20,10 @@ export type SyntaxToken = {
   kind: SyntaxKind;
   start: number;
   end: number;
-  /** 같은 종류끼리의 중첩 깊이(0부터). 괄호와 가중치만. */
+  /** 같은 종류끼리의 중첩 깊이(0부터) */
   depth?: number;
-  /** 짝이 되는 토큰의 index. `::`는 닫은 것 중 가장 바깥 것. */
+  /** `::`는 닫은 것 중 가장 바깥 것 */
   pair?: number;
-  /** 가중치 값(weight만). */
   value?: number;
   problem?: 'error' | 'warning';
 };
@@ -55,7 +53,6 @@ export function analyzePrompt(
 ): SyntaxReport {
   const tokens: SyntaxToken[] = [];
   const issues: SyntaxIssue[] = [];
-  /** 열린 괄호·가중치 토큰 index. */
   const stack: number[] = [];
   const depthOf = (kind: SyntaxKind) =>
     stack.filter((index) => tokens[index].kind === kind).length;
@@ -89,7 +86,6 @@ export function analyzePrompt(
         tokens[index].problem = 'warning';
         issues.push({ level: 'warning', start: i, message: '닫을 것이 없는 ::' });
       } else {
-        // ::는 열린 것을 모두 닫는다.
         tokens[index].pair = stack[0];
         for (const open of stack) tokens[open].pair = index;
         stack.length = 0;
@@ -173,13 +169,12 @@ export function analyzePrompt(
   return { tokens, issues };
 }
 
-/** 커서 위치에 걸린 강조 배율. 괄호는 1.05씩, 숫자 가중치는 그 값을 곱한다. */
 export function weightAt(report: SyntaxReport, position: number): number {
   let weight = 1;
   for (const token of report.tokens) {
     if (token.kind !== 'brace' && token.kind !== 'bracket' && token.kind !== 'weight') continue;
     if (token.depth === undefined || token.start >= position) continue;
-    // 여는 토큰만 본다(닫는 괄호는 pair가 자기보다 앞).
+    // 여는 토큰만(닫는 괄호는 pair가 앞)
     if (token.pair !== undefined && report.tokens[token.pair].start < token.start) continue;
     const close = token.pair === undefined ? undefined : report.tokens[token.pair];
     if (close && close.start < position) continue;

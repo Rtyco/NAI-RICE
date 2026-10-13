@@ -6,7 +6,7 @@ import type { FileDialogs } from './ports';
 
 type PickedFile = { filePath: string; buffer: Buffer };
 
-/** 사용자가 고른 파일을 읽어 렌더러에 넘긴다. 너무 큰 파일은 읽지 않는다. */
+/** 너무 큰 파일은 읽지 않는다. */
 export class FilePicker {
   constructor(private readonly dialog: FileDialogs) {}
 

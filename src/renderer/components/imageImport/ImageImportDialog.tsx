@@ -87,7 +87,7 @@ export function ImageImportDialog({
   const desk = data.desk;
   const stem = image.name.replace(/\.[^.]+$/, '');
 
-  // NovelAI 원본 이미지면 프롬프트에 섞여 있는 품질 태그·UC 프리셋 문구를 떼어 낸다.
+  // NovelAI 원본 이미지면 품질 태그·UC 프리셋 문구를 떼어 낸다.
   const tags = useMemo(() => {
     if (data.qualityTags !== undefined || data.ucPreset !== undefined) {
       return {
@@ -116,8 +116,7 @@ export function ImageImportDialog({
   const [useSettings, setUseSettings] = useState(settingKeys.length > 0);
   const [useModel, setUseModel] = useState(Boolean(data.model));
   const [useSeed, setUseSeed] = useState(false);
-  // 덮어쓸 대상은 라이브러리의 어느 항목이든 고를 수 있다. 처음에는 라이브러리 화면에서 보고 있던 항목,
-  // 아니면 지금 작업이 쓰는 항목을 고른다.
+  // 처음에는 라이브러리 화면에서 보던 항목, 아니면 지금 작업이 쓰는 항목.
   const view = useStore((state) => state.view);
   const picked = (section: string) =>
     view.kind === 'library' && view.section === section ? (view.itemId ?? '') : undefined;
@@ -131,7 +130,6 @@ export function ImageImportDialog({
     firstOf(library.presets, picked('presets'), resolved?.preset?.id),
   );
   const targetPreset = library.presets.find((item) => item.id === presetTargetId);
-  // 새로 만드는 항목 전부에 붙는 이름. 덮어쓰는 항목은 원래 이름을 둔다.
   const [name, setName] = useState(desk?.characterName ?? stem);
 
   const [useCharacter, setUseCharacter] = useState(data.characters.length > 0);
@@ -158,14 +156,14 @@ export function ImageImportDialog({
   const targetEmotionSet = library.emotionSets.find((item) => item.id === emotionSetTargetId);
   const usedMark = (id: string, usedId?: string) => (id === usedId ? ' (현재 작업)' : '');
   const [useReference, setUseReference] = useState(false);
-  // 그림을 캐릭터 레퍼런스·바이브로 보내는 것은 설정 불러오기가 아니라 전체 선택에 넣지 않는다.
+  // 설정 불러오기가 아니라 전체 선택에 넣지 않는다.
   const [aidTargets, setAidTargets] = useState<AidSection[]>([]);
   const toggleAid = (section: AidSection, on: boolean) =>
     setAidTargets((current) =>
       on ? [...current, section] : current.filter((item) => item !== section),
     );
   const [makeProject, setMakeProject] = useState(!project);
-  // 생성 정보의 인코딩은 그 이미지의 모델로 만든 것이라 그 모델로 저장한다. 앱이 바이브를 쓰는 V4 계열만 받는다.
+  // 인코딩은 그 이미지의 모델로 만든 것이다. 앱이 바이브를 쓰는 V4 계열만 받는다.
   const vibeModel =
     data.model && modelInfo(data.model)?.generation === 'v4'
       ? requestModelId(data.model, 'generate')
@@ -175,7 +173,7 @@ export function ImageImportDialog({
     : (data.vibes?.filter((vibe) => vibe.image || vibeModel).length ?? 0);
   const [useVibes, setUseVibes] = useState(false);
 
-  // 전체 선택·해제는 불러올 항목에만 적용한다. 이미지에 없는 항목은 선택해도 꺼진 채로 보인다.
+  // 이미지에 없는 항목은 선택해도 꺼진 채로 보인다.
   const setAll = (value: boolean) => {
     setUsePositive(value && hasPositive);
     setUseNegative(value && hasNegative);

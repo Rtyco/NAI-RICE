@@ -16,7 +16,7 @@ function formatBytes(bytes: number): string {
   return `${bytes} B`;
 }
 
-/** 대표(★) 이미지를 뺀 결과. before가 있으면 그 날(포함) 이전에 만든 것만. */
+/** 대표 이미지를 뺀다. before가 있으면 그날(포함) 이전만. */
 function cleanupTargets(
   records: GenerationSummary[],
   project: Pick<Project, 'favorites'> | undefined,
@@ -29,10 +29,7 @@ function cleanupTargets(
   );
 }
 
-/**
- * 「결과 정리」: 대표 이미지를 빼고 결과를 한꺼번에 지운다. 기본은 휴지통이고, 여기서만 영구 삭제를 고를 수
- * 있다. 지우기 전에 장수와 용량을 미리 보여 준다.
- */
+/** 영구 삭제는 여기서만 고를 수 있다. */
 function CleanupDialog({
   projectIds,
   close,

@@ -16,8 +16,7 @@ export function buildGenerationMask(input: MaskBuildInput): Uint8Array {
     throw new Error('배경 마스크 크기가 캔버스와 다릅니다.');
   if (overrides && overrides.length !== width * height)
     throw new Error('수동 마스크 크기가 캔버스와 다릅니다.');
-  // 영역을 끌거나 슬라이더를 움직이는 동안 매 프레임 다시 계산하므로 픽셀마다 contains를 부르지 않고 줄 단위로 비운다
-  // (1216×832에서 12ms → 약 2ms). expandRect가 정수로 반올림하고 캔버스 안으로 자르므로 결과는 같다.
+  // 매 프레임 다시 계산하므로 픽셀마다 contains를 부르지 않고 줄 단위로 비운다(1216×832에서 12ms → 약 2ms).
   const protectedRect = expandRect(input.referenceRect, input.expansionPx, width, height);
   const mask = new Uint8Array(width * height);
   for (let pixel = 0; pixel < mask.length; pixel += 1) mask[pixel] = backgroundMask[pixel] ? 1 : 0;
@@ -33,11 +32,7 @@ export function buildGenerationMask(input: MaskBuildInput): Uint8Array {
   return mask;
 }
 
-/**
- * 저장된 마스크에서 사용자가 붓으로 고친 픽셀만 골라낸다.
- * 자동 계산과 같은 픽셀은 -1(자동)로 두어, 이후 확장 값이나 영역을 바꾸면 그대로 반영되게 한다.
- * 자동 계산 결과는 여러 개를 받을 수 있다. 어느 하나와 같으면 손대지 않은 픽셀로 본다.
- */
+/** 자동 계산(여러 개 중 하나)과 같은 픽셀은 -1(자동)로 두어 이후 영역·확장 값 변경을 따른다. */
 export function manualOverrides(saved: Uint8Array, automatic: Uint8Array[]): Int8Array {
   const overrides = new Int8Array(saved.length).fill(-1);
   for (let pixel = 0; pixel < saved.length; pixel += 1) {
@@ -49,11 +44,7 @@ export function manualOverrides(saved: Uint8Array, automatic: Uint8Array[]): Int
 
 const MAX_EXPANSION_PX = 64;
 
-/**
- * 저장된 마스크가 몇 px 확장으로 만들어졌는지 추정한다. 예전 버전은 캔버스 가장자리에서 확장이
- * 두 배로 들어갔으므로, 입력란 값만으로는 저장된 마스크를 다시 만들 수 없다.
- * 그 확장으로 보호되는 픽셀이 저장된 마스크에서도 모두 보호돼 있는 가장 큰 값을 이분 탐색으로 찾는다.
- */
+/** 예전 버전은 캔버스 가장자리에서 확장이 두 배라 입력란 값으로는 다시 만들 수 없다. 저장된 마스크와 맞는 가장 큰 값을 이분 탐색한다. */
 export function inferSavedExpansion(
   saved: Uint8Array,
   input: Omit<MaskBuildInput, 'expansionPx' | 'overrides'>,

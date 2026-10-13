@@ -57,7 +57,7 @@ export function removeItem<K extends Collection>(library: Library, key: K, id: s
   return { ...library, [key]: (library[key] as ItemOf<K>[]).filter((entry) => entry.id !== id) };
 }
 
-/** 목록에서 항목을 빼서 toIndex(뺀 뒤 기준) 자리에 넣는다. */
+/** `toIndex`는 뺀 뒤 기준. */
 export function moveItem<K extends Collection>(
   library: Library,
   key: K,
@@ -72,11 +72,7 @@ export function moveItem<K extends Collection>(
   return { ...library, [key]: list };
 }
 
-/**
- * 여러 항목을 한꺼번에 `targetId` 옆으로 옮긴다. 옮기는 항목끼리는 원래 순서를 지킨다. 한 개를 옮길 때와
- * 같이, 끌어 온 항목(`grabbedId`)이 대상보다 위에 있었으면 대상 뒤에, 아래에 있었으면 앞에 놓는다. 옮길 수
- * 없으면(대상이 옮기는 항목이거나 목록에 없으면) undefined.
- */
+/** 옮기는 항목끼리는 원래 순서를 지킨다. 끌어 온 항목이 대상보다 위였으면 대상 뒤, 아래였으면 앞. 옮길 수 없으면 undefined. */
 function moveNextToTarget<T extends { id: string }>(
   list: T[],
   ids: string[],
@@ -112,16 +108,13 @@ const LINK_KEY = {
   references: 'referenceId',
 } as const;
 
-/** 작업이 여럿 고르는 항목. 고르지 않아도 생성할 수 있어, 대신할 항목이 없으면 목록에서 뺀다. */
+/** 고르지 않아도 생성할 수 있어 대신할 항목이 없으면 목록에서 뺀다. */
 const LIST_KEY = {
   characterReferences: 'characterReferenceIds',
   vibes: 'vibeIds',
 } as const;
 
-/**
- * 항목을 지우고, 그 항목을 쓰던 작업은 replacementId 항목으로 바꾼다.
- * replacementId가 없으면 작업의 연결을 비워 둔다. 작업 화면에서 "(없음)"으로 보이고 다시 고르면 된다.
- */
+/** replacementId가 없으면 연결을 비운다(작업 화면에 「(없음)」). */
 export function removeItemReassigning(
   library: Library,
   key: keyof typeof LINK_KEY | keyof typeof LIST_KEY | 'characters',
@@ -131,7 +124,6 @@ export function removeItemReassigning(
   const removed = removeItem(library, key, id);
   if (key === 'vibes' || key === 'characterReferences') {
     const field = LIST_KEY[key];
-    // 대신할 항목이 이미 골라져 있으면 겹치지 않게 뺀다.
     const replace = (ids: string[]) => [
       ...new Set(
         ids.flatMap((entry) => (entry !== id ? [entry] : replacementId ? [replacementId] : [])),
@@ -213,7 +205,7 @@ export function updateEmotion(
   };
 }
 
-/** `index`번째 추가 캐릭터(두 번째 캐릭터가 0)의 씬 프롬프트를 바꾼다. 끝의 빈 칸은 저장하지 않는다. */
+/** `index` 0이 두 번째 캐릭터. 끝의 빈 칸은 저장하지 않는다. */
 export function withExtraPrompt(
   emotion: Pick<Emotion, 'extraPrompts'>,
   index: number,
@@ -256,7 +248,7 @@ export function moveEmotion(set: EmotionSet, id: string, toIndex: number): Emoti
   return { ...set, emotions };
 }
 
-/** 씬 여러 개를 `targetId` 옆으로 옮긴다. 놓는 자리는 `moveItems`와 같다. */
+/** 놓는 자리는 `moveItems`와 같다. */
 export function moveEmotions(
   set: EmotionSet,
   ids: string[],
@@ -267,7 +259,6 @@ export function moveEmotions(
   return emotions ? { ...set, emotions } : set;
 }
 
-/** 같은 이름은 프롬프트를 덮어쓰고 없는 감정은 추가한다. */
 export function mergeEmotions(
   set: EmotionSet,
   incoming: Array<{ name: string; prompt: string }>,
@@ -319,7 +310,6 @@ export function clonePieceSet(set: PieceSet, name: string): PieceSet {
   };
 }
 
-/** 라이브러리의 모든 프롬프트 칸에 같은 변환을 적용한다. 조각 참조 이름을 바꿀 때 쓴다. */
 function mapPromptTexts(library: Library, map: (text: string) => string): Library {
   return {
     ...library,
@@ -347,19 +337,17 @@ function mapPromptTexts(library: Library, map: (text: string) => string): Librar
   };
 }
 
-/** 세트 이름을 바꾸고, 그 세트를 부르던 `<세트.조각>` 참조도 모두 새 이름으로 바꾼다. */
 export function renamePieceSet(library: Library, setId: string, name: string): Library {
   const set = library.pieceSets.find((item) => item.id === setId);
   if (!set || set.name === name) return library;
   const renamed = patchItem(library, 'pieceSets', setId, (item) => ({ ...item, name }));
-  // 이름을 지우는 중이면(빈 칸) 참조는 그대로 둔다. 다시 이름을 쓰면 그때 바뀐다.
+  // 이름을 지우는 중(빈 칸)이면 참조는 다시 이름을 쓸 때 바뀐다.
   if (!set.name.trim() || !name.trim()) return renamed;
   return mapPromptTexts(renamed, (text) =>
     renamePieceRefs(text, { setName: set.name }, { setName: name }),
   );
 }
 
-/** 조각 이름을 바꾸고, 그 조각을 부르던 참조도 바꾼다. */
 export function renamePiece(
   library: Library,
   setId: string,
@@ -427,7 +415,7 @@ export function clonePreset(preset: Preset, name: string): Preset {
   return { ...structuredClone(preset), id: newId(), name };
 }
 
-/** 레퍼런스 메타데이터만 복제한다. 이미지 파일 복사는 저장소가 처리한다. */
+/** 이미지 파일 복사는 저장소가 한다. */
 export function cloneReferenceMeta(reference: Reference, name: string): Reference {
   return {
     ...structuredClone(reference),
@@ -441,7 +429,7 @@ export function touchProject(project: Project): Project {
   return { ...project, updatedAt: new Date().toISOString() };
 }
 
-/** 다른 프로젝트에서 이 항목을 쓰고 있을 때, 지운 프롬프트 세트를 참조하는 작업을 첫 세트로 돌린다. */
+/** 지운 프롬프트 세트를 쓰던 작업은 첫 세트로. */
 export function repairPromptSetRefs(library: Library, character: Character): Library {
   const ids = new Set(character.promptSets.map((set) => set.id));
   const broken = (slot: CharacterSlot) =>

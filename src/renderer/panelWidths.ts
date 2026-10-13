@@ -1,9 +1,6 @@
 import { readUiState, saveUiState } from './store';
 
-/**
- * 끌어서 폭을 바꾸는 패널. 폭은 `:root`의 CSS 변수로 두어 같은 패널을 쓰는 화면(오른쪽 입력 패널은 씬 상세·
- * 자유 생성·인페인트 편집)이 함께 바뀌고, 다음 실행에도 기억한다.
- */
+/** 폭은 `:root` CSS 변수라 같은 패널을 쓰는 화면이 함께 바뀌고, 다음 실행에도 기억한다. */
 export const PANELS = {
   sidebar: { variable: '--sidebar-width', initial: 240, min: 200, max: 400, side: 'left' },
   'library-list': {
@@ -40,7 +37,7 @@ export function currentWidth(panel: PanelId): number {
   return Number.parseFloat(raw) || PANELS[panel].initial;
 }
 
-/** 기억해 둔 폭을 첫 화면을 그리기 전에 넣는다. */
+/** 첫 화면을 그리기 전에 부른다. */
 export function restorePanelWidths(): void {
   for (const panel of Object.keys(PANELS) as PanelId[]) {
     const saved = readUiState(storageKey(panel), (raw) => Number(raw), NaN);

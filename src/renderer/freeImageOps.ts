@@ -27,7 +27,7 @@ function recordName(projectId: string, record: GenerationSummary): string {
   return `${record.emotionName || (projectId === FREE_PROJECT_ID ? '자유 생성' : '결과')} ${record.seed}`;
 }
 
-/** 바뀌어 더는 쓰지 않는 `sources/` 파일을 지운다. 지우지 못해도 다음 작업에는 지장이 없다. */
+/** 지우지 못해도 지장이 없다. */
 function dropSourceFiles(previous: FreeImage | undefined, next: FreeImage | undefined) {
   const keep = new Set([next?.file, next?.maskFile]);
   for (const file of [previous?.file, previous?.maskFile])
@@ -48,7 +48,7 @@ function setFreeImage(
   const image: FreeImage = {
     name,
     ...stored,
-    // 같은 이미지를 다시 보내면 칠해 둔 마스크를 그대로 쓴다.
+    // 같은 이미지면 칠해 둔 마스크를 그대로 쓴다.
     ...(previous?.file === stored.file && previous.maskFile ? { maskFile: previous.maskFile } : {}),
     ...(fromRecord ? { fromRecord } : {}),
   };
@@ -56,12 +56,11 @@ function setFreeImage(
   dropSourceFiles(previous, image);
 }
 
-/** 생성 결과를 자유 생성 i2i 이미지로 정하고 자유 생성 화면으로 간다. 인페인팅 토글은 그대로 둔다. */
+/** 인페인팅 토글은 그대로 둔다. */
 export function sendToFreeImg2Img(projectId: string, record: GenerationSummary): Promise<void> {
   return sendToFree(projectId, record, 'img2img');
 }
 
-/** 생성 결과를 자유 생성 디렉터 툴의 이미지로 정하고 자유 생성 화면으로 간다. */
 export function sendToFreeDirector(projectId: string, record: GenerationSummary): Promise<void> {
   return sendToFree(projectId, record, 'augment');
 }
@@ -96,7 +95,6 @@ export function loadFreeImageFromFile(): Promise<void> {
   }).then(() => undefined);
 }
 
-/** 흰 빈 캔버스를 i2i 이미지로 정한다. 「그리기」에서 처음부터 그릴 때 쓴다. */
 export function newBlankFreeImage(width: number, height: number): Promise<void> {
   return run('빈 캔버스를 만드는 중', async () => {
     const canvas = document.createElement('canvas');
@@ -113,14 +111,11 @@ export function newBlankFreeImage(width: number, height: number): Promise<void> 
   }).then(() => undefined);
 }
 
-/**
- * 「그리기」에서 덧칠한 이미지로 i2i 이미지를 바꾼다. 크기는 그대로라 원래 영역(`outputRect`)과 칠해 둔
- * 마스크는 그대로 쓴다.
- */
+/** 크기가 같아 `outputRect`와 마스크는 그대로 쓴다. */
 export async function replaceFreeImagePixels(file: string, dataUrl: string): Promise<void> {
   const stored = await libraryApi().addSourceImage({ kind: 'data', dataUrl });
   const latest = useStore.getState().library?.freeGeneration.image;
-  // 합치는 사이에 다른 이미지로 바꿨으면 새 이미지에 옛 그림을 덮지 않는다.
+  // 합치는 사이에 다른 이미지로 바꿨으면 덮지 않는다.
   if (!latest || latest.file !== file) return;
   const next: FreeImage = { ...latest, file: stored.file };
   updateFreeGeneration({ image: next });
@@ -133,7 +128,7 @@ export function setPendingDrawing(apply: (() => Promise<void>) | undefined): voi
   pendingDrawing = apply;
 }
 
-/** 「그리기」에서 합치지 않은 그림이 있으면 합친다. 생성하기 직전에 부른다. */
+/** 생성하기 직전에 부른다. */
 export async function applyPendingDrawing(): Promise<void> {
   const apply = pendingDrawing;
   pendingDrawing = undefined;
@@ -150,14 +145,14 @@ export function clearFreeImage(): void {
 let pendingMask: { file: string; data: Uint8Array; width: number; height: number } | undefined;
 let maskTimer: ReturnType<typeof setTimeout> | undefined;
 
-/** 칠하는 동안 붓질마다 파일을 쓰지 않도록, 손을 뗀 뒤 잠시 기다렸다가 저장한다. */
+/** 붓질마다 파일을 쓰지 않도록 손을 뗀 뒤 잠시 기다려 저장한다. */
 export function setFreeMask(file: string, data: Uint8Array, width: number, height: number) {
   pendingMask = { file, data, width, height };
   clearTimeout(maskTimer);
   maskTimer = setTimeout(() => void saveFreeMask(), 800);
 }
 
-/** 기다리는 마스크를 바로 저장한다. 생성하기 직전과 화면을 떠날 때 부른다. */
+/** 생성 직전과 화면을 떠날 때 부른다. */
 export async function saveFreeMask(): Promise<void> {
   clearTimeout(maskTimer);
   const mask = pendingMask;
@@ -168,7 +163,7 @@ export async function saveFreeMask(): Promise<void> {
     ? await libraryApi().addSourceMask(maskToDataUrl(mask.data, mask.width, mask.height))
     : undefined;
   if (maskFile === current.maskFile) return;
-  // 저장하는 사이에 이미지를 바꿨으면 새 이미지에 옛 마스크를 붙이지 않는다.
+  // 저장하는 사이에 이미지를 바꿨으면 옛 마스크를 붙이지 않는다.
   const latest = useStore.getState().library?.freeGeneration.image;
   if (latest?.file !== mask.file) return;
   const next = { ...latest, maskFile };
@@ -176,7 +171,6 @@ export async function saveFreeMask(): Promise<void> {
   dropSourceFiles(latest, next);
 }
 
-/** 결과 이미지를 참고 이미지로 쓰는 새 인페인트를 만들고 인페인트 편집으로 간다. */
 export function makeReferenceFromRecord(
   projectId: string,
   record: GenerationSummary,

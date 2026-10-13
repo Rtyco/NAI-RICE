@@ -10,21 +10,21 @@ import type {
 } from '../domain/types';
 
 export type NaiModelInfo = {
-  /** 생성 설정에 저장하는 값. 이 구분이 생기기 전부터 인페인트 모델 ID를 저장해 왔다. */
+  /** 저장 값. 예전부터 인페인트 모델 ID를 저장해 왔다. */
   id: string;
-  /** NovelAI에 보내는 모델 ID. 인페인트가 없는 모델은 `inpaint`를 비운다. */
+  /** 인페인트가 없는 모델은 `inpaint`가 없다. */
   requestIds: { inpaint?: string; generate: string };
-  /** Effort Medium으로 보낼 때의 모델 ID. 없으면 Effort를 고를 수 없다. */
+  /** 없으면 Effort를 고를 수 없다. */
   mediumRequestIds?: { inpaint: string; generate: string };
   label: string;
   family: NaiTagFamily;
-  /** V4 이상은 v4_prompt와 캐릭터 프롬프트를 지원한다. V3는 하나의 프롬프트로 합쳐 보낸다. */
+  /** V3는 v4_prompt·캐릭터 프롬프트가 없어 하나로 합쳐 보낸다. */
   generation: 'v5' | 'v4' | 'v3';
-  /** 한 요청에 넣을 수 있는 캐릭터 수(NovelAI 웹의 `maxCharacters`). V3는 앱이 공통 프롬프트에 합친다. */
+  /** NovelAI 웹 `maxCharacters`. V3는 공통 프롬프트에 합친다. */
   maxCharacters: number;
   maxSteps: number;
   maxScale: number;
-  /** Variety+의 기준 sigma(NovelAI 웹의 `cfgDelaySigma`, 2026-10 웹 코드). 없으면 Variety+가 없다(V5). */
+  /** NovelAI 웹 `cfgDelaySigma`(2026-10). 없으면 Variety+ 미지원(V5). */
   varietySigma?: number;
 };
 
@@ -44,8 +44,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxScale: 10,
   },
   {
-    // NovelAI 웹도 V5 Curated 인페인트는 V4.5 Curated 인페인트 모델로 보낸다(2026-10 웹 코드). 그래서 일반 생성
-    // 전용으로 두고, 저장 값은 일반 생성 모델 ID를 쓴다.
+    // NovelAI 웹도 V5 Curated 인페인트를 V4.5 Curated 인페인트 모델로 보내므로(2026-10) 일반 생성 전용으로 둔다.
     id: 'nai-diffusion-5-curated',
     requestIds: { generate: 'nai-diffusion-5-curated' },
     label: 'NAI Diffusion V5 Curated',
@@ -142,17 +141,15 @@ export function supportsInpaint(id: string): boolean {
   return Boolean(modelInfo(id)?.requestIds.inpaint);
 }
 
-/** 모르는 모델이면 V4와 같은 6명으로 본다. */
 export function maxCharactersFor(id: string | undefined): number {
   return modelInfo(id ?? '')?.maxCharacters ?? 6;
 }
 
-/** 캐릭터 레퍼런스·바이브를 받는 모델. 0단계에서 V4.5만 되고 V5는 500 오류가 났다. */
+/** V5는 500 오류(0단계 실측). */
 export function supportsReferenceAid(id: string): boolean {
   return modelInfo(id)?.family.startsWith('v4-5') ?? false;
 }
 
-/** NovelAI 웹의 Character & Style · Character · Style. */
 export const REFERENCE_TARGETS: Array<{ value: ReferenceTarget; label: string; hint: string }> = [
   { value: 'character&style', label: '캐릭터와 그림체', hint: 'Character & Style' },
   { value: 'character', label: '캐릭터', hint: 'Character' },
@@ -163,21 +160,18 @@ export function referenceTargetLabel(target: ReferenceTarget): string {
   return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;
 }
 
-/** NovelAI 웹이 스트리밍으로 받는 모델(`streamedResponses`, 2026-10 웹 코드). V3는 웹도 스트리밍하지 않는다. */
+/** NovelAI 웹 `streamedResponses`(2026-10). V3는 웹도 스트리밍하지 않는다. */
 export function supportsStreaming(id: string): boolean {
   const generation = modelInfo(id)?.generation;
   return generation === 'v4' || generation === 'v5';
 }
 
-/** V3만 SMEA·SMEA DYN·Decrisp를 받는다(NovelAI 웹의 `smea`·`smeaDyn`·`dynamicThresholding`). */
+/** NovelAI 웹 `smea`·`smeaDyn`·`dynamicThresholding`. */
 export function supportsV3Sampling(id: string): boolean {
   return modelInfo(id)?.generation === 'v3';
 }
 
-/**
- * Variety+로 보낼 `skip_cfg_above_sigma`. 지원하지 않거나 끄면 null이다. 기준 값은 832×1216 기준이라 면적의
- * 제곱근 비율로 늘린다(커뮤니티 실측: V4.5 1280×1856에 88.877…, V4 1024×1024에 19.343…).
- */
+/** 기준 값은 832×1216 기준이라 면적의 제곱근 비율로 늘린다(커뮤니티 실측: V4.5 1280×1856 → 88.877…, V4 1024×1024 → 19.343…). */
 export function varietySigma(
   settings: Pick<GenerationSettings, 'model' | 'variety'>,
   width: number,
@@ -194,7 +188,6 @@ export const SMEA_LABELS: Record<SmeaMode, string> = {
   dyn: 'SMEA DYN',
 };
 
-/** 생성 정보에 보일 고급 샘플링 값. 그 모델에 쓰이지 않는 값은 뺀다. */
 export function samplingExtras(settings: GenerationSettings): string[] {
   const v3 = supportsV3Sampling(settings.model);
   return [
@@ -208,17 +201,14 @@ export function supportsEffort(id: string): boolean {
   return Boolean(modelInfo(id)?.mediumRequestIds);
 }
 
-/** 모델을 바꿔도 `effort` 값은 남아 있으므로, 실제로 Medium인지는 모델까지 본다. */
+/** 모델을 바꿔도 `effort`는 남아 있어 모델까지 본다. */
 export function usesMedium(settings: Pick<GenerationSettings, 'model' | 'effort'>): boolean {
   return settings.effort === 'medium' && supportsEffort(settings.model);
 }
 
 export const EFFORT_LABELS: Record<Effort, string> = { high: 'High', medium: 'Medium' };
 
-/**
- * Medium에서 바꿀 수 없는 값. NovelAI 웹의 `fixedSettings`(Steps·Sampler·UC 프리셋)와, Medium 모델에서 웹이
- * 감추는 CFG Rescale(2026-10 웹 코드).
- */
+/** NovelAI 웹 `fixedSettings`와, medium 모델에서 웹이 감추는 CFG Rescale(2026-10). */
 export const MEDIUM_FIXED = {
   steps: 14,
   sampler: 'k_euler_ancestral',
@@ -226,7 +216,6 @@ export const MEDIUM_FIXED = {
   cfgRescale: 0,
 } as const satisfies Partial<GenerationSettings>;
 
-/** 생성 방식에 맞는 NovelAI 모델 ID. 그 방식을 지원하지 않는 모델이면 오류를 던진다. */
 export function requestModelId(
   id: string,
   use: 'inpaint' | 'generate',
@@ -261,11 +250,7 @@ const V4_CURATED_LIGHT =
 const V3_HEAVY =
   'lowres, {bad}, error, fewer, extra, missing, worst quality, jpeg artifacts, bad quality, watermark, unfinished, displeasing, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]';
 
-/**
- * NovelAI 웹(novelai.net)이 실제로 붙이는 문구(2026-10 웹 코드 기준). docs.novelai.net의 문구와 다른
- * 곳은 웹을 따르고, 예전 문구는 legacy로 남겨 그때 만든 이미지를 불러올 때만 알아본다.
- * 모델에 없는 단계·프리셋은 넣지 않는다.
- */
+/** novelai.net 웹 문구(2026-10). docs.novelai.net과 다르면 웹을 따른다. legacy는 옛 이미지를 불러올 때만 쓴다. */
 const V5_TAGS: NaiTagTable = {
   quality: {
     standard: 'very aesthetic, masterpiece, no text',
@@ -282,7 +267,7 @@ const V5_TAGS: NaiTagTable = {
 
 export const NAI_TAGS: Record<NaiTagFamily, NaiTagTable> = {
   v5: V5_TAGS,
-  // 웹에서 V5 Full과 같은 품질 태그·UC 프리셋 목록을 쓴다. 다른 점은 nsfw를 자동으로 붙이지 않는 것뿐이다.
+  // 웹에서 V5 Full과 같은 목록을 쓴다. 차이는 nsfw 자동 추가뿐이다.
   'v5-curated': V5_TAGS,
   'v4-5-full': {
     quality: { standard: 'very aesthetic, masterpiece, no text' },
@@ -345,7 +330,7 @@ export const NAI_TAGS: Record<NaiTagFamily, NaiTagTable> = {
   },
 };
 
-/** 최종 네거티브(V3는 캐릭터 네거티브까지 합친 것)가 비었을 때 NovelAI 웹처럼 대신 보낼 네거티브. */
+/** V3는 캐릭터 네거티브까지 합쳐 비었을 때. */
 export function emptyNegativeFor(model: string): string {
   return tagsFor(model).emptyUc ?? '';
 }
@@ -367,21 +352,19 @@ function tagsFor(model: string | undefined): NaiTagTable {
   return NAI_TAGS[modelInfo(model ?? '')?.family ?? 'v4-5-full'];
 }
 
-/** 모델이 지원하는 품질 태그 단계. V5만 Standard·Light 두 가지가 있다. */
 export function qualityLevelsFor(model: string): QualityLevel[] {
   return (Object.keys(QUALITY_LEVEL_LABELS) as QualityLevel[]).filter(
     (level) => tagsFor(model).quality[level],
   );
 }
 
-/** 모델이 지원하는 UC 프리셋('없음' 포함). */
+/** 'none' 포함 */
 export function ucPresetsFor(model: string): UcPresetId[] {
   return (Object.keys(UC_PRESET_LABELS) as UcPresetId[]).filter(
     (id) => id === 'none' || tagsFor(model).uc[id],
   );
 }
 
-/** 모델에서 실제로 쓰이는 품질 태그·UC 문구. 미리보기와 설정 화면에서 보여 준다. */
 export function naiTagText(
   model: string,
   options: { qualityTags: boolean; qualityLevel?: QualityLevel; ucPreset: UcPresetId },
@@ -395,10 +378,7 @@ export function naiTagText(
   };
 }
 
-/**
- * NovelAI 웹이 요청의 `tag_hint_qt`·`tag_hint_uc_preset`에 쓰는 번호. 메타데이터에 남아,
- * 이미지를 불러올 때 어떤 품질 태그·UC 프리셋을 썼는지 알려 준다.
- */
+/** NovelAI 요청의 `tag_hint_qt`·`tag_hint_uc_preset` 번호. 메타데이터에 남아 불러올 때 쓴다. */
 export const NAI_TAG_HINT = {
   none: 0,
   standard: 1,
@@ -408,7 +388,7 @@ export const NAI_TAG_HINT = {
   furry: 5,
 } as const;
 
-/** 실제로 붙은 품질 태그 단계와 UC 프리셋의 힌트 번호. 모델에 없어 붙지 않은 것은 0(없음)이다. */
+/** 모델에 없어 붙지 않은 것은 0. */
 export function naiTagHints(
   model: string,
   options: { qualityTags: boolean; qualityLevel?: QualityLevel; ucPreset: UcPresetId },
@@ -428,13 +408,9 @@ function clean(value: string): string {
   return value.trim().replace(/^[,\s]+|[,\s]+$/g, '');
 }
 
-/** NovelAI 웹이 nsfw를 자동으로 붙이지 않는 모델 계열. */
 const NO_AUTO_NSFW = new Set<NaiTagFamily>(['v5-curated', 'v4-5-curated', 'v4-curated']);
 
-/**
- * NovelAI 웹은 UC 프리셋을 쓰면 네거티브 맨 앞에 `nsfw`를 붙인다. Curated 모델과,
- * 포지티브(품질 태그·캐릭터 프롬프트 포함)에 이미 nsfw가 있는 경우는 빼고. 이 함수는 모델과 프리셋 조건만 본다.
- */
+/** NovelAI 웹은 UC 프리셋을 쓰면 네거티브 앞에 `nsfw`를 붙인다(Curated와 포지티브에 nsfw가 있으면 제외). 여기서는 모델·프리셋 조건만 본다. */
 export function addsAutoNsfw(model: string, ucPreset: UcPresetId): boolean {
   const family = modelInfo(model)?.family ?? 'v4-5-full';
   return !NO_AUTO_NSFW.has(family) && naiTagText(model, { qualityTags: false, ucPreset }).uc !== '';
@@ -444,10 +420,7 @@ function mentionsNsfw(...prompts: string[]): boolean {
   return prompts.some((prompt) => prompt.toLowerCase().includes('nsfw'));
 }
 
-/**
- * 품질 태그와 UC 프리셋을 적용한 최종 공통 포지티브/네거티브. 모델에 없는 단계·프리셋은 무시한다.
- * NovelAI 웹처럼 조건이 맞으면 네거티브 맨 앞에 `nsfw`를 붙이며, 이때 캐릭터 프롬프트도 함께 본다.
- */
+/** 모델에 없는 단계·프리셋은 무시한다. 자동 nsfw는 캐릭터 프롬프트까지 보고 정한다. */
 export function applyNaiTags(
   model: string,
   options: { qualityTags: boolean; qualityLevel?: QualityLevel; ucPreset: UcPresetId },
@@ -465,16 +438,13 @@ export function applyNaiTags(
   };
 }
 
-/**
- * 지금 문구와 예전 문구를 함께 후보로 만든다. 긴 문구부터 비교해야 Human Focus가 Heavy로,
- * 긴 예전 문구가 짧은 문구로 잘못 잡히지 않는다.
- */
+/** 긴 문구부터 비교해야 Human Focus가 Heavy로, 긴 예전 문구가 짧은 문구로 잘못 잡히지 않는다. */
 function tagCandidates<K extends string>(
   current: Partial<Record<K, string>>,
   legacy: Partial<Record<K, string>> | undefined,
   preferred?: string,
 ): Array<[K, string]> {
-  // 힌트로 알려 준 것을 먼저 본다(NovelAI 웹과 같은 순서).
+  // NovelAI 웹과 같은 순서
   const rank = ([key]: [K, string]) => (key === preferred ? 0 : 1);
   return [current, legacy ?? {}]
     .flatMap((table) => Object.entries(table) as Array<[K, string]>)
@@ -483,34 +453,25 @@ function tagCandidates<K extends string>(
     .sort((a, b) => rank(a) - rank(b) || b[1].length - a[1].length);
 }
 
-/** 힌트 번호를 품질 태그 단계·UC 프리셋 이름으로. 모르는 번호면 undefined. */
 function hintName(hint: number | undefined): string | undefined {
   return (Object.keys(NAI_TAG_HINT) as Array<keyof typeof NAI_TAG_HINT>).find(
     (key) => NAI_TAG_HINT[key] === hint,
   );
 }
 
-/** `prompt`가 태그 경계에서 `suffix`로 끝나면 그 앞부분을, 아니면 undefined를 돌려준다. */
 function stripTagSuffix(prompt: string, suffix: string): string | undefined {
   if (!suffix || !prompt.endsWith(suffix)) return undefined;
   const rest = prompt.slice(0, -suffix.length);
   return rest === '' || /,\s*$/.test(rest) ? clean(rest) : undefined;
 }
 
-/** `prompt`가 태그 경계에서 `prefix`로 시작하면 그 뒷부분을, 아니면 undefined를 돌려준다. */
 function stripTagPrefix(prompt: string, prefix: string): string | undefined {
   if (!prefix || !prompt.startsWith(prefix)) return undefined;
   const rest = prompt.slice(prefix.length);
   return rest === '' || /^\s*,/.test(rest) ? clean(rest) : undefined;
 }
 
-/**
- * 가져온 이미지의 프롬프트에서 품질 태그와 UC 프리셋 문자열을 찾아 떼어낸다.
- * NovelAI 웹은 UC 프리셋 앞에 `nsfw`를 붙이므로 그 뒤에서도 프리셋을 찾는다. 그 `nsfw`는 앱이 생성할 때
- * 다시 붙이므로 떼어 낸다(`applyNaiTags`).
- * NovelAI 웹이 남긴 힌트(`tag_hint_qt`, `tag_hint_uc_preset`)가 있으면 그것부터 찾고, 힌트가 '없음'이면
- * 문구가 같아 보여도 사용자가 직접 쓴 것으로 보고 떼지 않는다.
- */
+/** 웹이 붙인 `nsfw` 뒤에서도 프리셋을 찾는다. 힌트(`tag_hint_*`)가 있으면 그것부터 보고, 힌트가 '없음'이면 같은 문구도 사용자가 쓴 것으로 보고 떼지 않는다. */
 export function detectNaiTags(
   model: string | undefined,
   positive: string,
@@ -555,7 +516,7 @@ export function detectNaiTags(
         if (rest !== undefined) {
           resultNegative = rest;
         } else if (afterNsfw !== undefined) {
-          // 생성할 때 다시 붙을 nsfw만 뗀다. 직접 쓴 것으로 보이면 같은 요청이 되도록 남긴다.
+          // 생성할 때 다시 붙을 nsfw만 뗀다.
           const readded = !NO_AUTO_NSFW.has(family) && !mentionsNsfw(positive);
           resultNegative = [readded ? '' : 'nsfw', afterNsfw].filter(Boolean).join(', ');
         } else {
@@ -566,7 +527,7 @@ export function detectNaiTags(
       }
     }
   }
-  // 네거티브가 비어서 NovelAI 웹이 대신 보낸 기본값(V3의 lowres)은 생성할 때 다시 붙으므로 뗀다.
+  // 웹이 대신 보낸 기본값(V3의 lowres)은 생성할 때 다시 붙는다.
   if (ucPreset === 'none' && families.some((family) => NAI_TAGS[family].emptyUc === resultNegative))
     resultNegative = '';
   return {

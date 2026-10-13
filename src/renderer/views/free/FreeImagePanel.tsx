@@ -4,10 +4,7 @@ import { PresetNumberRow } from '../../components/PresetNumberRow';
 import { clearFreeImage, loadFreeImageFromFile, sourceMedia } from '../../freeImageOps';
 import { updateFreeGeneration } from '../../store';
 
-/**
- * i2i로 다시 그릴 이미지, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅), 그 방식의 강도·노이즈. i2i에만
- * 쓰는 입력을 한 카드에 모은다. 디렉터 툴 모드도 같은 이미지를 쓰고, 이미지 칸만 보인다.
- */
+/** 디렉터 툴 모드도 같은 이미지를 쓰고 이미지 칸만 보인다. */
 export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Preset }) {
   const { image } = free;
   const director = free.mode === 'augment';

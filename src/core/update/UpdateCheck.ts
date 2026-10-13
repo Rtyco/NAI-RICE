@@ -1,16 +1,14 @@
-/** 업데이트를 확인할 GitHub 저장소 "소유자/이름". 배포는 이 저장소의 Releases로 한다. */
+/** 배포는 이 저장소의 Releases로 한다. */
 export const UPDATE_REPOSITORY = 'Rtyco/NAI-RICE';
 
-/** GitHub 저장소 "소유자/이름". */
 export const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 export type UpdateCheckResult = {
   current: string;
   latest?: string;
   newer: boolean;
-  /** 릴리스 페이지(https://github.com/...) */
   url?: string;
-  /** 지금 실행 중인 형태(설치판·포터블)에 맞는 새 실행 파일 주소. */
+  /** 지금 실행 중인 형태(설치판·포터블)에 맞는 파일 */
   downloadUrl?: string;
   name?: string;
   notes?: string;
@@ -18,7 +16,7 @@ export type UpdateCheckResult = {
   message: string;
 };
 
-/** "v1.2.3", "1.2" 같은 버전을 숫자 배열로. 숫자가 아닌 꼬리(-beta 등)는 무시한다. */
+/** 숫자가 아닌 꼬리(-beta 등)는 무시한다. */
 function parts(version: string): number[] {
   return version
     .trim()
@@ -28,7 +26,7 @@ function parts(version: string): number[] {
     .filter((value) => Number.isFinite(value));
 }
 
-/** a가 b보다 새 버전이면 양수, 같으면 0, 낮으면 음수. */
+/** a가 새 버전이면 양수 */
 export function compareVersions(a: string, b: string): number {
   const left = parts(a);
   const right = parts(b);
@@ -42,7 +40,7 @@ export function compareVersions(a: string, b: string): number {
 const isGitHubUrl = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('https://github.com/');
 
-/** 릴리스 첨부 파일 중 설치판(-setup.exe)이나 포터블(-portable.exe) 주소. */
+/** -setup.exe 또는 -portable.exe */
 function assetUrl(payload: Record<string, unknown>, portable: boolean): string | undefined {
   const assets = Array.isArray(payload.assets) ? (payload.assets as Record<string, unknown>[]) : [];
   const suffix = portable ? '-portable.exe' : '-setup.exe';
@@ -52,7 +50,7 @@ function assetUrl(payload: Record<string, unknown>, portable: boolean): string |
   return isGitHubUrl(asset?.browser_download_url) ? asset.browser_download_url : undefined;
 }
 
-/** GitHub의 releases/latest 응답을 확인 결과로 바꾼다. */
+/** GitHub releases/latest 응답 */
 export function interpretLatestRelease(
   payload: Record<string, unknown>,
   current: string,

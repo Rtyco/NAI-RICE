@@ -6,16 +6,12 @@ import { SceneSetDialog } from './components/SceneSetDialog';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { deleteGenerations, emotionRecords, run, toast, useStore } from './store';
 
-/** 작업에서 대표 이미지로 지정한 생성 기록 ID. */
 export function favoriteIds(projectId: string): Set<string> {
   const project = useStore.getState().library?.projects.find((item) => item.id === projectId);
   return new Set(Object.values(project?.favorites ?? {}));
 }
 
-/**
- * 생성 결과를 지운다. 결과 이미지와 썸네일, 같은 결과의 진단 캔버스(전체 캔버스·메타데이터)를 함께
- * 휴지통으로 보낸다. 감정 상세에서 고른 결과를 지울 때 쓴다.
- */
+/** 썸네일과 진단 캔버스도 함께 휴지통으로 보낸다. */
 export async function deleteResults(
   projectId: string,
   records: GenerationSummary[],
@@ -46,7 +42,7 @@ export async function deleteResults(
   return true;
 }
 
-/** 보고 있던 결과를 지우고, 지웠으면 목록에서 바로 다음(없으면 이전) 결과를 보여 준다. */
+/** 지웠으면 다음(없으면 이전) 결과를 보여 준다. */
 export async function deleteShownResult(
   projectId: string,
   records: GenerationSummary[],
@@ -58,7 +54,7 @@ export async function deleteShownResult(
   if ((await deleteResults(projectId, [record])) && neighbor) show(neighbor.id);
 }
 
-/** 갤러리에서 고른 감정들의 결과만 지운다. 감정 자체와 대표 이미지는 남긴다. */
+/** 감정과 대표 이미지는 남긴다. */
 export async function clearEmotionResults(
   projectId: string,
   emotions: Array<{ id: string; name: string }>,
@@ -96,7 +92,6 @@ export async function clearEmotionResults(
   return true;
 }
 
-/** 결과들을 i2i로 다시 그리는 대화 상자를 연다. 결과는 원래 감정(또는 자유 생성)에 쌓인다. */
 export function openImg2ImgDialog(projectId: string, records: GenerationSummary[]): void {
   if (!records.length) return;
   void openDialog((close) => (
@@ -104,10 +99,9 @@ export function openImg2ImgDialog(projectId: string, records: GenerationSummary[
   ));
 }
 
-/** 결과들에 디렉터 툴(Emotion·배경 제거 등)을 적용하는 대화 상자를 연다. 결과는 원래 씬에 쌓인다. */
 export function openDirectorToolDialog(projectId: string, records: GenerationSummary[]): void {
   if (!records.length) return;
-  // 작업의 결과 한 장이면 씬마다 다른 표정으로 한꺼번에 만드는 창으로 넘어갈 수 있다.
+  // 작업 결과 한 장이면 씬 세트 만들기 창으로 넘어갈 수 있다.
   const sceneSet =
     projectId !== FREE_PROJECT_ID && records.length === 1
       ? () => openSceneSetDialog(projectId, records[0])
@@ -122,7 +116,6 @@ export function openDirectorToolDialog(projectId: string, records: GenerationSum
   ));
 }
 
-/** 대표 이미지 한 장에 씬마다 Emotion 툴을 적용해 표정만 다른 씬 세트를 만드는 창을 연다. */
 export function openSceneSetDialog(projectId: string, record: GenerationSummary): void {
   void openDialog((close) => (
     <SceneSetDialog projectId={projectId} record={record} close={close} />

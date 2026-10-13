@@ -9,10 +9,7 @@ import {
 import { PromptTextarea } from './PromptTextarea';
 import { NumberField, SelectField } from './ui';
 
-/**
- * 디렉터 툴 고르기와 그 툴의 값(표정·강도·장수·프롬프트). 디렉터 툴 창과 자유 생성의 디렉터 툴이 함께 쓴다.
- * `children`은 값 칸과 프롬프트 사이에 들어간다.
- */
+/** `children`은 값 칸과 프롬프트 사이에 들어간다. */
 export function DirectorToolFields(props: {
   value: AugmentSettings;
   onChange: (patch: Partial<AugmentSettings>) => void;
@@ -85,7 +82,7 @@ export function DirectorToolFields(props: {
   );
 }
 
-/** 배경 제거를 고르면 띄우는 경고. 0단계·5단계 실측 값을 적는다. */
+/** 0단계·5단계 실측 값 */
 export function BgRemovalWarning({ results }: { results: number }) {
   return (
     <p className="warning-box">

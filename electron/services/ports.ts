@@ -13,25 +13,18 @@ import type {
 import type { ImageDataSource, ProjectInspection, ReferenceImages } from '../../src/shared/ipc';
 import type { TokenVaultStatus } from './TokenVault';
 
-/**
- * 서비스끼리는 구체 클래스 대신 여기의 작은 인터페이스에 의존한다.
- * 실제 구현은 main.ts가 이어 붙이고, 테스트는 필요한 메서드만 가진 가짜 객체를 넘긴다.
- */
+/** 서비스는 구체 클래스 대신 이 인터페이스에 의존한다. main.ts가 잇고, 테스트는 가짜 객체를 넘긴다. */
 
-/** 생성 작업의 이미지를 만드는 쪽. NovelAIProvider가 구현한다. */
 export interface ImageGenerator {
-  /** 응답에 든 이미지 모두. 보통 한 장이고, 배경 제거는 세 장이다. */
+  /** 보통 한 장, 배경 제거는 세 장. */
   generate(request: NovelAIImageRequest): Promise<Buffer[]>;
-  /** 바이브 인코딩. 바이브를 쓰는 작업에만 필요하다. */
   encodeVibe?(request: NovelAIVibeRequest): Promise<Buffer>;
 }
 
-/** NovelAI 계정 상태를 조회하는 쪽. NovelAIProvider가 구현한다. */
 export interface AccountChecker {
   validateToken(token: string): Promise<NovelAIUserStatus>;
 }
 
-/** 토큰을 보관하는 곳. TokenVault가 구현한다. */
 export interface TokenStore {
   getStatus(): Promise<TokenVaultStatus>;
   read(): Promise<string>;
@@ -39,9 +32,8 @@ export interface TokenStore {
   remove(): Promise<void>;
 }
 
-/** 생성 큐가 입력을 읽고 결과를 쌓는 작업 폴더. Library가 구현한다. */
 export interface GenerationStore {
-  /** 결과 저장 형식을 읽는다. 아직 라이브러리를 읽지 않았으면 비어 있고, 그때는 PNG로 저장한다. */
+  /** 라이브러리를 읽기 전이면 없고, 그때는 PNG. */
   readonly settings?: Pick<AppSettings, 'storageFormat'>;
   resolveProjectReal(projectId: string, relative: string): Promise<string>;
   projectDir(projectId: string): string;
@@ -52,7 +44,6 @@ export interface GenerationStore {
   writeVibe(key: string, data: Buffer): Promise<void>;
 }
 
-/** 내보내기가 읽는 작업 폴더. Library가 구현한다. */
 export interface ExportSource {
   readonly root: string;
   findGeneration(projectId: string, generationId: string): Promise<GenerationRecord>;
@@ -62,7 +53,6 @@ export interface ExportSource {
   readImageDataUrl(source: ImageDataSource): Promise<string>;
 }
 
-/** 탐색기로 열거나 휴지통으로 보낼 작업 폴더. Library가 구현한다. */
 export interface WorkspaceFolders {
   readonly root: string;
   projectDir(projectId: string): string;
@@ -79,8 +69,6 @@ export interface WorkspaceFolders {
   ): Promise<ProjectInspection & { staging: string | null }>;
 }
 
-/** 저장 위치를 묻는 대화상자. Electron의 dialog가 구현한다. */
 export type FileDialogs = Pick<Dialog, 'showSaveDialog' | 'showOpenDialog'>;
 
-/** 탐색기 열기·휴지통. Electron의 shell이 구현한다. */
 export type DesktopShell = Pick<Shell, 'openPath' | 'trashItem' | 'showItemInFolder'>;

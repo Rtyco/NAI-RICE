@@ -11,16 +11,16 @@ import {
   streamingRequest,
 } from './NovelAIRequestBuilder';
 
-/** 작업 하나를 생성하는 요청. 입력 이미지·마스크는 그 작업 종류가 쓰는 것만 넘긴다. */
+/** 입력 이미지·마스크는 그 작업 종류가 쓰는 것만. */
 export type NovelAIImageRequest = {
   token: string;
   job: GenerationJobSnapshot;
   image?: Buffer;
   mask?: Buffer;
-  /** 캐릭터 레퍼런스마다 맞춘 그림, 또는 바이브마다 인코딩 결과. */
+  /** 캐릭터 레퍼런스마다 맞춘 그림, 또는 바이브마다 인코딩 결과 */
   aid?: Buffer[];
   signal?: AbortSignal;
-  /** 주면 스트리밍을 받는 모델에서 생성 과정의 중간 그림(JPEG)을 받는다. */
+  /** 스트리밍을 받는 모델에서만 불린다. 중간 그림은 JPEG. */
   onPreview?: (preview: { image: Buffer; step: number }) => void;
 };
 
@@ -35,7 +35,7 @@ export type NovelAIVibeRequest = {
 export type NovelAIUserStatus = {
   valid: boolean;
   anlas?: number;
-  /** 구독 등급. 0 Paper, 1 Tablet, 2 Scroll, 3 Opus. */
+  /** 0 Paper, 1 Tablet, 2 Scroll, 3 Opus */
   tier?: number;
   v5Quota?: {
     percent: number;
@@ -73,10 +73,10 @@ export function parseNovelAIUserStatus(payload: Record<string, any>): NovelAIUse
   };
 }
 
-/** 응답 ZIP 안 PNG 한 장의 상한. 실제 결과는 수 MB다. */
+/** 실제 결과는 수 MB */
 const MAX_RESULT_PNG_BYTES = 64 * 1024 * 1024;
 
-/** 응답 ZIP의 PNG를 이름 순서(`image_0`, `image_1`…)로 꺼낸다. 배경 제거는 세 장이 온다. */
+/** 이름 순서(`image_0`, `image_1`…). 배경 제거는 세 장. */
 function pngsFromZip(buffer: Uint8Array): Buffer[] {
   const files = unzipSync(buffer, {
     filter: (file) =>
@@ -90,7 +90,6 @@ function pngsFromZip(buffer: Uint8Array): Buffer[] {
   return entries.map(([, data]) => Buffer.from(data));
 }
 
-/** 스트리밍 응답을 끝까지 읽어 최종 그림을 순서대로 돌려준다. 중간 그림은 받는 대로 넘긴다. */
 async function readImageStream(
   response: Response,
   onPreview: NovelAIImageRequest['onPreview'],
@@ -128,7 +127,7 @@ async function readImageStream(
   return images;
 }
 
-/** NovelAI에 요청하고, 연결 실패와 오류 응답을 NaiApiError로 바꾼다. */
+/** 연결 실패와 오류 응답을 NaiApiError로 바꾼다. */
 async function requestNovelAI(
   url: string,
   token: string,

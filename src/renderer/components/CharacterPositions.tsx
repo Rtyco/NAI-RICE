@@ -18,7 +18,7 @@ import { resolveFreeGeneration, updateFreeGeneration, updateProject, useLibrary 
 import { ChainChip } from './ChainChip';
 import { Modal, openDialog } from './Dialogs';
 
-/** 작업이면 그 ID, 자유 생성이면 'free'. 창을 연 채로 칩에서 캐릭터를 바꿔도 따라오게 저장된 값을 읽는다. */
+/** 창을 연 채로 캐릭터를 바꿔도 따라오도록 저장된 값을 읽는다. */
 type Target = { projectId: string } | 'free';
 
 type Placement = {
@@ -82,7 +82,6 @@ function positionUnavailable(model: string, count: number): string | undefined {
   return '캐릭터를 먼저 넣으십시오';
 }
 
-/** 구성 막대의 위치 칩. 누르면 위치 창을 연다. */
 export function PositionChip({ target }: { target: Target }) {
   const placement = usePlacement(target);
   if (!placement || !placement.slots.length) return null;
@@ -115,7 +114,7 @@ export function CharacterPositionDialog({ target, close }: { target: Target; clo
   const { slots, names, model } = placement;
   const freeform = freeformPosition(model);
   const unavailable = positionUnavailable(model, slots.length);
-  // 요청을 만들 때(`requestCenters`)와 같게, V4·V4.5에서는 V5에서 정한 자유 위치도 칸에 맞춰 보여 준다.
+  // `requestCenters`처럼 V4·V4.5에서는 자유 위치도 칸에 맞춰 보인다.
   const filled = fillCenters(slots.map((slot) => slot.center));
   const centers = freeform ? filled : filled.map(snapToGrid);
   const manual = placement.mode === 'manual' && !unavailable;
@@ -179,7 +178,7 @@ export function CharacterPositionDialog({ target, close }: { target: Target; clo
               if (!manual) return;
               const center = pointAt(event);
               if (!center) return;
-              // 표시를 잡으면 그 캐릭터를, 빈 곳을 누르면 목록에서 고른 캐릭터를 옮긴다.
+              // 표시를 잡으면 그 캐릭터, 빈 곳이면 목록에서 고른 캐릭터를 옮긴다.
               const marker = (event.target as HTMLElement).closest<HTMLElement>('[data-marker]');
               const index = marker ? Number(marker.dataset.marker) : current;
               setSelected(index);

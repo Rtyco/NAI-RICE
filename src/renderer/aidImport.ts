@@ -8,10 +8,7 @@ import { currentProject, openLibrary, toast, updateLibrary, useStore } from './s
 
 export type AidSection = 'characterReferences' | 'vibes';
 
-/**
- * 끌어 놓은 이미지로 캐릭터 레퍼런스나 바이브 항목을 만든다. `projectId`를 주면 그 작업이 이 항목을 쓰게
- * 한다: 캐릭터 레퍼런스는 바꿔 끼우고, 바이브는 고른 바이브 뒤에 더한다. 만든 항목의 id를 돌려준다.
- */
+/** `projectId`가 있으면 캐릭터 레퍼런스는 바꿔 끼우고, 바이브는 고른 바이브 뒤에 더한다. */
 export async function addAidFromImage(
   section: AidSection,
   image: { name: string; dataUrl: string },
@@ -40,10 +37,7 @@ export async function addAidFromImage(
   return item.id;
 }
 
-/**
- * 가져온 바이브로 라이브러리 항목을 만들고, `projectId` 작업의 바이브 뒤에 더한다. 작업이 없으면 라이브러리의
- * 바이브 칸을 연다.
- */
+/** 작업이 없으면 라이브러리의 바이브 칸을 연다. */
 function addImportedVibes(imported: ImportedVibe[], projectId?: string): void {
   const project = useStore.getState().library?.projects.find((item) => item.id === projectId);
   const items: Vibe[] = imported.map((vibe) => ({
@@ -71,7 +65,6 @@ function addImportedVibes(imported: ImportedVibe[], projectId?: string): void {
   }
 }
 
-/** NovelAI 바이브 파일(`.naiv4vibe`)이나 묶음을 가져온다. 기본으로 열린 작업에 넣는다. */
 export async function importVibeFile(
   text: string,
   fileName: string,
@@ -81,7 +74,7 @@ export async function importVibeFile(
   addImportedVibes(await libraryApi().importVibeFile(text, stem), projectId);
 }
 
-/** NovelAI 이미지의 생성 정보에 든 바이브를 가져온다. `model`은 그 이미지의 일반 생성 모델 ID다. */
+/** `model`은 그 이미지의 일반 생성 모델 ID. */
 export async function importMetadataVibes(
   vibes: MetadataVibe[],
   model: string,

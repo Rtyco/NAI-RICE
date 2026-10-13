@@ -25,7 +25,7 @@ import type { WorkspacePaths } from './WorkspacePaths';
 
 export type ReferenceImageWrite = Omit<ReferenceImageSave, 'referenceId'>;
 
-/** 작업 폴더에 따로 두는 파일: 인페인트 이미지(`references/<id>/`), 그림, 자유 생성 소스, 바이브 인코딩. */
+/** `references/<id>/`, `pictures/`, `sources/`, `vibes/` */
 export class StoredFiles {
   constructor(
     private readonly paths: WorkspacePaths,
@@ -111,7 +111,7 @@ export class StoredFiles {
     return fs.readFile(await this.paths.resolveProjectReal(source.projectId, record.file));
   }
 
-  /** 같은 내용은 해시로 같은 파일 이름이 되어 한 번만 저장된다. */
+  /** 해시 이름이라 같은 내용은 한 번만 저장된다. */
   private async writeSource(png: Buffer): Promise<string> {
     const file = `${sha256(png).slice(0, 24)}.png`;
     const target = this.paths.sourceFile(file);

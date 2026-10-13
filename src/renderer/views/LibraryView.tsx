@@ -83,7 +83,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     );
   const rows = listRows(items);
   const isFolded = useFoldedFolders(section);
-  // 목록에 보이는 순서. 접힌 폴더 안은 건너뛴다.
+  // 접힌 폴더 안은 건너뛴다.
   const visibleIds = rows.flatMap((row) =>
     row.kind === 'item'
       ? [row.item.id]
@@ -117,7 +117,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     openLibrary(section, createItem(section, useStore.getState().library!)),
   );
   useShortcut('Ctrl+Shift+D', () => selected && void duplicateItem(section, selected));
-  // 여러 개를 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
+  // 여러 개를 고른 동안의 Delete는 useBoxSelection이 처리한다.
   useShortcut(
     'Delete',
     () => selected && void deleteItem(section, selected),
@@ -183,7 +183,6 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
       />
     );
   };
-  // 감정 모음은 기본 감정 6개로 시작할지 빈 채로 시작할지 고른다.
   const add = (event: MouseEvent) => {
     const create = (empty: boolean) =>
       openLibrary(section, createItem(section, useStore.getState().library!, { empty }));

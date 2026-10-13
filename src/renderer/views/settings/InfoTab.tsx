@@ -4,7 +4,7 @@ import { useLibrary, useStore } from '../../store';
 import { checkForUpdate, openUpdateDialog } from '../../updates';
 import { patchSettings } from './patchSettings';
 
-/** 배포 파일에 들어 있는 라이브러리. 자세한 내용은 THIRD_PARTY_NOTICES.md와 같이 맞춘다. */
+/** THIRD_PARTY_NOTICES.md와 맞춘다. */
 const CREDITS: Array<[string, string]> = [
   ['Electron', 'MIT'],
   ['React · React DOM', 'MIT'],

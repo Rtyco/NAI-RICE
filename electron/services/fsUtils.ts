@@ -36,7 +36,6 @@ export function extensionForMime(mimeType: string): string {
   return '.png';
 }
 
-/** 상대 경로가 root 밖으로 나가지 못하게 막는다. */
 export function resolveInside(root: string, relativePath: string): string {
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, relativePath);
@@ -47,11 +46,7 @@ export function resolveInside(root: string, relativePath: string): string {
   return resolved;
 }
 
-/**
- * 심볼릭 링크·정션을 풀었을 때도 target이 root 안에 있는지 확인한다.
- * resolveInside는 경로 문자열만 보므로, 읽거나 지우기 직전에 이것으로 한 번 더 막는다.
- * 아직 없는 경로는 존재하는 가장 가까운 상위 폴더의 실제 위치로 판단한다.
- */
+/** resolveInside는 문자열만 보므로 링크·정션을 푼 실제 위치로 한 번 더 막는다. 없는 경로는 가장 가까운 상위 폴더로 판단한다. */
 export async function assertRealInside(root: string, target: string): Promise<void> {
   const realRoot = await fs.realpath(root);
   let existing = path.resolve(target);
@@ -86,13 +81,10 @@ export async function atomicWrite(filePath: string, contents: string | Uint8Arra
   }
 }
 
-/** atomicWrite의 임시 파일 이름: `<원래 이름>.<pid>.<uuid>.tmp`. */
+/** `<원래 이름>.<pid>.<uuid>.tmp` */
 const TEMPORARY_FILE = /\.\d+\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.tmp$/i;
 
-/**
- * 앱이 멈추거나 강제로 꺼져 남은 atomicWrite 임시 파일을 지운다. 다른 창이 지금 쓰고 있을 수도 있으니
- * 한동안 손대지 않은 것만 지운다. 지운 바이트 수를 돌려준다.
- */
+/** 강제 종료로 남은 임시 파일. 다른 창이 쓰는 중일 수 있어 한동안 손대지 않은 것만 지운다. */
 export async function removeStaleTemporaryFiles(
   directories: string[],
   olderThanMs = 60 * 60 * 1000,
@@ -109,14 +101,14 @@ export async function removeStaleTemporaryFiles(
         await fs.rm(file, { force: true });
         removed += stat.size;
       } catch {
-        // 다른 프로그램이 잡고 있으면 다음에 다시 시도한다.
+        // 다른 프로그램이 잡고 있으면 다음에 다시.
       }
     }
   }
   return removed;
 }
 
-/** 폴더 안 파일 크기의 합. 링크는 따라가지 않는다. 없으면 0. */
+/** 링크는 따라가지 않는다. 없으면 0. */
 export async function directorySize(directory: string): Promise<number> {
   let total = 0;
   const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
@@ -128,7 +120,7 @@ export async function directorySize(directory: string): Promise<number> {
   return total;
 }
 
-/** 폴더 안 모든 파일의 상대 경로(`/` 구분). 링크는 따라가지 않는다. */
+/** `/` 구분. 링크는 따라가지 않는다. */
 export async function listFiles(directory: string, prefix = ''): Promise<string[]> {
   const files: string[] = [];
   const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
@@ -167,7 +159,6 @@ export async function uniquePath(
   throw new Error('사용 가능한 파일 이름을 만들 수 없습니다.');
 }
 
-/** 같은 키에 대한 비동기 작업을 순서대로 실행한다. 인덱스 파일 동시 쓰기를 막는다. */
 export class KeyedMutex {
   private readonly tails = new Map<string, Promise<unknown>>();
 
@@ -182,10 +173,7 @@ export class KeyedMutex {
   }
 }
 
-/**
- * 예전 이름(Reference Inpaint Desk) 때 만든 폴더가 있으면 새 이름으로 옮긴다.
- * 탐색기에서 열려 있는 등으로 옮기지 못하면 예전 폴더를 그대로 써서 데이터를 잃지 않는다.
- */
+/** 예전 이름 폴더를 옮기지 못하면(탐색기에서 열림 등) 예전 폴더를 그대로 쓴다. */
 export function renamedFolder(parent: string, name: string, legacyName: string): string {
   const target = path.join(parent, name);
   const legacy = path.join(parent, legacyName);

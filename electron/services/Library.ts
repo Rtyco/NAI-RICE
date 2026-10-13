@@ -33,10 +33,7 @@ import { WorkspacePaths } from './WorkspacePaths';
 
 const KEEP_BACKUPS = 20;
 
-/**
- * 작업 폴더 전체. library.json 읽기·저장과 백업은 여기서 하고, 나머지는 맡은 객체에 넘긴다. 서비스들은
- * `ports.ts`의 좁은 인터페이스로 이 객체를 받는다.
- */
+/** library.json 읽기·저장과 백업만 직접 하고 나머지는 맡은 객체에 넘긴다. */
 export class Library
   extends WorkspacePaths
   implements GenerationStore, ExportSource, WorkspaceFolders
@@ -48,7 +45,7 @@ export class Library
   private readonly files = new StoredFiles(this, this.generations);
   private readonly inputs = new ProjectInputs(this, this.files);
   private readonly maintenance = new WorkspaceMaintenance(this, this.generations);
-  /** 마지막으로 읽거나 저장한 라이브러리. 생성 큐가 요청 지연 같은 설정을 읽는다. */
+  /** 큐가 요청 간격 같은 설정을 읽는다. */
   private latest?: LibraryData;
 
   get settings(): LibraryData['settings'] | undefined {
@@ -93,7 +90,7 @@ export class Library
     );
   }
 
-  /** 앱을 열 때마다 library.json을 backups/에 남기고 최근 것만 보관한다. */
+  /** 앱을 열 때마다 남기고 최근 것만 보관한다. */
   private async snapshot(raw: string): Promise<void> {
     const directory = path.join(this.root, 'backups');
     await fs.mkdir(directory, { recursive: true });

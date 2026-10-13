@@ -1,14 +1,12 @@
 /**
- * NovelAI 스트리밍 응답(`/ai/generate-image-stream`). 요청에 `stream: "msgpack"`을 넣으면 4바이트 빅엔디언 길이 +
- * MessagePack 메시지가 이어지고(NovelAI 웹 코드 2026-10), 메시지는 `event_type`이 `intermediate`(중간 그림,
- * JPEG)·`final`(최종 그림)·`error`인 맵이다. 커뮤니티 구현은 SSE(`data:` 줄의 JSON, 그림은 base64)도 받으므로
- * 함께 읽는다.
+ * `stream: "msgpack"`이면 4바이트 빅엔디언 길이 + MessagePack 맵(`event_type`: intermediate(JPEG)·final·error)이
+ * 이어진다(NovelAI 웹 2026-10). 커뮤니티 구현의 SSE(`data:` JSON, base64)도 읽는다.
  */
 export type NaiStreamEvent = {
   type: 'intermediate' | 'final' | 'error';
-  /** 몇 번째 그림인지(`samp_ix`). 앱은 늘 한 장이라 0이다. */
+  /** `samp_ix`. 앱은 늘 한 장이라 0. */
   sample: number;
-  /** 중간 그림의 단계(`step_ix`). */
+  /** `step_ix` */
   step: number;
   image?: Uint8Array;
   message?: string;
@@ -107,7 +105,7 @@ class Reader {
   private text(length: number): string {
     return new TextDecoder().decode(this.bytesOf(length));
   }
-  /** 확장 형식(타임스탬프 등)은 쓰지 않아 건너뛴다. */
+  /** 확장 형식(타임스탬프 등)은 쓰지 않는다. */
   private extension(length: number): undefined {
     this.take(1 + length);
     return undefined;
@@ -150,7 +148,6 @@ function toEvent(value: unknown): NaiStreamEvent | undefined {
   };
 }
 
-/** 응답 조각을 받는 대로 넣으면 끝난 이벤트를 돌려준다. */
 export class NaiStreamParser {
   private buffer = new Uint8Array(0);
   private text = '';
@@ -161,7 +158,7 @@ export class NaiStreamParser {
     return this.format === 'sse' ? this.pushText(chunk) : this.pushFrames(chunk);
   }
 
-  /** 스트림이 끝났을 때 남은 SSE 이벤트. */
+  /** 스트림이 끝났을 때 남은 SSE 이벤트 */
   flush(): NaiStreamEvent[] {
     if (this.format !== 'sse') return [];
     const rest = this.text;

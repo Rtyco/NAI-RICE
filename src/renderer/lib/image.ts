@@ -14,10 +14,7 @@ export type PreparedImage = {
   detection: BackgroundDetection;
 };
 
-/**
- * 편집 중인 캔버스는 PNG로 바꾸지 않고 그대로 들고 다닌다. PNG 인코딩(1216×832에서 약 30ms)과
- * 다시 디코딩하는 시간이 슬라이더를 움직일 때마다 끼면 끊겨 보이므로, 저장할 때만 바꾼다.
- */
+/** 편집 중에는 PNG로 바꾸지 않는다. 인코딩(1216×832에서 약 30ms)·디코딩이 슬라이더를 움직일 때마다 끼면 끊긴다. */
 export type CanvasImage = HTMLCanvasElement | HTMLImageElement;
 
 export function canvasImageToDataUrl(image: CanvasImage): string {
@@ -34,10 +31,7 @@ export function loadHtmlImage(source: string): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * willReadFrequently를 켜면 Chromium이 CPU로 그린다. 픽셀을 읽을 캔버스에만 켜고, 화면에 계속 그릴
- * 캔버스는 꺼서 GPU에 둔다. CPU 캔버스는 화면 캔버스에 그릴 때마다 GPU로 다시 올려 끌기가 버벅인다.
- */
+/** willReadFrequently면 Chromium이 CPU로 그리고, 화면에 그릴 때마다 GPU로 다시 올려 끌기가 버벅인다. 픽셀을 읽을 캔버스에만 켠다. */
 function canvas2d(
   width: number,
   height: number,
@@ -134,7 +128,7 @@ export type ComposedCanvas = {
   outputRect: Rect;
 };
 
-// 비율 슬라이더를 움직이는 동안 같은 원본을 매번 디코딩하지 않도록 마지막 원본 하나만 남긴다.
+// 슬라이더를 움직이는 동안 같은 원본을 다시 디코딩하지 않는다.
 let lastOriginal: { dataUrl: string; image: Promise<HTMLImageElement> } | undefined;
 
 function loadOriginal(originalDataUrl: string): Promise<HTMLImageElement> {
@@ -164,7 +158,6 @@ function paintLayout(
   context.restore();
 }
 
-/** 캐릭터 이미지 한 장으로 레퍼런스 + 생성 여백 캔버스를 만든다. */
 export async function composeCanvas(originalDataUrl: string, layout: CanvasLayout): Promise<ComposedCanvas> {
   const image = await loadOriginal(originalDataUrl);
   const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
@@ -180,10 +173,7 @@ export async function composeCanvas(originalDataUrl: string, layout: CanvasLayou
   };
 }
 
-/**
- * 자동 구성 캔버스를 그 자리에서 다시 칠한다. 배경색처럼 영역이 그대로인 변경에 쓴다. 새 캔버스를 만들면
- * 편집기가 배경 마스크·생성 영역을 다시 계산하고 직접 칠한 마스크 보정까지 초기화해 색을 고르는 동안 버벅인다.
- */
+/** 영역이 그대로인 변경(배경색)용. 새 캔버스를 만들면 편집기가 마스크를 다시 계산하고 수동 보정을 초기화해 버벅인다. */
 export async function repaintComposed(
   canvas: HTMLCanvasElement,
   originalDataUrl: string,
@@ -196,7 +186,6 @@ export async function repaintComposed(
   paintLayout(canvas.getContext('2d')!, image, layout, composed);
 }
 
-/** 저장된 자동 구성 캔버스를 다시 열 때 배경 마스크만 복원한다. */
 export function layoutMaskFor(layout: CanvasLayout): Uint8Array {
   return layoutBackgroundMask(computeLayout(layout, 1, 1));
 }
@@ -205,7 +194,7 @@ export function imageSizeOf(dataUrl: string): Promise<{ width: number; height: n
   return loadHtmlImage(dataUrl).then((image) => ({ width: image.naturalWidth, height: image.naturalHeight }));
 }
 
-/** 드롭한 이미지의 픽셀을 읽는다(stealth 메타데이터용). */
+/** stealth 메타데이터용 */
 export async function decodePixels(blob: Blob): Promise<{ data: Uint8ClampedArray; width: number; height: number }> {
   const bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
   const { context } = canvas2d(bitmap.width, bitmap.height);

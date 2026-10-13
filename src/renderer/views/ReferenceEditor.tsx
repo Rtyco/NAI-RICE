@@ -67,7 +67,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const [referenceRect, setReferenceRect] = useState<Rect>(reference.image?.referenceRect ?? { x: 0, y: 0, width: 1, height: 1 });
   const [outputRect, setOutputRect] = useState<Rect>(reference.image?.outputRect ?? { x: 0, y: 0, width: 1, height: 1 });
   const [expansionPx, setExpansionPx] = useState(reference.maskExpansionPx);
-  // 재구성은 비동기로 끝나므로 그때의 확장 값을 ref로 읽는다.
+  // 재구성은 비동기로 끝나 그때의 값을 ref로 읽는다.
   const expansionRef = useRef(expansionPx);
   expansionRef.current = expansionPx;
   const [threshold, setThreshold] = useState(reference.backgroundThreshold);
@@ -78,7 +78,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const queuedRebuild = useRef<[Source, CanvasLayout, number] | null>(null);
   const rebuildRunning = useRef(false);
   const rebuildSeq = useRef(0);
-  /** 그 자리에서 다시 칠한 횟수. 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
+  /** 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
   const [imageVersion, setImageVersion] = useState(0);
   const queuedRepaint = useRef<CanvasLayout | null>(null);
   const repaintRunning = useRef(false);
@@ -113,7 +113,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           detectionLabel,
         });
         setInitialMask(loadedMask);
-        // 예전 버전에서 저장한 크롭이 보호 영역과 겹치면 바깥으로 맞추고 저장한다.
+        // 예전 버전의 크롭이 보호 영역과 겹치면 바깥으로 맞춘다.
         const blocked = expandRect(image.referenceRect, reference.maskExpansionPx, image.canvasWidth, image.canvasHeight);
         const fitted = cropOutside(image.outputRect, blocked);
         if (JSON.stringify(fitted) !== JSON.stringify(image.outputRect)) {
@@ -129,7 +129,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     return () => {
       active = false;
     };
-    // 레퍼런스가 바뀌면 컴포넌트가 새로 마운트된다(key).
+    // key로 레퍼런스마다 새로 마운트된다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -148,7 +148,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           detectionLabel: '자동 구성',
         });
         setReferenceRect(composed.referenceRect);
-        // 참고 영역과 여백을 먼저 정하고, 결과 영역은 그 바깥만 쓴다.
         const blocked = expandRect(composed.referenceRect, expansionRef.current, composed.width, composed.height);
         setOutputRect(cropOutside(composed.outputRect, blocked));
       } else {
@@ -175,8 +174,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     }
   }, []);
 
-  // 슬라이더나 색상을 움직이는 동안 바로 다시 그리되, 재구성이 겹치지 않게 진행 중이면 마지막 값만 남겼다가
-  // 끝나는 즉시 이어서 한다. 일정 시간 기다리는 방식은 그만큼 늦게 따라와 답답하게 느껴진다.
+  // 진행 중이면 마지막 값만 남겼다가 끝나는 즉시 잇는다. 일정 시간 기다리는 방식은 늦게 따라와 답답하다.
   const scheduleRebuild = useCallback(
     (nextSource: Source | null, nextLayout: CanvasLayout, nextThreshold: number) => {
       if (!nextSource) return;
@@ -218,7 +216,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     applySource(pendingReference.dataUrl, pendingReference.name);
   }, [pendingReference, reference.id, loading, applySource]);
 
-  /** 배경색만 바뀌면 영역이 그대로라 캔버스를 새로 만들지 않고 다시 칠한다. 색을 끄는 동안 프레임마다 한 번만 한다. */
+  /** 배경색만 바뀌면 영역이 그대로라 다시 칠하기만 한다. 프레임마다 한 번. */
   const repaint = (canvas: HTMLCanvasElement, dataUrl: string, next: CanvasLayout) => {
     queuedRepaint.current = next;
     if (repaintRunning.current) return;

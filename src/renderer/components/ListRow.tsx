@@ -6,11 +6,10 @@ import { Icon } from './Icon';
 import { readDragPayload, writeDragPayload, type DragPayload } from './listDrag';
 import { listMenu, type ListMenuActions } from './listMenu';
 
-/** 사이드바 작업 목록과 라이브러리 목록의 한 줄. 사이드바를 접으면 열기·끌기·우클릭만 된다. */
+/** 사이드바를 접으면 열기·끌기·우클릭만 된다. */
 export function ListRow(props: {
   id: string;
   name: string;
-  /** 사이드바 작업 줄. 줄과 버튼에 작업 목록용 class를 더한다. */
   project?: boolean;
   avatar?: ReactNode;
   subtitle: string;
@@ -21,13 +20,11 @@ export function ListRow(props: {
   active: boolean;
   dragType: string;
   dragging: boolean;
-  /** 끌기를 시작할 때 옮길 항목들을 정한다(고른 항목 중 하나를 끌면 고른 것 모두). */
   startDrag: (id: string) => DragPayload;
   endDrag: () => void;
   dropHere: (payload: DragPayload) => void;
-  /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
-  /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
+  /** Ctrl·Shift 클릭이면 true */
   onPick: (event: MouseEvent) => boolean;
   open: () => void;
   rename: (name: string) => void;
@@ -37,7 +34,7 @@ export function ListRow(props: {
   const { collapsed } = props;
   const [over, setOver] = useState(false);
   const [renaming, setRenamingState] = useState(false);
-  // 엔터·Esc로 끝낸 뒤 따라오는 blur가 다시 저장하지 않게 한다.
+  // 엔터·Esc 뒤에 따라오는 blur가 다시 저장하지 않게 한다.
   const editing = useRef(false);
   const setRenaming = (value: boolean) => {
     editing.current = value;

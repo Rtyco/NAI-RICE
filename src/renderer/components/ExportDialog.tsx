@@ -6,7 +6,7 @@ import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
 import { fileApi, libraryApi } from '../desktop';
 
-/** 감정마다 대표(또는 최신) 이미지 하나를 감정 이름 파일로 내보낸다. RisuAI 감정 이미지 업로드용. */
+/** RisuAI 감정 이미지 업로드용. 감정마다 대표(또는 최신) 이미지 하나. */
 export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
   const { project } = resolved;
   const emotions = useMemo(() => resolved.emotionSet?.emotions ?? [], [resolved.emotionSet]);

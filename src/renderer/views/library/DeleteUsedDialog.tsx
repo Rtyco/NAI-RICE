@@ -4,7 +4,7 @@ import { Modal } from '../../components/Dialogs';
 import { useLibrary, type LibrarySection } from '../../store';
 import { LABELS, type Item } from './itemActions';
 
-/** 작업에서 쓰는 항목을 지울 때, 그 작업들이 대신 쓸 항목을 고른다. 비워 두면 작업에서 다시 고르면 된다. */
+/** 비워 두면 작업에서 다시 고르면 된다. */
 export function DeleteUsedDialog(props: {
   section: LibrarySection;
   item: Item;

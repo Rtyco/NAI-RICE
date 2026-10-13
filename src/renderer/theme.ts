@@ -2,10 +2,7 @@ import type { AppSettings, ThemeId, ThemeMode } from '../core/domain/types';
 
 type Appearance = AppSettings['appearance'];
 
-/**
- * 색 테마. 바탕은 색상(hue)과 채도(tint)로, 강조색은 accent로 정한다.
- * styles.css는 여기서 만든 --bg-0 … --red-bg 변수만 쓴다.
- */
+/** styles.css는 여기서 만든 --bg-0 … --red-bg 변수만 쓴다. */
 export const THEMES: Record<
   ThemeId,
   { label: string; hue: number; tint: number; accent: string; lightAccent: string }
@@ -130,7 +127,7 @@ function resolvedMode(mode: ThemeMode): 'dark' | 'light' {
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
-/** 고른 테마의 변수를 문서 전체에 적용한다. "Windows 설정 따르기"면 설정이 바뀔 때 다시 적용한다. */
+/** 「Windows 설정 따르기」면 설정이 바뀔 때 다시 적용한다. */
 export function applyAppearance(appearance: Appearance): void {
   current = appearance;
   const theme = THEMES[appearance.theme] ?? THEMES.navy;
@@ -143,7 +140,7 @@ export function applyAppearance(appearance: Appearance): void {
   try {
     localStorage.setItem('appearance', JSON.stringify(appearance));
   } catch {
-    // 다음 실행의 첫 화면만 기본 색으로 보일 뿐이다.
+    // 다음 실행의 첫 화면만 기본 색이 된다.
   }
   if (!systemQuery) {
     systemQuery = window.matchMedia('(prefers-color-scheme: light)');
@@ -153,7 +150,7 @@ export function applyAppearance(appearance: Appearance): void {
   }
 }
 
-/** CSS 색(hsl·color-mix 포함)을 창 제목 표시줄에 넘길 #rrggbb로 바꾼다. */
+/** hsl·color-mix 포함 */
 function cssColorToHex(variable: string): string {
   const probe = document.createElement('span');
   probe.style.color = `var(${variable})`;
@@ -174,7 +171,7 @@ function syncTitleBar(): void {
       symbolColor: cssColorToHex('--text-2'),
     });
   } catch {
-    // 제목 표시줄 색은 꾸밈일 뿐이다.
+    // 꾸밈일 뿐이다.
   }
 }
 
@@ -183,12 +180,11 @@ export function cachedAppearance(): Appearance {
     const value = JSON.parse(localStorage.getItem('appearance') ?? 'null') as Appearance | null;
     if (value && value.theme in THEMES && value.mode in MODE_LABELS) return value;
   } catch {
-    // 저장된 값이 없거나 깨졌으면 기본값.
+    // 없거나 깨졌으면 기본값
   }
   return { theme: 'navy', mode: 'dark' };
 }
 
-/** 설정 화면의 견본 색. */
 export function themeSwatch(id: ThemeId, mode: 'dark' | 'light') {
   const tokens = mode === 'light' ? lightTokens(THEMES[id]) : darkTokens(THEMES[id]);
   return {

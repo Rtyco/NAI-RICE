@@ -3,16 +3,16 @@ import { appApi } from '../desktop';
 import { run, updateLibrary } from '../store';
 import { Modal } from './Dialogs';
 
-/** 릴리스 본문에서 화면에 보여 줄 변경 내역. 내려받기·해시 안내(### 받기 이후)는 뺀다. */
+/** 「### 받기」 이후(내려받기·해시 안내)는 뺀다. */
 function releaseNotes(notes: string | undefined): string {
   if (!notes) return '';
   const text = `\n${notes.replace(/\r\n/g, '\n')}`;
-  // \b는 한글 뒤에서 경계로 보지 않으므로 공백·줄 끝으로 확인한다.
+  // \b는 한글 뒤를 경계로 보지 않는다.
   const cut = text.search(/\n#{2,3} 받기(?=\s|$)/);
   return (cut >= 0 ? text.slice(0, cut) : text).trim();
 }
 
-/** 릴리스 노트(마크다운)를 가볍게 보여 준다. 제목은 굵게, 목록은 점으로, 강조 기호는 뺀다. */
+/** 제목은 굵게, 목록은 점으로, 강조 기호는 뺀다. */
 function ReleaseNotes({ text }: { text: string }) {
   const lines = text.split('\n').filter((line) => line.trim());
   const plain = (line: string) => line.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1');

@@ -5,10 +5,7 @@ import { atomicWrite, KeyedMutex } from './fsUtils';
 
 type WriteRecords = (records: GenerationRecord[]) => Promise<void>;
 
-/**
- * 작업마다의 generations.json. 결과가 한 장 생길 때마다 기록 전체(수 MB)를 읽고 검증하던 것을 줄이려고, 파일의
- * 수정 시각과 크기가 그대로면 지난번에 읽은 것을 쓴다. 돌려준 배열은 복사본이라 고쳐도 캐시는 그대로다.
- */
+/** 결과마다 수 MB를 다시 읽고 검증하지 않도록, 수정 시각과 크기가 같으면 캐시를 쓴다. 돌려준 배열은 복사본이다. */
 export class GenerationIndex {
   private readonly mutex = new KeyedMutex();
   private readonly cache = new Map<
@@ -32,7 +29,7 @@ export class GenerationIndex {
     return this.edit(record.projectId, (records, write) => write([...records, record]));
   }
 
-  /** 같은 작업의 다른 읽기·쓰기와 겹치지 않게 기록을 읽고, 바꿀 때는 `write`로 저장한다. */
+  /** 같은 작업의 다른 읽기·쓰기와 겹치지 않는다. */
   edit<T>(
     projectId: string,
     work: (records: GenerationRecord[], write: WriteRecords) => Promise<T>,

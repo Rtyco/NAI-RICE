@@ -9,7 +9,7 @@ import { Card, NumberField, SelectField } from '../../components/ui';
 import { fileApi, libraryApi } from '../../desktop';
 import { pictureMedia, run, updateLibrary } from '../../store';
 
-/** 캐릭터 레퍼런스·바이브의 그림 카드. 그림을 바꾸면 이전 그림 파일은 다른 항목이 함께 쓸 수 있어 남겨 둔다. */
+/** 그림을 바꿔도 이전 파일은 다른 항목이 쓸 수 있어 남긴다. */
 function PictureCard({ image, onChange }: { image?: Picture; onChange: (image: Picture) => void }) {
   const load = () =>
     void run('그림을 불러오는 중', async () => {
@@ -119,7 +119,7 @@ export function VibeEditor({ item }: { item: Vibe }) {
   const encodedOnly = Boolean(item.encodingId);
   return (
     <>
-      {/* 새 그림을 불러오면 그 그림으로 인코딩하는 보통 바이브가 된다. */}
+      {/* 새 그림을 불러오면 다시 인코딩하는 보통 바이브가 된다. */}
       <PictureCard
         image={item.image}
         onChange={(image) => save({ image, encodingId: undefined })}

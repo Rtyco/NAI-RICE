@@ -1,9 +1,6 @@
 import type { GenerationKind } from '../domain/types';
 
-/**
- * 결과는 `outputs/<방식>/<감정 또는 날짜>/`에 나눠 저장한다. 이 구분이 생기기 전의 결과는
- * `outputs/<감정>/`에 그대로 남아 있다.
- */
+/** 이 구분 이전의 결과는 `outputs/<감정>/`에 남아 있다. */
 export const KIND_FOLDERS: Record<GenerationKind, string> = {
   inpaint: '인페인트',
   txt2img: '일반 생성',
@@ -90,7 +87,7 @@ export function renderOutputFilename(
   return sanitizeFilenameStem(rendered);
 }
 
-/** 내보내기용: 감정 이름을 그대로 파일 이름으로 쓰고, 같은 이름은 _2, _3을 붙인다. */
+/** 같은 이름은 _2, _3을 붙인다. */
 export function exportFileNames(names: string[], extension: string): string[] {
   const used = new Map<string, number>();
   return names.map((name) => {

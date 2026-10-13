@@ -12,7 +12,7 @@ import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../st
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
 
-/** 원본 비율에 가장 가까운 무료 해상도. 크롭된 결과를 같은 비율로 키우는 업스케일 우회의 기본값이다. */
+/** 크롭된 결과를 같은 비율로 키우는 업스케일 우회의 기본값. */
 function nearestPreset(width: number, height: number) {
   const ratio = width / height;
   return RESOLUTION_PRESETS.reduce((best, item) =>
@@ -54,7 +54,7 @@ export function Img2ImgDialog(props: {
     setOptions((current) => ({ ...current, ...value }));
   const target = RESOLUTION_PRESETS.find((item) => item.id === size)!;
   const total = props.records.length * options.count;
-  // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 메인 프로세스가 작업마다 다시 계산한다.
+  // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
   const costJob = {
     kind: 'img2img' as const,
     strength: options.strength,

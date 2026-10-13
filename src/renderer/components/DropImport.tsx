@@ -42,10 +42,7 @@ export async function importDroppedFile(file: File): Promise<void> {
   else void openDialog((close) => <PlainImageDialog image={image} close={close} />);
 }
 
-/**
- * 창 어디에 파일을 놓아도 받는다. 감정 카드 정렬용 드래그는 무시한다. 입력 칸 밖에서 Ctrl+V로 붙여 넣은
- * 이미지도 놓은 것처럼 받는다.
- */
+/** 카드 정렬용 드래그는 무시한다. 입력 칸 밖의 Ctrl+V 이미지도 받는다. */
 export function DropZone() {
   const [active, setActive] = useState(false);
   const depth = useRef(0);

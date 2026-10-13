@@ -16,7 +16,7 @@ import { atomicWrite, uniquePath } from './fsUtils';
 import { cropWithMetadata, encodeForStorage, makeThumbnail, withMetadata } from './Images';
 import type { GenerationStore } from './ports';
 
-/** 결과 PNG에 함께 남기는 이 앱의 원래 입력. 다시 불러올 때 캐릭터 프롬프트와 감정을 나눠 읽는다. */
+/** 다시 불러올 때 캐릭터 프롬프트와 감정을 나눠 읽는다. */
 export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
   return {
     app: 'reference-inpaint-desk',
@@ -69,10 +69,7 @@ function localDate(iso: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/**
- * 인페인트는 캔버스에서 결과 영역만 잘라 낸다. 자유 생성 i2i도 64 배수로 넣은 여백을 잘라 낸다. 나머지는
- * 받은 이미지가 그대로 결과다.
- */
+/** 인페인트는 결과 영역, 자유 생성 i2i는 64 배수 여백을 잘라 낸다. */
 async function resultImage(
   job: QueuedGenerationJob,
   generated: Buffer,
@@ -85,10 +82,7 @@ async function resultImage(
   return { png, width: crop.width, height: crop.height };
 }
 
-/**
- * NovelAI가 돌려준 이미지를 감정 폴더에 저장하고, 썸네일·진단 캔버스를 남긴 뒤
- * generations.json에 넣을 기록을 만든다. 응답 한 번에 여러 장이 오면 장마다 부르고, Anlas는 첫 장에만 적는다.
- */
+/** 응답 한 번에 여러 장이면 장마다 부르고, Anlas는 첫 장에만 적는다. */
 export async function saveGenerationOutput(
   store: GenerationStore,
   job: QueuedGenerationJob,
@@ -115,7 +109,7 @@ export async function saveGenerationOutput(
   );
   const stem = part.count > 1 ? `${name}__${part.index + 1}` : name;
   const generationId = randomUUID();
-  // 감정이 없는 자유 생성은 만든 날짜(현지 시각)별 폴더에 모은다.
+  // 자유 생성은 날짜(현지 시각)별 폴더
   const folder = job.emotionId ? job.emotionName : localDate(job.createdAt);
   const format = store.settings?.storageFormat ?? 'png';
   const output = await encodeForStorage(png, format);

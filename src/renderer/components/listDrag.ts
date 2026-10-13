@@ -1,12 +1,9 @@
 import type { DragEvent } from 'react';
 
-/**
- * 끌어 옮기는 목록 항목. 여러 개를 고른 채 그 중 하나를 끌면 고른 것 모두를 옮긴다. 폴더 제목을 끌면
- * `folder`에 그 폴더 이름이 들어가고, 놓은 곳의 폴더로 들어가지 않고 폴더째 자리만 옮긴다.
- */
+/** `folder`가 있으면 폴더째 끈 것이라 놓은 곳의 폴더로 들어가지 않고 자리만 옮긴다. */
 export type DragPayload = { ids: string[]; grabbed: string; folder?: string };
 
-/** `order`는 목록 순서다. 끌어 온 항목이 고른 것에 없으면 그 하나만 옮긴다. */
+/** 끌어 온 항목이 고른 것에 없으면 그 하나만 옮긴다. */
 export function dragPayload(id: string, selected: Set<string>, order: string[]): DragPayload {
   const ids = selected.has(id) && selected.size > 1 ? order.filter((x) => selected.has(x)) : [id];
   return { ids, grabbed: id };

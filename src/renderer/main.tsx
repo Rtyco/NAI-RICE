@@ -8,7 +8,7 @@ import { applyAppearance, cachedAppearance } from './theme';
 import { restorePanelWidths } from './panelWidths';
 import './styles.css';
 
-/** 브라우저(vite 단독)에서 화면만 확인할 때 쓰는 메모리 기반 가짜 API. */
+/** 브라우저(vite 단독)에서 화면만 볼 때 쓰는 메모리 API */
 function createPreviewApi(): DesktopApi {
   let library: Library = createDefaultLibrary();
   const queue = { paused: false, updatedAt: new Date().toISOString(), jobs: [] };
@@ -100,7 +100,7 @@ function createPreviewApi(): DesktopApi {
   };
 }
 
-// 라이브러리를 읽기 전에도 마지막으로 고른 테마로 그려 깜빡임을 줄인다.
+// 라이브러리를 읽기 전에도 마지막 테마로 그려 깜빡임을 줄인다.
 applyAppearance(cachedAppearance());
 restorePanelWidths();
 

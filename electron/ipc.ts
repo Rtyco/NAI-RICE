@@ -103,7 +103,7 @@ export function registerIpc(services: AppServices): void {
     await queue.cancelProject(id);
     await workspace.trashProject(id);
   });
-  // 목록에는 요약만 보내고, 생성 정보 패널이 열 때 기록 하나를 통째로 받는다.
+  // 목록은 요약만. 정보 패널이 열 때 기록 하나를 통째로 받는다.
   ipcMain.handle('generations:list', async (_event, id: string) =>
     (await library.listGenerations(id)).map(toGenerationSummary),
   );
@@ -151,7 +151,6 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('token:validate', () => account.validateStored());
   ipcMain.handle('token:remove', () => account.remove());
 
-  // 화면에는 프롬프트·설정을 뺀 가벼운 큐만 보낸다.
   ipcMain.handle('generation:snapshot', () => toQueueView(queue.getSnapshot()));
   ipcMain.handle('generation:enqueue', (_event, request: unknown) => requests.enqueue(request));
   ipcMain.handle('generation:pause', async () => toQueueView(await queue.pause()));

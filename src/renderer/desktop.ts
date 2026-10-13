@@ -8,10 +8,7 @@ import type {
   StorageApi,
 } from '../shared/ipc';
 
-/**
- * preload가 연 API를 기능별로 좁혀 돌려준다. 화면 코드는 window.referenceDesk 전체 대신
- * 필요한 부분만 받아, 어떤 기능에 기대는지가 드러나게 한다.
- */
+/** 화면 코드가 어떤 기능에 기대는지 드러나도록 API를 기능별로 좁혀 준다. */
 const desktop = (): DesktopApi => window.referenceDesk;
 
 export const libraryApi = (): LibraryApi => desktop();

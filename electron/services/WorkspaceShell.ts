@@ -3,7 +3,6 @@ import path from 'node:path';
 import type { OpenTarget, ProjectInspection } from '../../src/shared/ipc';
 import type { DesktopShell, WorkspaceFolders } from './ports';
 
-/** 작업 폴더를 탐색기로 열고, 지울 폴더를 휴지통으로 보낸다. */
 export class WorkspaceShell {
   constructor(
     private readonly folders: WorkspaceFolders,
@@ -40,10 +39,7 @@ export class WorkspaceShell {
     return this.trash(this.folders.projectDir(projectId));
   }
 
-  /**
-   * 생성 결과를 지운다. 파일을 작업 폴더 안의 대기 폴더로 모은 뒤 휴지통에 한 번에 보낸다(파일마다 보내면
-   * 수천 장일 때 몇 분 걸린다). permanent면 휴지통을 거치지 않고 바로 지운다.
-   */
+  /** 파일마다 휴지통에 보내면 수천 장일 때 몇 분 걸려 대기 폴더에 모아 한 번에 보낸다. */
   async deleteGenerations(
     projectId: string,
     generationIds: string[],
@@ -65,21 +61,20 @@ export class WorkspaceShell {
     }
   }
 
-  /** 점검에서 찾은 고아 파일을 휴지통으로 보내고 이미지가 없어진 기록을 뺀다. */
   async repairProject(projectId: string): Promise<ProjectInspection> {
     const { staging, ...report } = await this.folders.inspectProject(projectId, true);
     if (staging) await this.trash(staging);
     return report;
   }
 
-  /** 지난번에 휴지통으로 보내지 못한 대기 폴더를 다시 보낸다. 실패하면 다음 실행 때 또 시도한다. */
+  /** 실패하면 다음 실행 때 다시 시도한다. */
   async retryLeftoverTrash(): Promise<void> {
     for (const staging of await this.folders.leftoverStaging()) {
       await this.trash(staging).catch(() => undefined);
     }
   }
 
-  /** 실수로 지워도 복구할 수 있도록 휴지통으로 보낸다. 링크로 작업 폴더 밖을 가리키면 거부한다. */
+  /** 링크로 작업 폴더 밖을 가리키면 거부한다. */
   private async trash(directory: string): Promise<void> {
     try {
       await fs.access(directory);

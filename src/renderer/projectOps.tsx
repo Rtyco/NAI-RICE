@@ -5,7 +5,7 @@ import { confirmDialog } from './components/Dialogs';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { libraryApi } from './desktop';
 
-/** 같은 조합으로 새 작업을 만든다. 생성 결과와 대표 이미지는 가져오지 않는다. */
+/** 생성 결과와 대표 이미지는 가져오지 않는다. */
 export function duplicateProject(project: Project): void {
   const library = useStore.getState().library!;
   const name = uniqueName(
@@ -32,7 +32,7 @@ export function openProjectFolder(projectId: string): void {
   void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'project', projectId }));
 }
 
-/** 작업과 그 생성 결과를 삭제한다. 라이브러리 항목은 그대로 둔다. 작업 화면과 사이드바 우클릭이 함께 쓴다. */
+/** 라이브러리 항목은 그대로 둔다. */
 export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Promise<void> {
   const ok = await confirmDialog({
     title: '작업 삭제',
@@ -54,7 +54,6 @@ export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Prom
       ...current,
       projects: current.projects.filter((item) => item.id !== project.id),
     }));
-    // 지운 작업을 보고 있었으면 다른 작업(없으면 처음 화면)으로 옮긴다.
     const { view, library } = useStore.getState();
     if (view.kind !== 'project' || view.projectId !== project.id) return;
     const next = library?.projects[0];
@@ -63,7 +62,6 @@ export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Prom
   });
 }
 
-/** 여러 작업을 한 번에 삭제한다. 사이드바에서 상자·Ctrl·Shift로 고른 작업에 쓴다. */
 export async function deleteProjects(projects: Array<Pick<Project, 'id' | 'name'>>): Promise<void> {
   if (!projects.length) return;
   if (projects.length === 1) return deleteProject(projects[0]);
@@ -92,7 +90,7 @@ export async function deleteProjects(projects: Array<Pick<Project, 'id' | 'name'
         removed.add(id);
       }
     } finally {
-      // 중간에 실패해도 이미 폴더를 지운 작업은 목록에서 뺀다.
+      // 중간에 실패해도 이미 지운 작업은 목록에서 뺀다.
       updateLibrary((current) => ({
         ...current,
         projects: current.projects.filter((item) => !removed.has(item.id)),

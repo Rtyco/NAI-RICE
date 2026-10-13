@@ -92,7 +92,6 @@ function ModeSwitch({ project }: { project: Project }) {
   );
 }
 
-/** 거의 바꾸지 않는 작업 구성이라 한 줄에 작게 둔다. */
 function ChainBar({ resolved }: { resolved: ResolvedProject }) {
   const presets = useStore((state) => state.library!.presets);
   const references = useStore((state) => state.library!.references);
@@ -273,7 +272,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const { project, preset, emotionSet, reference } = resolved;
   const batch = batchEmotionIds(project.id);
   const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
-  // 메인 프로세스가 큐에 넣을 때와 같은 식으로, 지금 설정 그대로 생성할 때의 예상 Anlas를 보여 준다.
+  // 메인 프로세스가 큐에 넣을 때와 같은 식
   const generation = preset && effectiveGenerationSettings(preset.generation);
   const aid = projectAid(aidSources, project);
   const costJob =

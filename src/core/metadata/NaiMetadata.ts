@@ -12,10 +12,7 @@ import { removeReferenceInset } from '../prompts/PromptComposer';
 import { supportsEffort } from '../providers/NaiModels';
 import { metadataVibes, VIBE_BUNDLE_ID, VIBE_FILE_ID, type MetadataVibe } from '../vibes/VibeFile';
 
-/**
- * 이 앱이 결과 PNG에 함께 기록하는 보조 메타데이터 키.
- * 앱 이름이 NAI RICE로 바뀌었어도 이미 만든 이미지를 계속 읽을 수 있게 예전 식별자를 그대로 쓴다.
- */
+/** 앱 이름이 바뀌어도 이미 만든 이미지를 읽도록 예전 키를 쓴다. */
 export const DESK_METADATA_KEY = 'ReferenceInpaintDesk';
 
 export type DeskMetadata = {
@@ -28,14 +25,14 @@ export type DeskMetadata = {
   promptSet: { name: string; positive: string; negative: string };
   emotion: { name: string; prompt: string };
   seed: number;
-  /** v2부터: 품질 태그·UC 프리셋 설정과 모델. */
+  /** v2부터 */
   qualityTags?: boolean;
   qualityLevel?: QualityLevel;
   ucPreset?: UcPresetId;
   model?: string;
-  /** Medium으로 만든 것만 남긴다. */
+  /** medium일 때만 남긴다. */
   effort?: Effort;
-  /** 두 번째 캐릭터부터. 씬 프롬프트가 섞인 최종 프롬프트다. */
+  /** 두 번째 캐릭터부터, 씬 프롬프트가 섞인 최종 프롬프트. */
   extraCharacters?: ExtraCharacterPrompt[];
 };
 
@@ -44,34 +41,30 @@ export type ImageImportData = {
   commonPositive?: string;
   commonNegative?: string;
   characters: Array<{ positive: string; negative: string }>;
-  /** 위치를 직접 지정해 만든 이미지(`use_coords`)면 캐릭터마다의 위치. */
+  /** `use_coords`일 때만 */
   characterCenters?: CharacterCenter[];
   settings: Partial<GenerationSettings>;
   seed?: number;
   width?: number;
   height?: number;
   modelLabel?: string;
-  /** Source 라벨에서 추정한 인페인트 모델 ID. */
+  /** Source 라벨에서 추정한 인페인트 모델 ID */
   model?: string;
-  /** V5 Full이면 High인지 Medium인지. */
   effort?: Effort;
-  /** 이 앱의 결과물이면 품질 태그·UC 프리셋 설정을 그대로 알 수 있다. */
+  /** 이 앱의 결과일 때만 */
   qualityTags?: boolean;
   qualityLevel?: QualityLevel;
   ucPreset?: UcPresetId;
-  /** NovelAI 웹이 기록한 품질 태그·UC 프리셋 힌트 번호(`tag_hint_qt`, `tag_hint_uc_preset`). */
+  /** `tag_hint_qt`, `tag_hint_uc_preset` */
   tagHints?: { quality?: number; uc?: number };
   desk?: DeskMetadata;
-  /** 생성 정보에 든 바이브(`reference_image_multiple`). */
+  /** `reference_image_multiple` */
   vibes?: MetadataVibe[];
-  /** NovelAI 웹이 이미지에 넣어 둔 바이브 파일·묶음(`naidata`, JSON 문자열). */
+  /** `naidata` JSON 문자열 */
   vibeFile?: string;
 };
 
-/**
- * NovelAI 웹은 바이브를 이미지에 넣어 내려받을 때 바이브 파일·묶음 JSON을 base64로 `naidata` 텍스트 청크에
- * 넣는다(2026-10 웹 코드). 바이브 파일이 아니면 undefined.
- */
+/** NovelAI 웹은 바이브를 넣어 내려받을 때 바이브 파일 JSON을 base64로 `naidata` 청크에 넣는다(2026-10). */
 export function embeddedVibeFile(entries: Record<string, unknown>): string | undefined {
   const raw = entries.naidata;
   if (typeof raw !== 'string' || !raw) return undefined;
@@ -85,10 +78,7 @@ export function embeddedVibeFile(entries: Record<string, unknown>): string | und
   }
 }
 
-/**
- * V5는 Source 라벨이 모두 "NovelAI Diffusion V5 <해시>"이고 Full·Curated·Medium이 해시로만 갈린다. 해시는
- * 생성과 인페인트가 서로 다르다(2026-10 실측).
- */
+/** V5는 Source 라벨이 모두 "NovelAI Diffusion V5 <해시>"이고 모델이 해시로만 갈린다. 생성과 인페인트의 해시가 다르다(2026-10 실측). */
 const V5_SOURCE_HASHES: Record<string, { model: string; effort: Effort }> = {
   '0ADF9AB7': { model: 'nai-diffusion-5-full-inpainting', effort: 'high' },
   '657484A5': { model: 'nai-diffusion-5-full-inpainting', effort: 'high' },
@@ -102,7 +92,7 @@ function v5SourceHash(label: string | undefined) {
   return hash ? V5_SOURCE_HASHES[hash] : undefined;
 }
 
-/** "NovelAI Diffusion V4.5 4BDE2A90" 같은 Source 라벨을 인페인트 모델 ID로 바꾼다. */
+/** 예: "NovelAI Diffusion V4.5 4BDE2A90" */
 export function guessModelFromSource(label: string | undefined): string | undefined {
   if (!label) return undefined;
   const text = label.toLowerCase();
@@ -116,22 +106,19 @@ export function guessModelFromSource(label: string | undefined): string | undefi
     return curated ? 'nai-diffusion-4-5-curated-inpainting' : 'nai-diffusion-4-5-full-inpainting';
   if (/v4/.test(text))
     return curated ? 'nai-diffusion-4-curated-inpainting' : 'nai-diffusion-4-full-inpainting';
-  // NovelAI V3 이미지는 "Stable Diffusion XL <해시>"로 기록된다(9CC2F394는 Furry).
+  // V3는 "Stable Diffusion XL <해시>"(9CC2F394는 Furry).
   if (/furry|9cc2f394/.test(text)) return 'nai-diffusion-furry-3-inpainting';
   if (/stable diffusion xl/.test(text)) return 'nai-diffusion-3-inpainting';
   if (/v3|anime/.test(text)) return 'nai-diffusion-3-inpainting';
   return undefined;
 }
 
-/**
- * stealth 메타데이터 압축 해제 결과의 상한. 보통 수 KB지만 바이브를 쓴 이미지는 인코딩(하나에 base64 약 65KB)이
- * 들어 있어, 웹 최대 16개를 넉넉히 받는다.
- */
+/** 바이브를 쓴 이미지는 인코딩(하나에 base64 약 65KB)이 들어 있어 웹 최대 16개를 넉넉히 받는다. */
 export const MAX_STEALTH_TEXT_BYTES = 8 * 1024 * 1024;
-/** 한 번에 넣는 압축 데이터 크기. deflate 최대 압축률(약 1032:1)로도 한 번의 출력이 1MB 안팎에 그친다. */
+/** deflate 최대 압축률(약 1032:1)로도 한 번의 출력이 1MB 안팎이다. */
 const GUNZIP_INPUT_CHUNK = 1024;
 
-/** 결과가 `limit`을 넘으면 그 자리에서 멈추는 gunzip. 압축 폭탄으로 메모리를 다 쓰지 않게 한다. */
+/** 압축 폭탄 방지 */
 function gunzipLimited(data: Uint8Array, limit: number): Uint8Array {
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -153,10 +140,7 @@ function gunzipLimited(data: Uint8Array, limit: number): Uint8Array {
   return output;
 }
 
-/**
- * NovelAI가 알파 채널 최하위 비트에 숨겨 기록하는 메타데이터를 읽는다.
- * 비트는 열 우선(위→아래, 왼쪽→오른쪽) 순서이며 MSB부터 채운다.
- */
+/** NovelAI가 알파 최하위 비트에 숨긴 메타데이터. 열 우선(위→아래, 왼쪽→오른쪽), MSB부터. */
 export function readStealthMetadata(
   rgba: Uint8Array | Uint8ClampedArray,
   width: number,
@@ -189,7 +173,7 @@ export function readStealthMetadata(
     const lengthBytes = readBytes(4);
     const bitLength = new DataView(lengthBytes.buffer).getUint32(0);
     const byteLength = Math.floor(bitLength / 8);
-    // 헤더 길이를 믿고 큰 버퍼를 잡지 않도록, 남은 픽셀에 실제로 담길 수 있는 만큼만 허용한다.
+    // 헤더 길이를 믿고 큰 버퍼를 잡지 않는다.
     const remainingBits = width * height - column * height - row;
     if (byteLength * 8 > remainingBits) return null;
     const payload = readBytes(byteLength);
@@ -227,7 +211,7 @@ function parseDesk(value: unknown): DeskMetadata | undefined {
   return parsed?.app === 'reference-inpaint-desk' ? (parsed as DeskMetadata) : undefined;
 }
 
-/** PNG 텍스트(또는 stealth) 항목에서 NovelAI 생성 파라미터를 추출한다. 인식할 수 없으면 null. */
+/** 인식할 수 없으면 null. */
 export function interpretMetadata(entries: Record<string, unknown>): ImageImportData | null {
   const comment = parseJsonObject(entries.Comment);
   const desk = parseDesk(entries[DESK_METADATA_KEY]);
@@ -301,7 +285,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
   if (vibeFile) result.vibeFile = vibeFile;
 
   if (desk) {
-    // 이 앱의 결과물이면 분리 저장해 둔 원래 값을 우선한다. 캐릭터 프롬프트에 감정이 섞이지 않는다.
+    // 이 앱의 결과면 따로 저장한 원래 값이 감정 섞이지 않은 값이다.
     result.commonPositive = desk.commonPositive;
     result.commonNegative = desk.commonNegative;
     result.characters = [
@@ -321,10 +305,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
   return result;
 }
 
-/**
- * PNG(텍스트 청크)나 이 앱이 저장한 WebP(XMP)에서 메타데이터를 읽는다. 텍스트 청크가 없으면 `decodePixels`로 픽셀을 얻어
- * stealth 메타데이터를 시도한다. 픽셀 디코딩은 실행 환경(브라우저 캔버스 등)에 맡긴다.
- */
+/** PNG는 텍스트 청크, 이 앱의 WebP는 XMP. 없으면 `decodePixels`로 stealth를 읽는다. */
 export async function readImageMetadata(
   bytes: Uint8Array,
   decodePixels?: () => Promise<{

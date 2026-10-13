@@ -25,13 +25,12 @@ import {
 
 const APP_NAME = 'NAI RICE';
 
-// 토큰·큐·화면 설정이 들어 있는 폴더. Chromium이 쓰기 시작하기 전에 옮겨야 한다.
+// 토큰·큐·화면 설정이 든 폴더. Chromium이 쓰기 시작하기 전에 옮겨야 한다.
 app.setName(APP_NAME);
 app.setPath('userData', renamedFolder(app.getPath('appData'), APP_NAME, 'reference-inpaint-desk'));
 const moduleDirectory = __dirname;
 registerMediaScheme();
 
-/** 서비스끼리는 서로 만들지 않고 여기서만 만들어 잇는다. */
 async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
   const provider = new NovelAIProvider();
@@ -66,7 +65,7 @@ async function createServices(): Promise<AppServices> {
     requests: new GenerationRequests(queue, account, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
     vibes: new VibeFiles(library, dialog),
-    // 포터블 실행 파일은 electron-builder가 PORTABLE_EXECUTABLE_FILE을 넣어 준다.
+    // electron-builder가 포터블 실행 파일에 넣어 준다.
     updates: new UpdateChecker(
       app.getVersion(),
       (url, init) => net.fetch(url, init),
@@ -75,7 +74,7 @@ async function createServices(): Promise<AppServices> {
   };
 }
 
-/** 지난 실행에서 남은 임시 파일과 휴지통으로 보내지 못한 결과를 정리한다. 실패해도 시작을 막지 않는다. */
+/** 실패해도 시작을 막지 않는다. */
 async function cleanUpLeftovers(services: AppServices): Promise<void> {
   try {
     await removeStaleTemporaryFiles([
@@ -89,20 +88,17 @@ async function cleanUpLeftovers(services: AppServices): Promise<void> {
   }
 }
 
-/**
- * 맞춤법 검사기를 끈다. 프롬프트는 영어 태그라 쓸모가 없고, 켜 두면 시스템 언어 사전(한국어 약 11MB)을
- * 받아 실행 내내 열어 둔다. 화면의 spellcheck 옵션만으로는 세션이 사전을 받는 것을 막지 못해 언어 목록도 비운다.
- */
+/** 켜 두면 시스템 언어 사전(한국어 약 11MB)을 받아 계속 열어 둔다. 화면의 spellcheck만으로는 막지 못해 언어 목록도 비운다. */
 function disableSpellChecker(): void {
   session.defaultSession.setSpellCheckerEnabled(false);
   try {
     session.defaultSession.setSpellCheckerLanguages([]);
   } catch {
-    // macOS는 언어 목록을 바꿀 수 없다. 끄기만 해도 사전을 받지 않는다.
+    // macOS는 언어 목록을 바꿀 수 없지만 끄기만 해도 받지 않는다.
   }
 }
 
-/** 화면이 쓰는 권한은 프롬프트 복사의 클립보드 쓰기뿐이다. 처리기가 없으면 Electron은 모든 요청을 허락한다. */
+/** 처리기가 없으면 Electron은 모든 권한 요청을 허락한다. 화면은 프롬프트 복사의 클립보드 쓰기만 쓴다. */
 function allowOnlyClipboardWrite(): void {
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
     callback(permission === 'clipboard-sanitized-write'),
@@ -115,7 +111,7 @@ app.whenReady().then(async () => {
   const services = await createServices();
   handleMediaProtocol(services.library);
   registerIpc(services);
-  // File·Edit·View 메뉴 막대를 없앤다. 입력란의 복사·붙여넣기 단축키는 그대로 동작한다.
+  // 입력란의 복사·붙여넣기 단축키는 메뉴 없이도 동작한다.
   Menu.setApplicationMenu(null);
   createWindow(APP_NAME, moduleDirectory);
   services.account.startAutoRefresh(anyWindowVisible);

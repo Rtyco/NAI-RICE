@@ -45,7 +45,7 @@ const formats = {
     z.object({
       library: librarySchema,
       images: z.record(z.string(), imagesSchema).default({}),
-      // 캐릭터 레퍼런스·바이브 그림. `pictures/`의 파일 이름 → data URL. 이 기능 전의 백업에는 없다.
+      // `pictures/` 파일 이름 → data URL. 예전 백업에는 없다.
       pictures: z.record(z.string(), z.string()).default({}),
     }),
   ),
@@ -73,7 +73,7 @@ const formats = {
   ),
 };
 
-/** 가져오기 결과. 모든 항목은 새 ID를 받아 기존 라이브러리 뒤에 추가된다. */
+/** 모든 항목은 새 ID를 받는다. */
 export type ImportBundle = {
   label: string;
   presets: Preset[];
@@ -84,9 +84,9 @@ export type ImportBundle = {
   vibes: Vibe[];
   projects: Project[];
   pieceSets: PieceSet[];
-  /** 새 레퍼런스 ID → 이미지 */
+  /** 레퍼런스 ID → 이미지 */
   images: Record<string, ReferenceImagesData>;
-  /** 캐릭터 레퍼런스·바이브 그림 파일 이름 → data URL. 내용 해시 이름이라 다시 저장해도 이름이 같다. */
+  /** 파일 이름 → data URL. 내용 해시 이름이다. */
   pictures: Record<string, string>;
   warnings: string[];
 };
@@ -138,7 +138,6 @@ function parse<T>(schema: z.ZodType<T>, value: unknown, label: string): T {
   return result.data;
 }
 
-/** 라이브러리 백업을 새 ID로 다시 매핑한다(기존 항목과 충돌하지 않게). */
 function remapLibrary(
   library: Library,
   images: Record<string, ReferenceImagesData>,
@@ -181,10 +180,7 @@ function remapLibrary(
   return bundle;
 }
 
-/**
- * 파일 내용만으로 형식을 판별해 가져올 항목 묶음으로 바꾼다. 버튼과 드래그앤드롭이 같은 경로를 쓴다.
- * `fallbackPresetId`는 프리셋이 없는 형식(SDStudio 등)으로 작업을 만들 때 쓴다.
- */
+/** 내용만으로 형식을 판별한다. `fallbackPresetId`는 프리셋이 없는 형식(SDStudio 등)용. */
 export function parseImportFile(
   raw: string,
   fileName: string,
@@ -207,7 +203,7 @@ export function parseImportFile(
   }
   if (kind === 'reference-inpaint-character') {
     if (value.schemaVersion === 1) {
-      // 이전 버전 캐릭터 백업: 감정과 레퍼런스까지 함께 들어 있다.
+      // 예전 캐릭터 백업: 감정과 레퍼런스까지 들어 있다.
       const data = parse(formats.characterV1, value, '캐릭터 백업');
       const split = splitV1Character(
         data.character,
@@ -280,7 +276,7 @@ export function parseImportFile(
     bundle.characters = [imported.character];
     bundle.emotionSets = [imported.emotionSet];
     bundle.presets = imported.preset ? [imported.preset] : [];
-    // 감정 프롬프트가 부르는 <세트.조각>이 그대로 이어지도록 프로젝트에 든 프롬프트 조각도 가져온다.
+    // 감정 프롬프트의 <세트.조각>이 이어지도록 조각도 가져온다.
     bundle.pieceSets = [
       ...sdStudioLibraryPieceSets(value.library),
       ...(imported.variantSet ? [imported.variantSet] : []),
@@ -319,7 +315,7 @@ export function exportEmotionSet(set: EmotionSet) {
   };
 }
 
-/** SDStudio와 같은 형식으로 내보낸다. 그대로 SDStudio에서 열 수 있다. */
+/** SDStudio에서 그대로 열 수 있다. */
 export function exportPieceSet(set: PieceSet) {
   return {
     name: set.name,
@@ -355,13 +351,10 @@ export function exportLibrary(
   };
 }
 
-/** 가져온 항목 ID → 그 내용으로 덮어쓸 기존 항목 ID. 생성 설정·캐릭터·감정 모음·프롬프트 조각만 덮어쓸 수 있다. */
+/** 가져온 ID → 덮어쓸 기존 ID. 생성 설정·캐릭터·감정 모음·프롬프트 조각만. */
 export type ImportOverwrites = Record<string, string>;
 
-/**
- * 이름이 같은 하위 항목(프롬프트 세트·감정)은 기존 ID를 이어받는다.
- * 그래야 작업이 고른 프롬프트 세트와 감정별 생성 결과가 덮어쓴 뒤에도 그대로 이어진다.
- */
+/** 이름이 같은 하위 항목은 기존 ID를 이어받아야 작업의 선택과 감정별 결과가 이어진다. */
 function keepIdsByName<T extends { id: string; name: string }>(
   previous: T[],
   next: T[],
@@ -378,10 +371,7 @@ function keepIdsByName<T extends { id: string; name: string }>(
   });
 }
 
-/**
- * 묶음을 라이브러리에 넣는다. 기본은 새로 추가하고, overwrites에 지정한 항목은
- * 기존 항목의 ID와 이름을 유지한 채 내용만 바꾼다. 그 항목을 쓰는 작업은 그대로 연결된다.
- */
+/** overwrites 항목은 기존 ID·이름을 유지하고 내용만 바꿔 작업 연결이 유지된다. */
 export function mergeBundle(
   library: Library,
   bundle: ImportBundle,
@@ -443,7 +433,6 @@ export function mergeBundle(
           characterId: id(slot.characterId),
           promptSetId: id(slot.promptSetId),
         };
-        // 덮어쓴 캐릭터에 고르던 프롬프트 세트가 없으면 첫 세트로 바꾼다.
         const character = characters.find((item) => item.id === next.characterId);
         if (character && !character.promptSets.some((set) => set.id === next.promptSetId))
           next.promptSetId = character.promptSets[0].id;

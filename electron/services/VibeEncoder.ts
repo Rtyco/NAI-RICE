@@ -3,10 +3,7 @@ import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/Novel
 import type { GenerationStore, ImageGenerator } from './ports';
 import type { RequestPacer } from './RequestPacer';
 
-/**
- * 바이브 인코딩 결과. 같은 그림·모델·추출량으로 인코딩한 적이 있으면 그것을 쓰고, 없으면 인코딩해(2 Anlas)
- * 저장해 둔다. 인코딩도 생성처럼 요청 간격을 지킨다.
- */
+/** 같은 그림·모델·추출량이면 캐시를 쓰고, 없으면 인코딩(2 Anlas)해 저장한다. 인코딩도 요청 간격을 지킨다. */
 export class VibeEncoder {
   constructor(
     private readonly cache: Pick<GenerationStore, 'readVibe' | 'writeVibe'>,
@@ -14,7 +11,7 @@ export class VibeEncoder {
     private readonly pacer: RequestPacer,
   ) {}
 
-  /** `sources`는 `vibes`와 같은 순서의 원본 그림이다. */
+  /** `sources`는 `vibes`와 같은 순서 */
   async encodeAll(
     settings: Pick<GenerationSettings, 'model'>,
     vibes: JobVibe[],

@@ -10,11 +10,7 @@ import {
 import { exists } from './fsUtils';
 import type { Library } from './Library';
 
-/**
- * 이전 버전(캐릭터 하나에 모든 것이 묶인 구조)을 새 구조로 옮긴다.
- * 중간에 실패해도 다시 실행하면 이어서 진행한다: 이미 projects/로 옮겨진 캐릭터도 다시 읽고,
- * library.json은 모든 이동이 끝난 뒤에만 쓴다.
- */
+/** 캐릭터 하나에 모든 것이 묶인 예전 구조를 옮긴다. 다시 실행하면 이어서 진행하도록 library.json은 모든 이동 뒤에만 쓴다. */
 export async function migrateV1Workspace(
   library: Library,
   notices: string[],
@@ -24,7 +20,7 @@ export async function migrateV1Workspace(
   const charactersRoot = path.join(library.root, 'characters');
   const projectsRoot = path.join(library.root, 'projects');
 
-  // 옮기기 전에 이전 데이터 전체를 복사해 둔다. 이전 시도에서 만든 백업이 있으면 그것이 가장 완전하므로 다시 만들지 않는다.
+  // 이전 시도에서 만든 백업이 가장 완전하므로 있으면 다시 만들지 않는다.
   const backupsRoot = path.join(library.root, 'backups');
   const previousBackups = (await fs.readdir(backupsRoot).catch(() => [] as string[])).filter(
     (name) => name.startsWith('v1-before-migration-'),
@@ -94,11 +90,7 @@ export async function migrateV1Workspace(
 
 const LOCKED = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY']);
 
-/**
- * 폴더를 옮긴다. Windows에서는 백신 검사·탐색기 미리보기 등이 파일을 잠깐 잡고 있으면 이름 바꾸기가
- * 거부되므로 몇 번 다시 시도하고, 그래도 안 되면 복사한 뒤 원본 삭제를 시도한다.
- * 원본까지 지웠으면 true, 복사만 되고 원본이 남았으면 false.
- */
+/** Windows는 백신·탐색기 미리보기가 파일을 잡으면 이름 바꾸기를 거부해 몇 번 다시 시도하고, 안 되면 복사 후 원본 삭제를 시도한다. 원본까지 지웠으면 true. */
 export async function moveDirectory(from: string, to: string, retries = 5): Promise<boolean> {
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {

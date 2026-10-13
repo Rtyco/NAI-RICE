@@ -72,7 +72,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const levels = qualityLevelsFor(g.model);
   const ucPresets = ucPresetsFor(g.model);
   const medium = usesMedium(g);
-  // Medium이면 고정값을 보여 준다. 저장된 값은 그대로라 High로 돌리면 되살아난다.
+  // medium이면 고정값을 보인다. 저장된 값은 그대로다.
   const shown = effectiveGenerationSettings(g);
   const tagText = naiTagText(g.model, shown);
   const autoNsfw = addsAutoNsfw(g.model, shown.ucPreset);
@@ -83,7 +83,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   );
   const [customSize, setCustomSize] = useState(!sizePreset);
 
-  // 모델을 바꿀 때 새 모델에 없는 품질 태그 단계·UC 프리셋은 쓸 수 있는 값으로 맞춘다.
+  // 새 모델에 없는 품질 태그 단계·UC 프리셋은 쓸 수 있는 값으로 맞춘다.
   const changeModel = (next: string) => {
     const value: Partial<GenerationSettings> = { model: next };
     const changed: string[] = [];

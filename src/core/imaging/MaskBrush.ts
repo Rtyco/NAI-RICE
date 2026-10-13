@@ -1,13 +1,9 @@
-/**
- * 마스크 붓. NovelAI 웹은 마스크 레이어를 이미지의 1/8 크기로 두고 그 칸 단위로 칠한다(웹 코드
- * `addMaskLayer`: canvasWidth/8, scaleFactor 8). 그래서 칠한 영역은 8px 칸으로 각지고, 붓 크기도 칸 수로
- * 센다(기본 4칸 = 32px). 같은 방식으로 칠해야 웹에서 칠한 것과 같은 영역이 다시 그려진다.
- */
+/** NovelAI 웹은 마스크 레이어를 이미지의 1/8 크기로 두고 칸 단위로 칠한다(`addMaskLayer`). 같은 방식이어야 같은 영역이 다시 그려진다. */
 export const MASK_CELL = 8;
 
 export type BrushShape = 'circle' | 'square';
 
-/** 칸 좌표(이미지 px / 8)를 중심으로 `size`칸 붓이 덮는 칸마다 `visit`을 부른다. */
+/** 칸 좌표 = 이미지 px / 8 */
 export function forEachStampCell(
   cx: number,
   cy: number,
@@ -31,10 +27,7 @@ export function forEachStampCell(
   }
 }
 
-/**
- * 붓이 지나간 길에 찍을 위치(칸 좌표). 포인터 이벤트 사이를 반지름의 절반 간격으로 채워, 빠르게 그어도
- * 점선이 되지 않게 한다(웹과 같은 간격). `from` 자리는 이미 찍었으므로 넣지 않는다.
- */
+/** 반지름의 절반 간격(웹과 같다)으로 채워 빠르게 그어도 점선이 되지 않는다. `from`은 이미 찍어 넣지 않는다. */
 export function strokeStamps(
   from: { x: number; y: number },
   to: { x: number; y: number },
@@ -49,7 +42,7 @@ export function strokeStamps(
   });
 }
 
-/** 칸 하나(8×8px)를 이미지 크기의 마스크 버퍼에 칠한다. 이미지 밖은 자른다. */
+/** 이미지 밖은 자른다. */
 export function fillCell(
   buffer: Int8Array | Uint8Array,
   width: number,
@@ -62,8 +55,7 @@ export function fillCell(
   const top = Math.max(0, cellY * MASK_CELL);
   const right = Math.min(width, (cellX + 1) * MASK_CELL);
   const bottom = Math.min(height, (cellY + 1) * MASK_CELL);
-  // 칸이 이미지 밖이면 right가 0 이하가 된다. fill은 음수 끝을 배열 끝에서 센다(맨 윗줄에서 fill(v, 0, -8)이
-  // 마스크 거의 전체를 칠해 왼쪽 위를 칠하면 캔버스가 다 칠해졌다).
+  // fill은 음수 끝을 배열 끝에서 센다. 막지 않으면 맨 윗줄의 fill(v, 0, -8)이 마스크 거의 전체를 칠한다.
   if (right <= left || bottom <= top) return;
   for (let y = top; y < bottom; y += 1) buffer.fill(value, y * width + left, y * width + right);
 }

@@ -3,20 +3,15 @@ import type { GenerationSummary } from '../../core/domain/types';
 import { deleteResults, deleteShownResult } from '../generationOps';
 import { useBoxSelection } from './useBoxSelection';
 
-/**
- * 결과 화면(씬 상세·자유 생성)에서 보고 있는 결과와 아래 목록의 여러 장 고르기. ←/→/Home/End로 넘기고,
- * Ctrl+Shift+S로 저장하고, Delete로 보고 있는 결과를 지운다.
- */
 export function useResultBrowser(
   projectId: string,
   records: GenerationSummary[],
   options: {
-    /** 고른 결과가 없을 때 먼저 보일 결과(대표 이미지). 없으면 최신 결과다. */
+    /** 고른 결과가 없을 때 보일 결과(대표 이미지). 없으면 최신. */
     preferredId?: string;
-    /** 화면을 연 뒤에 새 결과가 왔을 때. */
     onNewResult?: () => void;
     saveAs: (record: GenerationSummary) => void;
-    /** 보고 있는 결과를 Delete로 지울 수 있는지. 결과 막대가 보일 때만 지운다. */
+    /** 결과 막대가 보일 때만 */
     canDeleteShown?: boolean;
   },
 ) {
@@ -26,7 +21,7 @@ export function useResultBrowser(
     records.find((record) => record.id === options.preferredId) ??
     records[0];
 
-  // 새 결과가 오면 그 결과를 보여 준다. 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니므로 그대로 둔다.
+  // 최신 결과를 지워 맨 앞이 바뀐 것은 새 결과가 아니다.
   const newest = records[0];
   const seenNewest = useRef(newest?.createdAt);
   const onNewResult = useRef(options.onNewResult);
@@ -66,7 +61,7 @@ export function useResultBrowser(
         event.preventDefault();
         options.saveAs(selected);
       }
-      // 여러 장을 고른 동안의 Delete는 고른 것을 지운다(useBoxSelection이 처리).
+      // 여러 장을 고른 동안의 Delete는 useBoxSelection이 처리한다.
       if (
         event.key === 'Delete' &&
         !pickedCount &&

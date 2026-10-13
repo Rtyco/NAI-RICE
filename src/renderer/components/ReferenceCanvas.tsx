@@ -26,7 +26,7 @@ type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type Props = {
   image: CanvasImage;
-  /** `image`를 그 자리에서 다시 칠할 때마다 바뀐다(배경색). 이때는 마스크 보정을 그대로 둔다. */
+  /** 배경색을 다시 칠할 때마다 바뀐다. 이때는 마스크 보정을 유지한다. */
   imageVersion?: number;
   width: number;
   height: number;
@@ -36,12 +36,11 @@ type Props = {
   expansionPx: number;
   initialMask?: Uint8Array;
   detectionLabel: string;
-  /** 캔버스 아래 상태 줄 끝에 덧붙일 내용(저장 크기, 경고 등). */
   status?: ReactNode;
   onReferenceRectChange: (rect: Rect) => void;
   onOutputRectChange: (rect: Rect) => void;
   onMaskChange: (mask: Uint8Array) => void;
-  /** 자유 인페인팅: 참고 영역·결과 영역 없이 다시 그릴 곳만 칠한다. */
+  /** 자유 인페인팅: 참고·결과 영역 없이 칠하기만 한다. */
   maskOnly?: boolean;
 };
 
@@ -57,10 +56,7 @@ const HISTORY_LIMIT = 40;
 
 type OverrideBase = Pick<Props, 'width' | 'height' | 'backgroundMask' | 'referenceRect' | 'expansionPx'>;
 
-/**
- * 저장된 마스크에서 붓으로 고친 픽셀만 수동 보정으로 남긴다. 나머지는 자동 계산을 따르므로
- * 참고 영역 여백 값을 바꾸면 바로 반영된다. 예전 버전의 두 배 확장으로 저장된 마스크도 알아본다.
- */
+/** 붓으로 고친 픽셀만 남겨 나머지는 여백 값 변경을 따른다. 예전 두 배 확장 마스크도 알아본다. */
 function createOverrides(base: OverrideBase, initialMask?: Uint8Array): Int8Array {
   const length = base.width * base.height;
   if (!initialMask || initialMask.length !== length) return new Int8Array(length).fill(-1);
@@ -108,17 +104,17 @@ export function ReferenceCanvas(props: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
-  /** 붓질 중에는 같은 버퍼를 직접 고치고, 프레임마다 한 번만 다시 그린다. */
+  /** 붓질 중에는 같은 버퍼를 고치고 프레임마다 한 번 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
   const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
-  /** 붓이 지나간 마지막 위치(칸 좌표). 다음 이벤트까지의 사이를 채운다. */
+  /** 칸 좌표. 다음 이벤트까지의 사이를 채운다. */
   const lastStampRef = useRef<{ x: number; y: number } | null>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  /** Space를 누르고 있는 동안은 왼쪽 버튼으로도 화면을 옮긴다(손 도구). */
+  /** 손 도구 */
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [opacity, setOpacity] = useState(42);
-  /** 붓 크기(칸 수). NovelAI 웹 기본값 4칸 = 32px. */
+  /** 칸 수. NovelAI 웹 기본값 4칸 = 32px. */
   const [brushSize, setBrushSize] = useState(4);
   const [brushShape, setBrushShape] = useState<BrushShape>('circle');
   const [overrides, setOverrides] = useState<Int8Array>(() =>
@@ -128,7 +124,7 @@ export function ReferenceCanvas(props: Props) {
   const [redoStack, setRedoStack] = useState<Int8Array[]>([]);
   const { onMaskChange } = props;
 
-  // 영역·확장 값은 처음 불러올 때의 값으로만 수동 보정을 가려낸다. 이후 바뀌면 자동 계산이 따라간다.
+  // 수동 보정은 처음 불러올 때의 영역·확장 값으로만 가려낸다.
   const baseRef = useRef<OverrideBase>(props);
   baseRef.current = props;
   useEffect(() => {
@@ -145,7 +141,7 @@ export function ReferenceCanvas(props: Props) {
         backgroundMask: props.backgroundMask,
         referenceRect: props.referenceRect,
         expansionPx: props.expansionPx,
-        // 해상도가 바뀐 직후 한 번은 이전 크기의 수동 마스크가 남아 있을 수 있다. 크기가 다르면 무시한다.
+        // 해상도가 바뀐 직후 한 번은 이전 크기의 마스크가 남아 있을 수 있다.
         overrides: overrides.length === props.width * props.height ? overrides : undefined,
       }),
     [
@@ -169,7 +165,7 @@ export function ReferenceCanvas(props: Props) {
     if (!canvas || !context) return;
     context.clearRect(0, 0, props.width, props.height);
     context.drawImage(props.image, 0, 0, props.width, props.height);
-    // putImageData는 합성 없이 픽셀을 덮어쓰므로 별도 캔버스에 그린 뒤 drawImage로 겹친다.
+    // putImageData는 합성하지 않고 덮어쓴다.
     let overlayCanvas = overlayRef.current;
     if (!overlayCanvas || overlayCanvas.width !== props.width || overlayCanvas.height !== props.height) {
       overlayCanvas = document.createElement('canvas');
@@ -180,7 +176,7 @@ export function ReferenceCanvas(props: Props) {
     const overlayContext = overlayCanvas.getContext('2d')!;
     const overlay = overlayContext.createImageData(props.width, props.height);
     const alpha = Math.round((opacity / 100) * 255);
-    // 픽셀마다 네 바이트를 따로 쓰지 않고 한 번에 쓴다. Windows(x86)는 리틀 엔디언이라 RGBA가 ABGR 순서다.
+    // 리틀 엔디언이라 RGBA가 ABGR 순서다.
     const pixels = new Uint32Array(overlay.data.buffer);
     const color = ((alpha << 24) | (190 << 16) | (208 << 8) | 23) >>> 0;
     for (let pixel = 0; pixel < mask.length; pixel += 1) {
@@ -256,7 +252,7 @@ export function ReferenceCanvas(props: Props) {
     if (!frameRef.current) {
       frameRef.current = requestAnimationFrame(() => {
         frameRef.current = 0;
-        // 같은 버퍼를 새 뷰로 감싸 상태 변경으로 인식시킨다(복사 없음).
+        // 같은 버퍼를 새 뷰로 감싸 상태 변경으로 알린다(복사 없음).
         if (strokeRef.current) setOverrides(new Int8Array(strokeRef.current.buffer));
       });
     }
@@ -267,7 +263,7 @@ export function ReferenceCanvas(props: Props) {
     setRedoStack([]);
   };
 
-  /** 붓이 찍힐 칸을 마우스 위치에 겹쳐 보여 준다. 다시 그리지 않도록 상태 대신 스타일을 바로 고친다. */
+  /** 다시 그리지 않도록 스타일을 바로 고친다. */
   const moveCursor = (event: ReactPointerEvent<HTMLCanvasElement> | null) => {
     const cursor = cursorRef.current;
     if (!cursor) return;
@@ -331,8 +327,7 @@ export function ReferenceCanvas(props: Props) {
       point.x - drag.startX,
       point.y - drag.startY,
     );
-    // Chromium이 pointermove를 이미 프레임에 맞춰 보내므로 바로 반영한다.
-    // rAF로 한 번 더 미루면 한 프레임 늦게 따라와 딱딱하게 느껴진다.
+    // Chromium이 이미 프레임에 맞춰 보낸다. rAF로 더 미루면 한 프레임 늦게 따라온다.
     const next = clampRect(candidate, props.width, props.height, 16);
     if (tool === 'reference') props.onReferenceRectChange(next);
     else props.onOutputRectChange(next);
@@ -407,7 +402,7 @@ export function ReferenceCanvas(props: Props) {
     setOverrides(Int8Array.from(invertMask(mask), (value) => (value ? 1 : 0)));
   };
 
-  // 모든 픽셀을 보호로 고정한다. 자동 계산이 다시 칠하지 않으므로 마스크가 빈 채로 남는다.
+  // 모두 보호로 고정해야 자동 계산이 다시 칠하지 않는다.
   const clearMask = () => {
     beginHistory();
     setOverrides(new Int8Array(props.width * props.height).fill(0));
@@ -567,7 +562,7 @@ export function ReferenceCanvas(props: Props) {
         ref={view.viewport}
         className={`canvas-viewport ${view.panning ? 'panning' : ''} ${spaceHeld ? 'hand' : ''}`}
         onMouseDown={(event) => {
-          // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
+          // 가운데 버튼 자동 스크롤 대신 끌어서 옮기기
           if (event.button === 1) event.preventDefault();
         }}
       >

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-/** 톱니 개수만큼 바깥·안쪽 반지름을 번갈아 찍어 톱니바퀴 외곽선을 만든다. */
 function gearPath(teeth = 8, outer = 9.5, inner = 7.2): string {
   const points: string[] = [];
   const step = (Math.PI * 2) / (teeth * 4);
@@ -16,7 +15,7 @@ function gearPath(teeth = 8, outer = 9.5, inner = 7.2): string {
 
 const GEAR = gearPath();
 
-/** 모든 아이콘은 24×24 격자에 같은 굵기의 선으로 그린다. 색은 글자색을 따른다. */
+/** 24×24 격자, 같은 굵기의 선, 색은 글자색. */
 const ICONS = {
   settings: (
     <>

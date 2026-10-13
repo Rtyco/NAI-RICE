@@ -3,15 +3,11 @@ import { withExtraPrompt } from '../../core/model/mutations';
 import { PromptTextarea } from './PromptTextarea';
 import { ExpandTextButton } from './TextEditorDialog';
 
-/**
- * 씬 상세의 씬 프롬프트 칸. 작업의 캐릭터마다 한 칸이고, 첫 칸은 생성 설정의 씬 프롬프트 위치를 따른다.
- * 씬 모음은 여러 작업이 함께 쓰므로 칸은 캐릭터 이름이 아니라 순서로 저장된다.
- */
+/** 씬 모음은 여러 작업이 함께 써서 칸은 캐릭터 이름이 아니라 순서로 저장된다. */
 export function ScenePromptFields(props: {
   emotion: Emotion;
-  /** 작업의 캐릭터 이름(순서대로). 비어 있으면 칸 하나만 보인다. */
+  /** 비어 있으면 칸 하나 */
   names: string[];
-  /** 첫 칸이 붙는 곳의 안내. */
   firstPlacement: string;
   onChange: (patch: Partial<Pick<Emotion, 'prompt' | 'extraPrompts'>>) => void;
 }) {

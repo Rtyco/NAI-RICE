@@ -58,7 +58,7 @@ export const LABELS = Object.fromEntries(
   { title: string; description: string; kind: (typeof SECTIONS)[number]['kind'] }
 >;
 
-/** 이름을 바꾼다. 프롬프트 조각 세트면 그 세트를 부르는 `<세트.조각>` 참조도 함께 바꾼다. */
+/** 조각 세트면 `<세트.조각>` 참조도 바꾼다. */
 export function withName(
   library: Library,
   section: LibrarySection,
@@ -133,10 +133,7 @@ export async function deleteItem(section: LibrarySection, item: Item) {
   });
 }
 
-/**
- * 여러 항목을 한 번에 지운다. 작업이 쓰던 항목은 대신할 항목을 묻지 않고 연결을 비워 두므로,
- * 그 작업은 화면에서 다른 항목을 고르기 전까지 생성할 수 없다.
- */
+/** 작업이 쓰던 항목은 대신할 항목을 묻지 않고 연결을 비운다. */
 export async function deleteItems(section: LibrarySection, items: Item[]): Promise<boolean> {
   if (!items.length) return false;
   if (items.length === 1) {
@@ -215,7 +212,7 @@ export async function duplicateItem(section: LibrarySection, item: Item) {
     id = copy.id;
     updateLibrary((current) => ({ ...current, pieceSets: [...current.pieceSets, copy] }));
   } else if (section === 'characterReferences') {
-    // 그림은 내용 해시 이름이라 복사하지 않고 같은 파일을 함께 쓴다.
+    // 그림은 내용 해시 이름이라 같은 파일을 함께 쓴다.
     const copy = { ...(item as CharacterReference), id: newId(), name };
     id = copy.id;
     updateLibrary((current) => ({
@@ -250,7 +247,7 @@ export function exportItem(section: LibrarySection, item: Item) {
               : exportEmotionSet(item as EmotionSet);
       saved = await fileApi().saveJsonFile(
         data,
-        // 프롬프트 조각은 SDStudio 형식이라 이름만으로 저장한다.
+        // 조각 세트는 SDStudio 형식
         section === 'pieceSets' ? `${item.name}.json` : `${item.name}__${section}.json`,
         `${LABELS[section].title} 내보내기`,
       );
@@ -265,7 +262,7 @@ export function openReferenceFolder(item: Item) {
   );
 }
 
-/** 새 항목을 만든다. 감정 모음은 기본 감정 6개로 시작하거나(기본) empty면 빈 채로 시작한다. */
+/** 감정 모음은 empty가 아니면 기본 감정 6개로 시작한다. */
 export function createItem(
   section: LibrarySection,
   library: Library,
@@ -330,7 +327,7 @@ export function itemSubtitle(section: LibrarySection, item: Item): string {
     : '이미지 없음';
 }
 
-/** 바이브를 NovelAI 바이브 파일로 저장한다. 여럿이면 묶음 하나로 저장한다. */
+/** 여럿이면 묶음 하나로 저장한다. */
 export function exportVibeItems(ids: string[]): void {
   void run('바이브를 내보내는 중', async () => {
     const vibes = useStore.getState().library?.vibes.filter((vibe) => ids.includes(vibe.id)) ?? [];

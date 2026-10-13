@@ -7,7 +7,7 @@ import { Stepper } from './Stepper';
 
 export type PresetNumberField = 'img2imgStrength' | 'img2imgNoise' | 'inpaintStrength';
 
-// 범위는 생성 설정 화면의 같은 입력과 맞춘다.
+// 범위는 생성 설정 화면과 같다.
 const FIELDS: Record<
   PresetNumberField,
   { text: string; icon: IconName; usage: string; min: number; max: number }
@@ -26,7 +26,7 @@ const FIELDS: Record<
     min: 0,
     max: 0.99,
   },
-  // NovelAI 웹 인페인팅의 Strength(inpaintImg2ImgStrength). 기본 1은 칠한 곳을 새로 그린다.
+  // NovelAI 웹 `inpaintImg2ImgStrength`. 1은 칠한 곳을 새로 그린다.
   inpaintStrength: {
     text: '강도',
     icon: 'brush',
@@ -36,7 +36,6 @@ const FIELDS: Record<
   },
 };
 
-/** i2i·인페인팅의 강도·노이즈 한 줄. 값은 생성 설정에 저장된다. */
 export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
   const info = FIELDS[field];
   return (

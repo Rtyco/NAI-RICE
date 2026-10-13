@@ -21,7 +21,6 @@ import {
 } from '../model/defaults';
 import { addPromptSet, mergeEmotions, patchItem, updatePromptSet } from '../model/mutations';
 
-/** 프롬프트에서 떼어 낸 품질 태그·UC 프리셋. */
 export type ImportedTags = {
   positive: string;
   negative: string;
@@ -30,12 +29,12 @@ export type ImportedTags = {
   ucPreset: UcPresetId;
 };
 
-/** 이미지 불러오기 창에서 사용자가 고른 것. 화면 상태와 상관없이 이것만으로 결과가 정해진다. */
+/** 화면 상태와 상관없이 이것만으로 결과가 정해진다. */
 export type ImageImportChoices = {
-  /** 새로 만드는 항목(생성 설정·캐릭터·프롬프트 세트·감정 모음·레퍼런스·작업)에 붙일 이름. 덮어쓰는 항목은 이름을 그대로 둔다. */
+  /** 새로 만드는 항목의 이름. 덮어쓰는 항목은 이름을 그대로 둔다. */
   name?: string;
   preset?: {
-    /** 덮어쓸 프리셋. 없으면 새로 만든다. */
+    /** 없으면 새로 만든다. */
     overwrite?: Preset;
     positive: boolean;
     negative: boolean;
@@ -46,7 +45,7 @@ export type ImageImportChoices = {
     seed: boolean;
   };
   character?: {
-    /** 'all'이면 이미지의 캐릭터마다 새 캐릭터를 만들고 그 순서대로 작업에 넣는다. */
+    /** 'all'이면 캐릭터마다 새 캐릭터를 그 순서대로 넣는다. */
     index: number | 'all';
     target: 'new' | 'add-set' | 'overwrite-set';
     character?: Character;
@@ -54,30 +53,27 @@ export type ImageImportChoices = {
   };
   emotion?: { target: 'current' | 'new'; emotionSet?: EmotionSet };
   reference: boolean;
-  /** 새 작업으로 묶을지. false면 지금 작업(있으면)에 연결한다. */
+  /** false면 지금 작업에 연결한다. */
   newProject: boolean;
 };
 
 export type ImageImportContext = {
-  /** 파일 이름에서 확장자를 뺀 것. 이름이 없을 때 쓴다. */
+  /** 확장자를 뺀 파일 이름 */
   stem: string;
   data: ImageImportData;
   tags: ImportedTags;
   project?: Project;
-  /** 지금 작업이 쓰는 캐릭터. */
   character?: Character;
 };
 
 export type ImageImportResult = {
   library: Library;
   applied: string[];
-  /** 새로 만든 작업. 열어서 보여 준다. */
   projectId?: string;
-  /** 새로 만든 레퍼런스. 이미지를 넣도록 편집기를 연다. */
   referenceId?: string;
 };
 
-/** 이미지에서 읽은 설정을 고른 대로 라이브러리에 반영한다. 원래 라이브러리는 바꾸지 않는다. */
+/** 원래 라이브러리는 바꾸지 않는다. */
 export function applyImageImport(
   library: Library,
   context: ImageImportContext,
@@ -135,7 +131,6 @@ export function applyImageImport(
     characterChoice && characterChoice.index !== 'all'
       ? data.characters[characterChoice.index]
       : undefined;
-  // 캐릭터를 모두 가져오면 두 번째부터는 여기에 모아 작업의 캐릭터 목록 뒤에 넣는다.
   let moreSlots: CharacterSlot[] = [];
   if (characterChoice?.index === 'all' && data.characters.length) {
     const created = data.characters.map((prompts, index) =>
@@ -151,7 +146,6 @@ export function applyImageImport(
   } else if (characterChoice && characterPrompt) {
     const { character: target, promptSet: targetSet } = characterChoice;
     if (characterChoice.target === 'new' || !target || !targetSet) {
-      // 새 캐릭터 안의 첫 세트는 원래 세트 이름(없으면 "기본")을 쓰고, 캐릭터에 이름을 붙인다.
       const character = createCharacter(name, [
         createPromptSet(desk?.promptSet.name ?? '기본', characterPrompt),
       ]);
@@ -234,7 +228,6 @@ export function applyImageImport(
     next = patchItem(next, 'projects', project.id, (item) => ({
       ...item,
       presetId,
-      // 가져온 캐릭터는 첫 캐릭터 자리에 넣는다. 모두 가져오면 목록을 바꾸고, 아니면 나머지는 그대로 둔다.
       characters: characterForProject
         ? [
             {
@@ -255,7 +248,7 @@ export function applyImageImport(
   return { library: next, applied, projectId: openId, referenceId: newReferenceId };
 }
 
-/** 이미지가 위치를 직접 지정해 만든 것이고 캐릭터 수가 맞으면 그 위치를 작업에 옮긴다. */
+/** 위치를 직접 지정한 이미지이고 캐릭터 수가 맞을 때만. */
 function placeCharacters(project: Project, data: ImageImportData): Project {
   const centers = data.characterCenters;
   if (!centers || centers.length !== project.characters.length) return project;

@@ -6,7 +6,7 @@ export const ZOOM_STEP = 1.25;
 
 export const clampZoom = (scale: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, scale));
 
-/** React의 onWheel은 passive라 휠의 기본 스크롤을 막을 수 없어서 직접 단다. */
+/** React onWheel은 passive라 기본 스크롤을 막을 수 없다. */
 export function useWheel(
   element: RefObject<HTMLElement | null>,
   onWheel: (event: WheelEvent) => void,

@@ -38,7 +38,6 @@ function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
   }));
 }
 
-/** 고른 참고 항목의 그림을 작업 폴더의 `inputs/`에 넣고 작업에 넣을 값을 만든다. */
 async function prepareAid(
   library: Library,
   choice: AidValue,
@@ -131,7 +130,7 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
   }).then(() => undefined);
 }
 
-/** 자유 생성 화면의 지금 값으로 생성한다. `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
+/** `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
 export function generateFree(
   options: { prompt?: string; seed?: number; count?: number } = {},
 ): Promise<void> {
@@ -203,7 +202,7 @@ export type ResultImg2ImgOptions = {
   seedMode: 'source' | 'random';
 };
 
-/** 결과들을 i2i로 다시 그린다. 결과는 원래 감정(자유 생성이면 자유 생성)에 새 결과로 쌓인다. */
+/** 결과는 원래 감정(또는 자유 생성)에 쌓인다. */
 export function sendResultsToImg2Img(
   projectId: string,
   records: GenerationSummary[],
@@ -248,7 +247,6 @@ export function sendResultsToImg2Img(
 }
 
 export type DirectorToolOptions = AugmentSettings & {
-  /** 무료 면적을 넘는 이미지를 무료 면적 안으로 줄여 보낸다. */
   shrink: boolean;
 };
 
@@ -261,10 +259,7 @@ export function directorToolSize(
     : { width: record.width, height: record.height };
 }
 
-/**
- * 결과마다 디렉터 툴을 적용한다. `targets`가 없으면 원래 씬에 쌓고, 있으면(Emotion 툴로 씬 세트 만들기)
- * 그 씬들에 하나씩 쌓는다.
- */
+/** `targets`(Emotion 툴 씬 세트)가 있으면 그 씬들에 하나씩, 없으면 원래 씬에 쌓는다. */
 export function runDirectorTool(
   projectId: string,
   entries: Array<{ record: GenerationSummary; targets?: AugmentTarget[] }>,
@@ -310,7 +305,7 @@ export function runDirectorTool(
   }).then(() => undefined);
 }
 
-/** 자유 생성의 디렉터 툴: 고른 이미지(여백을 뺀 원래 영역)에 툴을 적용한다. */
+/** 여백을 뺀 원래 영역에 적용한다. */
 export function runFreeDirectorTool(shrink: boolean): Promise<void> {
   return run('디렉터 툴 작업을 준비하는 중', async () => {
     await flushSaves();
@@ -343,7 +338,7 @@ export function runFreeDirectorTool(shrink: boolean): Promise<void> {
   }).then(() => undefined);
 }
 
-/** 일괄 생성 대상: 제외하지 않았고 프롬프트가 있는 감정. */
+/** 제외하지 않았고 프롬프트가 있는 감정 */
 export function batchEmotionIds(projectId: string): string[] {
   const library = useStore.getState().library;
   const project = library?.projects.find((item) => item.id === projectId);

@@ -3,7 +3,7 @@ import { sectionInfo } from '../sections';
 import { run, setSettingsOpen, toggleSidebar, useStore, type StoreState } from '../store';
 import { Icon } from './Icon';
 
-/** 지금 보는 화면 이름. 작업 › 리나 › 기쁨, 라이브러리 › 캐릭터 › 아리아처럼 이어 쓴다. */
+/** 예: 작업 › 리나 › 기쁨 */
 function locationOf({ library, view, detailEmotionId }: StoreState): string {
   if (!library) return '';
   if (view.kind === 'free') return '자유 생성';
@@ -25,7 +25,7 @@ function locationOf({ library, view, detailEmotionId }: StoreState): string {
   return '';
 }
 
-/** 창 맨 위 줄. 오른쪽 끝에는 Windows 창 버튼이 겹쳐 그려진다(`titleBarOverlay`). */
+/** 오른쪽 끝에는 Windows 창 버튼이 겹친다(`titleBarOverlay`). */
 export function TitleBar() {
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const saveState = useStore((state) => state.saveState);

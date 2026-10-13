@@ -11,7 +11,6 @@ import { Modal, openDialog } from './components/Dialogs';
 import { openLibrary, openProject, run, toast, updateLibrary, useStore } from './store';
 import { fileApi, libraryApi } from './desktop';
 
-/** 묶음을 라이브러리에 추가하고 레퍼런스 이미지를 저장한다. 새 작업이 있으면 그 작업을 연다. */
 export async function applyBundle(
   bundle: ImportBundle,
   overwrites: ImportOverwrites = {},
@@ -19,7 +18,7 @@ export async function applyBundle(
   const library = useStore.getState().library;
   if (!library) return;
 
-  // SDStudio처럼 캐릭터와 감정 모음만 있는 경우 바로 쓸 수 있도록 작업을 만들어 준다.
+  // SDStudio처럼 캐릭터와 감정 모음만 있으면 작업을 만들어 준다.
   if (
     !bundle.projects.length &&
     bundle.characters.length === 1 &&
@@ -52,7 +51,7 @@ export async function applyBundle(
     );
   }
 
-  // 그림 파일 이름은 내용 해시라, 다시 저장해도 항목이 가리키는 이름 그대로다.
+  // 내용 해시 이름이라 다시 저장해도 이름이 같다.
   for (const dataUrl of Object.values(bundle.pictures)) await libraryApi().addPicture(dataUrl);
 
   updateLibrary((current) => mergeBundle(current, bundle, overwrites));
@@ -91,12 +90,11 @@ const GROUPS: Array<{ key: NamedGroup; label: string }> = [
   { key: 'pieceSets', label: '프롬프트 조각' },
 ];
 
-/** 기존 항목에 덮어쓸 수 있는 종류. 레퍼런스(이미지)와 작업은 항상 새로 추가한다. */
+/** 레퍼런스와 작업은 항상 새로 추가한다. */
 const OVERWRITABLE = new Set<NamedGroup>(['presets', 'characters', 'emotionSets', 'pieceSets']);
 
 const SKIP = '__skip';
 
-/** 이름이 같은 기존 항목. 이것만 덮어쓸 수 있다. */
 function sameNamed(
   library: ReturnType<typeof useStore.getState>['library'],
   key: NamedGroup,
@@ -106,7 +104,7 @@ function sameNamed(
   return library[key].filter((entry) => entry.name.trim() === name.trim());
 }
 
-/** 건너뛴 항목을 쓰는 작업. 같이 빼지 않으면 없는 항목을 가리키게 된다. */
+/** 같이 빼지 않으면 없는 항목을 가리킨다. */
 function blockedProjects(bundle: ImportBundle, skipped: Set<string>): Set<string> {
   return new Set(
     bundle.projects
@@ -124,7 +122,6 @@ function blockedProjects(bundle: ImportBundle, skipped: Set<string>): Set<string
   );
 }
 
-/** 가져오기 전에 항목마다 새로 추가(이름 지정)·덮어쓰기·추가 안 함을 정한다. */
 function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: () => void }) {
   const library = useStore((state) => state.library);
   const view = useStore((state) => state.view);
@@ -135,14 +132,14 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
   );
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
   const [overwrites, setOverwrites] = useState<ImportOverwrites>(() => {
-    // 프롬프트는 조각을 세트 이름으로 부르므로, 이름이 같은 세트는 덮어쓰는 것을 기본으로 한다.
+    // 프롬프트가 조각을 세트 이름으로 부르므로 같은 이름 세트는 덮어쓰기가 기본.
     const defaults: ImportOverwrites = Object.fromEntries(
       bundle.pieceSets.flatMap((item) => {
         const existing = sameNamed(library, 'pieceSets', item.name)[0];
         return existing ? [[item.id, existing.id]] : [];
       }),
     );
-    // 라이브러리에서 보고 있는 항목과 이름이 같은 것을 하나만 가져오면 그 항목에 덮어쓰는 것을 기본으로 한다.
+    // 보고 있는 항목과 같은 이름 하나만 가져오면 덮어쓰기가 기본.
     if (view.kind !== 'library' || !view.itemId) return defaults;
     const key = view.section as NamedGroup;
     const items = OVERWRITABLE.has(key) ? bundle[key] : [];

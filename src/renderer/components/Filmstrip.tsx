@@ -5,16 +5,14 @@ import { Icon } from './Icon';
 import { showResultMenu, type ResultAction } from './ResultActions';
 import type { ResultBrowser } from './useResultBrowser';
 
-/** 결과 화면 아래의 이미지 목록과 그 아래 막대. 목록을 접으면 둘 다 숨긴다. */
+/** 목록을 접으면 막대도 숨긴다. */
 export function Filmstrip(props: {
   projectId: string;
   records: GenerationSummary[];
   browser: ResultBrowser;
   menu: (record: GenerationSummary) => ResultAction[];
   favoriteId?: string;
-  /** 목록에서 결과를 눌렀을 때 화면이 할 일(예: 결과 보기로 바꾸기). */
   onOpen?: () => void;
-  /** 막대 오른쪽 끝에 두는 버튼. */
   tools?: ReactNode;
 }) {
   const collapsed = useStore((state) => state.filmstripCollapsed);

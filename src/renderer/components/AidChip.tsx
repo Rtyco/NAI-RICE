@@ -12,16 +12,12 @@ const AID_MODES: Record<AidMode, { label: string; title: string }> = {
 
 export type AidValue = AidChoice & Pick<Project, 'normalizeVibes'>;
 
-/**
- * 참고 칩. 캐릭터 레퍼런스와 바이브는 함께 쓰지 않아 칩 안의 버튼을 누를 때마다 방식이 바뀌고, 그 방식의
- * 목록에서 여럿 고른다. 방식을 바꿔도 다른 쪽에서 고른 것은 남겨 둔다. 작업과 자유 생성이 함께 쓴다.
- */
+/** 캐릭터 레퍼런스와 바이브는 함께 쓰지 않는다. 방식을 바꿔도 다른 쪽에서 고른 것은 남는다. */
 export function AidChip(props: {
   value: AidValue;
   onChange: (patch: Partial<AidValue>) => void;
-  /** 생성 설정의 모델. V4.5가 아니면 칩을 경고 색으로 둔다. */
+  /** V4.5가 아니면 경고 색 */
   model?: string;
-  /** 인페인트 요청이면 캐릭터 레퍼런스를 고를 때 경고한다. */
   inpaint: boolean;
 }) {
   const library = useLibrary();
@@ -94,8 +90,7 @@ export function AidChip(props: {
       empty={`라이브러리에 ${label}가 없습니다.`}
       options={
         character ? (
-          // NovelAI 웹은 V4.5 인페인트에도 캐릭터 레퍼런스를 허용하지만 사용자가 써 보니 결과가 나빴다. 같은 조건의
-          // 바이브는 괜찮아 막지 않고 알리기만 한다.
+          // NovelAI 웹은 V4.5 인페인트에 캐릭터 레퍼런스를 허용하지만 결과가 나빴다. 바이브는 괜찮아 알리기만 한다.
           props.inpaint && (
             <p className="warning-box aid-warning">
               인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수 있습니다. 인페인트에는

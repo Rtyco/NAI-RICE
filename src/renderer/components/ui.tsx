@@ -3,10 +3,7 @@ import type { ReactNode } from 'react';
 import { PromptTextarea } from './PromptTextarea';
 import { ExpandTextButton } from './TextEditorDialog';
 
-/**
- * 입력 중에는 자유롭게 타이핑하고, 포커스를 잃거나 Enter를 누를 때 범위를 맞춘다.
- * (입력 도중 최소값으로 튀는 문제 방지)
- */
+/** 입력 도중 최소값으로 튀지 않도록 범위는 blur·Enter 때 맞춘다. */
 export function NumberField(props: {
   label: string;
   value: number;
@@ -59,7 +56,7 @@ export function NumberField(props: {
           onChange={(event) => {
             setDraft(event.target.value);
             const parsed = Number(event.target.value);
-            // 범위 안의 완성된 값이면 바로 반영해 미리보기가 따라오게 한다.
+            // 범위 안의 완성된 값은 미리보기가 따라오도록 바로 반영한다.
             if (
               event.target.value.trim() !== '' &&
               Number.isFinite(parsed) &&
@@ -140,7 +137,7 @@ export function Card({
 export function SelectField<T extends string>(props: {
   label: string;
   value: T;
-  /** `disabled`인 항목은 목록에 보이지만 고를 수 없다(이 모델에서 지원하지 않는 값 등). */
+  /** `disabled`는 보이지만 고를 수 없다. */
   options: Array<{ value: T; label: string; disabled?: boolean }>;
   disabled?: boolean;
   onChange: (value: T) => void;

@@ -9,16 +9,12 @@ export type ResultAction = {
   label: string;
   icon: IconName;
   onSelect: () => void;
-  /** 같은 묶음끼리 붙이고 묶음 사이에 구분선을 둔다. 목록은 묶음 순서대로 적는다. */
+  /** 같은 묶음끼리 붙이고 사이에 구분선. 목록은 묶음 순서대로 적는다. */
   group: 'main' | 'send' | 'file' | 'delete';
   title?: string;
   disabled?: boolean;
-  /** 켜진 상태(대표 지정)를 버튼에 표시한다. */
   active?: boolean;
-  /**
-   * 결과 막대에서 아이콘만 보인다(마우스를 올리면 `title`, 없으면 이름이 보인다). 우클릭 메뉴에는 이름이
-   * 나온다.
-   */
+  /** 결과 막대에서 아이콘만 보인다. 우클릭 메뉴에는 이름이 나온다. */
   iconOnly?: boolean;
 };
 
@@ -32,7 +28,7 @@ function groups(actions: ResultAction[]): ResultAction[][] {
   return result;
 }
 
-/** 같은 동작 목록을 이미지 우클릭 메뉴(`showResultMenu`)도 쓴다. */
+/** 같은 목록을 `showResultMenu`도 쓴다. */
 export function ResultBar(props: {
   projectId: string;
   record: GenerationSummary;

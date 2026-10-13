@@ -9,9 +9,9 @@ import {
 import type { V1Character, V1Workspace } from '../validation/schemas';
 
 export type V1CharacterMove = {
-  /** characters/<id> 폴더를 그대로 projects/<id>로 옮긴다(생성 결과 경로 유지). */
+  /** characters/<id>를 그대로 projects/<id>로 옮겨 결과 경로를 유지한다. */
   projectId: string;
-  /** reference/ 안의 파일을 references/<id>/로 복사한다. 이미지가 없으면 undefined. */
+  /** 이미지가 없으면 undefined */
   referenceId?: string;
 };
 
@@ -19,7 +19,7 @@ function stripReferenceDir(file: string): string {
   return file.replace(/^reference\//, '');
 }
 
-/** v1 캐릭터 하나를 캐릭터·감정 모음·레퍼런스·작업으로 나눈다. 감정 ID는 생성 기록과 맞도록 유지한다. */
+/** 감정 ID는 생성 기록과 맞도록 유지한다. */
 export function splitV1Character(
   v1: V1Character,
   presetId: string,

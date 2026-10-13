@@ -101,10 +101,7 @@ export const pieceSetSchema = z.object({
   pieces: z.array(promptPieceSchema),
 });
 
-/**
- * SDStudio의 옛 조각 형식 `{description, pieces: {이름: 내용}, multi: {이름: 참}}`을
- * 지금 형식으로 바꾼다(SDStudio migratePieceLibrary와 같다).
- */
+/** SDStudio 옛 형식 `{description, pieces: {이름: 내용}, multi: {이름: 참}}`(SDStudio migratePieceLibrary와 같다). */
 function migrateLegacyPieceSet(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return value;
   const legacy = value as { name?: unknown; description?: unknown; pieces?: unknown; multi?: unknown };
@@ -122,7 +119,7 @@ function migrateLegacyPieceSet(value: unknown): unknown {
   };
 }
 
-/** SDStudio 프롬프트 조각 파일. 프로젝트 파일의 library 값도 이 모양이다. */
+/** 프로젝트 파일의 library 값도 이 모양이다. */
 export const sdStudioPieceSetSchema = z.preprocess(
   migrateLegacyPieceSet,
   z.object({
@@ -153,7 +150,7 @@ export const canvasLayoutSchema = z.object({
   background: z.string(),
 });
 
-/** 레퍼런스·작업 ID. 폴더 이름으로 그대로 쓰므로 글자·숫자·하이픈만 허용한다. */
+/** 폴더 이름으로 쓴다. */
 export const FOLDER_ID = /^[\p{L}\p{N}-]+$/u;
 
 export const referenceSchema = z.object({
@@ -184,7 +181,7 @@ const characterSlotSchema = z.object({
   center: centerSchema.optional(),
 });
 
-/** 캐릭터가 하나뿐이던 때의 `characterId`·`promptSetId`는 한 명짜리 목록으로 읽는다. */
+/** 예전 단일 `characterId`·`promptSetId` */
 function readSingleCharacter(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const item = value as Record<string, unknown>;
@@ -199,7 +196,7 @@ function readSingleCharacter(value: unknown): unknown {
   };
 }
 
-/** 바이브를 하나만 고르던 때의 `vibeId`는 한 개짜리 목록으로 읽는다. */
+/** 예전 단일 `vibeId` */
 function readSingleVibe(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const { vibeId, ...rest } = value as Record<string, unknown>;
@@ -207,7 +204,7 @@ function readSingleVibe(value: unknown): unknown {
   return { ...rest, vibeIds: typeof vibeId === 'string' && vibeId ? [vibeId] : [] };
 }
 
-/** 캐릭터 레퍼런스를 하나만 고르던 때의 `characterReferenceId`는 한 개짜리 목록으로 읽는다. */
+/** 예전 단일 `characterReferenceId` */
 function readSingleCharacterReference(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const { characterReferenceId, ...rest } = value as Record<string, unknown>;
@@ -227,7 +224,7 @@ export const projectSchema = z.preprocess(
     id: z.string().regex(FOLDER_ID),
     name: z.string(),
     folder: folderSchema,
-    // 없어진 i2i 방식(img2img)은 인페인트로 읽는다.
+    // 없어진 img2img 모드는 인페인트로 읽는다.
     mode: z.enum(['reference', 'txt2img']).catch('reference'),
     presetId: z.string(),
     characters: z.array(characterSlotSchema),
@@ -257,17 +254,14 @@ const pictureSchema = z
 
 const unitSchema = (fallback: number) => z.number().min(0).max(1).catch(fallback);
 
-/**
- * 캐릭터 레퍼런스·바이브의 세기와 충실도. NovelAI 웹 슬라이더는 0~1이지만 숫자를 직접 넣으면 음수 등도 받아
- * 넓게 열어 둔다.
- */
+/** NovelAI 웹 슬라이더는 0~1이지만 직접 입력하면 음수 등도 받는다. */
 export const AID_VALUE_LIMIT = 10;
 const aidValue = z.number().min(-AID_VALUE_LIMIT).max(AID_VALUE_LIMIT);
 const aidValueSchema = (fallback: number) => aidValue.catch(fallback);
 
 const referenceTargetSchema = z.enum(['character&style', 'character', 'style']);
 
-/** 처음에는 Style Aware 켜기·끄기(`styleAware`)만 있었다. 켜기는 캐릭터와 그림체, 끄기는 캐릭터다. */
+/** 예전 `styleAware`: 켜기는 character&style, 끄기는 character. */
 function readStyleAware(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const { styleAware, ...rest } = value as Record<string, unknown>;
@@ -289,10 +283,7 @@ export const characterReferenceSchema = z.preprocess(
   }),
 );
 
-/**
- * 바이브·캐릭터 레퍼런스를 하나만 넣던 때의 작업·기록 `aid`는 한 개짜리 `vibes`·`references`로 읽는다. 그때의
- * 캐릭터 레퍼런스는 세기를 늘 1로 보냈다.
- */
+/** 예전 단일 `aid`. 그때 캐릭터 레퍼런스 세기는 늘 1이었다. */
 function readSingleAid(value: unknown): unknown {
   const read = readStyleAware(value);
   if (!read || typeof read !== 'object') return read;
@@ -332,7 +323,7 @@ export const appSettingsSchema = z.object({
       target: z.enum(['favorite', 'latest']),
     })
     .default({ format: 'png', quality: 90, target: 'favorite' }),
-  // 이전 버전의 naiTags(직접 고친 품질 태그 문구)는 NovelAI 고정값으로 바뀌어 읽지 않는다.
+  // 예전 naiTags(직접 고친 품질 태그 문구)는 읽지 않는다.
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
   streaming: z.boolean().default(false),
   tagAutocomplete: z.boolean().default(true),
@@ -350,13 +341,10 @@ export const appSettingsSchema = z.object({
     .default({ autoCheck: true, skippedVersion: '' }),
 });
 
-/** `sources/` 안의 파일 이름. 해시로 지어 경로 문자를 넣을 수 없다. */
+/** 해시 이름이라 경로 문자가 없다. */
 const sourceFileSchema = z.string().regex(/^[0-9a-f]+\.png$/);
 
-/**
- * 잠시 있던 「자유 인페인팅」 모드는 이미지를 `inpaint`에 두었다(mode 'inpaint'). i2i의 인페인팅으로 옮겨
- * 읽는다.
- */
+/** 예전 「자유 인페인팅」 모드(mode 'inpaint', 이미지는 `inpaint`)를 i2i 인페인팅으로 읽는다. */
 function readFreeInpaintMode(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   const free = value as Record<string, unknown>;
@@ -422,7 +410,7 @@ export const librarySchema = z.object({
           })
           .optional()
           .catch(undefined),
-        // 이 설정이 생기기 전에는 늘 공통 포지티브 끝에 붙였다.
+        // 예전에는 늘 공통 포지티브 끝이었다.
         promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
         aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
         characterReferenceIds: z.array(z.string().min(1)).catch([]),
@@ -458,7 +446,7 @@ const augmentInfoSchema = z.object({
 
 export const generationRecordSchema = z.object({
   id: z.string(),
-  // 생성 방식 구분이 생기기 전의 기록은 모두 인페인트다.
+  // 예전 기록은 모두 인페인트다.
   kind: generationKindSchema.default('inpaint'),
   sourceRecordId: z.string().optional(),
   projectId: z.string(),
@@ -521,7 +509,7 @@ export const generationRecordSchema = z.object({
   anlasEstimate: z.number().optional(),
 });
 
-/** 내보내기 요청. 형식은 그대로 파일 확장자가 되므로 정해진 값만 받는다. */
+/** 형식이 그대로 확장자가 된다. */
 export const exportRequestSchema = z.object({
   projectId: z.string().regex(FOLDER_ID),
   name: z.string(),
@@ -531,15 +519,13 @@ export const exportRequestSchema = z.object({
   mode: z.enum(['folder', 'zip']),
 });
 
-/** 한 번에 큐에 넣을 수 있는 작업 수. 감정 모음 하나를 변형 여러 장으로 돌려도 넉넉하다. */
 export const MAX_ENQUEUE_JOBS = 2000;
-/** NovelAI가 받는 캔버스보다 넉넉한 상한. 비용 판단은 이 크기로 다시 계산한다. */
+/** 비용은 이 크기로 다시 계산한다. */
 const MAX_CANVAS_SIDE = 8192;
 const canvasSideSchema = z.number().int().positive().max(MAX_CANVAS_SIDE);
 
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 
-/** 렌더러가 보낸 생성 작업의 공통 부분. 메인 프로세스가 큐에 넣기 전에 검증한다. */
 const jobSnapshotCommonSchema = z.object({
   id: z.string().min(1).max(200),
   createdAt: z.string(),
@@ -615,7 +601,6 @@ const jobSnapshotCommonSchema = z.object({
 
 const sourceImageSchema = { imagePath: z.string().min(1), imageSha256: sha256Schema };
 
-/** 생성 방식마다 필요한 입력이 다르다. `kind`로 나눠 검사한다. */
 export const generationJobSnapshotSchema = z.discriminatedUnion('kind', [
   jobSnapshotCommonSchema.extend({
     kind: z.literal('inpaint'),
@@ -660,7 +645,7 @@ export const generationIndexSchema = z.object({
   ),
 });
 
-// v1 형식: 이전 작업 폴더를 옮기거나 이전 백업을 읽을 때만 쓴다.
+// v1: 이전 작업 폴더나 백업을 읽을 때만.
 
 export const v1WorkspaceSchema = z.object({
   schemaVersion: z.literal(1),

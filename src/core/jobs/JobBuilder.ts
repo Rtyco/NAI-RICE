@@ -46,7 +46,7 @@ import {
   usesMedium,
 } from '../providers/NaiModels';
 
-/** 프롬프트를 만들 캐릭터 한 명. 첫 캐릭터가 참고 이미지의 캐릭터이고 씬 프롬프트의 첫 칸이 붙는다. */
+/** 첫 캐릭터가 참고 이미지의 캐릭터다. */
 export type JobCharacter = {
   name: string;
   promptSet: CharacterPromptSet;
@@ -60,9 +60,8 @@ type EmotionJobBuildInput = {
   emotionSet: EmotionSet;
   emotionIds: string[];
   settings: Pick<AppSettings, 'outputFilenameTemplate' | 'keepDiagnosticCanvas'>;
-  /** 프롬프트의 `<세트.조각>` 참조를 펼칠 때 쓰는 프롬프트 조각. */
   pieceSets?: PieceSet[];
-  /** 지정하면 설정의 Seed 방식보다 우선한다. "이 seed로 다시 생성"에 쓴다. */
+  /** 설정의 Seed 방식보다 우선한다. */
   seedOverride?: number;
   variantsOverride?: number;
   aid?: JobAid;
@@ -70,7 +69,7 @@ type EmotionJobBuildInput = {
   randomSeed?: () => number;
 };
 
-/** 작업 폴더의 inputs/에 해시 이름으로 넣어 둔 인페인트 캔버스와 마스크. */
+/** `inputs/`의 해시 이름 파일 */
 export type InpaintInput = {
   imagePath: string;
   maskPath: string;
@@ -85,12 +84,12 @@ export type JobBuildInput = EmotionJobBuildInput & {
 
 export type Txt2ImgJobBuildInput = EmotionJobBuildInput;
 
-/** 메인 프로세스가 목표 크기로 맞춰 작업 폴더의 inputs/에 넣어 둔 i2i 입력. */
+/** 메인 프로세스가 목표 크기로 맞춘 `inputs/` 파일 */
 export type ImageInput = { imagePath: string; imageSha256: string };
 
 const UINT32 = 4_294_967_296;
 
-/** 고정 seed에서도 변형마다 다른 결과가 나오도록 변형 번호만큼 seed를 이동한다. */
+/** 고정 seed에서도 변형마다 결과가 다르도록. */
 export function seedForVariant(baseSeed: number, variantIndex: number): number {
   return (((baseSeed + variantIndex - 1) % UINT32) + UINT32) % UINT32;
 }
@@ -100,20 +99,16 @@ export type RequestPrompts = {
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
-  /** 두 번째 캐릭터부터. 이름은 비워 두고 작업을 만들 때 채운다. */
+  /** 두 번째 캐릭터부터. 이름은 작업을 만들 때 채운다. */
   extraCharacters: Array<{ prompt: string; negative: string }>;
-  /** 찾지 못한 프롬프트 조각 참조. 있으면 생성하지 않는다. */
+  /** 있으면 생성하지 않는다. */
   missingPieces: string[];
 };
 
-/** 씬 하나의 프롬프트. 자유 생성처럼 입력한 문구 하나뿐이면 문자열로 넘긴다. */
+/** 자유 생성은 문자열 하나. */
 export type ScenePrompts = string | Pick<Emotion, 'prompt' | 'extraPrompts'>;
 
-/**
- * 프리셋·캐릭터들·씬으로 NovelAI에 보낼 최종 프롬프트를 만든다. 미리보기와 생성이 같은 함수를 쓴다.
- * 프롬프트 조각은 맨 먼저 펼친다. multi 조각은 seed로 줄을 고르며, seed가 없으면(미리보기) 첫 줄이다.
- * reference inset 태그는 참고 이미지를 옆에 두는 인페인트에만, 첫 캐릭터 쪽에 붙인다.
- */
+/** 미리보기와 생성이 같이 쓴다. 조각을 먼저 펼치며 multi는 seed로 고른다(seed가 없으면 첫 줄). reference inset은 인페인트의 첫 캐릭터에만 붙는다. */
 export function composeRequestPrompts(
   rawPreset: Preset,
   rawCharacters: Array<Pick<CharacterPromptSet, 'positive' | 'negative'>>,
@@ -128,7 +123,7 @@ export function composeRequestPrompts(
     return result.text;
   };
   const settings = effectiveGenerationSettings(rawPreset.generation);
-  // NovelAI 웹은 Medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10 웹 코드).
+  // NovelAI 웹은 medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10).
   const medium = usesMedium(settings);
   const commonPositive = expand(rawPreset.commonPositive);
   const commonNegative = medium ? '' : expand(rawPreset.commonNegative);
@@ -148,14 +143,13 @@ export function composeRequestPrompts(
       .join(', '),
     negative: character.negative,
   }));
-  // 품질 태그는 reference inset 위치를 정할 수 있도록 따로 넘긴다.
   const insetWritten = extraCharacters.some((character) => referenceInsetCount(character.prompt));
   const prompts = composeSeparatedPrompts({
     commonPositive,
     qualityTags: naiTagText(settings.model, settings).quality,
     characterPositive: first.positive,
     emotion: emotionPrompt,
-    // 캐릭터가 없으면 캐릭터 쪽에 붙일 곳이 없어 V4 캐릭터 프롬프트에 그것만 들어가므로 공통 쪽에 붙인다.
+    // 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다.
     emotionPosition: characters.length ? settings.emotionPosition : 'common-end',
     referenceInset: {
       enabled: settings.referenceInset && kind === 'inpaint' && !insetWritten,
@@ -168,7 +162,7 @@ export function composeRequestPrompts(
             : settings.referenceInsetPosition,
     },
   });
-  // 네거티브에는 UC 프리셋(과 NovelAI 웹처럼 자동 nsfw)을 앞에 붙인다. nsfw는 완성된 포지티브를 보고 정한다.
+  // 자동 nsfw는 완성된 포지티브를 보고 정한다.
   const tagged = applyNaiTags(
     settings.model,
     { ...settings, qualityTags: false },
@@ -179,7 +173,7 @@ export function composeRequestPrompts(
   const anyCharacterNegative = characters.some((character) => character.negative.trim());
   return {
     prompt: prompts.commonPositive,
-    // 네거티브가 모두 비면 NovelAI 웹처럼 모델 기본값(V3의 lowres)을 보낸다.
+    // 모두 비면 NovelAI 웹처럼 모델 기본값(V3의 lowres)을 보낸다.
     negativePrompt:
       tagged.negative || (anyCharacterNegative ? '' : emptyNegativeFor(settings.model)),
     characterPrompt: prompts.characterPositive,
@@ -189,10 +183,7 @@ export function composeRequestPrompts(
   };
 }
 
-/**
- * 캐릭터들을 작업 필드로 바꾼다. 결과 파일 이름의 `{character}`는 이름을 `+`로 잇는다(사용자 결정).
- * 모델이 받는 인원을 넘으면 오류를 던진다.
- */
+/** `{character}` 파일 이름은 이름을 `+`로 잇는다. 모델 인원을 넘으면 오류. */
 function castFields(
   characters: JobCharacter[],
   extraPrompts: RequestPrompts['extraCharacters'],
@@ -236,7 +227,6 @@ type EmotionJobCommon = Omit<
   'kind' | keyof JobBuildInput['input'] | 'outputRect' | 'keepDiagnosticCanvas'
 >;
 
-/** 고른 감정마다 변형 수만큼 seed와 프롬프트를 정한다. 생성 방식에 따른 필드는 `make`가 붙인다. */
 function buildEmotionJobs<T>(
   input: EmotionJobBuildInput,
   kind: GenerationKind,
@@ -343,17 +333,13 @@ export function buildJobs(input: JobBuildInput): InpaintJobSnapshot[] {
 
 export type FreeJobBuildInput = {
   preset: Preset;
-  /** 캐릭터 없이 생성하면 비운다. */
   characters?: JobCharacter[];
   positionMode?: CharacterPositionMode;
   prompt: string;
-  /** 비어 있거나 캐릭터 프롬프트가 없으면 공통 포지티브 끝에 붙인다. */
+  /** 캐릭터 프롬프트가 없으면 공통 포지티브 끝. */
   promptPosition?: EmotionPosition;
   count: number;
-  /**
-   * 주면 이 이미지를 i2i로 다시 그린다. 마스크가 있으면 칠한 곳만 다시 그리는 인페인팅이다. 크기는 생성
-   * 설정의 해상도 대신 이미지 크기이고, 세기는 생성 설정 값을 쓴다.
-   */
+  /** 크기는 해상도 설정 대신 이미지 크기. 마스크가 있으면 인페인팅. */
   image?: {
     image: ImageInput;
     mask?: Pick<InpaintInput, 'maskPath' | 'maskSha256'>;
@@ -369,7 +355,6 @@ export type FreeJobBuildInput = {
   randomSeed?: () => number;
 };
 
-/** 자유 생성: 씬 대신 입력한 프롬프트로 `count`장을 만든다. */
 export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
@@ -377,7 +362,7 @@ export function buildFreeJobs(
   assertAidModel(input.aid, settings.model);
   const characters = input.characters ?? [];
   const promptSet = characters[0]?.promptSet ?? createPromptSet('', {});
-  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어가 공통과 따로 논다.
+  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다.
   const emotionPosition =
     input.promptPosition === 'character-end' && promptSet.positive.trim()
       ? 'character-end'
@@ -431,7 +416,6 @@ export function buildFreeJobs(
       variantIndex,
       canvasWidth: input.image?.width ?? settings.width,
       canvasHeight: input.image?.height ?? settings.height,
-      // 감정이 없으므로 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다.
       outputFilenameTemplate: FREE_FILENAME_TEMPLATE,
       settings: { ...settings },
       warnings: [],
@@ -454,7 +438,7 @@ export function buildFreeJobs(
             ...fromImage,
             kind: 'inpaint',
             ...image.mask,
-            // 캔버스가 원래 이미지와 거의 같아 따로 남길 필요가 없다.
+            // 캔버스가 원본과 거의 같다.
             keepDiagnosticCanvas: false,
           }
         : {
@@ -468,7 +452,7 @@ export function buildFreeJobs(
   return jobs;
 }
 
-/** 감정이 없는 자유 생성 결과는 설정의 파일명 규칙 대신 날짜·시각과 seed로 이름을 짓는다. */
+/** 자유 생성은 씬이 없어 설정의 파일명 규칙을 쓰지 않는다. */
 export const FREE_FILENAME_TEMPLATE = '{date}-{time}__{seed}';
 
 export type ResultImg2ImgInput = {
@@ -479,7 +463,7 @@ export type ResultImg2ImgInput = {
   strength: number;
   noise: number;
   count: number;
-  /** source면 원본 seed부터, random이면 장마다 무작위. */
+  /** source: 원본 seed부터 차례로. */
   seedMode: 'source' | 'random';
   outputFilenameTemplate: string;
   projectName: string;
@@ -487,11 +471,7 @@ export type ResultImg2ImgInput = {
   randomSeed?: () => number;
 };
 
-/**
- * 결과를 입력으로 쓰는 작업(i2i·디렉터 툴)의 공통 내용. 원래 결과의 최종 프롬프트와 설정을 그대로 쓴다.
- * 결과에는 참고 이미지가 없으므로 reference inset 태그는 뺀다. 기록에는 사용자가 쓴 원문이 없어서,
- * 메타데이터의 원문 자리에도 최종 프롬프트를 넣는다.
- */
+/** 원래 결과의 최종 프롬프트·설정을 쓴다. 참고 이미지가 없어 reference inset은 빼고, 원문이 없어 원문 자리에도 최종 프롬프트를 넣는다. */
 function resultJobCommon(
   record: GenerationRecord,
   job: {
@@ -549,7 +529,6 @@ function resultJobCommon(
   };
 }
 
-/** 결과를 i2i로 다시 그린다(업스케일 우회). 원래 결과의 프롬프트와 설정에 크기와 세기만 바꾼다. */
 export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSnapshot[] {
   const { record } = input;
   const now = input.now ?? (() => new Date());
@@ -576,7 +555,6 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
   return jobs;
 }
 
-/** 디렉터 툴 결과를 쌓을 씬. Emotion 툴로 씬 세트를 만들 때는 씬마다 표정이 다르다. */
 export type AugmentTarget = {
   emotionId: string;
   emotionName: string;
@@ -590,15 +568,12 @@ export type FreeAugmentInput = {
   width: number;
   height: number;
   settings: AugmentSettings;
-  /** 생성 결과를 가져온 이미지면 그 기록(자유 생성 결과일 때만). */
+  /** 자유 생성 결과에서 가져왔을 때만 */
   sourceRecordId?: string;
   now?: () => Date;
 };
 
-/**
- * 자유 생성의 디렉터 툴: 고른 이미지에 툴을 `count`번 적용한다. 프롬프트·생성 설정이 없어 빈 값과 기본 설정을
- * 넣고, seed도 받지 않아 0으로 둔다. 결과는 자유 생성의 날짜별 폴더에 쌓인다.
- */
+/** 프롬프트·설정이 없어 빈 값과 기본 설정을 넣는다. 디렉터 툴은 seed를 받지 않아 0. */
 export function buildFreeAugmentJobs(input: FreeAugmentInput): AugmentJobSnapshot[] {
   const now = input.now ?? (() => new Date());
   const { tool, mood, toolPrompt, defry } = input.settings;
@@ -650,19 +625,16 @@ export type ResultAugmentInput = {
   mood?: string;
   toolPrompt: string;
   defry: number;
-  /** 비어 있으면 원래 결과의 씬에 쌓는다. */
+  /** 없으면 원래 결과의 씬 */
   targets?: AugmentTarget[];
-  /** 씬(대상)마다 보낼 횟수. 같은 입력이어도 결과가 매번 달라(5단계 실측) 여러 장 만들 수 있다. */
+  /** 같은 입력이어도 결과가 매번 다르다(5단계 실측). */
   count?: number;
   outputFilenameTemplate: string;
   projectName: string;
   now?: () => Date;
 };
 
-/**
- * 결과 하나에 디렉터 툴을 적용한다. 디렉터 툴은 seed를 받지 않아 원래 결과의 seed를 그대로 적는다. 프롬프트와
- * 설정은 요청에 쓰지 않지만 결과 정보와 메타데이터에 남도록 원래 결과의 것을 옮긴다.
- */
+/** 디렉터 툴은 seed를 받지 않아 원래 seed를 적는다. 프롬프트·설정은 요청에 쓰지 않지만 기록용으로 옮긴다. */
 export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSnapshot[] {
   const { record } = input;
   const now = input.now ?? (() => new Date());
@@ -699,7 +671,6 @@ export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSna
   );
 }
 
-/** 일반 생성: 참고 이미지 없이 생성 설정의 해상도로 감정마다 txt2img를 한다. */
 export function buildTxt2ImgJobs(input: Txt2ImgJobBuildInput): Txt2ImgJobSnapshot[] {
   const settings = effectiveGenerationSettings(input.preset.generation);
   return buildEmotionJobs(

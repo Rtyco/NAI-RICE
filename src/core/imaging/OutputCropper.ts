@@ -54,10 +54,7 @@ export function suggestOutputRect(
   );
 }
 
-/**
- * 결과 영역에서 보호 영역과 겹치는 부분을 잘라 낸다. 보호 영역은 NovelAI가 그리지 않으므로,
- * 결과에 남으면 원래 배경이 가장자리 띠로 보인다. 남는 사각형 가운데 가장 넓은 쪽을 고른다.
- */
+/** 보호 영역은 NovelAI가 그리지 않아 남으면 원래 배경이 띠로 보인다. 남는 사각형 중 가장 넓은 쪽을 고른다. */
 export function cropOutside(output: Rect, blocked: Rect): Rect {
   const right = output.x + output.width;
   const bottom = output.y + output.height;

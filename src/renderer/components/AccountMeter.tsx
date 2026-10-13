@@ -10,10 +10,7 @@ function elapsed(iso: string | undefined, now: number): string {
   return `${Math.floor(seconds / 60)}분 전`;
 }
 
-/**
- * V5 무료 할당량과 Anlas. 값이 바뀌면 잠시 강조하고 변화량을 보여 준다.
- * 생성할 때마다, 그리고 1분마다 메인 프로세스가 다시 조회해 알려 준다. 누르면 바로 다시 조회한다.
- */
+/** 메인 프로세스가 생성할 때마다, 그리고 1분마다 다시 조회해 알린다. */
 export function AccountMeter() {
   const token = useStore((state) => state.token);
   const [now, setNow] = useState(() => Date.now());

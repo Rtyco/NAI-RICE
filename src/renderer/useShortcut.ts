@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/** `Ctrl+Shift+N`처럼 쓴 키 조합이 눌렸는지. 글자 키는 대소문자를 가리지 않는다. */
+/** 글자 키는 대소문자를 가리지 않는다. */
 export function matchesKey(event: KeyboardEvent, combo: string): boolean {
   const parts = combo.split('+');
   const key = parts.pop()!;
@@ -13,10 +13,7 @@ export function matchesKey(event: KeyboardEvent, combo: string): boolean {
   );
 }
 
-/**
- * 화면 하나에서만 쓰는 단축키. 입력 칸에서 누르거나 대화상자가 열려 있으면 무시한다. `action`은 늘 최신 값을
- * 부르므로 화면 상태를 그대로 써도 된다.
- */
+/** 입력 칸이나 대화상자에서는 무시한다. `action`은 늘 최신 값을 부른다. */
 export function useShortcut(combo: string, action: () => void, enabled = true): void {
   const latest = useRef(action);
   latest.current = action;

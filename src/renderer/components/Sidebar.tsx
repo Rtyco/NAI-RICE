@@ -68,7 +68,6 @@ function PartSelect(props: {
   );
 }
 
-/** 생성 설정·캐릭터·감정 모음·레퍼런스를 골라 작업을 만든다. 없는 것은 그 자리에서 새로 만든다. */
 export function NewProjectDialog({ close }: { close: () => void }) {
   const library = useLibrary();
   const [name, setName] = useState('');
@@ -177,7 +176,7 @@ function projectSubtitle(library: Library, project: Project): string {
   return library.characters.find((item) => item.id === characterId)?.name ?? '캐릭터 없음';
 }
 
-/** 작업마다 `describe`한 값. 프롬프트를 고칠 때마다 사이드바를 다시 그리지 않도록 값이 같으면 그대로 둔다. */
+/** 프롬프트를 고칠 때마다 사이드바를 다시 그리지 않도록 값이 같으면 그대로 둔다. */
 function useProjectInfo<T>(describe: (library: Library, project: Project) => T): Record<string, T> {
   return useStore(
     useShallow((state) =>
@@ -233,7 +232,7 @@ export function Sidebar() {
   const queue = useStore((state) => state.queue);
   const collapsed = useStore((state) => state.sidebarCollapsed);
   const sections = useStore((state) => state.sidebarSections);
-  // 좁은 막대에서는 카드 접기를 무시하고 아이콘을 모두 보여 준다.
+  // 좁은 막대에서는 카드 접기를 무시한다.
   const projectsFolded = !collapsed && sections.projects;
   const libraryFolded = !collapsed && sections.library;
 

@@ -17,25 +17,23 @@ import {
 } from './NaiModels';
 
 export const NAI_IMAGE_ENDPOINT = 'https://image.novelai.net/ai/generate-image';
-/** 생성 과정을 받는 스트리밍. 응답은 ZIP이 아니라 이벤트 스트림이다(`NaiStream`). */
+/** 응답은 ZIP이 아니라 이벤트 스트림(`NaiStream`). */
 export const NAI_IMAGE_STREAM_ENDPOINT = 'https://image.novelai.net/ai/generate-image-stream';
-/** 바이브 인코딩. 응답은 ZIP이 아니라 인코딩 결과 그대로다(0단계: 약 49KB). */
+/** 응답은 인코딩 결과 그대로(약 49KB). */
 export const NAI_ENCODE_VIBE_ENDPOINT = 'https://image.novelai.net/ai/encode-vibe';
-/** 디렉터 툴. 응답은 생성과 같은 ZIP이다. */
+/** 응답은 생성과 같은 ZIP. */
 export const NAI_AUGMENT_ENDPOINT = 'https://image.novelai.net/ai/augment-image';
 export const NAI_USER_ENDPOINT = 'https://image.novelai.net/user/data';
 
 export const SUPPORTED_NAI_MODELS = NAI_MODELS.map((model) => model.id);
 
-/** 확산 모델 요청(일반 생성·i2i·인페인트)에 공통인 입력. */
 export type NaiPromptInput = {
   prompt: string;
   negativePrompt: string;
   characterPrompt: string;
   characterNegativePrompt: string;
-  /** 두 번째 캐릭터부터. */
   extraCharacters?: Array<{ prompt: string; negative: string }>;
-  /** 주면 첫 캐릭터부터 이 위치로 보낸다(`use_coords: true`). */
+  /** 있으면 `use_coords: true`. */
   characterCenters?: CharacterCenter[];
   width: number;
   height: number;
@@ -44,7 +42,6 @@ export type NaiPromptInput = {
   aid?: NaiAidInput;
 };
 
-/** 캐릭터 레퍼런스(캔버스에 맞춘 그림) 또는 바이브(인코딩 결과). */
 export type NaiAidInput =
   | {
       kind: 'character';
@@ -61,7 +58,6 @@ export type NaiAidInput =
       normalize: boolean;
     };
 
-/** 요청에 넣는 입력 이미지. 생성 방식마다 NovelAI의 `action`이 다르다. */
 export type NaiImageInput =
   | { action: 'generate' }
   | { action: 'img2img'; imageBase64: string; strength: number; noise: number }
@@ -90,10 +86,6 @@ function join(...parts: string[]): string {
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
-/**
- * 일반 생성·i2i·인페인트 요청 본문을 만든다. 프롬프트 구조와 샘플러 설정은 셋이 같고,
- * 입력 이미지와 그에 딸린 필드만 다르다(0단계에서 각 형식이 받아들여지는 것을 확인했다).
- */
 export function buildNovelAIDiffusionRequest(
   input: NaiPromptInput,
   image: NaiImageInput,
@@ -112,7 +104,7 @@ export function buildNovelAIDiffusionRequest(
     { prompt: input.characterPrompt, negative: input.characterNegativePrompt },
     ...(input.extraCharacters ?? []),
   ];
-  // V3는 캐릭터 프롬프트를 지원하지 않으므로 공통 프롬프트 뒤에 합친다.
+  // V3는 캐릭터 프롬프트가 없다.
   const prompt = isV3
     ? join(input.prompt, ...characters.map((character) => character.prompt))
     : input.prompt;
@@ -147,7 +139,7 @@ export function buildNovelAIDiffusionRequest(
     cfg_rescale: input.settings.cfgRescale,
     skip_cfg_above_sigma: varietySigma(input.settings, width, height),
     ...imageParams,
-    // 품질 태그와 UC 프리셋은 NovelAI 웹처럼 앱이 프롬프트에 직접 넣고, 무엇을 넣었는지는 힌트로만 알린다.
+    // 품질 태그·UC 프리셋은 NovelAI 웹처럼 프롬프트에 직접 넣고 힌트로만 알린다.
     ...naiTagHints(model.id, input.settings),
   };
   const request = {
@@ -157,7 +149,7 @@ export function buildNovelAIDiffusionRequest(
   };
 
   if (isV3) {
-    // SMEA는 커뮤니티 구현처럼 일반 생성에만 넣는다. i2i·인페인트에서 받는지는 확인하지 않았다.
+    // 커뮤니티 구현처럼 일반 생성에만 넣는다. i2i·인페인트는 확인하지 않았다.
     const smea = image.action === 'generate' ? (input.settings.smea ?? 'off') : 'off';
     return {
       ...request,
@@ -176,7 +168,7 @@ export function buildNovelAIDiffusionRequest(
   }
 
   const useCoords = Boolean(input.characterCenters);
-  // 위치를 AI에 맡길 때도 웹처럼 가운데를 넣어 보낸다. 프롬프트가 빈 캐릭터는 웹처럼 뺀다.
+  // NovelAI 웹처럼 AI 위치에도 가운데를 넣고, 프롬프트가 빈 캐릭터는 뺀다.
   const characterEntries = characters
     .map((character, index) => ({
       prompt: character.prompt,
@@ -201,7 +193,7 @@ export function buildNovelAIDiffusionRequest(
             color_correct: true,
           },
         }),
-    // i2i는 NovelAI 웹처럼 바깥에도 노이즈 seed를 둔다.
+    // NovelAI 웹과 같다.
     ...(image.action === 'img2img' ? { extra_noise_seed: seed } : {}),
     v4_prompt: {
       caption: {
@@ -244,17 +236,14 @@ export function buildNovelAIDiffusionRequest(
   };
 }
 
-/**
- * Normalize Reference Strengths. NovelAI 웹은 바이브가 둘 이상이고 세기 절댓값의 합이 1을 넘을 때만 합이 1이
- * 되도록 나눠서 보낸다(웹 코드 2026-10). 플래그도 함께 보내지만 나누는 것은 웹 쪽이라 앱도 직접 나눈다.
- */
+/** NovelAI 웹은 바이브가 둘 이상이고 세기 절댓값 합이 1을 넘을 때만 합이 1이 되게 나눈다(2026-10). 플래그만으로는 서버가 나누지 않는다. */
 export function vibeStrengths(strengths: number[], normalize: boolean): number[] {
   if (!normalize || strengths.length < 2) return strengths;
   const sum = strengths.reduce((total, value) => total + Math.abs(value), 0);
   return sum > 1 ? strengths.map((value) => value / sum) : strengths;
 }
 
-/** 캐릭터 레퍼런스·바이브 필드. 0단계에서 V4.5 요청으로 받아들여진 형식이다. */
+/** 0단계에서 V4.5로 받아들여진 형식. */
 function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string, unknown> {
   if (!aid) return {};
   if (!supportsReferenceAid(modelId))
@@ -295,7 +284,7 @@ export function buildNovelAIInpaintRequest(input: NaiInpaintRequestInput): Recor
   });
 }
 
-/** 디렉터 툴 요청 본문. Emotion은 `감정;;프롬프트`, Colorize는 프롬프트를 받고, 둘만 강도(defry)가 있다. */
+/** Emotion은 `감정;;프롬프트`, Colorize는 프롬프트. 둘만 defry가 있다. */
 export function buildNovelAIAugmentRequest(input: NaiAugmentRequestInput): Record<string, unknown> {
   const body: Record<string, unknown> = {
     req_type: input.tool,
@@ -310,7 +299,7 @@ export function buildNovelAIAugmentRequest(input: NaiAugmentRequestInput): Recor
   return body;
 }
 
-/** 바이브 인코딩 요청 본문. 인코딩은 일반 생성 모델 ID로 하고, 인페인트 요청에도 그 결과를 쓴다(0단계). */
+/** 일반 생성 모델 ID로 인코딩하고 인페인트에도 그 결과를 쓴다(0단계). */
 export function buildNovelAIEncodeVibeRequest(
   imageBase64: string,
   settings: Pick<GenerationSettings, 'model'>,
@@ -327,10 +316,7 @@ export function encodedOnlyMessage(name: string): string {
   return `바이브 「${name}」은(는) 원본 그림 없이 인코딩만 가져와서, 가져온 모델·정보 추출 값으로만 쓸 수 있습니다. 생성 설정의 모델이나 바이브의 정보 추출 값을 확인하십시오.`;
 }
 
-/**
- * 바이브 인코딩 결과를 다시 쓸 때의 이름. 같은 그림·모델·information_extracted면 결과가 같아 한 번만 인코딩한다.
- * 파일 이름으로 쓰므로 영문·숫자·하이픈만 남긴다.
- */
+/** 같은 그림·모델·information_extracted면 결과가 같아 캐시한다. 파일 이름이라 영문·숫자·하이픈만 남긴다. */
 export function vibeCacheKey(
   imageSha256: string,
   settings: Pick<GenerationSettings, 'model'>,
@@ -343,10 +329,7 @@ export function vibeCacheKey(
   );
 }
 
-/**
- * 인코딩 결과 이름. `owner`는 그림 해시이거나, 원본 없이 인코딩만 가져온 바이브의 `encodingId`다.
- * `generateModel`은 일반 생성 모델 ID다.
- */
+/** `owner`는 그림 해시 또는 `encodingId`. `generateModel`은 일반 생성 모델 ID. */
 export function vibeCacheName(
   owner: string,
   generateModel: string,
@@ -356,7 +339,6 @@ export function vibeCacheName(
   return `${owner}-${generateModel}-ie${information}`.replace(/[^0-9a-z-]/gi, '-');
 }
 
-/** `vibeCacheName`의 반대. 그 owner의 이름이 아니면 undefined. */
 export function parseVibeCacheName(
   name: string,
   owner: string,
@@ -366,10 +348,7 @@ export function parseVibeCacheName(
   return match ? { model: match[1], informationExtracted: Number(match[2]) / 100 } : undefined;
 }
 
-/**
- * 작업에 필요한 입력 파일(base64). 큐가 스냅샷의 해시를 확인한 뒤 넘긴다. `aidBase64`는 캐릭터 레퍼런스면
- * 맞춘 그림들, 바이브면 인코딩 결과들이다(고른 순서).
- */
+/** base64. `aidBase64`는 캐릭터 레퍼런스면 맞춘 그림들, 바이브면 인코딩 결과들(고른 순서). */
 export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase64?: string[] };
 
 function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
@@ -458,10 +437,7 @@ export function buildNovelAIJobRequest(
   }
 }
 
-/**
- * 스트리밍으로 보낼 요청. 확산 모델 요청이고 모델이 스트리밍을 받을 때만 바꾸고, 아니면 undefined다(디렉터 툴과
- * V3는 그대로 보낸다). NovelAI 웹처럼 `stream: "msgpack"`을 넣는다.
- */
+/** 스트리밍을 받지 않는 요청(디렉터 툴·V3)이면 undefined. NovelAI 웹처럼 `stream: "msgpack"`. */
 export function streamingRequest(
   request: NaiHttpRequest,
   job: Pick<GenerationJobSnapshot, 'settings'>,

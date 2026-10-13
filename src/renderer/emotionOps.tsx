@@ -80,7 +80,7 @@ function sharedNotice(setId: string, projectId?: string): string {
     : '';
 }
 
-/** 감정 모음에서 감정을 지운다. 작업 화면에서 부르면 그 작업의 생성 결과도 함께 지운다. */
+/** 작업 화면에서 부르면 그 작업의 결과도 지운다. */
 export async function deleteEmotion(
   setId: string,
   emotion: Emotion,
@@ -114,7 +114,7 @@ export async function deleteEmotion(
   return true;
 }
 
-/** 여러 감정을 한 번에 지운다. 작업 화면에서 부르면 그 작업의 생성 결과도 함께 지운다. */
+/** 작업 화면에서 부르면 그 작업의 결과도 지운다. */
 export async function deleteEmotions(
   setId: string,
   emotions: Emotion[],
@@ -188,7 +188,7 @@ export function emotionMenu(
             }),
       ),
   };
-  // 비슷한 일끼리 묶는다: 보기, 생성, 씬 고치기, 대표 이미지로 하는 일, 지우기.
+  // 보기, 생성, 씬 고치기, 대표 이미지, 지우기 순
   return [
     { label: '열기', onSelect: () => openEmotion(emotion.id) },
     folder,

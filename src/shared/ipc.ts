@@ -14,7 +14,6 @@ import type {
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
 import type { MetadataVibe } from '../core/vibes/VibeFile';
 
-/** 바이브 파일·이미지에서 가져온 바이브 하나. 화면이 이것으로 라이브러리 항목을 만든다. */
 export type ImportedVibe = {
   name: string;
   picture: Omit<Picture, 'name'>;
@@ -23,7 +22,7 @@ export type ImportedVibe = {
   encodingId?: string;
 };
 
-/** 저장해 둔 바이브 인코딩 하나. `model`은 일반 생성 모델 ID다. */
+/** `model`은 일반 생성 모델 ID. */
 export type VibeEncodingInfo = { model: string; informationExtracted: number };
 
 export type MetadataVibeImport = { model: string; name: string; vibes: MetadataVibe[] };
@@ -67,20 +66,14 @@ export type PreparedInputs = {
   maskSha256: string;
 };
 
-/** 입력으로 쓸 생성 결과. */
 export type ImageInputSource = { kind: 'record'; projectId: string; generationId: string };
 
-/** data URL로 읽을 이미지. `sources/`의 파일이거나 생성 결과다. */
 export type ImageDataSource =
   { kind: 'source'; file: string } | { kind: 'picture'; file: string } | ImageInputSource;
 
-/** 자유 인페인팅에 쓸 이미지. 파일에서 고른 이미지이거나 생성 결과다. */
 export type SourceImageAdd = { kind: 'data'; dataUrl: string } | ImageInputSource;
 
-/**
- * NovelAI는 i2i 입력을 요청 크기로 비율을 무시하고 늘리므로(0단계), 보내기 전에 목표 크기로 맞춘다.
- * crop은 위쪽을 남기고 자르고, pad는 가운데에 두고 흰 여백을 넣는다.
- */
+/** NovelAI는 i2i 입력을 비율 무시하고 늘리므로(0단계) 미리 맞춘다. crop은 위쪽을 남기고, pad는 가운데에 흰 여백. */
 export type ImageInputRequest = {
   projectId: string;
   source: ImageInputSource;
@@ -91,18 +84,14 @@ export type ImageInputRequest = {
 
 export type PreparedImage = { imagePath: string; imageSha256: string };
 
-/**
- * `sources/` 기준 파일 이름과 64의 배수로 맞춘 크기. 같은 이미지는 같은 이름이 된다. `outputRect`는 여백을
- * 뺀 원래 이미지 영역이다.
- */
+/** 크기는 64 배수. 같은 이미지는 같은 이름. `outputRect`는 여백을 뺀 원래 영역. */
 export type StoredSource = { file: string; width: number; height: number; outputRect: Rect };
 
-/** 자유 생성 i2i의 `sources/` 이미지(와 인페인팅 마스크)를 작업 입력으로 복사해 달라는 요청. */
 export type SourceInputRequest = {
   projectId: string;
   file: string;
   maskFile?: string;
-  /** 마스크 없이 보낼 때 이 영역만 잘라(여백 빼기) 이 크기로 맞춘다. 디렉터 툴이 쓴다. */
+  /** 마스크 없이 보낼 때 여백을 잘라 이 크기로 맞춘다(디렉터 툴). */
   crop?: { rect: Rect; width: number; height: number };
 };
 
@@ -115,7 +104,7 @@ export type TokenStatus = {
   secureStorageAvailable: boolean;
   valid?: boolean;
   anlas?: number;
-  /** 구독 등급. 3이 Opus. */
+  /** 3이 Opus */
   tier?: number;
   v5Quota?: {
     percent: number;
@@ -126,7 +115,7 @@ export type TokenStatus = {
   message?: string;
 };
 
-/** 예상 Anlas는 메인 프로세스가 작업 내용으로 직접 계산한다. */
+/** 예상 Anlas는 메인 프로세스가 계산한다. */
 export type GenerationEnqueueRequest = {
   jobs: GenerationJobSnapshot[];
 };
@@ -155,7 +144,7 @@ export type OpenTarget =
   | { kind: 'emotion'; projectId: string; emotionName: string; method: GenerationKind }
   | { kind: 'reference'; referenceId: string };
 
-/** `source`는 id 없이 `sources/<파일>`을 가리킨다. */
+/** `source`는 `sources/<파일>`. */
 export type MediaOwner =
   { kind: 'project' | 'reference'; id: string } | { kind: 'source' } | { kind: 'picture' };
 
@@ -167,36 +156,30 @@ export type LibraryApi = {
   copyReferenceFiles: (fromId: string, toId: string) => Promise<void>;
   deleteReferenceFiles: (referenceId: string) => Promise<void>;
   prepareInputs: (projectId: string, reference: Reference) => Promise<PreparedInputs>;
-  /** 캐릭터 레퍼런스(캔버스에 맞춤)나 바이브(원본) 그림을 작업 입력으로 복사한다. */
+  /** 캐릭터 레퍼런스는 캔버스에 맞추고 바이브는 원본 그대로. */
   prepareAidInput: (
     projectId: string,
     file: string,
     kind: 'character' | 'vibe',
   ) => Promise<PreparedImage>;
-  /** 캐릭터 레퍼런스·바이브 그림을 `pictures/`에 저장한다. 같은 그림은 같은 파일이 된다. */
+  /** 같은 그림은 같은 파일이 된다. */
   addPicture: (dataUrl: string) => Promise<Omit<Picture, 'name'>>;
-  /** NovelAI 바이브 파일·묶음의 그림과 인코딩 결과를 저장한다. */
   importVibeFile: (text: string, name: string) => Promise<ImportedVibe[]>;
-  /** NovelAI 이미지의 생성 정보에 든 바이브를 저장한다. */
   importMetadataVibes: (request: MetadataVibeImport) => Promise<ImportedVibe[]>;
   vibeEncodings: (vibe: Pick<Vibe, 'image' | 'encodingId'>) => Promise<VibeEncodingInfo[]>;
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
-  /** 마스크 PNG를 `sources/`에 넣고 파일 이름을 돌려준다. */
   addSourceMask: (dataUrl: string) => Promise<string>;
-  /** 이 앱이 만든 사본이라 휴지통을 거치지 않고 지운다. */
+  /** 앱이 만든 사본이라 휴지통을 거치지 않는다. */
   deleteSourceImage: (file: string) => Promise<void>;
   prepareSourceInput: (request: SourceInputRequest) => Promise<PreparedSourceInput>;
-  /**
-   * 픽셀을 읽어야 하는 이미지를 data URL로 받는다. 화면의 CSP가 `desk-media:`를 fetch하지 못하게 막고,
-   * 그 주소로 그린 캔버스는 다른 출처라 픽셀을 읽을 수 없다.
-   */
+  /** 화면 CSP가 `desk-media:` fetch를 막고, 그 주소로 그린 캔버스는 다른 출처라 픽셀을 읽을 수 없다. */
   readImageDataUrl: (source: ImageDataSource) => Promise<string>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
-  /** 화면 목록용 요약. 프롬프트·설정은 getGeneration으로 하나씩 받는다. */
+  /** 프롬프트·설정은 getGeneration으로 따로 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;
   getGeneration: (projectId: string, generationId: string) => Promise<GenerationRecord>;
-  /** 기본은 휴지통으로 보낸다. permanent면 바로 지운다. */
+  /** 기본은 휴지통. */
   deleteGenerations: (
     projectId: string,
     generationIds: string[],
@@ -207,7 +190,6 @@ export type LibraryApi = {
   showGeneration: (projectId: string, generationId: string) => Promise<void>;
 };
 
-/** 파일 열기·저장·내보내기 대화상자. */
 export type FileApi = {
   openJsonFile: (title: string) => Promise<OpenTextFileResult | null>;
   saveJsonFile: (data: unknown, suggestedName: string, title: string) => Promise<string | null>;
@@ -222,7 +204,7 @@ export type FileApi = {
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
   openVibeFile: () => Promise<OpenTextFileResult | null>;
-  /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`로 저장한다. */
+  /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`. */
   exportVibes: (vibes: Vibe[]) => Promise<string | null>;
 };
 
@@ -234,7 +216,7 @@ export type AccountApi = {
   onTokenStatus: (listener: (status: TokenStatus) => void) => () => void;
 };
 
-/** 스트리밍으로 받은 생성 중간 그림. `steps`는 대략의 전체 단계 수(진행 표시용)다. */
+/** `steps`는 대략의 전체 단계 수. */
 export type GenerationPreview = { jobId: string; dataUrl: string; step: number; steps: number };
 
 export type QueueApi = {
@@ -250,7 +232,7 @@ export type QueueApi = {
   onGenerationPreview: (listener: (preview: GenerationPreview) => void) => () => void;
 };
 
-/** 작업 폴더 안 한 작업의 폴더별 바이트. */
+/** 폴더별 바이트 */
 export type ProjectUsage = {
   projectId: string;
   records: number;
@@ -259,7 +241,7 @@ export type ProjectUsage = {
     diagnostic: number;
     thumbs: number;
     inputs: number;
-    /** 휴지통으로 보내지 못하고 남은 대기 폴더. */
+    /** 휴지통으로 보내지 못한 대기 폴더 */
     trash: number;
     other: number;
   };
@@ -272,9 +254,8 @@ export type StorageUsage = {
   backups: number;
   exports: number;
   app: {
-    /** Chromium 캐시(HTTP·코드·GPU·맞춤법 사전). */
+    /** Chromium HTTP·코드·GPU·맞춤법 캐시 */
     cache: number;
-    /** 생성 큐 기록 파일. */
     queue: number;
   };
 };
@@ -282,38 +263,30 @@ export type StorageUsage = {
 export type GenerationMeasure = { count: number; bytes: number };
 
 export type ProjectInspection = {
-  /** 기록 없이 남은 결과·썸네일·진단 캔버스 파일. */
+  /** 기록 없는 결과·썸네일·진단 캔버스 */
   orphanFiles: number;
   orphanBytes: number;
-  /** 이미지 파일이 없어진 기록. */
   missingRecords: number;
 };
 
-/** 설정 › 저장 공간. */
 export type StorageApi = {
   storageUsage: () => Promise<StorageUsage>;
   measureGenerations: (projectId: string, generationIds: string[]) => Promise<GenerationMeasure>;
   inspectProject: (projectId: string) => Promise<ProjectInspection>;
-  /** 고아 파일은 휴지통으로 보내고 이미지가 없어진 기록은 뺀다. 고친 내용을 돌려준다. */
+  /** 고아 파일은 휴지통으로, 이미지 없는 기록은 뺀다. */
   repairProject: (projectId: string) => Promise<ProjectInspection>;
-  /** 비운 바이트(대략)를 돌려준다. */
+  /** 비운 바이트(대략) */
   clearAppCache: () => Promise<number>;
 };
 
 export type AppApi = {
   appVersion: () => Promise<string>;
-  /** GitHub 최신 릴리스와 지금 버전을 비교한다. */
   checkForUpdate: () => Promise<UpdateCheckResult>;
-  /** GitHub 주소(릴리스 페이지·실행 파일)를 기본 브라우저로 연다. */
   openReleasePage: (url: string) => Promise<void>;
-  /** 창 제목 표시줄(최소화·최대화·닫기 버튼 영역)을 테마 색에 맞춘다. 색은 #rrggbb. */
+  /** #rrggbb */
   setTitleBarColors: (colors: TitleBarColors) => void;
-  /**
-   * 창을 한 단계 확대·축소한다(Ctrl+휠). Electron은 Ctrl+휠로 스스로 확대하지 않는다. 캔버스·이미지 보기의 그림
-   * 확대와 겹치지 않게, 그쪽이 막지 않은 Ctrl+휠만 렌더러가 보낸다.
-   */
+  /** Electron은 Ctrl+휠로 스스로 확대하지 않는다. 캔버스·이미지 확대가 막지 않은 Ctrl+휠만 렌더러가 보낸다. */
   zoomWindow: (direction: 'in' | 'out') => void;
-  /** 전체 화면(F11)·확대(Ctrl +/-/0·휠)가 바뀔 때. */
   onWindowState: (listener: (state: WindowState) => void) => () => void;
 };
 
@@ -321,5 +294,4 @@ export type WindowState = { fullScreen: boolean; zoomPercent: number };
 
 export type TitleBarColors = { color: string; symbolColor: string };
 
-/** preload가 렌더러에 여는 전체 API. 화면은 필요한 부분 인터페이스만 쓴다(src/renderer/desktop.ts). */
 export type DesktopApi = LibraryApi & FileApi & AccountApi & QueueApi & StorageApi & AppApi;

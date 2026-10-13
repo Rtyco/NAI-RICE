@@ -11,10 +11,7 @@ export function clampRect(rect: Rect, width: number, height: number, minSize = 1
   };
 }
 
-/**
- * 사방으로 amount만큼 넓힌 뒤 캔버스 밖으로 나간 부분은 잘라 낸다.
- * clampRect처럼 밀어 넣으면 캔버스 가장자리에 붙은 레퍼런스의 여백이 반대쪽으로 두 배가 된다.
- */
+/** 캔버스 밖은 잘라 낸다. clampRect처럼 밀어 넣으면 가장자리에 붙은 레퍼런스의 여백이 반대쪽으로 두 배가 된다. */
 export function expandRect(rect: Rect, amount: number, width: number, height: number): Rect {
   const left = Math.max(0, Math.round(rect.x - amount));
   const top = Math.max(0, Math.round(rect.y - amount));

@@ -3,15 +3,11 @@ import { useLibrary } from '../store';
 import { ChecklistChip } from './ChainChip';
 import { Icon } from './Icon';
 
-/**
- * 구성 막대의 캐릭터 칩. 누르면 캐릭터 목록이 뜨고, 체크한 순서가 곧 씬 프롬프트 칸의 순서다. 인페인트의
- * 참고 이미지는 첫 캐릭터만 참고가 된다.
- */
+/** 체크한 순서가 씬 프롬프트 칸의 순서다. */
 export function CharacterChip(props: {
   slots: CharacterSlot[];
-  /** 자유 생성처럼 캐릭터 없이도 생성하는 곳이면 true. 마지막 캐릭터도 뺄 수 있다. */
+  /** 마지막 캐릭터도 뺄 수 있다. */
   optional?: boolean;
-  /** 모델이 받는 최대 인원. 넘으면 더 넣지 못한다. */
   max: number;
   onChange: (slots: CharacterSlot[]) => void;
 }) {

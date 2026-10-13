@@ -15,10 +15,7 @@ type Foldered = { id: string; folder?: string };
 
 export type ListRow<T> = { kind: 'item'; item: T } | { kind: 'folder'; name: string; items: T[] };
 
-/**
- * 목록을 화면에 보일 줄로 나눈다. 폴더는 따로 저장하지 않고 항목의 `folder`로만 정하므로, 폴더는 첫 항목이
- * 있던 자리에 보이고 그 안은 목록 순서를 따른다. 항목이 모두 빠진 폴더는 사라진다.
- */
+/** 폴더는 따로 저장하지 않고 항목의 `folder`로만 정한다. 첫 항목 자리에 보이고, 항목이 모두 빠지면 사라진다. */
 export function listRows<T extends Foldered>(items: T[]): ListRow<T>[] {
   const rows: ListRow<T>[] = [];
   const folders = new Map<string, T[]>();
@@ -51,7 +48,7 @@ function list(library: Library, key: FolderCollection): Foldered[] {
   return library[key] as Foldered[];
 }
 
-/** 항목들을 폴더에 넣는다. `folder`가 없으면 폴더에서 뺀다. */
+/** `folder`가 없으면 폴더에서 뺀다. */
 export function setFolder(
   library: Library,
   key: FolderCollection,
@@ -70,7 +67,7 @@ export function setFolder(
   };
 }
 
-/** 새 폴더로 묶는다. 폴더가 고른 항목 중 첫 항목 자리에 보이도록 나머지를 그 뒤로 모은다. */
+/** 폴더가 첫 항목 자리에 보이도록 나머지를 그 뒤로 모은다. */
 export function groupIntoFolder(
   library: Library,
   key: FolderCollection,
@@ -84,7 +81,6 @@ export function groupIntoFolder(
   return setFolder(gatherAfter(library, key, first.id, rest), key, ids, name);
 }
 
-/** `rest`를 `anchorId` 바로 뒤에 순서대로 놓는다. */
 function gatherAfter(
   library: Library,
   key: FolderCollection,
@@ -99,7 +95,7 @@ function gatherAfter(
   return { ...library, [key]: others };
 }
 
-/** 같은 이름의 폴더가 이미 있으면 그 폴더와 합친다. */
+/** 같은 이름의 폴더가 있으면 합친다. */
 export function renameFolder(
   library: Library,
   key: FolderCollection,
@@ -121,7 +117,6 @@ export function ungroupFolder(library: Library, key: FolderCollection, name: str
   return setFolder(library, key, ids, undefined);
 }
 
-/** 폴더 제목에 놓으면 그 폴더의 끝으로 넣는다. */
 export function moveIntoFolder(
   library: Library,
   key: FolderCollection,
@@ -142,10 +137,7 @@ export function moveIntoFolder(
   return setFolder(placed, key, ids, name);
 }
 
-/**
- * 항목 위에 놓으면 그 옆으로 옮기고 그 항목과 같은 폴더에 넣는다. 폴더째 끌어 온 것(`keepFolder`)은 폴더를
- * 그대로 두고 자리만 옮긴다.
- */
+/** 항목과 같은 폴더에 넣는다. 폴더째 끌어 온 것(`keepFolder`)은 자리만 옮긴다. */
 export function moveNextTo(
   library: Library,
   key: FolderCollection,

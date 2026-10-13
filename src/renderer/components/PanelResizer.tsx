@@ -1,10 +1,7 @@
 import type { KeyboardEvent, PointerEvent } from 'react';
 import { commitWidth, currentWidth, PANELS, setWidth, type PanelId } from '../panelWidths';
 
-/**
- * 패널 경계의 손잡이. 패널을 담은 grid 안(`position: relative`)에 두면 CSS 변수 폭에 맞춰 경계에 붙는다.
- * 끌기, 두 번 눌러 기본 폭, ←/→로 16px씩.
- */
+/** 패널을 담은 grid(`position: relative`) 안에 두면 CSS 변수 폭에 맞춰 경계에 붙는다. */
 export function PanelResizer({ panel }: { panel: PanelId }) {
   const { side, min, max, initial, variable } = PANELS[panel];
   const direction = side === 'left' ? 1 : -1;
@@ -16,7 +13,7 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
     handle.setPointerCapture(event.pointerId);
     const startX = event.clientX;
     const startWidth = currentWidth(panel);
-    // 접고 펼 때의 grid 애니메이션이 끄는 동안 따라오면 손잡이가 마우스보다 늦으므로 잠시 끈다.
+    // 끄는 동안 grid 애니메이션이 따라오면 손잡이가 마우스보다 늦다.
     document.documentElement.classList.add('panel-resizing');
     let width = startWidth;
     const move = (moveEvent: globalThis.PointerEvent) => {

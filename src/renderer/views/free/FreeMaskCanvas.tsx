@@ -8,10 +8,7 @@ const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
 
 const ignore = () => undefined;
 
-/**
- * i2i 이미지에 인페인팅으로 다시 그릴 곳을 칠한다. 이미지가 바뀌면 `key`로 새로 만들어, 처음 불러온 마스크와
- * 실행 취소 기록이 이전 이미지와 섞이지 않게 한다.
- */
+/** 이미지가 바뀌면 `key`로 새로 만들어 마스크와 실행 취소 기록이 섞이지 않는다. */
 export function FreeMaskCanvas({ image }: { image: FreeImage }) {
   const { file, width, height } = image;
   const [initialMaskFile] = useState(image.maskFile);
@@ -24,7 +21,7 @@ export function FreeMaskCanvas({ image }: { image: FreeImage }) {
     void (async () => {
       try {
         const picture = await loadHtmlImage(await sourceDataUrl(file));
-        // 마스크 파일을 읽지 못하면 빈 마스크에서 다시 칠한다.
+        // 읽지 못하면 빈 마스크에서 다시 칠한다.
         const mask = initialMaskFile
           ? await sourceDataUrl(initialMaskFile)
               .then((url) => decodeMask(url, width, height))

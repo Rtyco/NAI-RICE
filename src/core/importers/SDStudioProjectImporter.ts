@@ -33,9 +33,9 @@ type CharacterPromptPiece = {
 export type SDStudioImport = {
   character: Character;
   emotionSet: EmotionSet;
-  /** 공통 프롬프트가 있으면 새 프리셋으로 만든다. */
+  /** 공통 프롬프트가 있을 때만 */
   preset?: Preset;
-  /** 변형이 여러 개인 장면을 담은 multi 조각 세트. 감정 프롬프트가 이것을 부른다. */
+  /** 감정 프롬프트가 부르는 multi 조각 세트 */
   variantSet?: PieceSet;
   warnings: ImportWarning[];
 };
@@ -62,7 +62,7 @@ function characterPromptArray(value: unknown): CharacterPromptPiece[] {
 
 const MAX_COMBOS = 200;
 
-/** 조각 참조에 쓸 수 없는 문자(점, 꺾쇠, 줄바꿈)를 뺀다. */
+/** 조각 참조에 못 쓰는 점·꺾쇠·줄바꿈을 뺀다. */
 function refName(value: string): string {
   return value.replace(/[.<>\n]/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -74,10 +74,7 @@ function uniqueName(name: string, taken: Array<{ name: string }>): string {
   return candidate;
 }
 
-/**
- * 장면의 슬롯 조합. SDStudio처럼 슬롯마다 켜진 프롬프트 하나씩을 골라 이은 모든 조합이다.
- * 한 조합은 한 줄이 되므로 프롬프트 안의 줄바꿈은 쉼표로 바꾼다.
- */
+/** SDStudio처럼 슬롯마다 켜진 프롬프트 하나씩의 모든 조합. 한 조합이 한 줄이라 줄바꿈은 쉼표로 바꾼다. */
 function sceneCombos(slots: unknown): string[] {
   if (!Array.isArray(slots)) return [];
   let combos = [''];
@@ -144,8 +141,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     let prompt = combos[0] ?? '';
 
     if (combos.length > 1) {
-      // SDStudio는 조합마다 이미지를 만든다. 여기서는 한 줄에 조합 하나인 multi 조각으로 옮겨
-      // 이미지마다 하나를 고른다.
+      // SDStudio는 조합마다 이미지를 만들지만, 여기서는 multi 조각으로 옮겨 이미지마다 하나를 고른다.
       const pieceName = uniqueName(refName(sceneName) || '장면', variants);
       variants.push({ name: pieceName, prompt: combos.slice(0, MAX_COMBOS).join('\n'), multi: true });
       prompt = pieceRef(variantSetName, pieceName);

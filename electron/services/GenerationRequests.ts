@@ -9,10 +9,10 @@ type Queue = {
   enqueue(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot>;
 };
 
-/** 바이브 인코딩 결과를 둔 곳. 없으면 인코딩 비용을 따지지 않는다. */
+/** 없으면 인코딩 비용을 따지지 않는다. */
 type VibeStore = { readVibe(key: string): Promise<Buffer | undefined> };
 
-/** 0단계 실측: 바이브 인코딩 한 번에 2 Anlas. 같은 그림·모델이면 다시 쓰므로 처음 한 번만 든다. */
+/** 0단계 실측. 같은 그림·모델이면 캐시해 처음 한 번만 든다. */
 const VIBE_ENCODE_ANLAS = 2;
 
 type Account = {
@@ -20,10 +20,7 @@ type Account = {
   token(): Promise<string>;
 };
 
-/**
- * 렌더러는 믿지 않는다: 작업 형식을 스키마로 확인하고, 예상 Anlas도 작업 내용과 마지막 계정 상태로 직접
- * 계산한다. Anlas가 들어도 묻지 않는다.
- */
+/** 렌더러를 믿지 않아 작업을 스키마로 확인하고 예상 Anlas도 직접 계산한다. */
 export class GenerationRequests {
   constructor(
     private readonly queue: Queue,
@@ -31,7 +28,7 @@ export class GenerationRequests {
     private readonly vibes?: VibeStore,
   ) {}
 
-  /** 작업 순서별로, 아직 인코딩하지 않은 바이브를 처음 쓰는 수. 그 작업에 인코딩 비용을 더한다. */
+  /** 작업 순서 → 처음 인코딩하는 바이브 수 */
   private async vibeEncodes(jobs: GenerationJobSnapshot[]): Promise<Map<number, number>> {
     const first = new Map<string, { index: number; encodedOnly?: string }>();
     jobs.forEach((job, index) => {
@@ -49,7 +46,7 @@ export class GenerationRequests {
     const encodes = new Map<number, number>();
     for (const [key, { index, encodedOnly }] of first) {
       if (!this.vibes || (await this.vibes.readVibe(key))) continue;
-      // 인코딩만 있는 바이브는 다시 인코딩할 원본이 없어 큐에 넣기 전에 막는다.
+      // 인코딩만 있는 바이브는 원본이 없어 다시 인코딩할 수 없다.
       if (encodedOnly) throw new Error(encodedOnlyMessage(encodedOnly));
       encodes.set(index, (encodes.get(index) ?? 0) + 1);
     }
@@ -66,7 +63,6 @@ export class GenerationRequests {
       (job, index) =>
         estimateJobAnlas(job, account) + (encodes.get(index) ?? 0) * VIBE_ENCODE_ANLAS,
     );
-    // 토큰이 없으면 큐에 넣기 전에 알린다.
     await this.account.token();
     return { snapshot: toQueueView(await this.queue.enqueue(jobs, estimates)) };
   }

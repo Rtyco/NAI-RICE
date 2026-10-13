@@ -8,7 +8,7 @@ import type {
 } from '../domain/types';
 import { modelInfo, supportsV3Sampling } from './NaiModels';
 
-/** Opus 구독의 무제한(Anlas 미사용) 생성 기준: 1024×1024 이하 면적, 28 steps 이하, 1장. */
+/** Opus 무료 생성 조건: 1024×1024 이하, 28 steps 이하, 1장. */
 export const FREE_MAX_PIXELS = 1024 * 1024;
 export const FREE_MAX_STEPS = 28;
 
@@ -36,17 +36,13 @@ export function checkFreeGeneration(
 
 export type V5QuotaState = { percent: number; isNegative: boolean };
 
-/** NovelAI `user/data`의 `subscription.tier`에서 Opus. 무료 생성은 Opus에만 있다. */
+/** NovelAI `user/data`의 `subscription.tier` */
 export const OPUS_TIER = 3;
 
-/** 비용 판단에 쓰는 계정 상태. 아직 조회하지 않았으면 비워 두고, 그때는 Opus로 본다. */
+/** 조회 전이면 비워 두고 Opus로 본다. */
 export type CostAccount = { tier?: number; v5Quota?: V5QuotaState };
 
-/**
- * 한 장(n_samples 1)의 Anlas를 NovelAI 웹의 계산식으로 추정한다. 무료 조건은 따지지 않는다.
- * 식은 커뮤니티 구현(NekoAI-JS `calculateCost`)을 따랐고, 0단계 실측(512×512·29스텝 6 Anlas)과 맞췄다.
- * i2i는 `strength`를 곱한다. 인페인트와 일반 생성은 1이다.
- */
+/** 한 장(n_samples 1) 비용. 무료 조건은 따지지 않는다. 식은 NekoAI-JS `calculateCost`, 0단계 실측(512×512·29스텝 6 Anlas)과 맞췄다. */
 export function imageAnlasCost(input: {
   width: number;
   height: number;
@@ -55,39 +51,32 @@ export function imageAnlasCost(input: {
   smea?: SmeaMode;
 }): number {
   let pixels = Math.max(input.width * input.height, 65_536);
-  // 832×1216보다 크고 1024×1024 이하인 해상도는 832×1216과 같은 값을 받는다.
+  // NovelAI 웹: 832×1216 초과 1024×1024 이하는 832×1216 값.
   if (pixels > 832 * 1216 && pixels <= FREE_MAX_PIXELS) pixels = 832 * 1216;
   const base = Math.ceil(
     2.951823174884865e-6 * pixels + 5.753298233447344e-7 * pixels * input.steps,
   );
-  // NovelAI 웹: SMEA는 1.2배, SMEA DYN은 1.4배.
+  // NovelAI 웹 값
   const smea = input.smea === 'dyn' ? 1.4 : input.smea === 'smea' ? 1.2 : 1;
   return Math.max(Math.ceil(base * smea * (input.strength ?? 1)), 2);
 }
 
-/** 비용을 따지는 데 필요한 작업 내용. 종류가 없으면 인페인트로 본다(작업 화면의 미리 계산). */
+/** 종류가 없으면 인페인트(작업 화면의 미리 계산). */
 type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasHeight'> & {
   kind?: GenerationKind;
   strength?: number;
   tool?: AugmentTool;
-  /** 작업의 참고 방식이나, 화면에서 미리 계산할 때는 작업에 정해 둔 참고 방식. */
   aid?: { kind: JobAid['kind'] | 'none'; vibes?: unknown[]; references?: unknown[] };
 };
 
-/**
- * 0단계 실측: 캐릭터 레퍼런스는 무료 조건 안에서도 한 장에 5 Anlas가 더 든다. NovelAI 문서에 따르면 이 값은
- * 레퍼런스 수만큼 늘어난다(여러 장은 실측하지 않았다).
- */
+/** 0단계 실측: 무료 조건 안에서도 장당 5 Anlas. NovelAI 문서상 레퍼런스 수만큼 늘어난다(여러 장은 미실측). */
 const CHARACTER_REFERENCE_ANLAS = 5;
 
 function characterReferences(job: CostJob): number {
   return job.aid?.kind === 'character' ? (job.aid.references?.length ?? 1) : 0;
 }
 
-/**
- * NovelAI 문서(Vibe Transfer): V4 이상에서 바이브가 4개를 넘으면 넘는 바이브마다 한 장에 2 Anlas가 더 든다.
- * 이 앱에서는 실측하지 않았다.
- */
+/** NovelAI 문서: V4 이상에서 4개를 넘는 바이브마다 장당 2 Anlas(미실측). */
 const FREE_VIBES = 4;
 const EXTRA_VIBE_ANLAS = 2;
 
@@ -95,17 +84,13 @@ function extraVibes(job: CostJob): number {
   return job.aid?.kind === 'vibe' ? Math.max(0, (job.aid.vibes?.length ?? 0) - FREE_VIBES) : 0;
 }
 
-/**
- * 배경 제거 실측: 832×1216에 65 Anlas(0단계), 608×832에 35 Anlas(5단계). 두 점을 잇는 직선(5 + 면적 비례)으로
- * 추정한다. 다른 디렉터 툴은 1024×1024까지 무료였고, 그보다 크면 같은 식으로 어림한다.
- */
+/** 배경 제거 실측 832×1216 65 Anlas, 608×832 35 Anlas를 잇는 직선(5 + 면적 비례). 다른 툴은 1024×1024까지 무료였고 넘으면 같은 식으로 어림한다. */
 function augmentAnlas(job: CostJob): number {
   const pixels = job.canvasWidth * job.canvasHeight;
   if (job.tool !== 'bg-removal' && pixels <= FREE_MAX_PIXELS) return 0;
   return Math.ceil(5 + (60 * pixels) / (832 * 1216));
 }
 
-/** 등급을 아직 모르면 이 앱의 기본 전제대로 Opus로 본다. */
 function isOpus(account?: CostAccount): boolean {
   return account?.tier === undefined || account.tier >= OPUS_TIER;
 }
@@ -116,7 +101,7 @@ function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   return quota.isNegative || quota.percent <= 0;
 }
 
-/** 작업 한 개(한 장)의 예상 Anlas. 무료 기준 안이면 0이다. */
+/** 무료 조건 안이면 0. */
 export function estimateJobAnlas(job: CostJob, account?: CostAccount): number {
   if (job.kind === 'augment') return augmentAnlas(job);
   return (
@@ -145,7 +130,7 @@ function diffusionAnlas(job: CostJob, account?: CostAccount): number {
       });
 }
 
-/** 작업들을 생성하면 Anlas가 쓰일 수 있는 이유. 비어 있으면 모두 무료 기준 안이다. */
+/** 비어 있으면 모두 무료. */
 export function generationCostWarnings(jobs: CostJob[], account?: CostAccount): string[] {
   const warnings = new Set<string>();
   if (jobs.length && !isOpus(account))

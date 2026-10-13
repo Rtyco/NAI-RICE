@@ -5,7 +5,7 @@ import { replaceFreeImagePixels, setPendingDrawing, sourceDataUrl } from '../../
 import { loadHtmlImage } from '../../lib/image';
 import { run } from '../../store';
 
-/** i2i 이미지에 덧칠하는 「그리기」. 이미지가 바뀌면 `key`로 새로 만든다. */
+/** 이미지가 바뀌면 `key`로 새로 만든다. */
 export function FreeDrawStage({ image }: { image: FreeImage }) {
   const [base, setBase] = useState<HTMLImageElement>();
   const [failed, setFailed] = useState(false);

@@ -1,18 +1,15 @@
 import { z } from 'zod';
 
 /**
- * NovelAI 웹의 바이브 파일(`.naiv4vibe`)과 묶음(`.naiv4vibeBundle`). 형식은 NovelAI 웹 코드(2026-10)를 따른다.
- *
- * - `type: 'image'`: 원본 그림(base64 PNG)이 있고 `id`는 그 base64 문자열의 SHA-256이다. 인코딩은
- *   `encodings[모델 키][SHA-256("information_extracted:값")]`에 있다.
- * - `type: 'encoding'`: 원본 없이 인코딩만 있다(「Export as Encodings」, 이미지 메타데이터). `id`는 인코딩
- *   문자열의 SHA-256이고 키는 `unknown`, 정보 추출 값은 `importInfo`에 있다.
+ * NovelAI 웹 바이브 파일(`.naiv4vibe`)과 묶음(`.naiv4vibeBundle`), 2026-10 웹 코드 기준.
+ * - `type: 'image'`: `id`는 그림 base64의 SHA-256. 인코딩은 `encodings[모델 키][SHA-256("information_extracted:값")]`.
+ * - `type: 'encoding'`: 인코딩만 있다. `id`는 인코딩의 SHA-256, 키는 `unknown`, 정보 추출 값은 `importInfo`.
  */
 export const VIBE_FILE_ID = 'novelai-vibe-transfer';
 export const VIBE_BUNDLE_ID = 'novelai-vibe-transfer-bundle';
 export const VIBE_FILE_PATTERN = /\.naiv4vibe(bundle)?$/i;
 
-/** 웹의 인코딩 모델 키와 그 모델의 일반 생성 ID. 앱은 V4.5만 바이브를 쓰지만 V4 인코딩도 받아 둔다. */
+/** 웹 모델 키 → 일반 생성 모델 ID. V4 인코딩도 받아 둔다. */
 export const VIBE_MODEL_KEYS: Record<string, string> = {
   'v4-5full': 'nai-diffusion-4-5-full',
   'v4-5curated': 'nai-diffusion-4-5-curated',
@@ -52,14 +49,14 @@ const vibeDocumentSchema = z.object({
 export type VibeDocument = z.infer<typeof vibeDocumentSchema>;
 
 export type VibeEncoding = {
-  /** 일반 생성 모델 ID(`nai-diffusion-4-5-full` 등). */
+  /** 일반 생성 모델 ID */
   model: string;
   informationExtracted: number;
-  /** base64. */
+  /** base64 */
   encoding: string;
 };
 
-/** 바이브 파일이나 묶음의 내용을 읽는다. 형식이 맞지 않는 바이브는 빼고, 하나도 없으면 오류를 던진다. */
+/** 형식이 맞지 않는 바이브는 빼고, 하나도 없으면 오류. */
 export function parseVibeFile(text: string): VibeDocument[] {
   let parsed: unknown;
   try {
@@ -79,7 +76,7 @@ export function parseVibeFile(text: string): VibeDocument[] {
   return documents;
 }
 
-/** 문서에 든 인코딩 중 아는 모델의 것. 정보 추출 값을 모르면 `importInfo`, 그것도 없으면 1로 본다. */
+/** 정보 추출 값을 모르면 `importInfo`, 그것도 없으면 1. */
 export function documentEncodings(document: VibeDocument): VibeEncoding[] {
   const fallback = document.importInfo?.information_extracted ?? 1;
   return Object.entries(document.encodings).flatMap(([key, entries]) => {
@@ -93,16 +90,16 @@ export function documentEncodings(document: VibeDocument): VibeEncoding[] {
   });
 }
 
-/** 웹이 인코딩을 저장하는 키의 원문. 해시는 부르는 쪽이 SHA-256으로 만든다. */
+/** 해시는 부르는 쪽이 만든다. */
 export function encodingParamsSource(informationExtracted: number): string {
   return `information_extracted:${informationExtracted}`;
 }
 
-/** 내보낼 바이브 한 개. 원본 그림이 없는(인코딩만 가져온) 바이브는 `type: 'encoding'`으로 쓴다. */
+/** 원본 그림이 없으면 `type: 'encoding'`. */
 export function buildVibeDocument(
   input: {
     name: string;
-    /** 원본 그림 base64(PNG). 없으면 인코딩만 쓴다. */
+    /** PNG base64 */
     imageBase64?: string;
     thumbnail?: string;
     encodings: VibeEncoding[];
@@ -128,7 +125,7 @@ export function buildVibeDocument(
           : undefined,
       },
     };
-    // 인코딩만 있는 문서는 웹처럼 모델 하나·인코딩 하나만 담는다.
+    // 웹처럼 모델·인코딩 하나만 담는다.
     if (!input.imageBase64) break;
   }
   const first = input.encodings.find((item) => vibeModelKey(item.model));
@@ -156,10 +153,7 @@ export function buildVibeBundle(documents: VibeDocument[]) {
   return { identifier: VIBE_BUNDLE_ID, version: 1, vibes: documents };
 }
 
-/**
- * NovelAI 이미지의 생성 정보(Comment)에 든 바이브. V4 이상은 `reference_image_multiple`에 인코딩이 들어 있고,
- * V3처럼 그림 자체가 들어 있으면 `image`로 돌려준다(가져올 때 다시 인코딩해야 한다).
- */
+/** V4 이상은 `reference_image_multiple`의 인코딩. V3처럼 그림이 들어 있으면 `image`(다시 인코딩해야 한다). */
 export type MetadataVibe = {
   encoding?: string;
   image?: string;

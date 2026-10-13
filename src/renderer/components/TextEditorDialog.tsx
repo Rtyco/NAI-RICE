@@ -66,7 +66,7 @@ export function ExpandTextButton(props: EditorOptions) {
       title="크게 편집"
       aria-label={`${props.title} 크게 편집`}
       onClick={(event) => {
-        // 입력란을 감싼 label이 클릭을 입력란으로 넘기지 않게 한다.
+        // 감싼 label이 클릭을 입력란으로 넘기지 않게
         event.preventDefault();
         void openDialog((close) => <TextEditorDialog {...props} close={close} />);
       }}

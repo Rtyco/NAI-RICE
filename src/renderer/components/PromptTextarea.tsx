@@ -24,7 +24,7 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChan
   onChange: (value: string) => void;
 };
 
-/** 배경 레이어가 따라 해야 하는 textarea 스타일. */
+/** 배경 레이어가 따라 해야 하는 스타일 */
 const MIRRORED = [
   'paddingTop',
   'paddingRight',
@@ -50,7 +50,7 @@ function tokenClass(token: SyntaxToken, matched: boolean): string {
   return names.join(' ');
 }
 
-/** 여는 괄호·가중치면 그 영역의 class. 짝이 없는 괄호는 영역으로 보지 않는다. 닫지 않은 가중치는 끝까지 간다. */
+/** 짝이 없는 괄호는 영역이 아니고, 닫지 않은 가중치는 끝까지 간다. */
 function regionClass(report: SyntaxReport, index: number): string | undefined {
   const token = report.tokens[index];
   if (token.kind !== 'brace' && token.kind !== 'bracket' && token.kind !== 'weight') return;
@@ -60,10 +60,7 @@ function regionClass(report: SyntaxReport, index: number): string | undefined {
   return `syn-region syn-r-${kind} syn-r${(token.depth ?? 0) % 3}`;
 }
 
-/**
- * 괄호·가중치가 걸친 영역 전체를 span으로 감싼다. 영역은 스택처럼 중첩되므로(`::`는 여럿을 한 번에 닫는다)
- * span도 그대로 중첩되고, 반투명 배경이 겹쳐 안쪽일수록 진해진다.
- */
+/** 영역이 스택처럼 중첩되어(`::`는 여럿을 닫는다) span도 중첩되고, 반투명 배경이 겹쳐 안쪽일수록 진하다. */
 function renderHighlights(text: string, report: SyntaxReport, matched: Set<number>): ReactNode[] {
   const root: ReactNode[] = [];
   const frames: Array<{ nodes: ReactNode[]; className: string; key: number; closer?: number }> = [];
@@ -91,12 +88,11 @@ function renderHighlights(text: string, report: SyntaxReport, matched: Set<numbe
   });
   top().push(text.slice(cursor));
   while (frames.length) closeFrame();
-  // 마지막 줄바꿈 뒤의 빈 줄도 높이를 차지하도록 공백 하나를 붙인다.
+  // 마지막 줄바꿈 뒤 빈 줄도 높이를 차지하도록.
   root.push(' ');
   return root;
 }
 
-/** 배경 레이어에서 글자 위치 offset의 화면 좌표. */
 function pointAt(layer: HTMLElement, offset: number): DOMRect | null {
   const walker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT);
   let remaining = offset;
@@ -123,7 +119,7 @@ const CATEGORY_LABELS: Record<number, string> = {
   5: '메타',
 };
 
-/** 태그 후보 목록. 입력칸 밖으로 넘쳐도 잘리지 않게 body에 띄운다. */
+/** 입력칸 밖으로 넘쳐도 잘리지 않게 body에 띄운다. */
 function TagSuggestions({
   layer,
   suggestions,
@@ -187,7 +183,6 @@ function TagSuggestions({
   );
 }
 
-/** 커서 바로 앞이나 뒤의 괄호·가중치와 그 짝. */
 function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
   const matched = new Set<number>();
   if (caret === null) return matched;
@@ -200,10 +195,7 @@ function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
   return matched;
 }
 
-/**
- * NovelAI 문법 강조 표시가 있는 프롬프트 입력칸. 글자는 뒤에 깔린 레이어가 그리고
- * textarea는 글자를 투명하게 해 커서·선택만 보여 준다.
- */
+/** 글자는 뒤의 레이어가 그리고 textarea는 글자를 투명하게 해 커서·선택만 보인다. */
 export function PromptTextarea({ value, onChange, className, onScroll, onSelect, ...rest }: Props) {
   const pieceSets = useStore((state) => state.library!.pieceSets);
   const autocomplete = useStore((state) => state.library!.settings.tagAutocomplete);
@@ -211,9 +203,8 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
   const backdrop = useRef<HTMLDivElement>(null);
   const [caret, setCaret] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
-  /** 늦게 도착한 검색 결과를 버리기 위한 번호. */
+  /** 늦게 도착한 검색 결과를 버린다. */
   const request = useRef(0);
-  /** 태그를 넣은 직후의 입력으로는 후보를 다시 띄우지 않는다. */
   const inserting = useRef(false);
 
   const closeSuggestions = () => {
@@ -245,7 +236,7 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
     textarea.focus();
     textarea.setSelectionRange(start, end);
     inserting.current = true;
-    // execCommand로 넣어야 Ctrl+Z로 되돌릴 수 있다.
+    // execCommand여야 Ctrl+Z로 되돌릴 수 있다.
     const done = document.execCommand('insertText', false, insert);
     inserting.current = false;
     if (!done) {
@@ -272,7 +263,7 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
         return;
       }
       if (event.key === 'Escape') {
-        // 열린 창이 함께 닫히지 않게 한다.
+        // 열린 창이 함께 닫히지 않게
         event.preventDefault();
         event.stopPropagation();
         closeSuggestions();
@@ -326,7 +317,6 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
     textarea.setSelectionRange(start, start + 1);
     setCaret(start);
   };
-  // 오류를 경고보다 먼저 보여 준다.
   const shown = [...report.issues]
     .sort((a, b) => (a.level === b.level ? a.start - b.start : a.level === 'error' ? -1 : 1))
     .slice(0, 3);
@@ -353,7 +343,7 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
           onSelect={(event) => {
             const target = event.currentTarget;
             setCaret(target.selectionStart === target.selectionEnd ? target.selectionStart : null);
-            // 입력이 아니라 방향키·클릭으로 커서가 옮겨지면 후보를 닫는다.
+            // 방향키·클릭으로 커서가 옮겨지면 닫는다.
             if (
               suggestions &&
               (target.selectionStart !== target.selectionEnd ||

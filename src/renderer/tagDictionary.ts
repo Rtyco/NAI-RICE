@@ -5,10 +5,7 @@ type Searcher = (query: string) => Promise<TagMatch[]>;
 
 let searcher: Searcher | undefined;
 
-/**
- * 태그 목록(약 5MB)을 읽고 색인하는 데 약 300ms가 걸려 Worker에서 한다. Worker를 만들 수 없으면 화면 스레드에서
- * 처음 쓸 때 읽는다.
- */
+/** 읽고 색인하는 데 약 300ms가 걸려 Worker에서 한다. Worker를 만들 수 없으면 처음 쓸 때 화면 스레드에서 읽는다. */
 function startWorker(): Searcher {
   const worker = new Worker(new URL('./tagWorker.ts', import.meta.url), { type: 'module' });
   const pending = new Map<number, (matches: TagMatch[]) => void>();
@@ -55,7 +52,6 @@ function tagSearcher(): Searcher {
   return searcher;
 }
 
-/** 프롬프트 칸에 처음 들어갈 때 미리 읽어 둔다. */
 export function warmTagIndex(): void {
   void searchTags('').catch(() => undefined);
 }

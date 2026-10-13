@@ -57,7 +57,6 @@ export function promptDialog(options: {
   );
 }
 
-/** 임의의 내용을 가진 모달. render에 전달되는 close를 호출하면 닫힌다. */
 export function openDialog(render: (close: () => void) => ReactNode): Promise<void> {
   return new Promise((resolve) => push({ kind: 'custom', render, resolve }));
 }
@@ -75,7 +74,7 @@ export function Modal({
   footer?: ReactNode;
   onClose: () => void;
   wide?: boolean;
-  /** 거의 창 크기. 라이브러리 편집기처럼 화면 하나를 통째로 띄울 때 쓴다. */
+  /** 거의 창 크기 */
   large?: boolean;
 }) {
   useEffect(() => {

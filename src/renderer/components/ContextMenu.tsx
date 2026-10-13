@@ -4,7 +4,7 @@ import { create } from 'zustand';
 
 export type MenuItem =
   | { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean; hint?: string }
-  /** 아래 항목들이 무엇에 하는 일인지 적는 작은 제목. 누를 수 없다. */
+  /** 누를 수 없는 작은 제목 */
   | { heading: string }
   | 'divider';
 
@@ -83,7 +83,6 @@ export function ContextMenuHost() {
   );
 }
 
-/** 화면 일부에서 오류가 나도 앱 전체가 멈추지 않도록 감싼다. */
 export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { error?: Error }> {
   state: { error?: Error } = {};
 

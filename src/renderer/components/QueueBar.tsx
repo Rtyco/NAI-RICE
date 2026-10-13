@@ -22,7 +22,6 @@ function anlasText(job: QueueJobView): string {
   if (job.anlasSpent === undefined)
     return estimate === undefined ? '' : ` · 예상 ${estimate ? `약 ${estimate}` : '0'} Anlas`;
   const spent = job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)';
-  // 무료로 끝났고 예상도 0이면 덧붙일 것이 없다.
   const expected =
     estimate !== undefined && (job.anlasSpent || estimate) ? ` (예상 ${estimate})` : '';
   return ` · Anlas ${spent}${expected}`;

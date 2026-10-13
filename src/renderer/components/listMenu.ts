@@ -2,26 +2,23 @@ import type { MenuItem } from './ContextMenu';
 
 export type ListMenuActions = {
   open: () => void;
-  /** 비어 있으면 이름 변경을 막는다(사이드바를 접었을 때). */
+  /** 없으면 이름 변경을 막는다(사이드바를 접었을 때). */
   rename?: () => void;
   duplicate: () => void;
   exportJson?: () => void;
-  /** 바이브만. 고른 항목 중 하나면 고른 것 모두를 묶음으로 내보낸다. */
+  /** 바이브만 */
   exportVibes?: () => void;
   folder?: () => void;
   remove: () => void;
   pickedCount: number;
   removePicked: () => void;
-  /** 비어 있으면 폴더 메뉴를 숨긴다(사이드바를 접었을 때). */
+  /** 없으면 폴더 메뉴를 숨긴다(사이드바를 접었을 때). */
   group?: () => void;
-  /** 폴더 안의 항목일 때만 준다. */
+  /** 폴더 안 항목일 때만 */
   ungroup?: () => void;
 };
 
-/**
- * 사이드바 작업 목록과 라이브러리 목록이 함께 쓰는 우클릭 메뉴. 여러 개를 고른 채 그 중 하나에서 우클릭하면
- * 묶기와 삭제는 고른 것 모두에 한다.
- */
+/** 고른 것 중 하나에서 우클릭하면 묶기·삭제는 고른 것 모두에 한다. */
 export function listMenu(actions: ListMenuActions): MenuItem[] {
   return [
     { label: '열기', onSelect: actions.open },

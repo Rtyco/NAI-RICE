@@ -100,7 +100,6 @@ export default function App() {
   }, []);
   useGlobalShortcuts();
 
-  // 작업 폴더를 연 뒤 한 번, 설정에서 켜 두었으면 새 버전을 확인한다.
   const checkedUpdate = useRef(false);
   useEffect(() => {
     if (!ready || autoCheck === undefined || checkedUpdate.current) return;
@@ -118,7 +117,7 @@ export default function App() {
       : view.kind === 'library'
         ? `library:${view.section}:${view.itemId ?? ''}`
         : view.kind;
-  // 화면 종류가 바뀔 때만 전환 효과를 준다. 라이브러리 안에서 항목만 바꿀 때는 편집기만 바뀐다.
+  // 라이브러리 안에서 항목만 바꿀 때는 전환 효과를 주지 않는다.
   const transitionKey = view.kind === 'library' ? `library:${view.section}` : viewKey;
 
   return (

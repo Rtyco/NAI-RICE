@@ -40,16 +40,13 @@ const PALETTE = [
   '#6d4c41',
 ];
 
-/** 실행 취소 기록. 한 장이 캔버스 크기 × 4바이트(1216×832이면 약 4MB)의 GPU 메모리라 개수를 줄여 둔다. */
+/** 한 장이 1216×832 기준 약 4MB의 GPU 메모리다. */
 const HISTORY_LIMIT = 20;
 const MAX_SIZE = 300;
 
 type Point = { x: number; y: number; pressure: number };
 
-/**
- * 그리는 캔버스는 GPU에 둔다. `willReadFrequently`로 CPU에 두면 화면에 보일 때마다 통째로 GPU에 올려 붓이 늦게
- * 따라온다. 픽셀을 읽는 채우기·스포이트는 `readable`로 따로 합친 사본에서 읽는다.
- */
+/** `willReadFrequently`(CPU)면 보일 때마다 통째로 GPU에 올려 붓이 늦게 따라온다. 픽셀은 `readable` 사본에서 읽는다. */
 function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return canvas.getContext('2d')!;
 }
@@ -99,10 +96,7 @@ function stamp(
   context.fill();
 }
 
-/**
- * 시작점과 비슷한 색(채널마다 차이가 `tolerance` 이하)으로 이어진 영역. 4방향으로 퍼진다. `pixels`는 바탕과
- * 그린 것을 합친 화면 그대로의 색이다.
- */
+/** 채널마다 차이가 `tolerance` 이하인 4방향 연결 영역. `pixels`는 바탕과 그린 것을 합친 색. */
 function floodRegion(
   pixels: Uint32Array,
   width: number,
@@ -133,23 +127,21 @@ function floodRegion(
 }
 
 /**
- * NovelAI 웹 캔버스의 Draw처럼 i2i 이미지 위에 덧칠한다. 바탕 이미지는 그대로 두고 그린 것은 따로 한 장에 쌓으며,
- * 지우개는 그린 것만 지운다. 「이미지에 합치기」(또는 생성·탭 이동 때 자동)로 합친 그림이 새 i2i 이미지가 된다.
- * 바탕·그린 것·지금 긋는 획을 캔버스 세 장으로 겹쳐 보여 주므로, 붓은 화면에 보이는 캔버스에 바로 찍히고 매
- * 프레임 전체를 다시 그리지 않는다. 획의 불투명도는 CSS로 보여 주고 손을 뗄 때 그 값으로 합친다.
+ * NovelAI 웹 Draw처럼 바탕 위 별도 층에 그린다. 바탕·그린 것·지금 획을 캔버스 세 장으로 겹쳐 매 프레임 전체를 다시 그리지 않는다. 획 불투명도는 CSS로 보이고 손을 뗄 때
+ * 합친다.
  */
 export function DrawCanvas(props: {
   base: HTMLImageElement;
   width: number;
   height: number;
   onApply: (dataUrl: string) => Promise<void>;
-  /** 합치지 않은 그림이 있으면 합치는 함수를, 없으면 undefined를 넘긴다. */
+  /** 합치지 않은 그림이 없으면 undefined. */
   onPendingChange: (apply: (() => Promise<void>) | undefined) => void;
 }) {
   const { width, height } = props;
   const view = useCanvasViewport(width, height);
   const baseRef = useRef<HTMLCanvasElement>(null);
-  /** 닫힐 때 그린 것을 합치는 정리 함수는 React가 ref를 비운 뒤에 돌므로, 요소를 비우지 않고 쥐고 있는다. */
+  /** 닫힐 때의 정리 함수는 React가 ref를 비운 뒤에 돌아 요소를 따로 쥔다. */
   const layerRef = useRef<HTMLCanvasElement | null>(null);
   const strokeRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -193,10 +185,9 @@ export function DrawCanvas(props: {
   useEffect(() => {
     onPendingChange(dirty ? () => applyRef.current() : undefined);
   }, [dirty, onPendingChange]);
-  // 탭을 옮기거나 이미지를 바꾸는 등으로 편집기가 닫히면 그린 것을 합친다.
   useEffect(() => () => void applyRef.current(), []);
 
-  /** GPU 안에서 복사하므로 getImageData처럼 누를 때마다 픽셀을 읽어 오느라 멈칫하지 않는다. */
+  /** GPU 안 복사라 getImageData처럼 멈칫하지 않는다. */
   const snapshot = () => {
     const copy = makeCanvas(width, height);
     context2d(copy).drawImage(layerRef.current!, 0, 0);
@@ -233,7 +224,7 @@ export function DrawCanvas(props: {
   const pointAt = (bounds: DOMRect, event: PointerEvent): Point => ({
     x: ((event.clientX - bounds.left) / bounds.width) * width,
     y: ((event.clientY - bounds.top) / bounds.height) * height,
-    // 펜(타블렛)만 필압을 따른다. 마우스는 누르는 동안 0.5로 와서 그대로 쓰면 반만 그려진다.
+    // 마우스는 누르는 동안 0.5로 온다.
     pressure: event.pointerType === 'pen' && event.pressure > 0 ? event.pressure : 1,
   });
   const pointOf = (event: ReactPointerEvent<HTMLCanvasElement>): Point =>
@@ -318,7 +309,7 @@ export function DrawCanvas(props: {
     }
     if (event.button !== 0) return;
     const point = pointOf(event);
-    // NovelAI 웹처럼 Ctrl+클릭은 어느 도구에서나 스포이트다.
+    // NovelAI 웹처럼 Ctrl+클릭은 어느 도구에서나 스포이트.
     if (event.ctrlKey || tool === 'picker') {
       pick(point);
       return;
@@ -339,8 +330,7 @@ export function DrawCanvas(props: {
     moveCursor(event);
     const brush = active.current;
     if (!brush) return;
-    // Chromium은 pointermove를 프레임마다 한 번으로 묶어 보낸다. 묶인 이동을 모두 이어야 빠르게 그은 곡선이
-    // 꺾은선이 되지 않는다.
+    // Chromium은 pointermove를 프레임마다 묶는다. 모두 이어야 빠른 곡선이 꺾은선이 되지 않는다.
     const events = event.nativeEvent.getCoalescedEvents?.() ?? [];
     const bounds = event.currentTarget.getBoundingClientRect();
     for (const moved of events.length ? events : [event.nativeEvent]) {
@@ -557,7 +547,7 @@ export function DrawCanvas(props: {
         ref={view.viewport}
         className={`canvas-viewport ${view.panning ? 'panning' : ''} ${spaceHeld ? 'hand' : ''}`}
         onMouseDown={(event) => {
-          // 가운데 버튼의 자동 스크롤 대신 끌어서 옮기기를 쓴다.
+          // 가운데 버튼 자동 스크롤 대신 끌어서 옮기기
           if (event.button === 1) event.preventDefault();
         }}
       >

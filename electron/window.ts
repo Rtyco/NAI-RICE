@@ -6,7 +6,7 @@ import type { Library } from './services/Library';
 
 export const MEDIA_SCHEME = 'desk-media';
 
-/** 확대 한 단계(zoom level). 약 10%다. */
+/** 약 10% */
 export const ZOOM_STEP = 0.5;
 
 function sendWindowState(window: BrowserWindow, fullScreen = window.isFullScreen()): void {
@@ -16,21 +16,21 @@ function sendWindowState(window: BrowserWindow, fullScreen = window.isFullScreen
   });
 }
 
-/** `step`만큼 확대한다. null이면 100%로 되돌린다. 50%~200% 사이로 둔다. */
+/** null이면 100%. 50%~200%. */
 export function zoomWindow(window: BrowserWindow, step: number | null): void {
   const level = window.webContents.getZoomLevel();
   window.webContents.setZoomLevel(step === null ? 0 : Math.max(-3.8, Math.min(3.8, level + step)));
   sendWindowState(window);
 }
 
-/** app이 준비되기 전에 불러야 한다. */
+/** app 준비 전에 불러야 한다. */
 export function registerMediaScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: MEDIA_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
   ]);
 }
 
-/** desk-media://local/<작업 폴더 기준 경로> 만 허용한다. 링크로 작업 폴더 밖을 가리키면 404. */
+/** desk-media://local/<작업 폴더 기준 경로>만. 링크로 밖을 가리키면 404. */
 export function handleMediaProtocol(library: Library): void {
   protocol.handle(MEDIA_SCHEME, async (request) => {
     try {
@@ -61,10 +61,10 @@ export function anyWindowVisible(): boolean {
   );
 }
 
-/** styles.css의 --titlebar-height(40px)보다 1px 낮게 해서 아래 경계선이 창 버튼 밑까지 이어지게 한다. */
+/** styles.css --titlebar-height(40px)보다 1px 낮아야 아래 경계선이 창 버튼 밑까지 이어진다. */
 const TITLE_BAR_HEIGHT = 39;
 
-/** 원격 콘텐츠를 불러오지 않는 격리된 창. 외부 링크와 페이지 이동은 막는다. */
+/** 외부 링크와 페이지 이동은 막는다. */
 export function createWindow(title: string, moduleDirectory: string): void {
   const window = new BrowserWindow({
     width: 1540,
@@ -73,7 +73,6 @@ export function createWindow(title: string, moduleDirectory: string): void {
     minHeight: 720,
     backgroundColor: '#0c1424',
     title,
-    // 기본 흰색 제목 표시줄 대신 화면 맨 위 줄을 직접 그리고, 창 버튼만 테마 색으로 얹는다.
     titleBarStyle: 'hidden',
     titleBarOverlay: { color: '#0c1424', symbolColor: '#b9c9dc', height: TITLE_BAR_HEIGHT },
     webPreferences: {
@@ -82,7 +81,7 @@ export function createWindow(title: string, moduleDirectory: string): void {
       contextIsolation: true,
       sandbox: true,
       devTools: !app.isPackaged,
-      // 맞춤법 검사 표시를 끈다. 세션의 검사기와 사전은 main.ts의 disableSpellChecker가 끈다.
+      // 세션의 검사기와 사전은 main.ts의 disableSpellChecker가 끈다.
       spellcheck: false,
     },
   });
@@ -90,8 +89,7 @@ export function createWindow(title: string, moduleDirectory: string): void {
     if (url.startsWith('https://docs.novelai.net/')) void shell.openExternal(url);
     return { action: 'deny' };
   });
-  // 메뉴 막대를 없애 Electron 기본 단축키도 함께 사라졌으므로 창 단위 단축키는 여기서 처리한다.
-  // 전체 화면 이벤트는 늦게 올 때가 있어 F11을 누른 순간에도 바뀔 상태를 바로 보낸다.
+  // 메뉴 막대가 없어 Electron 기본 단축키도 없다. 전체 화면 이벤트는 늦게 올 때가 있어 F11을 누른 순간에 바로 보낸다.
   window.on('enter-full-screen', () => sendWindowState(window, true));
   window.on('leave-full-screen', () => sendWindowState(window, false));
   window.webContents.on('before-input-event', (event, input) => {
@@ -113,7 +111,7 @@ export function createWindow(title: string, moduleDirectory: string): void {
   window.webContents.on('will-navigate', (event, url) => {
     if (url !== window.webContents.getURL()) event.preventDefault();
   });
-  // 배포판이 환경 변수로 다른 페이지를 불러오면 그 페이지가 preload API를 그대로 받는다.
+  // 배포판이 환경 변수로 다른 페이지를 불러오면 그 페이지가 preload API를 받는다.
   const developmentUrl = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
   if (developmentUrl) void window.loadURL(developmentUrl);
   else void window.loadFile(path.join(moduleDirectory, '..', 'dist-renderer', 'index.html'));

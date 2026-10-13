@@ -59,7 +59,7 @@ function decodeTextChunk(chunk: PngChunk): [string, string] | null {
   const keyword = latin1.decode(data.subarray(0, keywordEnd));
   try {
     if (chunk.type === 'tEXt') {
-      // NovelAI는 tEXt에 UTF-8을 그대로 기록하므로 UTF-8로 먼저 해석한다.
+      // NovelAI는 tEXt에 UTF-8을 그대로 쓴다.
       return [keyword, utf8.decode(data.subarray(keywordEnd + 1))];
     }
     if (chunk.type === 'zTXt') {
@@ -98,7 +98,7 @@ function makeChunk(type: string, data: Uint8Array): Uint8Array {
   return chunk;
 }
 
-/** UTF-8 텍스트는 iTXt(압축)로 기록한다. 한국어 감정 이름도 안전하게 보존된다. */
+/** 압축 iTXt. 한국어 감정 이름도 보존된다. */
 export function makeITextChunk(keyword: string, text: string): Uint8Array {
   const key = encoder.encode(keyword);
   const body = zlibSync(encoder.encode(text));
@@ -110,7 +110,7 @@ export function makeITextChunk(keyword: string, text: string): Uint8Array {
   return makeChunk('iTXt', data);
 }
 
-/** NovelAI처럼 tEXt에 UTF-8을 그대로 쓴다. WebP에 옮겨 둔 텍스트를 PNG로 되돌릴 때 원래 모양을 지킨다. */
+/** NovelAI처럼 tEXt에 UTF-8. WebP에서 PNG로 되돌릴 때 원래 모양을 지킨다. */
 export function makeTextChunk(keyword: string, text: string): Uint8Array {
   const key = encoder.encode(keyword);
   const body = encoder.encode(text);
@@ -120,10 +120,7 @@ export function makeTextChunk(keyword: string, text: string): Uint8Array {
   return makeChunk('tEXt', data);
 }
 
-/**
- * IEND 앞에 청크를 끼워 넣는다. 원본 응답의 텍스트 청크를 크롭 결과로 옮겨
- * NovelAI 메타데이터가 최종 결과물에도 남도록 할 때 사용한다.
- */
+/** IEND 앞에 끼워 넣는다. */
 export function insertPngChunks(bytes: Uint8Array, extra: Uint8Array[]): Uint8Array {
   const chunks = readPngChunks(bytes);
   const parts: Uint8Array[] = [Uint8Array.from(PNG_SIGNATURE)];
@@ -146,7 +143,7 @@ function textKeyword(chunk: PngChunk): string | undefined {
   return end > 0 ? latin1.decode(chunk.data.subarray(0, end)) : undefined;
 }
 
-/** `from`의 텍스트 청크 중 `to`에 같은 키워드가 없는 것만 복사하고, `extra`를 덧붙인다. */
+/** `to`에 같은 키워드가 없는 것만 복사한다. */
 export function copyTextChunks(
   from: Uint8Array,
   to: Uint8Array,

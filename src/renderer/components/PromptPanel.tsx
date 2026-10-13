@@ -27,7 +27,7 @@ function editInPopup(section: 'presets' | 'characters', itemId: string) {
   ));
 }
 
-/** 여러 작업이 같은 항목을 쓰면 함께 바뀐다는 것을 알린다. `ownUses`는 지금 화면이 차지하는 몫이다. */
+/** `ownUses`는 지금 화면이 차지하는 몫 */
 function sharedHint(uses: number, ownUses: number): string | undefined {
   const others = uses - ownUses;
   return others > 0 ? `다른 작업 ${others}개에도 함께 반영됩니다.` : undefined;
@@ -79,15 +79,13 @@ function PromptCard(props: {
   );
 }
 
-/** 고친 값은 생성 설정·캐릭터 라이브러리 항목에 바로 저장되어, 같은 항목을 쓰는 곳이 모두 바뀐다. */
+/** 고친 값은 라이브러리 항목에 바로 저장되어 같은 항목을 쓰는 곳이 모두 바뀐다. */
 export function PromptPanel(props: {
   preset?: Preset;
   characters: ResolvedCharacter[];
-  /** 자유 생성이면 비워 둔다. 공유 안내에서 이 작업은 빼고 센다. */
+  /** 자유 생성이면 없다. */
   projectId?: string;
-  /** 캐릭터가 없을 때 보일 안내. */
   noCharacter: string;
-  /** 캐릭터가 여럿일 때 첫 캐릭터 칸 아래에 붙는 안내(인페인트의 참고 이미지 등). */
   firstCharacterNote?: string;
   footer?: ReactNode;
 }) {

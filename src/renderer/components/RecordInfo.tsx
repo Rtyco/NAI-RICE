@@ -17,7 +17,7 @@ const KIND_LABELS: Record<GenerationKind, string> = {
   augment: '디렉터 툴',
 };
 
-/** 선택한 결과의 생성 정보. 목록에는 프롬프트가 없어서, 열 때 기록 하나를 통째로 받아 온다. */
+/** 목록에는 프롬프트가 없어 열 때 기록을 받아 온다. */
 export function RecordInfo({
   projectId,
   record,

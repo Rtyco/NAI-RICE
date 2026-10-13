@@ -2,10 +2,6 @@ import type { Library } from '../core/domain/types';
 import type { IconName } from './components/Icon';
 import type { LibrarySection } from './store';
 
-/**
- * 라이브러리 항목 종류. 작업은 `projectPart`인 항목을 하나씩 골라 묶고, 프롬프트 조각은 프롬프트 안에서
- * 불러 쓴다. 화면 곳곳의 이름·아이콘·설명이 여기서 나온다.
- */
 export const SECTIONS: Array<{
   id: LibrarySection;
   key: keyof Library;
@@ -22,7 +18,7 @@ export const SECTIONS: Array<{
   icon: IconName;
   role: string;
   usage: string;
-  /** 이 화면으로 바로 가는 숫자 키. 1은 작업 화면이다. */
+  /** 1은 작업 화면 */
   shortcut: string;
 }> = [
   {
@@ -106,10 +102,7 @@ export const SECTIONS: Array<{
 
 export const PROJECT_SECTIONS = SECTIONS.filter((section) => section.projectPart);
 
-/**
- * 항목 하나를 JSON으로 내보낼 수 있는지. 캐릭터 레퍼런스·바이브는 그림을 `pictures/`에 두어 JSON에 넣지 않으므로,
- * 전체 백업으로만 옮긴다.
- */
+/** 캐릭터 레퍼런스·바이브는 그림이 `pictures/`에 있어 전체 백업으로만 옮긴다. */
 export function exportable(section: LibrarySection): boolean {
   return section !== 'characterReferences' && section !== 'vibes';
 }

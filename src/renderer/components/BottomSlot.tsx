@@ -1,7 +1,7 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-// 아래 생성 큐 막대 오른쪽 끝 자리. 화면(작업 갤러리)이 자기 생성 버튼을 여기에 띄운다.
+// 큐 막대 오른쪽 끝. 작업 갤러리가 생성 버튼을 여기에 띄운다.
 let target: HTMLElement | null = null;
 const listeners = new Set<() => void>();
 

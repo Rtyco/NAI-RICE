@@ -1,6 +1,6 @@
 import { AUGMENT_STRENGTHS, EMOTION_MOODS, moodLabel } from '../../core/providers/NaiAugment';
 
-/** Emotion 툴 표정 고르기. 빈 값은 `emptyLabel`(추천 표정이나 「고르지 않음」)로 보인다. */
+/** 빈 값은 `emptyLabel`로 보인다. */
 export function MoodSelect(props: {
   value: string;
   emptyLabel: string;

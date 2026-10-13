@@ -4,13 +4,12 @@ export type AugmentToolInfo = {
   id: AugmentTool;
   label: string;
   description: string;
-  /** 덧붙이는 프롬프트를 받는다. */
   prompt: boolean;
-  /** 강도(defry)를 받는다. */
+  /** defry */
   strength: boolean;
 };
 
-/** NovelAI 웹의 디렉터 툴과 같은 종류. 0단계 실측: 배경 제거만 Opus여도 Anlas가 든다. */
+/** 0단계 실측: 배경 제거만 Opus여도 Anlas가 든다. */
 export const AUGMENT_TOOLS: AugmentToolInfo[] = [
   {
     id: 'emotion',
@@ -68,7 +67,7 @@ export function augmentToolInfo(tool: AugmentTool): AugmentToolInfo {
   return AUGMENT_TOOLS.find((item) => item.id === tool) ?? AUGMENT_TOOLS[0];
 }
 
-/** Emotion 툴이 받는 표정. 값과 순서는 NovelAI 웹의 목록과 같다. */
+/** 값과 순서는 NovelAI 웹 목록과 같다. */
 export const EMOTION_MOODS: Array<{ id: string; label: string }> = [
   { id: 'neutral', label: '중립' },
   { id: 'happy', label: '기쁨' },
@@ -101,7 +100,7 @@ export function moodLabel(mood: string | undefined): string {
   return found ? `${found.label} (${found.id})` : (mood ?? '');
 }
 
-/** 강도 단계. 요청의 `defry`는 이 목록의 순서(0이 가장 강함)다. NovelAI 웹의 이름을 옮겼다. */
+/** `defry`는 이 순서(0이 가장 강함). 이름은 NovelAI 웹. */
 export const AUGMENT_STRENGTHS = [
   '보통',
   '조금 약하게',
@@ -111,7 +110,7 @@ export const AUGMENT_STRENGTHS = [
   '가장 약하게',
 ];
 
-/** 앞에 있는 표정부터 맞춰 본다. 「웃음」이 「기쁨」보다, 「부끄러움」이 「당황」보다 먼저 맞도록 둔다. */
+/** 앞부터 맞춰 본다. 「웃음」은 「기쁨」보다, 「부끄러움」은 「당황」보다 앞에 둔다. */
 const MOOD_KEYWORDS: Array<[string, string[]]> = [
   ['neutral', ['중립', '무표정', '기본', '평온', '평상', 'neutral', 'default', 'calm']],
   ['laughing', ['폭소', '웃음', '웃는', 'laugh']],
@@ -139,23 +138,19 @@ const MOOD_KEYWORDS: Array<[string, string[]]> = [
   ['aroused', ['aroused']],
 ];
 
-/** 씬 이름으로 Emotion 툴 표정을 추천한다. 맞는 것이 없으면 undefined다. */
 export function suggestMood(sceneName: string): string | undefined {
   const name = sceneName.toLowerCase();
   return MOOD_KEYWORDS.find(([, words]) => words.some((word) => name.includes(word)))?.[0];
 }
 
-/** 씬에 정해 둔 Emotion 툴 표정. 없으면 씬 이름으로 추천한 표정이다. */
+/** 없으면 씬 이름으로 추천한다. */
 export function sceneMood(scene: { name: string; augmentMood?: string }): string | undefined {
   return scene.augmentMood ?? suggestMood(scene.name);
 }
 
 const FREE_AUGMENT_PIXELS = 1024 * 1024;
 
-/**
- * 디렉터 툴에 보낼 크기. 무료 면적 안이면 원래 크기 그대로 보낸다. 넘으면 비율을 지켜 무료 면적 안의 64 배수로
- * 줄인다(ComfyUI_NAIDGenerator의 Opus 무료 제한과 같은 계산).
- */
+/** 무료 면적을 넘으면 비율을 지켜 64 배수로 줄인다(ComfyUI_NAIDGenerator의 Opus 무료 제한과 같은 계산). */
 export function freeAugmentSize(width: number, height: number): { width: number; height: number } {
   if (width * height <= FREE_AUGMENT_PIXELS) return { width, height };
   const k = Math.sqrt(((FREE_AUGMENT_PIXELS / 4096) * width) / height);

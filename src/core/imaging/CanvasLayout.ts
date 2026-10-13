@@ -14,7 +14,7 @@ export const RESOLUTION_PRESETS: Array<{
 export const CUSTOM_MIN = 256;
 export const CUSTOM_MAX = 2048;
 
-/** NovelAI는 64의 배수 해상도만 받는다. */
+/** NovelAI는 64 배수만 받는다. */
 export function snapDimension(value: number): number {
   const snapped = Math.round(value / 64) * 64;
   return Math.max(CUSTOM_MIN, Math.min(CUSTOM_MAX, snapped || CUSTOM_MIN));
@@ -31,7 +31,7 @@ export type ComposedLayout = {
   height: number;
   referenceArea: Rect;
   generationArea: Rect;
-  /** 원본 이미지를 그릴 위치. cover 모드에서는 레퍼런스 영역 밖으로 넘칠 수 있으며 잘라서 그린다. */
+  /** cover면 레퍼런스 영역 밖으로 넘쳐 잘라서 그린다. */
   imagePlacement: Rect;
 };
 
@@ -78,7 +78,6 @@ export function computeLayout(
       : Math.min(referenceArea.width / imageWidth, referenceArea.height / imageHeight);
   const drawWidth = imageWidth * scale;
   const drawHeight = imageHeight * scale;
-  // 세로 맞춤은 레퍼런스 영역 안에서만 움직인다. 남는 공간(cover면 잘리는 부분)을 위·아래로 나눈다.
   const align = layout.anchor === 'top' ? 0 : layout.anchor === 'bottom' ? 1 : 0.5;
   const imagePlacement: Rect = {
     x: referenceArea.x + (referenceArea.width - drawWidth) / 2,
@@ -90,7 +89,7 @@ export function computeLayout(
   return { width, height, referenceArea, generationArea, imagePlacement };
 }
 
-/** 자동 구성에서는 레퍼런스 영역 밖 전체를 생성 후보로 둔다. 보호 영역 확장은 MaskBuilder가 처리한다. */
+/** 보호 영역 확장은 MaskBuilder가 한다. */
 export function layoutBackgroundMask(composed: ComposedLayout): Uint8Array {
   const { width, height, referenceArea } = composed;
   const mask = new Uint8Array(width * height);

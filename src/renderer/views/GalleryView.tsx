@@ -56,27 +56,26 @@ const DRAG_TYPE = 'application/x-emotion';
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
 
-/** 고르기·끌기로 씬 목록이 자주 다시 그려지므로, 바뀐 카드만 다시 그리게 props는 모두 같은 값을 유지한다. */
+/** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
   projectId: string;
   set: EmotionSet;
   emotion: Emotion;
   favoriteId?: string;
-  /** 일괄 생성에서 뺀 씬인지. */
+  /** 일괄 생성에서 뺐는지 */
   excluded: boolean;
-  /** 작업에 필요한 항목이 빠져 생성할 수 없는지. */
+  /** 필요한 항목이 빠져 생성할 수 없는지 */
   blocked: boolean;
   records: GenerationSummary[];
   jobs: QueueJobView[];
   prefer: 'favorite' | 'latest';
-  /** 라이브러리 목록처럼 끌어 옮긴다. 고른 카드 중 하나를 끌면 고른 카드를 모두 옮긴다. */
+  /** 고른 카드 중 하나를 끌면 고른 카드를 모두 옮긴다. */
   startDrag: (id: string) => DragPayload;
   endDrag: () => void;
   dropOn: (payload: DragPayload, targetId: string) => void;
   dragging: boolean;
-  /** 상자·Ctrl·Shift로 여러 개를 고른 상태인지. */
   picked: boolean;
-  /** Ctrl·Shift 클릭이면 선택만 바꾸고 true를 돌려준다. */
+  /** Ctrl·Shift 클릭이면 true */
   onPick: (event: MouseEvent, id: string) => boolean;
 }) {
   const { projectId, emotion, records, favoriteId, excluded } = props;
@@ -185,9 +184,7 @@ export function GalleryView({
   generate,
 }: {
   resolved: ResolvedProject;
-  /** 씬마다 만들 장수. */
   countControl: ReactNode;
-  /** 예상 Anlas와 생성 버튼. 생성할 씬 체크·장수와 함께 아래 생성 큐 막대에 둔다. */
   generate: ReactNode;
 }) {
   const prefer = useStore((state) => state.library!.settings.export.target);
@@ -236,7 +233,7 @@ export function GalleryView({
   const [dragging, setDragging] = useState<string[]>([]);
   const latest = useRef({ selected: selection.selected, emotions, setId: emotionSet?.id });
   latest.current = { selected: selection.selected, emotions, setId: emotionSet?.id };
-  // 카드가 memo라 끌기 함수들은 늘 같은 함수로 두고 최신 값은 ref에서 읽는다.
+  // 카드가 memo라 함수는 늘 같게 두고 최신 값은 ref에서 읽는다.
   const startDrag = useCallback((id: string) => {
     const { selected, emotions: order } = latest.current;
     const payload = dragPayload(
@@ -289,11 +286,7 @@ export function GalleryView({
 
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
-      {/*
-        위 막대는 카드를 다루는 일(고르기와 고른 카드에 하는 일, 내보내기, 카드 크기), 아래 생성 큐 막대는
-        생성하는 일(생성할 씬 체크, 씬마다 장수, 예상 Anlas, 생성)이다. 체크는 일괄 생성 대상이고, 카드
-        고르기(Ctrl·Shift 클릭, 끌기)는 삭제·i2i 같은 일괄 작업 대상이라 둘을 서로 다른 막대에 둔다.
-      */}
+      {/* 체크(일괄 생성 대상)는 아래 큐 막대, 카드 고르기(일괄 작업 대상)는 위 막대에 따로 둔다. */}
       <div className="toolbar gallery-toolbar">
         {selection.selected.size > 0 ? (
           <section className="toolbar-zone active" aria-label="고른 카드">

@@ -15,10 +15,7 @@ type Row = { checked: boolean; mood: string; defry: number };
 
 const FREE_PIXELS = 1024 * 1024;
 
-/**
- * Emotion 툴로 씬 세트 만들기: 대표 이미지 한 장에 씬마다 그 씬의 표정을 적용해 몸·옷·포즈가 같은 세트를
- * 만든다. 결과는 각 씬에 쌓이고, 고른 표정과 강도는 씬 모음에 저장되어 다음에도 쓰인다.
- */
+/** 대표 이미지 한 장에 씬마다 표정을 적용한다. 고른 표정·강도는 씬 모음에 저장된다. */
 export function SceneSetDialog(props: {
   projectId: string;
   record: GenerationSummary;

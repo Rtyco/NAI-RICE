@@ -17,30 +17,25 @@ import type { ImportedVibe, VibeEncodingInfo } from '../../src/shared/ipc';
 import { atomicWrite, sha256 } from './fsUtils';
 import type { FileDialogs } from './ports';
 
-/** 바이브 파일이 읽고 쓰는 작업 폴더. Library가 구현한다. */
 export interface VibeLibrary {
   readonly root: string;
   addPicture(dataUrl: string): Promise<Omit<Picture, 'name'>>;
   readPicture(file: string): Promise<Buffer>;
   readVibe(key: string): Promise<Buffer | undefined>;
   writeVibe(key: string, data: Buffer): Promise<void>;
-  /** 이 owner로 저장한 인코딩 결과 이름들. */
   vibeNames(owner: string): Promise<string[]>;
 }
 
 const textSha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 
-/**
- * NovelAI 바이브 파일(`.naiv4vibe`·`.naiv4vibeBundle`) 가져오기·내보내기. 인코딩 결과는 생성 큐가 쓰는
- * `vibes/` 캐시에 넣어, 가져온 모델·정보 추출 값이면 인코딩 비용 없이 바로 쓴다.
- */
+/** 인코딩 결과는 큐가 쓰는 `vibes/` 캐시에 넣어, 같은 모델·정보 추출 값이면 인코딩 비용 없이 쓴다. */
 export class VibeFiles {
   constructor(
     private readonly library: VibeLibrary,
     private readonly dialog: FileDialogs,
   ) {}
 
-  /** 그림 바이브의 인코딩 이름 앞부분. 작업 입력은 그림을 그대로 복사하므로 큐가 쓰는 그림 해시와 같다. */
+  /** 작업 입력은 그림을 그대로 복사하므로 큐가 쓰는 그림 해시와 같다. */
   private async owner(vibe: Pick<Vibe, 'image' | 'encodingId'>): Promise<string | undefined> {
     if (vibe.encodingId) return vibe.encodingId;
     return vibe.image ? sha256(await this.library.readPicture(vibe.image.file)) : undefined;
@@ -54,7 +49,7 @@ export class VibeFiles {
       );
   }
 
-  /** 원본이 없는 바이브의 보기용 그림. 썸네일이 없으면 인코딩 이름으로 색을 정한 빈 그림을 만든다. */
+  /** 썸네일이 없으면 인코딩 이름으로 색을 정한 빈 그림. */
   private async standIn(encodingId: string, thumbnail?: string | null) {
     if (thumbnail?.startsWith('data:image/'))
       return this.library.addPicture(thumbnail).catch(() => this.plain(encodingId));
@@ -71,7 +66,7 @@ export class VibeFiles {
     return this.library.addPicture(`data:image/png;base64,${png.toString('base64')}`);
   }
 
-  /** 바이브 파일이나 묶음을 읽어 그림과 인코딩 결과를 저장한다. 라이브러리 항목은 화면이 만든다. */
+  /** 라이브러리 항목은 화면이 만든다. */
   async importText(text: string, fallbackName: string): Promise<ImportedVibe[]> {
     const documents = parseVibeFile(text);
     const imported: ImportedVibe[] = [];
@@ -111,10 +106,7 @@ export class VibeFiles {
     return imported;
   }
 
-  /**
-   * NovelAI 이미지의 생성 정보에 든 바이브. 인코딩은 그 이미지의 모델(`model`, 일반 생성 ID)로 저장하고,
-   * 그림이 든 바이브는 일반 바이브로 만든다(쓸 때 다시 인코딩한다).
-   */
+  /** 인코딩은 그 이미지의 모델(일반 생성 ID)로 저장하고, 그림이 든 바이브는 쓸 때 다시 인코딩한다. */
   async importMetadata(request: {
     model: string;
     name: string;
@@ -152,7 +144,6 @@ export class VibeFiles {
     return imported;
   }
 
-  /** 이 바이브로 저장해 둔 인코딩 결과(모델·정보 추출 값). */
   async encodings(vibe: Pick<Vibe, 'image' | 'encodingId'>): Promise<VibeEncodingInfo[]> {
     const owner = await this.owner(vibe).catch(() => undefined);
     if (!owner) return [];
@@ -192,7 +183,7 @@ export class VibeFiles {
     );
   }
 
-  /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`로 저장할 곳을 물어 저장한다. */
+  /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`. */
   async export(vibes: Vibe[]): Promise<string | null> {
     if (!vibes.length) return null;
     const documents = [];
