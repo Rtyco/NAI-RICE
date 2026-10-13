@@ -339,7 +339,7 @@ export function StorageTab() {
           </button>
         </div>
       </Card>
-      <Card title="사용량" subtitle="이 화면을 열 때 계산합니다.">
+      <Card title="사용량" subtitle="">
         {!usage ? (
           <p className="hint">계산하는 중…</p>
         ) : (
@@ -410,7 +410,6 @@ export function StorageTab() {
         <div className="storage-line">
           <span>
             화면 캐시 <b>{usage ? formatBytes(usage.app.cache) : '…'}</b>
-            <small className="hint"> 지워도 필요하면 다시 만들어집니다.</small>
           </span>
           <button
             onClick={() =>
@@ -427,7 +426,6 @@ export function StorageTab() {
         <div className="storage-line">
           <span>
             생성 큐 기록 <b>{usage ? formatBytes(usage.app.queue) : '…'}</b>
-            <small className="hint"> 완료·취소 기록은 최근 300개만 남습니다.</small>
           </span>
           <button
             onClick={() =>

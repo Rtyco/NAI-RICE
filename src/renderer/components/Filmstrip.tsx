@@ -71,9 +71,7 @@ export function Filmstrip(props: {
             </button>
           </>
         ) : (
-          <span className="hint">
-            결과 {records.length}장 · Ctrl·Shift 클릭이나 빈 곳을 끌어 여러 장 선택
-          </span>
+          <span className="hint">결과 {records.length}장</span>
         )}
         {props.tools}
       </div>

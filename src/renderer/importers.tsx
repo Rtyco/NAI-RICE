@@ -211,9 +211,7 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
         </>
       }
     >
-      <p className="hint">
-        이름이 같은 항목이 있을 때만 덮어쓰기 가능 · 덮어쓰면 그 항목을 쓰는 작업에도 반영
-      </p>
+      <p className="hint">덮어쓰기는 이름이 같은 항목이 있을 때만 됩니다.</p>
       {GROUPS.filter((group) => bundle[group.key].length).map((group) => (
         <section className="card" key={group.key}>
           <header className="card-head">

@@ -52,8 +52,7 @@ export function ScenePromptFields(props: {
       })}
       {hidden.length > 0 && (
         <p className="hint">
-          이 작업에 없는 {slots + 1}번째 이후 캐릭터 칸에도 프롬프트가 {hidden.length}개 있습니다.
-          캐릭터를 더 넣으면 쓰입니다.
+          {slots + 1}번째 이후 캐릭터 칸에 프롬프트 {hidden.length}개가 더 있습니다.
         </p>
       )}
     </>

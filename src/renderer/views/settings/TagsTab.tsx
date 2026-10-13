@@ -28,15 +28,14 @@ export function TagsTab() {
   const tagAutocomplete = useLibrary().settings.tagAutocomplete;
   return (
     <>
-      <Card title="태그 자동완성" subtitle="프롬프트를 입력할 때 단부루 태그 후보를 보여 줍니다.">
+      <Card title="태그 자동완성" subtitle="">
         <Toggle
           label="태그 후보 보이기"
           checked={tagAutocomplete}
           onChange={(value) => patchSettings((current) => ({ ...current, tagAutocomplete: value }))}
         />
         <p className="hint">
-          두 글자부터 찾습니다. ↑↓로 고르고 Tab이나 Enter로 넣습니다. 작가 태그는 artist:를 붙여
-          넣고, artist:로 시작하면 작가만 찾습니다. 태그 목록은 2026년 10월 기준입니다.
+          artist:로 시작하면 작가 태그만 찾습니다. 태그 목록은 2026년 10월 기준입니다.
         </p>
       </Card>
       <Card title="품질 태그 · UC 프리셋 문구" subtitle="">

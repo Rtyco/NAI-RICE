@@ -135,10 +135,7 @@ export function SceneSetDialog(props: {
           </figcaption>
         </figure>
         <div className="scene-set-body">
-          <p className="hint">
-            Emotion 툴로 얼굴 표정만 바꿔 씬마다 한 장씩 만듭니다. 머리·옷·포즈·배경은 그대로입니다.
-            정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다.
-          </p>
+          <p className="hint">정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다.</p>
           <div className="mood-table">
             <div className="mood-table-row head">
               <input
@@ -218,11 +215,7 @@ export function SceneSetDialog(props: {
               onChange={setShrink}
             />
           )}
-          <p className="hint">
-            같은 표정이어도 매번 조금씩 다르게 나오니 여러 장 만들어 고를 수 있습니다. 결과는 각
-            씬에 새 결과로 쌓입니다. 고른 표정과 강도는 씬 모음 「{set?.name}」에 저장되어 다음에도
-            쓰입니다.
-          </p>
+          <p className="hint">고른 표정과 강도는 씬 모음 「{set?.name}」에 저장됩니다.</p>
         </div>
       </div>
     </Modal>

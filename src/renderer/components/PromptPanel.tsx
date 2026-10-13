@@ -298,7 +298,7 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
       preset={resolved.preset}
       characters={resolved.characters}
       projectId={projectId}
-      noCharacter="캐릭터 없이 생성합니다. 위쪽에서 캐릭터를 고르면 여기서 고칠 수 있습니다."
+      noCharacter="캐릭터 없이 생성합니다."
       firstCharacterNote={
         resolved.project.mode === 'reference'
           ? '참고 이미지는 첫 캐릭터만 참고가 됩니다.'
@@ -325,10 +325,6 @@ export function FreePromptPanel() {
     (a, b) => a.preset === b.preset && sameCharacters(a.characters, b.characters),
   );
   return (
-    <PromptPanel
-      preset={preset}
-      characters={characters}
-      noCharacter="캐릭터 없이 생성합니다. 위쪽에서 캐릭터를 고르면 여기서 고칠 수 있습니다."
-    />
+    <PromptPanel preset={preset} characters={characters} noCharacter="캐릭터 없이 생성합니다." />
   );
 }

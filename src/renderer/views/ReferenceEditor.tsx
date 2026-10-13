@@ -499,9 +499,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             </>
           ) : (
             <>
-              <p className="hint">
-                참고 그림과 빈 칸이 이미 배치된 이미지를 씁니다. 배경을 감지해 참고 영역을 찾습니다.
-              </p>
+              <p className="hint">배경을 감지해 참고 영역을 찾습니다.</p>
               <SettingRow label="배경 임계값">
                 <Stepper
                   label="배경 임계값"
@@ -555,9 +553,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               }}
             />
           </SettingRow>
-          <p className="hint">
-            참고 영역 둘레를 이만큼 더 그대로 남깁니다. 결과 영역은 그 바깥에서 자릅니다.
-          </p>
+          <p className="hint">결과 영역은 이 여백 바깥에서 자릅니다.</p>
           {working && (
             <details className="crop-details">
               <summary>결과 영역 숫자로 맞추기</summary>

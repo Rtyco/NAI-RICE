@@ -102,7 +102,7 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
         />
       </div>
       <p className="hint">
-        {format === 'png' ? 'PNG: 프롬프트·설정 메타데이터 포함' : 'WebP·AVIF: 메타데이터 없음'} · 원본은{' '}
+        {format === 'png' ? '메타데이터 포함' : '메타데이터 없음'} · 원본은{' '}
         <button
           className="link-button"
           onClick={() =>

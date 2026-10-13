@@ -295,8 +295,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             <span>일괄 생성에 포함 (이 작업만)</span>
           </label>
 
-          <p className="hint">←/→ 결과 이동 · Del 결과 삭제 · Tab/Shift+Tab 씬 이동 · Esc 갤러리</p>
-
           <div className="generate-dock">
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
             <button

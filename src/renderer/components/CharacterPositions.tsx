@@ -164,8 +164,8 @@ export function CharacterPositionDialog({ target, close }: { target: Target; clo
           </div>
           <p className="hint">
             {freeform
-              ? 'V5는 캔버스 어디든 놓을 수 있습니다. 표시를 끌어 옮기십시오.'
-              : 'V4·V4.5는 5×5 칸 중 하나에 놓습니다. 칸을 누르거나 표시를 끌어 옮기십시오.'}
+              ? 'V5: 캔버스 어디든 놓을 수 있습니다.'
+              : 'V4·V4.5: 5×5 칸에만 놓을 수 있습니다.'}
           </p>
           <div
             ref={board}
@@ -242,10 +242,6 @@ export function CharacterPositionDialog({ target, close }: { target: Target; clo
               </li>
             ))}
           </ol>
-          <p className="hint">
-            목록에서 캐릭터를 고른 뒤 캔버스를 누르면 그 캐릭터가 옮겨집니다. 바꾼 위치는 바로
-            저장됩니다.
-          </p>
         </>
       )}
     </Modal>

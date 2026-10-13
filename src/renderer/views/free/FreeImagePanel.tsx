@@ -28,10 +28,6 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
           {image
             ? `${image.name} · ${image.outputRect.width}×${image.outputRect.height}`
             : '아직 고르지 않았습니다'}
-          <br />
-          {director
-            ? '결과의 「이 결과로 디렉터 툴」로 보내거나 파일에서 불러옵니다.'
-            : '결과의 「자유 생성으로 보내기」로 보내거나 파일에서 불러옵니다.'}
         </span>
       </div>
       <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>

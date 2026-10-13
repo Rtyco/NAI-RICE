@@ -88,10 +88,7 @@ export function UpdateDialog({ update, close }: { update: UpdateCheckResult; clo
         {published && <small>{published}</small>}
       </p>
       {notes && <ReleaseNotes text={notes} />}
-      <p className="hint">
-        받은 설치 파일을 실행하면 덮어 설치되고, 포터블은 새 파일로 바꿔 쓰면 됩니다. 작업
-        데이터(문서\NAI RICE)는 그대로 남습니다.
-      </p>
+      <p className="hint">작업 데이터(문서\NAI RICE)는 그대로 남습니다.</p>
     </Modal>
   );
 }

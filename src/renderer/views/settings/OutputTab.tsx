@@ -30,7 +30,7 @@ export function OutputTab() {
     patchSettings((current) => ({ ...current, export: { ...current.export, ...value } }));
   return (
     <>
-      <Card title="결과 파일" subtitle="작업 폴더의 outputs/<씬 이름>/에 저장됩니다">
+      <Card title="결과 파일" subtitle="outputs/<생성 방식>/<씬 이름>/에 저장됩니다">
         <label className="stack-field">
           파일명 규칙
           <input
@@ -73,11 +73,7 @@ export function OutputTab() {
           ]}
           onChange={(storageFormat) => patchSettings((current) => ({ ...current, storageFormat }))}
         />
-        <p className="hint">
-          WebP 무손실은 픽셀이 PNG와 똑같고 프롬프트 메타데이터도 파일 안에 남습니다. 이 앱으로 다시
-          불러오거나 PNG로 내보내면 메타데이터가 그대로 살아납니다. 바꾼 뒤 생성하는 결과부터
-          적용됩니다.
-        </p>
+        <p className="hint">WebP 무손실도 픽셀과 메타데이터가 PNG와 같습니다.</p>
         <Toggle
           label="생성에 쓴 전체 캔버스도 보관 (diagnostic 폴더)"
           checked={settings.keepDiagnosticCanvas}

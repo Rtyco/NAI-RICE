@@ -29,7 +29,7 @@ export function InfoTab() {
           <span className="hint">NovelAI Reference Inpaint Character Emotions</span>
         </div>
       </Card>
-      <Card title="업데이트" subtitle="GitHub의 최신 릴리스와 비교합니다.">
+      <Card title="업데이트" subtitle="">
         <div className="button-row">
           <button
             className="accent with-icon"

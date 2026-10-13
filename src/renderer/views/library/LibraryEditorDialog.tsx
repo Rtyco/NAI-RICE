@@ -53,7 +53,7 @@ export function LibraryEditorDialog(props: {
       footer={
         <>
           <span className="hint">
-            바꾼 내용은 바로 저장되고, 이 {label.title}을(를) 쓰는 모든 작업에 반영됩니다.
+            바로 저장되고, 이 {label.title}을(를) 쓰는 작업 모두에 반영됩니다.
           </span>
           <button
             onClick={() => {

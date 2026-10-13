@@ -24,7 +24,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   return (
     <Card
       title={`씬 (${set.emotions.length})`}
-      subtitle="캐릭터 포지티브 뒤에 붙음 · 캐릭터가 여럿이면 칸마다 그 순서의 캐릭터에 붙음 · 이 모음을 쓰는 모든 작업에 반영"
+      subtitle="캐릭터 포지티브 뒤에 붙습니다"
       actions={
         <>
           {others.length > 0 && (

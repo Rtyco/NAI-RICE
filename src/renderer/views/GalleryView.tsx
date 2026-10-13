@@ -338,7 +338,6 @@ export function GalleryView({
             >
               <Icon name="select-all" size={14} /> 모두 고르기
             </button>
-            <span className="hint">Ctrl·Shift 클릭이나 빈 곳을 끌어 골라 한꺼번에 다룹니다</span>
           </section>
         )}
 

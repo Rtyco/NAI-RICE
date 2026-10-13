@@ -298,9 +298,6 @@ export function ImageImportDialog({
               placeholder={desk?.characterName ?? stem}
               onChange={(event) => setName(event.target.value)}
             />
-            <small className="hint">
-              새로 만드는 항목의 이름이 됩니다. 덮어쓰는 항목은 이름을 바꾸지 않습니다.
-            </small>
           </label>
           <div className="select-all-row">
             <span className="hint">불러올 항목 선택</span>
@@ -411,8 +408,8 @@ export function ImageImportDialog({
             </pre>
             {allCharacters && (
               <p className="hint">
-                캐릭터마다 새 캐릭터({name} 1, {name} 2 …)를 만듭니다.
-                {data.characterCenters ? ' 이미지에 지정된 캐릭터 위치도 함께 옮깁니다.' : ''}
+                캐릭터마다 새로 만듭니다({name} 1, {name} 2 …).
+                {data.characterCenters ? ' 위치도 옮깁니다.' : ''}
               </p>
             )}
           </Check>

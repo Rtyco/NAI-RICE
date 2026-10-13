@@ -242,7 +242,7 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
         })}
       </div>
       <p className="hint">
-        조각은 내용으로 표시 · "줄마다 하나씩 고르기" 조각은 첫 줄로 표시(실제로는 이미지마다 고름)
+        「줄마다 하나씩 고르기」 조각은 첫 줄로 보입니다.
       </p>
       <p className="hint">
         모델: {modelLabel(resolved.preset.generation.model)}
