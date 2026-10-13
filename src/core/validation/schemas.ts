@@ -713,9 +713,10 @@ export type V1Character = z.infer<typeof v1CharacterSchema>;
 export const sdStudioRootSchema = z
   .object({
     name: z.string().min(1),
-    presets: z.object({
-      SDImageGen: z.array(z.record(z.string(), z.unknown())).min(1),
-    }),
+    // 씬만 담은 파일(「현재 프로젝트에 씬만 불러오기」용)은 프리셋이 비어 있다.
+    presets: z
+      .object({ SDImageGen: z.array(z.record(z.string(), z.unknown())).min(1).optional() })
+      .passthrough(),
     scenes: z.record(z.string(), z.unknown()),
   })
   .passthrough();

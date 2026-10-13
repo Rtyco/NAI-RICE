@@ -244,11 +244,13 @@ export function exportItem(section: LibrarySection, item: Item) {
             ? exportCharacter(item as Character)
             : section === 'pieceSets'
               ? exportPieceSet(item as PieceSet)
-              : exportEmotionSet(item as EmotionSet);
+              : exportEmotionSet(
+                  item as EmotionSet,
+                  useStore.getState().library?.pieceSets ?? [],
+                );
       saved = await fileApi().saveJsonFile(
         data,
-        // 조각 세트는 SDStudio 형식
-        section === 'pieceSets' ? `${item.name}.json` : `${item.name}__${section}.json`,
+        `${item.name}.json`,
         `${LABELS[section].title} 내보내기`,
       );
     }

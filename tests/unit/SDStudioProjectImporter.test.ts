@@ -43,7 +43,8 @@ function makeProject(count = 20) {
 describe('importSDStudioProject', () => {
   it('default를 빼고 감정과 프롬프트를 새 캐릭터로 변환해', () => {
     const imported = importSDStudioProject(JSON.stringify(makeProject()));
-    const { character, emotionSet, preset } = imported;
+    const { emotionSet, preset } = imported;
+    const character = imported.character!;
     expect(character.name).toBe('테스트 캐릭터');
     expect(emotionSet.emotions).toHaveLength(20);
     expect(emotionSet.emotions[0]).toMatchObject({ name: 'Emotion1', prompt: 'prompt-1' });
@@ -71,7 +72,7 @@ describe('importSDStudioProject', () => {
       enabled: true,
     });
     const imported = importSDStudioProject(JSON.stringify(fixture));
-    expect(imported.character.promptSets.map((set) => set.positive)).toEqual([
+    expect(imported.character!.promptSets.map((set) => set.positive)).toEqual([
       'blue hair, amber eyes',
       'red dress',
     ]);
@@ -99,5 +100,35 @@ describe('importSDStudioProject', () => {
   it('JSON 문법과 필수 경로 오류를 분리해', () => {
     expect(() => importSDStudioProject('{')).toThrow(SDStudioImportError);
     expect(() => importSDStudioProject(JSON.stringify({ name: 'x' }))).toThrow(/필수 구조/);
+  });
+});
+
+describe('SDStudio 씬 조각의 캐릭터 프롬프트', () => {
+  it('프리셋이 없는 씬 파일은 씬 모음만 만들고 characterPrompts를 캐릭터 칸으로 읽어', () => {
+    const file = {
+      version: 1,
+      name: '표정',
+      presets: {},
+      presetShareds: {},
+      inpaints: {},
+      library: {},
+      scenes: {
+        기쁨: { slots: [[{ prompt: 'smile', characterPrompts: ['open mouth', '', 'wave'] }]] },
+        슬픔: { slots: [[{ prompt: '', characterPrompts: ['tears'] }]] },
+      },
+    };
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.character).toBeUndefined();
+    expect(imported.preset).toBeUndefined();
+    expect(
+      imported.emotionSet.emotions.map(({ name, prompt, extraPrompts }) => ({
+        name,
+        prompt,
+        extraPrompts,
+      })),
+    ).toEqual([
+      { name: '기쁨', prompt: 'smile, open mouth', extraPrompts: ['', 'wave'] },
+      { name: '슬픔', prompt: 'tears', extraPrompts: undefined },
+    ]);
   });
 });

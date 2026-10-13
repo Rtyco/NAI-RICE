@@ -21,7 +21,7 @@ export class SDStudioImportError extends Error {
   }
 }
 
-type PromptPiece = { prompt?: unknown; enabled?: unknown };
+type PromptPiece = { prompt?: unknown; characterPrompts?: unknown; enabled?: unknown };
 type CharacterPromptPiece = {
   id?: unknown;
   name?: unknown;
@@ -31,7 +31,8 @@ type CharacterPromptPiece = {
 };
 
 export type SDStudioImport = {
-  character: Character;
+  /** 프리셋이 없는 파일(씬만 담은 파일)이면 없다. */
+  character?: Character;
   emotionSet: EmotionSet;
   /** 공통 프롬프트가 있을 때만 */
   preset?: Preset;
@@ -74,22 +75,45 @@ function uniqueName(name: string, taken: Array<{ name: string }>): string {
   return candidate;
 }
 
+/** `chars[j]`는 j번째 캐릭터 프롬프트 뒤에 붙는 부분(SDStudio `characterPrompts`). */
+type SceneCombo = { common: string; chars: string[] };
+
+const oneLine = (value: unknown) =>
+  cleanPrompt(typeof value === 'string' ? value.replace(/[,\s]*\n[,\s]*/g, ', ') : '');
+
+function joinCombo(head: SceneCombo, option: SceneCombo): SceneCombo {
+  const length = Math.max(head.chars.length, option.chars.length);
+  return {
+    common: joinPrompts(head.common, option.common),
+    chars: Array.from({ length }, (_, index) => joinPrompts(head.chars[index], option.chars[index])),
+  };
+}
+
 /** SDStudio처럼 슬롯마다 켜진 프롬프트 하나씩의 모든 조합. 한 조합이 한 줄이라 줄바꿈은 쉼표로 바꾼다. */
-function sceneCombos(slots: unknown): string[] {
+function sceneCombos(slots: unknown): SceneCombo[] {
   if (!Array.isArray(slots)) return [];
-  let combos = [''];
+  let combos: SceneCombo[] = [{ common: '', chars: [] }];
   for (const slot of slots) {
     const options = (Array.isArray(slot) ? (slot as PromptPiece[]) : [])
       .filter((piece) => piece && piece.enabled !== false)
-      .map((piece) =>
-        cleanPrompt(typeof piece.prompt === 'string' ? piece.prompt.replace(/[,\s]*\n[,\s]*/g, ', ') : ''),
-      )
-      .filter(Boolean);
+      .map((piece) => ({
+        common: oneLine(piece.prompt),
+        chars: Array.isArray(piece.characterPrompts) ? piece.characterPrompts.map(oneLine) : [],
+      }))
+      .filter((option) => option.common || option.chars.some(Boolean));
     if (!options.length) continue;
-    combos = combos.flatMap((head) => options.map((option) => joinPrompts(head, option)));
+    combos = combos.flatMap((head) => options.map((option) => joinCombo(head, option)));
     if (combos.length > MAX_COMBOS) combos = combos.slice(0, MAX_COMBOS + 1);
   }
-  return combos.filter(Boolean);
+  return combos.filter((combo) => combo.common || combo.chars.some(Boolean));
+}
+
+/** 공통 부분은 첫 캐릭터 칸에 합친다. 끝의 빈 칸은 버린다. */
+function scenePrompts(combo: SceneCombo | undefined): { prompt: string; extraPrompts: string[] } {
+  if (!combo) return { prompt: '', extraPrompts: [] };
+  const extraPrompts = combo.chars.slice(1);
+  while (extraPrompts.length && !extraPrompts[extraPrompts.length - 1]) extraPrompts.pop();
+  return { prompt: joinPrompts(combo.common, combo.chars[0]), extraPrompts };
 }
 
 export function isSDStudioProject(value: unknown): boolean {
@@ -119,10 +143,8 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     presetShareds?: { SDImageGen?: { characterPrompts?: unknown } };
   };
   const selectedPresetName = cleanPrompt(extendedRoot.selectedWorkflow?.presetName);
-  const source =
-    root.presets.SDImageGen.find((candidate) => candidate.name === selectedPresetName) ??
-    root.presets.SDImageGen[0];
-  const presetPath = `presets.SDImageGen[${root.presets.SDImageGen.indexOf(source)}]`;
+  const sources = root.presets.SDImageGen ?? [];
+  const source = sources.find((candidate) => candidate.name === selectedPresetName) ?? sources[0];
   const warnings: ImportWarning[] = [];
   const emotions: EmotionSet['emotions'] = [];
 
@@ -138,12 +160,15 @@ export function importSDStudioProject(raw: string): SDStudioImport {
         ? (sceneValue as { slots?: unknown }).slots
         : undefined;
     const combos = sceneCombos(slots);
-    let prompt = combos[0] ?? '';
+    const first = scenePrompts(combos[0]);
+    let prompt = first.prompt;
 
     if (combos.length > 1) {
       // SDStudio는 조합마다 이미지를 만들지만, 여기서는 multi 조각으로 옮겨 이미지마다 하나를 고른다.
+      // 두 번째 캐릭터부터는 조각으로 캐릭터마다 고를 수 없어 첫 조합 것을 쓴다.
       const pieceName = uniqueName(refName(sceneName) || '장면', variants);
-      variants.push({ name: pieceName, prompt: combos.slice(0, MAX_COMBOS).join('\n'), multi: true });
+      const lines = combos.slice(0, MAX_COMBOS).map((combo) => scenePrompts(combo).prompt);
+      variants.push({ name: pieceName, prompt: lines.join('\n'), multi: true });
       prompt = pieceRef(variantSetName, pieceName);
     }
     if (combos.length > MAX_COMBOS) {
@@ -160,7 +185,10 @@ export function importSDStudioProject(raw: string): SDStudioImport {
         path: sourcePath,
       });
     }
-    emotions.push(createEmotion(sceneName, prompt));
+    emotions.push({
+      ...createEmotion(sceneName, prompt),
+      ...(first.extraPrompts.length ? { extraPrompts: first.extraPrompts } : {}),
+    });
   }
   if (variants.length) {
     warnings.push({
@@ -169,6 +197,11 @@ export function importSDStudioProject(raw: string): SDStudioImport {
       path: 'scenes',
     });
   }
+
+  const emotionSet: EmotionSet = { id: newId(), name: `${root.name} 씬`, emotions };
+  const variantSet = variants.length ? createPieceSet(variantSetName, variants) : undefined;
+  if (!source) return { emotionSet, variantSet, warnings };
+  const presetPath = `presets.SDImageGen[${sources.indexOf(source)}]`;
 
   const candidateCharacterPrompts = [
     ...characterPromptArray(source.characterPrompts),
@@ -231,9 +264,9 @@ export function importSDStudioProject(raw: string): SDStudioImport {
 
   return {
     character: createCharacter(root.name, promptSets),
-    emotionSet: { id: newId(), name: `${root.name} 씬`, emotions },
+    emotionSet,
     preset,
-    variantSet: variants.length ? createPieceSet(variantSetName, variants) : undefined,
+    variantSet,
     warnings,
   };
 }

@@ -11,6 +11,13 @@ import type {
   Vibe,
 } from '../domain/types';
 import { importSDStudioProject } from '../importers/SDStudioProjectImporter';
+import {
+  exportSDStudioCharacter,
+  exportSDStudioPieceSet,
+  exportSDStudioScenes,
+  importSDStudioCharacters,
+  isSDStudioCharacterFile,
+} from './SDStudioFiles';
 import { createPieceSet, newId, readableId } from '../model/defaults';
 import {
   characterSchema,
@@ -270,10 +277,17 @@ export function parseImportFile(
       })),
     };
   }
+  if (isSDStudioCharacterFile(value)) {
+    const characters = importSDStudioCharacters(value);
+    return {
+      ...emptyBundle(`SDStudio 캐릭터 프리셋 "${characters.map((item) => item.name).join(', ')}"`),
+      characters,
+    };
+  }
   if (sdStudioRootSchema.safeParse(value).success) {
     const imported = importSDStudioProject(raw);
-    const bundle = emptyBundle(`SDStudio "${imported.character.name}"`);
-    bundle.characters = [imported.character];
+    const bundle = emptyBundle(`SDStudio "${String(value.name)}"`);
+    bundle.characters = imported.character ? [imported.character] : [];
     bundle.emotionSets = [imported.emotionSet];
     bundle.presets = imported.preset ? [imported.preset] : [];
     // 감정 프롬프트의 <세트.조각>이 이어지도록 조각도 가져온다.
@@ -301,27 +315,18 @@ export function exportPreset(preset: Preset) {
   return { kind: 'reference-inpaint-preset', schemaVersion: 2, exportedAt: stamp(), preset };
 }
 
+/** SDStudio 캐릭터 프리셋 파일. 예전 `reference-inpaint-character` 파일도 계속 읽는다. */
 export function exportCharacter(character: Character) {
-  return { kind: 'reference-inpaint-character', schemaVersion: 2, exportedAt: stamp(), character };
+  return exportSDStudioCharacter(character);
 }
 
-export function exportEmotionSet(set: EmotionSet) {
-  return {
-    kind: 'reference-inpaint-emotions',
-    schemaVersion: 2,
-    exportedAt: stamp(),
-    name: set.name,
-    emotions: set.emotions.map(({ name, prompt }) => ({ name, prompt })),
-  };
+/** SDStudio 프로젝트 파일(씬만). 씬이 부르는 조각 세트를 함께 넣는다. */
+export function exportEmotionSet(set: EmotionSet, pieceSets: PieceSet[] = []) {
+  return exportSDStudioScenes(set, pieceSets);
 }
 
-/** SDStudio에서 그대로 열 수 있다. */
 export function exportPieceSet(set: PieceSet) {
-  return {
-    name: set.name,
-    version: 1,
-    pieces: set.pieces.map(({ name, prompt, multi }) => ({ name, prompt, multi })),
-  };
+  return exportSDStudioPieceSet(set);
 }
 
 export function exportReference(reference: Reference, images?: ReferenceImagesData) {
