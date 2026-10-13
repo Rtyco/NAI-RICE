@@ -10,3 +10,14 @@ legacy/
 .cache/
 ForTest/
 docs/아카라이브-소개글.html
+
+# Local only: agent instructions and working notes
+AGENTS.md
+CLAUDE.md
+docs/dev-guide.md
+docs/plan.md
+docs/plan/
+docs/screens.md
+
+# Exported scene sets (<name>_<yyyymmdd>)
+/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*/
