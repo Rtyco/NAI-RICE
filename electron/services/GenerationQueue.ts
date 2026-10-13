@@ -3,7 +3,6 @@ import { promises as fs } from 'node:fs';
 import type {
   GenerationRecord,
   GenerationJobSnapshot,
-  JobVibe,
   QueueSnapshot,
   QueueView,
   QueuedGenerationJob,
@@ -22,12 +21,13 @@ import {
 } from '../../src/core/jobs/JobLifecycle';
 import { toQueueView } from '../../src/core/jobs/QueueView';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
-import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationPreview } from '../../src/shared/ipc';
 import { ensurePng } from './Images';
 import type { GenerationStore, ImageGenerator } from './ports';
+import { RequestPacer } from './RequestPacer';
+import { VibeEncoder } from './VibeEncoder';
 
 /** 작업 입력 파일. `aid`는 캐릭터 레퍼런스 그림들이거나 바이브로 인코딩할 원본 그림들이다. */
 type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
@@ -77,9 +77,13 @@ export class GenerationQueue {
   private activeController?: AbortController;
   private activeJobId?: string;
   private wakeRetry?: () => void;
-  private lastRequestAt = 0;
+  private readonly pacer: RequestPacer;
+  private readonly vibes: VibeEncoder;
 
-  constructor(private readonly dependencies: QueueDependencies) {}
+  constructor(private readonly dependencies: QueueDependencies) {
+    this.pacer = new RequestPacer(() => dependencies.requestDelayMs?.() ?? 0);
+    this.vibes = new VibeEncoder(dependencies.library, dependencies.provider, this.pacer);
+  }
 
   async initialize(): Promise<void> {
     try {
@@ -236,22 +240,6 @@ export class GenerationQueue {
     });
   }
 
-  /** 이전 요청이 끝난 뒤 설정한 간격이 지나지 않았으면 남은 시간만큼 기다린다. 취소하면 바로 끝낸다. */
-  private waitRequestDelay(signal: AbortSignal): Promise<void> {
-    const delay = Math.max(0, Math.min(1000, this.dependencies.requestDelayMs?.() ?? 0));
-    const remaining = this.lastRequestAt + delay - Date.now();
-    if (remaining <= 0 || signal.aborted) return Promise.resolve();
-    return new Promise((resolve) => {
-      const timer = setTimeout(finish, remaining);
-      signal.addEventListener('abort', finish, { once: true });
-      function finish() {
-        clearTimeout(timer);
-        signal.removeEventListener('abort', finish);
-        resolve();
-      }
-    });
-  }
-
   /** 입력 파일 하나를 읽고, 등록 뒤에 바뀌지 않았는지 해시로 확인한다. */
   private async loadInput(projectId: string, relative: string, hash: string): Promise<Buffer> {
     const file = await fs.readFile(
@@ -283,41 +271,6 @@ export class GenerationQueue {
     return { image: loaded, mask, aid };
   }
 
-  /**
-   * 바이브 인코딩 결과. 같은 그림·모델·추출량으로 인코딩한 적이 있으면 그것을 쓰고, 없으면 인코딩해(2 Anlas)
-   * 저장해 둔다. 인코딩도 생성처럼 요청 간격을 지킨다.
-   */
-  private async vibeFor(
-    job: QueuedGenerationJob,
-    vibe: JobVibe,
-    source: Buffer,
-    token: string,
-    signal: AbortSignal,
-  ): Promise<Buffer> {
-    const key = vibeCacheKey(
-      vibe.encodingId ?? vibe.imageSha256,
-      job.settings,
-      vibe.informationExtracted,
-    );
-    const cached = await this.dependencies.library.readVibe(key);
-    if (cached) return cached;
-    if (vibe.encodingId) throw new Error(encodedOnlyMessage(vibe.name));
-    const encode = this.dependencies.provider.encodeVibe;
-    if (!encode) throw new Error('바이브를 인코딩할 수 없습니다.');
-    await this.waitRequestDelay(signal);
-    this.lastRequestAt = Date.now();
-    const encoded = await encode.call(this.dependencies.provider, {
-      token,
-      image: source,
-      settings: job.settings,
-      informationExtracted: vibe.informationExtracted,
-      signal,
-    });
-    this.lastRequestAt = Date.now();
-    await this.dependencies.library.writeVibe(key, encoded);
-    return encoded;
-  }
-
   /** 지금 Anlas. 조회하지 않거나 실패하면 undefined다. */
   private anlasNow(token: string): Promise<number | undefined> {
     return this.dependencies.anlas?.(token).catch(() => undefined) ?? Promise.resolve(undefined);
@@ -332,37 +285,32 @@ export class GenerationQueue {
     const token = await this.dependencies.token();
     const anlasBefore = await this.anlasNow(token);
     // 바이브 인코딩 비용도 이 결과의 사용 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
-    let aid = inputs.aid;
-    if (aid && job.aid?.kind === 'vibe') {
-      const encoded: Buffer[] = [];
-      for (const [index, vibe] of job.aid.vibes.entries())
-        encoded.push(await this.vibeFor(job, vibe, aid[index], token, signal));
-      aid = encoded;
-    }
-    await this.waitRequestDelay(signal);
-    this.lastRequestAt = Date.now();
+    const aid =
+      inputs.aid && job.aid?.kind === 'vibe'
+        ? await this.vibes.encodeAll(job.settings, job.aid.vibes, inputs.aid, token, signal)
+        : inputs.aid;
     const { onPreview } = this.dependencies;
     const steps = previewSteps(job);
-    const generated = await this.dependencies.provider.generate({
-      token,
-      job,
-      ...inputs,
-      aid,
-      signal,
-      ...(onPreview && this.dependencies.streaming?.()
-        ? {
-            onPreview: ({ image, step }: { image: Buffer; step: number }) =>
-              onPreview({
-                jobId: job.id,
-                dataUrl: `data:image/jpeg;base64,${image.toString('base64')}`,
-                step,
-                steps,
-              }),
-          }
-        : {}),
-    });
-    // 간격은 응답을 받은 시점부터 센다.
-    this.lastRequestAt = Date.now();
+    const generated = await this.pacer.send(signal, () =>
+      this.dependencies.provider.generate({
+        token,
+        job,
+        ...inputs,
+        aid,
+        signal,
+        ...(onPreview && this.dependencies.streaming?.()
+          ? {
+              onPreview: ({ image, step }: { image: Buffer; step: number }) =>
+                onPreview({
+                  jobId: job.id,
+                  dataUrl: `data:image/jpeg;base64,${image.toString('base64')}`,
+                  step,
+                  steps,
+                }),
+            }
+          : {}),
+      }),
+    );
     const anlasAfter = await this.anlasNow(token);
     const anlasSpent =
       anlasBefore !== undefined && anlasAfter !== undefined
