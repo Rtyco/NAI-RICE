@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { FreeGeneration, FreeImage, GenerationSummary, Preset } from '../../core/domain/types';
+import { useMemo, useState } from 'react';
+import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
   DEFAULT_GENERATION_SETTINGS,
@@ -18,36 +18,26 @@ import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
-import { DrawCanvas } from '../components/DrawCanvas';
 import { Filmstrip } from '../components/Filmstrip';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
 import { ImageStage } from '../components/ImageStage';
 import { PanelResizer } from '../components/PanelResizer';
-import { PresetNumberRow } from '../components/PresetNumberRow';
 import { PromptTextarea } from '../components/PromptTextarea';
-import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 import { NumberField, Toggle } from '../components/ui';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
 import {
-  clearFreeImage,
   loadFreeImageFromFile,
   makeReferenceFromRecord,
   newBlankFreeImage,
-  replaceFreeImagePixels,
-  setPendingDrawing,
-  saveFreeMask,
   sendToFreeDirector,
   sendToFreeImg2Img,
-  setFreeMask,
-  sourceDataUrl,
   sourceMedia,
 } from '../freeImageOps';
 import { deleteShownResult, openImg2ImgDialog } from '../generationOps';
-import { decodeMask, loadHtmlImage } from '../lib/image';
 import {
   projectMedia,
   resolveFreeGeneration,
@@ -57,178 +47,11 @@ import {
   useLibrary,
   useStore,
 } from '../store';
+import { FreeDrawStage } from './free/FreeDrawStage';
+import { FreeImagePanel } from './free/FreeImagePanel';
+import { FreeMaskCanvas } from './free/FreeMaskCanvas';
 
 const NO_RECORDS: GenerationSummary[] = [];
-const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
-const ignore = () => undefined;
-
-/**
- * i2i 이미지에 인페인팅으로 다시 그릴 곳을 칠한다. 이미지가 바뀌면 `key`로 새로 만들어, 처음 불러온 마스크와
- * 실행 취소 기록이 이전 이미지와 섞이지 않게 한다.
- */
-function FreeMaskCanvas({ image }: { image: FreeImage }) {
-  const { file, width, height } = image;
-  const [initialMaskFile] = useState(image.maskFile);
-  const [loaded, setLoaded] = useState<{ image: HTMLImageElement; mask?: Uint8Array }>();
-  const [failed, setFailed] = useState(false);
-  const empty = useMemo(() => new Uint8Array(width * height), [width, height]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const picture = await loadHtmlImage(await sourceDataUrl(file));
-        // 마스크 파일을 읽지 못하면 빈 마스크에서 다시 칠한다.
-        const mask = initialMaskFile
-          ? await sourceDataUrl(initialMaskFile)
-              .then((url) => decodeMask(url, width, height))
-              .catch(() => undefined)
-          : undefined;
-        if (!cancelled) setLoaded({ image: picture, mask });
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [file, width, height, initialMaskFile]);
-
-  useEffect(() => () => void saveFreeMask(), []);
-
-  const onMaskChange = useCallback(
-    (mask: Uint8Array) => setFreeMask(file, mask, width, height),
-    [file, width, height],
-  );
-
-  if (failed)
-    return (
-      <div className="stage-empty">
-        <p>이미지를 읽지 못했습니다.</p>
-        <p className="hint">오른쪽에서 이미지를 다시 불러오십시오.</p>
-      </div>
-    );
-  if (!loaded) return <p className="hint">이미지를 불러오는 중…</p>;
-  return (
-    <ReferenceCanvas
-      maskOnly
-      image={loaded.image}
-      width={width}
-      height={height}
-      backgroundMask={empty}
-      referenceRect={NO_RECT}
-      outputRect={image.outputRect}
-      expansionPx={0}
-      initialMask={loaded.mask}
-      detectionLabel=""
-      onReferenceRectChange={ignore}
-      onOutputRectChange={ignore}
-      onMaskChange={onMaskChange}
-    />
-  );
-}
-
-/** i2i 이미지에 덧칠하는 「그리기」. 이미지가 바뀌면 `key`로 새로 만든다. */
-function FreeDrawStage({ image }: { image: FreeImage }) {
-  const [base, setBase] = useState<HTMLImageElement>();
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    sourceDataUrl(image.file)
-      .then(loadHtmlImage)
-      .then((picture) => !cancelled && setBase(picture))
-      .catch(() => !cancelled && setFailed(true));
-    return () => {
-      cancelled = true;
-    };
-  }, [image.file]);
-  useEffect(() => () => setPendingDrawing(undefined), []);
-  if (failed) return <p className="hint">이미지를 읽지 못했습니다.</p>;
-  if (!base) return <p className="hint">이미지를 불러오는 중…</p>;
-  return (
-    <DrawCanvas
-      base={base}
-      width={image.width}
-      height={image.height}
-      onApply={(dataUrl) =>
-        run('그림을 합치는 중', () => replaceFreeImagePixels(image.file, dataUrl)).then(
-          () => undefined,
-        )
-      }
-      onPendingChange={setPendingDrawing}
-    />
-  );
-}
-
-/**
- * i2i로 다시 그릴 이미지, 전체를 다시 그릴지 칠한 곳만 다시 그릴지(인페인팅), 그 방식의 강도·노이즈. i2i에만
- * 쓰는 입력을 한 카드에 모은다. 디렉터 툴 모드도 같은 이미지를 쓰고, 이미지 칸만 보인다.
- */
-function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?: Preset }) {
-  const { image } = free;
-  const director = free.mode === 'augment';
-  return (
-    <section className="detail-card free-source">
-      <div className="detail-card-head">
-        <b>{director ? '디렉터 툴 이미지' : 'i2i 이미지'}</b>
-        {image && (
-          <button className="link-button" onClick={clearFreeImage}>
-            비우기
-          </button>
-        )}
-      </div>
-      <div className="free-source-body">
-        {image ? (
-          <img src={sourceMedia(image.file)} alt="" />
-        ) : (
-          <span className="free-source-empty" />
-        )}
-        <span className="hint">
-          {image
-            ? `${image.name} · ${image.outputRect.width}×${image.outputRect.height}`
-            : '아직 고르지 않았습니다'}
-          <br />
-          {director
-            ? '결과의 「이 결과로 디렉터 툴」로 보내거나 파일에서 불러옵니다.'
-            : '결과의 「자유 생성으로 보내기」로 보내거나 파일에서 불러옵니다.'}
-        </span>
-      </div>
-      <button className="with-icon" onClick={() => void loadFreeImageFromFile()}>
-        <Icon name="plus" size={14} /> 파일에서 불러오기
-      </button>
-      {!director && (
-        <div className="segmented free-source-mode" role="group" aria-label="다시 그릴 범위">
-          <button
-            className={free.inpaint ? '' : 'active'}
-            aria-pressed={!free.inpaint}
-            title="이미지 전체를 강도만큼 다시 그립니다"
-            onClick={() => updateFreeGeneration({ inpaint: false })}
-          >
-            <Icon name="refresh" size={14} /> 전체 다시 그리기
-          </button>
-          <button
-            className={free.inpaint ? 'active' : ''}
-            aria-pressed={free.inpaint}
-            title="가운데 이미지에 마스크로 칠한 곳만 다시 그립니다"
-            onClick={() => updateFreeGeneration({ inpaint: true })}
-          >
-            <Icon name="brush" size={14} /> 인페인팅
-          </button>
-        </div>
-      )}
-      {preset &&
-        !director &&
-        (free.inpaint ? (
-          <PresetNumberRow preset={preset} field="inpaintStrength" />
-        ) : (
-          <>
-            <PresetNumberRow preset={preset} field="img2imgStrength" />
-            <PresetNumberRow preset={preset} field="img2imgNoise" />
-          </>
-        ))}
-    </section>
-  );
-}
 
 /** 감정 없이 프롬프트만으로 여러 장을 뽑는 화면. 결과는 작업과 따로 `projects/free/`에 쌓인다. */
 export function FreeView() {
