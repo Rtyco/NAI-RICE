@@ -56,7 +56,7 @@ const NO_RECORDS: GenerationSummary[] = [];
 /** 결과는 `projects/free/`에 쌓인다. */
 export function FreeView() {
   const library = useLibrary();
-  const { free, preset, character, promptSet } = resolveFreeGeneration(library);
+  const { free, preset, promptSet } = resolveFreeGeneration(library);
   const director = free.mode === 'augment';
   const augment = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
   const image = free.mode === 'txt2img' ? undefined : free.image;
@@ -438,11 +438,6 @@ export function FreeView() {
                   {augment.tool === 'bg-removal' && (
                     <BgRemovalWarning results={augment.count * 3} />
                   )}
-                  <p className="hint">
-                    {augment.tool === 'emotion' &&
-                      '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. 같은 설정이어도 매번 조금씩 다르게 나옵니다. '}
-                    생성 설정과 캐릭터는 쓰지 않습니다.
-                  </p>
                 </section>
               ) : (
                 <>
@@ -491,10 +486,6 @@ export function FreeView() {
                       })}
                     </span>
                   </div>
-                  <p className="hint">
-                    생성 설정의 공통 프롬프트
-                    {character ? `와 ${character.name}의 캐릭터 프롬프트` : ''}에 더해 보냅니다.
-                  </p>
                 </>
               )}
 

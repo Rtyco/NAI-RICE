@@ -144,14 +144,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         <p className="hint">
           {!g.referenceInset
             ? '넣지 않음'
-            : [
-                '인페인트 방식에만 붙습니다',
-                g.referenceInsetPosition === 'character-start' && '성별 태그(girl, 1girl 등) 바로 뒤',
-                g.referenceInsetPosition === 'common-end' && '품질 태그를 켰다면 그 바로 앞',
-                '프롬프트에 직접 쓴 reference inset이 있으면 추가하지 않습니다',
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+            : '인페인트에만 붙고, 직접 쓴 태그가 있으면 넣지 않습니다'}
         </p>
         <div className="inset-row">
           <span className="inset-label">씬 프롬프트</span>
@@ -206,8 +199,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             </div>
             <p className="hint">
               {medium
-                ? 'Medium: 사용량이 약 42% 적습니다 · Steps 14 · Euler Ancestral · UC Heavy 고정 · 직접 쓴 네거티브와 캐릭터 네거티브는 보내지 않습니다(빼고 싶은 것은 포지티브에 -3::hat:: 처럼 음수 강조)'
-                : 'High: 지금까지의 방식입니다. Medium은 사용량이 약 42% 적고 몇 가지 설정이 고정됩니다'}
+                ? 'Steps 14 · Euler Ancestral · UC Heavy 고정 · 네거티브는 보내지 않음'
+                : 'Medium은 사용량이 약 42% 적고 일부 설정이 고정됩니다'}
             </p>
           </>
         )}
@@ -277,9 +270,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(img2imgNoise) => setting({ img2imgNoise })}
           />
         </div>
-        <p className="hint">
-          세기가 낮을수록 원본을 많이 남깁니다. 0.3~0.5에서 얼굴과 구도가 유지됩니다.
-        </p>
+        <p className="hint">세기 0.3~0.5에서 얼굴과 구도가 유지됩니다.</p>
       </Card>
 
       <Card title="품질 태그 · UC 프리셋" subtitle="">
@@ -428,24 +419,11 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             />
           )}
         </div>
-        <p className="hint">
-          {[
-            model?.varietySigma &&
-              'Variety+: 구도가 잡힐 때까지 Prompt Guidance를 늦게 걸어 결과가 더 다양해집니다',
-            isV3 && 'SMEA: 큰 해상도에서 형태를 안정시킵니다. 유료일 때 1.2배(DYN 1.4배)가 듭니다',
-            isV3 && 'Decrisp: Guidance가 높을 때 생기는 지나친 대비를 줄입니다',
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
         {shown.steps > 28 && (
           <p className="field-error">Steps가 28을 넘으면 Opus 구독에서도 Anlas가 사용됩니다.</p>
         )}
         {medium && (
-          <p className="hint">
-            Effort Medium이라 Steps·Sampler·CFG Rescale이 고정되어 있습니다. 모델 카드에서 High로
-            바꾸면 원래 값으로 돌아옵니다.
-          </p>
+          <p className="hint">Effort Medium이라 Steps·Sampler·CFG Rescale이 고정됩니다.</p>
         )}
       </Card>
 

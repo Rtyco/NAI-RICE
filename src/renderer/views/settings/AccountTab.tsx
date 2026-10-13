@@ -10,7 +10,7 @@ function RequestDelayCard() {
   const setDelay = (requestDelayMs: number) =>
     patchSettings((current) => ({ ...current, requestDelayMs }));
   return (
-    <Card title="요청 간격" subtitle="NovelAI 요청 사이 대기 시간 조절">
+    <Card title="요청 간격" subtitle="">
       <div className="delay-row">
         <input
           type="range"
@@ -32,7 +32,7 @@ function RequestDelayCard() {
           onChange={setDelay}
         />
       </div>
-      <p className="hint">0~1000ms · 다음 요청부터 적용 · 응답 시점부터 계산합니다</p>
+      <p className="hint">0~1000ms</p>
     </Card>
   );
 }
@@ -40,17 +40,12 @@ function RequestDelayCard() {
 function StreamingCard() {
   const streaming = useLibrary().settings.streaming;
   return (
-    <Card title="스트리밍" subtitle="생성 과정을 받는 대로 보여 줍니다">
+    <Card title="스트리밍" subtitle="V3·디렉터 툴은 스트리밍하지 않습니다">
       <Toggle
         label="생성 과정 보기 (스트리밍)"
         checked={streaming}
         onChange={(value) => patchSettings((current) => ({ ...current, streaming: value }))}
       />
-      <p className="hint">
-        켜면 NovelAI 웹처럼 생성 중인 그림을 씬 카드·자유 생성 결과·생성 큐 막대에 보여 줍니다.
-        V4·V4.5·V5에만 적용되고, V3와 디렉터 툴은 NovelAI 웹도 스트리밍하지 않아 그대로 받습니다.
-        다음 요청부터 적용됩니다.
-      </p>
     </Card>
   );
 }
@@ -158,7 +153,6 @@ export function AccountTab() {
       <Card title="Anlas가 차감되는 경우">
         <p>• 캔버스 1024×1024 초과 또는 Steps 28 초과 (모든 모델) — 생성 전 확인</p>
         <p>• V5 무료 할당량(%) 소진 후</p>
-        <p className="hint">실제 차감량은 큐와 결과의 "생성 정보"에 표시됩니다</p>
       </Card>
     </>
   );

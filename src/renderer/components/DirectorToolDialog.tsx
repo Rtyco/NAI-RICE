@@ -124,11 +124,6 @@ export function DirectorToolDialog(props: {
         />
       )}
       {options.tool === 'bg-removal' && <BgRemovalWarning results={resultCount} />}
-      <p className="hint">
-        {options.tool === 'emotion' &&
-          '정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다. 같은 설정이어도 매번 조금씩 다르게 나옵니다. '}
-        결과는 원래 씬에 새 결과로 쌓이고, 프롬프트와 생성 설정은 쓰지 않습니다.
-      </p>
     </Modal>
   );
 }
