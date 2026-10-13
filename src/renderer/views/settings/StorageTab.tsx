@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { GenerationSummary, Project } from '../../core/domain/types';
-import type { ProjectInspection, ProjectUsage, StorageUsage } from '../../shared/ipc';
-import { Modal, confirmDialog, openDialog } from '../components/Dialogs';
-import { FREE_PROJECT_ID } from '../../core/model/defaults';
-import { Card } from '../components/ui';
-import { fileApi, libraryApi, queueApi, storageApi } from '../desktop';
-import { importJsonFromPicker } from '../importers';
-import { deleteProject } from '../projectOps';
-import { deleteGenerations, loadGenerations, run, toast, useLibrary, useStore } from '../store';
+import type { GenerationSummary, Project } from '../../../core/domain/types';
+import type { ProjectInspection, ProjectUsage, StorageUsage } from '../../../shared/ipc';
+import { Modal, confirmDialog, openDialog } from '../../components/Dialogs';
+import { FREE_PROJECT_ID } from '../../../core/model/defaults';
+import { Card } from '../../components/ui';
+import { fileApi, libraryApi, queueApi, storageApi } from '../../desktop';
+import { importJsonFromPicker } from '../../importers';
+import { deleteProject } from '../../projectOps';
+import { deleteGenerations, loadGenerations, run, toast, useLibrary, useStore } from '../../store';
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
