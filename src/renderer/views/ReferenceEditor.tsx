@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { CanvasLayout, Rect, Reference, ReferenceSide } from '../../core/domain/types';
+import type { CanvasLayout, DividerLine, Rect, Reference, ReferenceSide } from '../../core/domain/types';
 import { computeLayout, CUSTOM_MAX, CUSTOM_MIN, RESOLUTION_PRESETS, snapDimension } from '../../core/imaging/CanvasLayout';
+import { dividerPixels } from '../../core/imaging/Divider';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
 import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper';
 import { clampRect, expandRect } from '../../core/imaging/rects';
@@ -11,14 +12,14 @@ import { PanelResizer } from '../components/PanelResizer';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
-import { EmptyState, SelectField } from '../components/ui';
+import { EmptyState, SelectField, Toggle } from '../components/ui';
 import type { CanvasImage } from '../lib/image';
 import {
-  canvasImageToDataUrl,
   composeCanvas,
   decodeMask,
+  finalCanvasDataUrl,
   layoutMaskFor,
-  loadHtmlImage,
+  loadCanvas,
   maskToDataUrl,
   masksEqual,
   prepareImage,
@@ -71,6 +72,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const expansionRef = useRef(expansionPx);
   expansionRef.current = expansionPx;
   const [threshold, setThreshold] = useState(reference.backgroundThreshold);
+  const [divider, setDivider] = useState<DividerLine>(reference.divider);
   const [initialMask, setInitialMask] = useState<Uint8Array>();
   const [mask, setMask] = useState<Uint8Array>();
   const savedMask = useRef<Uint8Array | undefined>(undefined);
@@ -92,13 +94,24 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         const images = await libraryApi().readReferenceImages(reference);
         if (!images || !active) return;
         const loadedMask = await decodeMask(images.maskDataUrl, image.canvasWidth, image.canvasHeight);
-        const canvas = await loadHtmlImage(images.canvasDataUrl);
+        // canvas.png에 층이 합쳐져 있으면 원본에서 base를 다시 만든다.
+        const layered = reference.divider.enabled;
+        let canvas: CanvasImage;
         let backgroundMask: Uint8Array;
         let detectionLabel = '저장된 마스크';
         if (reference.layout.mode === 'auto') {
           backgroundMask = layoutMaskFor(reference.layout);
+          const composed = layered ? await composeCanvas(images.originalDataUrl, reference.layout) : undefined;
+          canvas =
+            composed && composed.width === image.canvasWidth && composed.height === image.canvasHeight
+              ? composed.canvas
+              : await loadCanvas(images.canvasDataUrl);
         } else {
-          const prepared = await prepareImage(images.canvasDataUrl, reference.backgroundThreshold);
+          const prepared = await prepareImage(
+            layered ? images.originalDataUrl : images.canvasDataUrl,
+            reference.backgroundThreshold,
+          );
+          canvas = prepared.canvas;
           backgroundMask = prepared.backgroundMask;
           detectionLabel = `저장된 마스크 · ${detectionText(prepared.detection.mode, prepared.detection.confidence)}`;
         }
@@ -258,8 +271,13 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
   }, []);
 
-  const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask });
-  latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask };
+  const changeDivider = (patch: Partial<DividerLine>) => {
+    setDivider((current) => ({ ...current, ...patch }));
+    dirty.current = true;
+  };
+
+  const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider });
+  latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider };
 
   useEffect(() => {
     if (!dirty.current || rebuilding) return;
@@ -268,10 +286,15 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       async () => {
         const value = latest.current;
         if (value.working && value.mask && value.source && value.mask.length === value.working.width * value.working.height) {
+          const { width, height } = value.working;
           const result = await libraryApi().saveReferenceImages({
             referenceId: reference.id,
             originalDataUrl: value.source.changed ? value.source.dataUrl : undefined,
-            canvasDataUrl: canvasImageToDataUrl(value.working.canvas),
+            canvasDataUrl: finalCanvasDataUrl(value.working.canvas, width, height, {
+              divider: value.divider.enabled
+                ? { pixels: dividerPixels(value.mask, width, height, value.divider.widthPx), color: value.divider.color }
+                : undefined,
+            }),
             maskDataUrl: maskToDataUrl(value.mask, value.working.width, value.working.height),
           });
           if (value.source.changed) setSource({ ...value.source, changed: false });
@@ -290,6 +313,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                 outputRect: value.outputRect,
               },
               layout: value.layout,
+              divider: value.divider,
               maskExpansionPx: value.expansionPx,
               backgroundThreshold: value.threshold,
               updatedAt: new Date().toISOString(),
@@ -297,14 +321,18 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           );
         } else {
           updateLibrary((library) =>
-            patchItem(library, 'references', reference.id, (item) => ({ ...item, layout: value.layout })),
+            patchItem(library, 'references', reference.id, (item) => ({
+              ...item,
+              layout: value.layout,
+              divider: value.divider,
+            })),
           );
         }
         dirty.current = false;
       },
       800,
     );
-  }, [reference.id, rebuilding, source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask]);
+  }, [reference.id, rebuilding, source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider]);
 
   const pickImage = () =>
     void run('이미지를 여는 중', async () => {
@@ -335,6 +363,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             outputRect={outputRect}
             expansionPx={expansionPx}
             initialMask={initialMask}
+            divider={divider.enabled ? divider : undefined}
             detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
             status={
               <>
@@ -554,6 +583,32 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             />
           </SettingRow>
           <p className="hint">결과 영역은 이 여백 바깥에서 자릅니다.</p>
+          <div title="생성 영역 바로 바깥에 선을 그어 따로 나뉜 칸임을 알립니다. 선은 다시 그리지 않습니다.">
+            <Toggle label="분리선" checked={divider.enabled} onChange={(enabled) => changeDivider({ enabled })} />
+          </div>
+          {divider.enabled && (
+            <>
+              <SettingRow label="선 색">
+                <input
+                  type="color"
+                  className="color-swatch"
+                  aria-label="분리선 색"
+                  value={divider.color}
+                  onChange={(event) => changeDivider({ color: event.target.value })}
+                />
+              </SettingRow>
+              <SettingRow label="선 두께" unit="px" title="NovelAI 마스크 한 칸(8px) 단위입니다">
+                <Stepper
+                  label="선 두께"
+                  value={divider.widthPx}
+                  min={8}
+                  max={32}
+                  step={8}
+                  onChange={(widthPx) => changeDivider({ widthPx: Math.max(8, Math.min(32, Math.round(widthPx / 8) * 8)) })}
+                />
+              </SettingRow>
+            </>
+          )}
           {working && (
             <details className="crop-details">
               <summary>결과 영역 숫자로 맞추기</summary>

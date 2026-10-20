@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import type { Rect } from '../../core/domain/types';
+import type { DividerLine, Rect } from '../../core/domain/types';
+import { dividerPixels } from '../../core/imaging/Divider';
 import {
   buildGenerationMask,
   inferSavedExpansion,
@@ -16,7 +17,7 @@ import {
   type BrushShape,
 } from '../../core/imaging/MaskBrush';
 import { clampRect, contains } from '../../core/imaging/rects';
-import type { CanvasImage } from '../lib/image';
+import { hexToRgb, type CanvasImage } from '../lib/image';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
 import { ZOOM_STEP } from './zoom';
@@ -42,6 +43,8 @@ type Props = {
   onMaskChange: (mask: Uint8Array) => void;
   /** 자유 인페인팅: 참고·결과 영역 없이 칠하기만 한다. */
   maskOnly?: boolean;
+  /** 켜져 있을 때만 */
+  divider?: DividerLine;
 };
 
 type DragState = {
@@ -156,6 +159,16 @@ export function ReferenceCanvas(props: Props) {
 
   const hasGeneratePixels = useMemo(() => maskHasGeneratePixels(mask), [mask]);
 
+  const dividerWidth = props.divider?.widthPx;
+  const dividerColor = props.divider?.color;
+  const dividerMask = useMemo(
+    () =>
+      dividerWidth === undefined
+        ? undefined
+        : dividerPixels(mask, props.width, props.height, dividerWidth),
+    [mask, props.width, props.height, dividerWidth],
+  );
+
   const view = useCanvasViewport(props.width, props.height);
   const scale = view.scale;
 
@@ -179,8 +192,17 @@ export function ReferenceCanvas(props: Props) {
     // 리틀 엔디언이라 RGBA가 ABGR 순서다.
     const pixels = new Uint32Array(overlay.data.buffer);
     const color = ((alpha << 24) | (190 << 16) | (208 << 8) | 23) >>> 0;
-    for (let pixel = 0; pixel < mask.length; pixel += 1) {
-      if (mask[pixel]) pixels[pixel] = color;
+    if (dividerMask && dividerColor) {
+      const [red, green, blue] = hexToRgb(dividerColor);
+      const line = ((255 << 24) | (blue << 16) | (green << 8) | red) >>> 0;
+      for (let pixel = 0; pixel < mask.length; pixel += 1) {
+        if (mask[pixel]) pixels[pixel] = color;
+        else if (dividerMask[pixel]) pixels[pixel] = line;
+      }
+    } else {
+      for (let pixel = 0; pixel < mask.length; pixel += 1) {
+        if (mask[pixel]) pixels[pixel] = color;
+      }
     }
     overlayContext.putImageData(overlay, 0, 0);
     context.drawImage(overlayCanvas, 0, 0);
@@ -209,6 +231,8 @@ export function ReferenceCanvas(props: Props) {
     drawRect(props.outputRect, '#36a3ff', tool === 'output');
   }, [
     mask,
+    dividerMask,
+    dividerColor,
     props.maskOnly,
     opacity,
     props.image,

@@ -5,6 +5,7 @@ import type {
   CharacterCenter,
   CharacterPromptSet,
   CharacterSlot,
+  DividerLine,
   Emotion,
   EmotionSet,
   GenerationKind,
@@ -105,6 +106,8 @@ export const DEFAULT_LAYOUT: CanvasLayout = {
   background: '#ffffff',
 };
 
+export const DEFAULT_DIVIDER: DividerLine = { enabled: false, color: '#000000', widthPx: 8 };
+
 export const DEFAULT_EMOTIONS: Array<{ name: string; prompt: string }> = [
   { name: '중립', prompt: 'neutral expression, closed mouth' },
   { name: '기쁨', prompt: 'smile, happy, open mouth' },
@@ -176,6 +179,7 @@ export function createReference(name: string): Reference {
     id: readableId(name, 'reference'),
     name: name.trim() || '새 인페인트',
     layout: { ...DEFAULT_LAYOUT },
+    divider: { ...DEFAULT_DIVIDER },
     maskExpansionPx: 8,
     backgroundThreshold: 16,
     updatedAt: new Date().toISOString(),

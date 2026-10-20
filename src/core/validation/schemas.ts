@@ -170,6 +170,13 @@ export const referenceSchema = z.object({
     })
     .optional(),
   layout: canvasLayoutSchema,
+  divider: z
+    .object({
+      enabled: z.boolean(),
+      color: z.string(),
+      widthPx: z.number().int().min(0).max(64),
+    })
+    .default({ enabled: false, color: '#000000', widthPx: 8 }),
   maskExpansionPx: z.number().nonnegative(),
   backgroundThreshold: z.number().min(0).max(255),
   updatedAt: z.string(),

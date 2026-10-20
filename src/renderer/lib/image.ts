@@ -186,6 +186,49 @@ export async function repaintComposed(
   paintLayout(canvas.getContext('2d')!, image, layout, composed);
 }
 
+/** `repaintComposed`는 캔버스에만 다시 칠할 수 있다. */
+export async function loadCanvas(dataUrl: string): Promise<HTMLCanvasElement> {
+  const image = await loadHtmlImage(dataUrl);
+  const { canvas, context } = canvas2d(image.naturalWidth, image.naturalHeight, false);
+  context.drawImage(image, 0, 0);
+  return canvas;
+}
+
+export type CanvasLayers = {
+  paint?: CanvasImageSource;
+  divider?: { pixels: Uint8Array; color: string };
+};
+
+export function hexToRgb(hex: string): [number, number, number] {
+  const value = Number.parseInt(hex.slice(1), 16) || 0;
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+/** NovelAI에 보내는 canvas.png. 편집기는 층을 합치지 않은 base를 따로 둔다. */
+export function finalCanvasDataUrl(
+  base: CanvasImage,
+  width: number,
+  height: number,
+  layers: CanvasLayers,
+): string {
+  if (!layers.paint && !layers.divider) return canvasImageToDataUrl(base);
+  const { canvas, context } = canvas2d(width, height, false);
+  context.drawImage(base, 0, 0, width, height);
+  if (layers.paint) context.drawImage(layers.paint, 0, 0, width, height);
+  if (layers.divider) {
+    const line = canvas2d(width, height, false);
+    const image = line.context.createImageData(width, height);
+    const [red, green, blue] = hexToRgb(layers.divider.color);
+    layers.divider.pixels.forEach((value, pixel) => {
+      if (!value) return;
+      image.data.set([red, green, blue, 255], pixel * 4);
+    });
+    line.context.putImageData(image, 0, 0);
+    context.drawImage(line.canvas, 0, 0);
+  }
+  return canvas.toDataURL('image/png');
+}
+
 export function layoutMaskFor(layout: CanvasLayout): Uint8Array {
   return layoutBackgroundMask(computeLayout(layout, 1, 1));
 }

@@ -24,6 +24,7 @@ import {
   FREE_PROJECT_ID,
   createProject,
   createPromptSet,
+  DEFAULT_DIVIDER,
   DEFAULT_LAYOUT,
   DEFAULT_SETTINGS,
 } from '../../src/core/model/defaults';
@@ -57,6 +58,7 @@ function makeReference(width: number, height: number): Reference {
       outputRect: { x: width / 2, y: 0, width: width / 2, height },
     },
     layout: { ...DEFAULT_LAYOUT, resolution: 'custom', width, height },
+    divider: DEFAULT_DIVIDER,
     maskExpansionPx: 0,
     backgroundThreshold: 16,
     updatedAt: new Date().toISOString(),

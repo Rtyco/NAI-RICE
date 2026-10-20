@@ -7,6 +7,7 @@ import {
   createPreset,
   createProject,
   createPromptSet,
+  DEFAULT_DIVIDER,
   DEFAULT_LAYOUT,
   DEFAULT_SETTINGS,
 } from '../../src/core/model/defaults';
@@ -32,6 +33,7 @@ const reference: Reference = {
     outputRect: { x: 608, y: 0, width: 608, height: 832 },
   },
   layout: DEFAULT_LAYOUT,
+  divider: DEFAULT_DIVIDER,
   maskExpansionPx: 8,
   backgroundThreshold: 16,
   updatedAt: '2026-01-01T00:00:00.000Z',

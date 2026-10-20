@@ -142,6 +142,13 @@ export type CanvasLayout = {
   background: string;
 };
 
+export type DividerLine = {
+  enabled: boolean;
+  color: string;
+  /** NovelAI 마스크 한 칸이 8px라 8 단위 */
+  widthPx: number;
+};
+
 /** 파일은 `references/<id>/`. */
 export type Reference = {
   id: string;
@@ -158,6 +165,7 @@ export type Reference = {
     outputRect: Rect;
   };
   layout: CanvasLayout;
+  divider: DividerLine;
   maskExpansionPx: number;
   backgroundThreshold: number;
   updatedAt: string;

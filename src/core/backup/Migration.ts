@@ -1,5 +1,6 @@
 import type { EmotionSet, Library, Project, Reference } from '../domain/types';
 import {
+  DEFAULT_DIVIDER,
   DEFAULT_SETTINGS,
   createDefaultLibrary,
   createReference,
@@ -48,6 +49,7 @@ export function splitV1Character(
         outputRect: r.outputRect,
       },
       layout: r.layout,
+      divider: { ...DEFAULT_DIVIDER },
       maskExpansionPx: r.maskExpansionPx,
       backgroundThreshold: r.backgroundThreshold,
       updatedAt: r.updatedAt,
