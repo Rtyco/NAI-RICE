@@ -52,6 +52,9 @@ const CROP_FIELDS = [
   { key: 'height', label: '세로' },
 ] as const;
 
+/** 영역이 그대로인 값. 다시 구성하면 붓으로 고친 마스크와 결과 영역이 초기화된다. */
+const REPAINT_KEYS: ReadonlySet<string> = new Set<keyof CanvasLayout>(['background', 'fit', 'anchor', 'free']);
+
 function detectionText(mode: string, confidence: number): string {
   const label = mode === 'transparent' ? '투명 배경' : mode === 'solid' ? '단색 배경' : '수동 확인 필요';
   return `${label} · 신뢰도 ${Math.round(confidence * 100)}%`;
@@ -229,7 +232,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     applySource(pendingReference.dataUrl, pendingReference.name);
   }, [pendingReference, reference.id, loading, applySource]);
 
-  /** 배경색만 바뀌면 영역이 그대로라 다시 칠하기만 한다. 프레임마다 한 번. */
+  /** 프레임마다 한 번 */
   const repaint = (canvas: HTMLCanvasElement, dataUrl: string, next: CanvasLayout) => {
     queuedRepaint.current = next;
     if (repaintRunning.current) return;
@@ -254,9 +257,8 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     const next = { ...layout, ...patch };
     setLayout(next);
     dirty.current = true;
-    const onlyBackground = Object.keys(patch).every((key) => key === 'background');
     if (
-      onlyBackground &&
+      Object.keys(patch).every((key) => REPAINT_KEYS.has(key)) &&
       next.mode === 'auto' &&
       source &&
       working?.canvas instanceof HTMLCanvasElement &&
