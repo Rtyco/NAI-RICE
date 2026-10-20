@@ -50,6 +50,7 @@ export type ReferenceImages = {
   originalDataUrl: string;
   canvasDataUrl: string;
   maskDataUrl: string;
+  paintDataUrl?: string;
 };
 
 export type ReferenceImageSave = {
@@ -57,6 +58,8 @@ export type ReferenceImageSave = {
   originalDataUrl?: string;
   canvasDataUrl: string;
   maskDataUrl: string;
+  /** 없으면 그대로, null이면 지운다. */
+  paintDataUrl?: string | null;
 };
 
 export type PreparedInputs = {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import type { CanvasImage } from '../lib/image';
 import { useCanvasViewport } from './canvasViewport';
 import { Icon } from './Icon';
 import { ZOOM_STEP } from './zoom';
@@ -131,12 +132,19 @@ function floodRegion(
  * 합친다.
  */
 export function DrawCanvas(props: {
-  base: HTMLImageElement;
+  base: CanvasImage;
+  /** 바탕 캔버스를 그 자리에서 다시 칠할 때마다 바뀐다. */
+  baseVersion?: number;
   width: number;
   height: number;
-  onApply: (dataUrl: string) => Promise<void>;
+  /** 지우개로 지울 수 있게 그린 층으로 불러온다. 처음 한 번만 읽는다. */
+  initialLayer?: CanvasImageSource;
+  /** 바탕과 합친 PNG */
+  onApply?: (dataUrl: string) => Promise<void>;
   /** 합치지 않은 그림이 없으면 undefined. */
-  onPendingChange: (apply: (() => Promise<void>) | undefined) => void;
+  onPendingChange?: (apply: (() => Promise<void>) | undefined) => void;
+  /** 있으면 합치지 않고 바뀔 때마다 그린 층 사본을 넘긴다. */
+  onLayerChange?: (layer: HTMLCanvasElement) => void;
 }) {
   const { width, height } = props;
   const view = useCanvasViewport(width, height);
@@ -159,13 +167,21 @@ export function DrawCanvas(props: {
   const [spaceHeld, setSpaceHeld] = useState(false);
 
   const layer = () => context2d(layerRef.current!);
+  const initialLayer = useRef(props.initialLayer);
 
   useEffect(() => {
     const context = baseRef.current && context2d(baseRef.current);
     if (!context) return;
     context.clearRect(0, 0, width, height);
     context.drawImage(props.base, 0, 0, width, height);
-  }, [props.base, width, height]);
+  }, [props.base, props.baseVersion, width, height]);
+
+  useEffect(() => {
+    if (!initialLayer.current) return;
+    const context = context2d(layerRef.current!);
+    context.clearRect(0, 0, width, height);
+    context.drawImage(initialLayer.current, 0, 0, width, height);
+  }, [width, height]);
 
   const composite = (): CanvasRenderingContext2D => {
     const context = readable(makeCanvas(width, height));
@@ -175,7 +191,7 @@ export function DrawCanvas(props: {
   };
 
   const apply = async () => {
-    if (!dirty) return;
+    if (!dirty || !props.onApply) return;
     setDirty(false);
     await props.onApply(composite().canvas.toDataURL('image/png'));
   };
@@ -183,7 +199,7 @@ export function DrawCanvas(props: {
   applyRef.current = apply;
   const { onPendingChange } = props;
   useEffect(() => {
-    onPendingChange(dirty ? () => applyRef.current() : undefined);
+    onPendingChange?.(dirty ? () => applyRef.current() : undefined);
   }, [dirty, onPendingChange]);
   useEffect(() => () => void applyRef.current(), []);
 
@@ -192,6 +208,10 @@ export function DrawCanvas(props: {
     const copy = makeCanvas(width, height);
     context2d(copy).drawImage(layerRef.current!, 0, 0);
     return copy;
+  };
+  const changed = () => {
+    if (props.onLayerChange) props.onLayerChange(snapshot());
+    else setDirty(true);
   };
   const pushHistory = () => {
     undoStack.current = [...undoStack.current.slice(-(HISTORY_LIMIT - 1)), snapshot()];
@@ -209,7 +229,7 @@ export function DrawCanvas(props: {
     const context = layer();
     context.clearRect(0, 0, width, height);
     context.drawImage(previous, 0, 0);
-    setDirty(true);
+    changed();
     setHistoryVersion((version) => version + 1);
   };
   const undo = () => restore(undoStack, redoStack);
@@ -218,7 +238,7 @@ export function DrawCanvas(props: {
   const clearDrawing = () => {
     pushHistory();
     layer().clearRect(0, 0, width, height);
-    setDirty(true);
+    changed();
   };
 
   const pointAt = (bounds: DOMRect, event: PointerEvent): Point => ({
@@ -259,7 +279,7 @@ export function DrawCanvas(props: {
     context.globalAlpha = opacity / 100;
     context.drawImage(temp, 0, 0);
     context.globalAlpha = 1;
-    setDirty(true);
+    changed();
   };
 
   const drawSegment = (from: Point, to: Point) => {
@@ -354,7 +374,7 @@ export function DrawCanvas(props: {
       context.globalAlpha = 1;
       context2d(strokeRef.current!).clearRect(0, 0, width, height);
     }
-    setDirty(true);
+    changed();
   };
 
   useEffect(() => {
@@ -363,7 +383,9 @@ export function DrawCanvas(props: {
         (event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')
       )
         return;
-      if (document.querySelector('.modal-backdrop')) return;
+      // 인페인트 편집 팝업 안에서도 쓰므로 맨 위 대화상자 안에 있을 때만 받는다.
+      const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
+      if (dialog && !dialog.contains(layerRef.current)) return;
       const key = event.key.toLowerCase();
       if (event.ctrlKey || event.metaKey) {
         if (key === 'z' && !event.shiftKey) undo();
@@ -533,14 +555,16 @@ export function DrawCanvas(props: {
               1:1
             </button>
           </span>
-          <button
-            className="accent"
-            disabled={!dirty}
-            title="그린 것을 이미지에 합쳐 i2i 이미지로 씁니다. 생성하거나 다른 탭으로 가면 자동으로 합칩니다."
-            onClick={() => void apply()}
-          >
-            이미지에 합치기
-          </button>
+          {props.onApply && (
+            <button
+              className="accent"
+              disabled={!dirty}
+              title="그린 것을 이미지에 합쳐 i2i 이미지로 씁니다. 생성하거나 다른 탭으로 가면 자동으로 합칩니다."
+              onClick={() => void apply()}
+            >
+              이미지에 합치기
+            </button>
+          )}
         </div>
       </div>
       <div
@@ -572,7 +596,7 @@ export function DrawCanvas(props: {
             onPointerUp={finish}
             onPointerCancel={finish}
             onPointerLeave={() => moveCursor(null)}
-            aria-label="i2i 이미지 그리기 캔버스"
+            aria-label="그리기 캔버스"
           />
           <div
             ref={cursorRef}
@@ -584,7 +608,9 @@ export function DrawCanvas(props: {
         <span>
           캔버스 {width}×{height}
         </span>
-        <span>{dirty ? '합치지 않은 그림이 있습니다' : '바탕 이미지와 같습니다'}</span>
+        {props.onApply && (
+          <span>{dirty ? '합치지 않은 그림이 있습니다' : '바탕 이미지와 같습니다'}</span>
+        )}
         <span>B 펜 · E 지우개 · G 채우기 · C 스포이트 · [ ] 크기 · Ctrl+클릭 색 고르기</span>
       </div>
     </section>

@@ -13,9 +13,11 @@ import {
   CUSTOM_MIN,
   freePlacementOf,
   imageBoxOf,
+  resolveResolution,
   RESOLUTION_PRESETS,
   snapDimension,
 } from '../../core/imaging/CanvasLayout';
+import { normalizeCanvasSize } from '../../core/imaging/CanvasNormalizer';
 import type { ImageBox } from '../../core/imaging/FreeTransform';
 import { dividerPixels } from '../../core/imaging/Divider';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
@@ -24,6 +26,8 @@ import { clampRect, expandRect } from '../../core/imaging/rects';
 import { effectiveGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
+import { confirmDialog } from '../components/Dialogs';
+import { DrawCanvas } from '../components/DrawCanvas';
 import { PanelResizer } from '../components/PanelResizer';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
@@ -34,6 +38,8 @@ import {
   composeCanvas,
   decodeMask,
   finalCanvasDataUrl,
+  imageSizeOf,
+  isBlank,
   layoutMaskFor,
   loadCanvas,
   loadOriginal,
@@ -104,6 +110,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const [imageVersion, setImageVersion] = useState(0);
   const queuedRepaint = useRef<CanvasLayout | null>(null);
   const [sourceImage, setSourceImage] = useState<HTMLImageElement>();
+  const [stage, setStage] = useState<'mask' | 'draw'>('mask');
+  /** 그린 것이 없으면 undefined. 저장 전까지 PNG로 바꾸지 않는다. */
+  const [paint, setPaint] = useState<HTMLCanvasElement>();
+  const paintChanged = useRef(false);
   const transformStart = useRef<CanvasLayout | null>(null);
   const repaintRunning = useRef(false);
 
@@ -116,8 +126,9 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         const images = await libraryApi().readReferenceImages(reference);
         if (!images || !active) return;
         const loadedMask = await decodeMask(images.maskDataUrl, image.canvasWidth, image.canvasHeight);
+        const loadedPaint = images.paintDataUrl ? await loadCanvas(images.paintDataUrl) : undefined;
         // canvas.png에 층이 합쳐져 있으면 원본에서 base를 다시 만든다.
-        const layered = reference.divider.enabled;
+        const layered = reference.divider.enabled || Boolean(loadedPaint);
         let canvas: CanvasImage;
         let backgroundMask: Uint8Array;
         let detectionLabel = '저장된 마스크';
@@ -139,6 +150,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         }
         if (!active) return;
         savedMask.current = loadedMask;
+        setPaint(loadedPaint);
         setSource({ dataUrl: images.originalDataUrl, name: image.originalName, changed: false });
         setWorking({
           canvas,
@@ -236,20 +248,66 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     [],
   );
 
-  const applySource = useCallback(
-    (dataUrl: string, name: string) => {
-      const next = { dataUrl, name, changed: true };
-      setSource(next);
-      void rebuild(next, layout, threshold);
-    },
-    [layout, threshold, rebuild],
-  );
+  /** 캔버스 크기가 바뀌면 그린 층을 맞출 수 없어 지운다. */
+  const keepsPaint = async (next: CanvasLayout, image?: { width: number; height: number }) => {
+    const size =
+      next.mode === 'auto'
+        ? resolveResolution(next)
+        : image && normalizeCanvasSize(image.width, image.height, 64);
+    if (!paint || !size || isBlank(paint)) return true;
+    if (size.width === paint.width && size.height === paint.height) return true;
+    return confirmDialog({
+      title: '그린 내용 지우기',
+      message: '캔버스 크기가 바뀌어 그리기 탭에서 그린 내용이 지워집니다.',
+      confirmLabel: '지우고 바꾸기',
+      danger: true,
+    });
+  };
 
+  const sourceSize = sourceImage && {
+    width: sourceImage.naturalWidth,
+    height: sourceImage.naturalHeight,
+  };
+
+  const applySource = async (dataUrl: string, name: string) => {
+    if (layout.mode === 'prepared' && !(await keepsPaint(layout, await imageSizeOf(dataUrl))))
+      return;
+    const next = { dataUrl, name, changed: true };
+    setSource(next);
+    void rebuild(next, layout, threshold);
+  };
+
+  const changeCanvasSize = async (patch: Partial<CanvasLayout>) => {
+    if (await keepsPaint({ ...layout, ...patch }, sourceSize)) changeLayout(patch);
+  };
+
+  useEffect(() => {
+    if (!paint || !working) return;
+    if (paint.width === working.width && paint.height === working.height) return;
+    setPaint(undefined);
+    paintChanged.current = true;
+    dirty.current = true;
+  }, [paint, working]);
+
+  const changePaint = useCallback((layer: HTMLCanvasElement) => {
+    setPaint(layer);
+    paintChanged.current = true;
+    dirty.current = true;
+  }, []);
+
+  const showStage = (next: 'mask' | 'draw') => {
+    // 마스크 편집기는 다시 열릴 때 이 마스크에서 붓으로 고친 곳을 되찾는다.
+    if (next === 'draw') setInitialMask(mask);
+    setStage(next);
+  };
+
+  const applySourceRef = useRef(applySource);
+  applySourceRef.current = applySource;
   useEffect(() => {
     if (!pendingReference || pendingReference.referenceId !== reference.id || loading) return;
     setPendingReference(undefined);
-    applySource(pendingReference.dataUrl, pendingReference.name);
-  }, [pendingReference, reference.id, loading, applySource]);
+    void applySourceRef.current(pendingReference.dataUrl, pendingReference.name);
+  }, [pendingReference, reference.id, loading]);
 
   /** 프레임마다 한 번 */
   const repaint = (canvas: HTMLCanvasElement, dataUrl: string, next: CanvasLayout) => {
@@ -346,8 +404,8 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     dirty.current = true;
   };
 
-  const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider });
-  latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider };
+  const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint });
+  latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint };
 
   useEffect(() => {
     if (!dirty.current || rebuilding) return;
@@ -357,10 +415,15 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         const value = latest.current;
         if (value.working && value.mask && value.source && value.mask.length === value.working.width * value.working.height) {
           const { width, height } = value.working;
+          const painted = value.paint && !isBlank(value.paint) ? value.paint : undefined;
+          const paintSaved = paintChanged.current;
+          paintChanged.current = false;
           const result = await libraryApi().saveReferenceImages({
             referenceId: reference.id,
             originalDataUrl: value.source.changed ? value.source.dataUrl : undefined,
+            paintDataUrl: paintSaved ? (painted?.toDataURL('image/png') ?? null) : undefined,
             canvasDataUrl: finalCanvasDataUrl(value.working.canvas, width, height, {
+              paint: painted,
               divider: value.divider.enabled
                 ? { pixels: dividerPixels(value.mask, width, height, value.divider.widthPx), color: value.divider.color }
                 : undefined,
@@ -381,6 +444,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                 canvasHeight: value.working!.height,
                 referenceRect: value.referenceRect,
                 outputRect: value.outputRect,
+                paintFile: painted ? 'paint.png' : undefined,
               },
               layout: value.layout,
               divider: value.divider,
@@ -402,13 +466,12 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       },
       800,
     );
-  }, [reference.id, rebuilding, source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider]);
+  }, [reference.id, rebuilding, source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint]);
 
   const pickImage = () =>
-    void run('이미지를 여는 중', async () => {
-      const file = await fileApi().openImageFile();
-      if (file) applySource(file.dataUrl, file.name);
-    });
+    void run('이미지를 여는 중', () => fileApi().openImageFile()).then(
+      (file) => file && applySource(file.dataUrl, file.name),
+    );
 
   if (loading) return <p className="hint pad">인페인트를 불러오는 중…</p>;
 
@@ -421,79 +484,111 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   return (
     <div className="canvas-view">
       <section className="canvas-panel">
-        {working ? (
-          <ReferenceCanvas
-            key={`${working.width}x${working.height}`}
-            image={working.canvas}
-            imageVersion={imageVersion}
-            width={working.width}
-            height={working.height}
-            backgroundMask={working.backgroundMask}
-            referenceRect={referenceRect}
-            outputRect={outputRect}
-            expansionPx={expansionPx}
-            initialMask={initialMask}
-            divider={divider.enabled ? divider : undefined}
-            transform={
-              imageBox && sourceImage
-                ? {
-                    box: imageBox,
-                    image: sourceImage,
-                    onBegin: () => (transformStart.current = layout),
-                    onChange: placeImage,
-                    onCancel: () => {
-                      const start = transformStart.current;
-                      if (start)
-                        changeLayout({ fit: start.fit, anchor: start.anchor, free: start.free });
-                    },
-                  }
-                : undefined
-            }
-            detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
-            status={
-              <>
-                <span title="NovelAI에는 캔버스 전체를 보내고, 결과 영역만 잘라 저장합니다">
-                  저장 {Math.round(outputRect.width)}×{Math.round(outputRect.height)}
-                </span>
-                {free?.free ? (
-                  <span
-                    className="ok"
-                    title="Opus 무료 크기 기준(1024×1024 이하 면적)을 충족합니다"
-                  >
-                    무료 크기
-                  </span>
-                ) : (
-                  free?.reasons.map((reason) => (
-                    <span key={reason} className="warn">
-                      ⚠ {reason}
-                    </span>
-                  ))
-                )}
-                {!maskOk && <span className="warn">⚠ 생성 영역(청록색)이 비어 있습니다</span>}
-              </>
-            }
-            onReferenceRectChange={(rect) => {
-              setReferenceRect(rect);
-              setOutputRect((current) =>
-                cropOutside(current, expandRect(rect, expansionPx, working.width, working.height)),
-              );
-              setInitialMask(undefined);
-              dirty.current = true;
-            }}
-            onOutputRectChange={(rect) => {
-              setOutputRect(rect);
-              dirty.current = true;
-            }}
-            onMaskChange={handleMaskChange}
-          />
-        ) : (
-          <EmptyState title="참고 이미지가 필요합니다">
-            <p>캐릭터 이미지 한 장을 선택하면 NovelAI 무료 해상도에 맞춰 참고 이미지와 생성 영역을 자동으로 배치합니다.</p>
-            <button className="accent" onClick={pickImage}>
-              이미지 선택
+        {working && (
+          <div className="segmented stage-tabs" role="group" aria-label="편집할 것">
+            <button
+              className={stage === 'mask' ? 'active' : ''}
+              aria-pressed={stage === 'mask'}
+              onClick={() => showStage('mask')}
+            >
+              <Icon name="brush" size={14} /> 영역·마스크
             </button>
-          </EmptyState>
+            <button
+              className={stage === 'draw' ? 'active' : ''}
+              aria-pressed={stage === 'draw'}
+              title="i2i 그리기처럼 캔버스에 덧칠합니다. 그린 것은 NovelAI에 보내는 캔버스에 합쳐집니다."
+              onClick={() => showStage('draw')}
+            >
+              <Icon name="pen" size={14} /> 그리기
+            </button>
+          </div>
         )}
+        <div className="canvas-stage">
+          {working && stage === 'draw' ? (
+            <DrawCanvas
+              key={`${working.width}x${working.height}`}
+              base={working.canvas}
+              baseVersion={imageVersion}
+              width={working.width}
+              height={working.height}
+              initialLayer={paint}
+              onLayerChange={changePaint}
+            />
+          ) : working ? (
+            <ReferenceCanvas
+              key={`${working.width}x${working.height}`}
+              image={working.canvas}
+              paint={paint}
+              imageVersion={imageVersion}
+              width={working.width}
+              height={working.height}
+              backgroundMask={working.backgroundMask}
+              referenceRect={referenceRect}
+              outputRect={outputRect}
+              expansionPx={expansionPx}
+              initialMask={initialMask}
+              divider={divider.enabled ? divider : undefined}
+              transform={
+                imageBox && sourceImage
+                  ? {
+                      box: imageBox,
+                      image: sourceImage,
+                      onBegin: () => (transformStart.current = layout),
+                      onChange: placeImage,
+                      onCancel: () => {
+                        const start = transformStart.current;
+                        if (start)
+                          changeLayout({ fit: start.fit, anchor: start.anchor, free: start.free });
+                      },
+                    }
+                  : undefined
+              }
+              detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
+              status={
+                <>
+                  <span title="NovelAI에는 캔버스 전체를 보내고, 결과 영역만 잘라 저장합니다">
+                    저장 {Math.round(outputRect.width)}×{Math.round(outputRect.height)}
+                  </span>
+                  {free?.free ? (
+                    <span
+                      className="ok"
+                      title="Opus 무료 크기 기준(1024×1024 이하 면적)을 충족합니다"
+                    >
+                      무료 크기
+                    </span>
+                  ) : (
+                    free?.reasons.map((reason) => (
+                      <span key={reason} className="warn">
+                        ⚠ {reason}
+                      </span>
+                    ))
+                  )}
+                  {!maskOk && <span className="warn">⚠ 생성 영역(청록색)이 비어 있습니다</span>}
+                </>
+              }
+              onReferenceRectChange={(rect) => {
+                setReferenceRect(rect);
+                setOutputRect((current) =>
+                  cropOutside(current, expandRect(rect, expansionPx, working.width, working.height)),
+                );
+                setInitialMask(undefined);
+                dirty.current = true;
+              }}
+              onOutputRectChange={(rect) => {
+                setOutputRect(rect);
+                dirty.current = true;
+              }}
+              onMaskChange={handleMaskChange}
+            />
+          ) : (
+            <EmptyState title="참고 이미지가 필요합니다">
+              <p>캐릭터 이미지 한 장을 선택하면 NovelAI 무료 해상도에 맞춰 참고 이미지와 생성 영역을 자동으로 배치합니다.</p>
+              <button className="accent" onClick={pickImage}>
+                이미지 선택
+              </button>
+            </EmptyState>
+          )}
+        </div>
       </section>
 
       <aside className="canvas-settings">
@@ -515,10 +610,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             <b>캔버스 구성</b>
           </div>
           <div className="segmented full">
-            <button className={auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'auto' })}>
+            <button className={auto ? 'active' : ''} onClick={() => void changeCanvasSize({ mode: 'auto' })}>
               자동 구성
             </button>
-            <button className={!auto ? 'active' : ''} onClick={() => changeLayout({ mode: 'prepared' })}>
+            <button className={!auto ? 'active' : ''} onClick={() => void changeCanvasSize({ mode: 'prepared' })}>
               직접 준비한 캔버스
             </button>
           </div>
@@ -533,7 +628,9 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                 ]}
                 onChange={(resolution) => {
                   const preset = RESOLUTION_PRESETS.find((item) => item.id === resolution);
-                  changeLayout(preset ? { resolution, width: preset.width, height: preset.height } : { resolution });
+                  void changeCanvasSize(
+                    preset ? { resolution, width: preset.width, height: preset.height } : { resolution },
+                  );
                 }}
               />
               {layout.resolution === 'custom' && (
@@ -545,7 +642,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                       min={CUSTOM_MIN}
                       max={CUSTOM_MAX}
                       step={64}
-                      onChange={(width) => changeLayout({ width: snapDimension(width) })}
+                      onChange={(width) => void changeCanvasSize({ width: snapDimension(width) })}
                     />
                   </SettingRow>
                   <SettingRow label="세로" unit="px">
@@ -555,7 +652,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                       min={CUSTOM_MIN}
                       max={CUSTOM_MAX}
                       step={64}
-                      onChange={(height) => changeLayout({ height: snapDimension(height) })}
+                      onChange={(height) => void changeCanvasSize({ height: snapDimension(height) })}
                     />
                   </SettingRow>
                 </>

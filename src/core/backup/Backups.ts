@@ -37,6 +37,7 @@ const imagesSchema = z.object({
   original: z.string().startsWith('data:'),
   canvas: z.string().startsWith('data:'),
   mask: z.string().startsWith('data:'),
+  paint: z.string().startsWith('data:').optional(),
 });
 
 export type ReferenceImagesData = z.infer<typeof imagesSchema>;

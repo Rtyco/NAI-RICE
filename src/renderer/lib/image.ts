@@ -197,6 +197,15 @@ export async function loadCanvas(dataUrl: string): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
+/** 화면에 그리는 캔버스는 GPU에 있어 읽기용 사본에서 읽는다. */
+export function isBlank(canvas: HTMLCanvasElement): boolean {
+  const { context } = canvas2d(canvas.width, canvas.height);
+  context.drawImage(canvas, 0, 0);
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let alpha = 3; alpha < data.length; alpha += 4) if (data[alpha]) return false;
+  return true;
+}
+
 export type CanvasLayers = {
   paint?: CanvasImageSource;
   divider?: { pixels: Uint8Array; color: string };

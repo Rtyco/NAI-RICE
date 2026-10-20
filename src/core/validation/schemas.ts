@@ -177,6 +177,7 @@ export const referenceSchema = z.object({
       canvasHeight: z.number().int().positive(),
       referenceRect: rectSchema,
       outputRect: rectSchema,
+      paintFile: z.string().optional(),
     })
     .optional(),
   layout: canvasLayoutSchema,

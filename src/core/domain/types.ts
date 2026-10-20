@@ -178,6 +178,8 @@ export type Reference = {
     canvasHeight: number;
     referenceRect: Rect;
     outputRect: Rect;
+    /** 그리기 층(투명 PNG, 캔버스 크기). canvas.png에는 이미 합쳐져 있다. */
+    paintFile?: string;
   };
   layout: CanvasLayout;
   divider: DividerLine;

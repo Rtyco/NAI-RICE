@@ -1439,6 +1439,17 @@ textarea.syntax-input::selection {
     linear-gradient(90deg, color-mix(in srgb, var(--text) 3%, transparent) 1px, transparent 1px);
   background-size: 18px 18px;
 }
+.canvas-view .canvas-panel {
+  display: flex;
+  flex-direction: column;
+}
+.canvas-panel > .stage-tabs {
+  margin: 0 0 8px;
+}
+.canvas-stage {
+  flex: 1;
+  min-height: 0;
+}
 .canvas-card {
   width: 100%;
   height: 100%;

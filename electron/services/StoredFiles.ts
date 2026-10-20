@@ -43,6 +43,11 @@ export class StoredFiles {
       atomicWrite(path.join(directory, 'canvas.png'), canvas.buffer),
       atomicWrite(path.join(directory, 'mask.png'), mask.buffer),
     ];
+    const paintPath = path.join(directory, 'paint.png');
+    if (payload.paintDataUrl)
+      writes.push(atomicWrite(paintPath, decodeDataUrl(payload.paintDataUrl).buffer));
+    else if (payload.paintDataUrl === null)
+      writes.push(fs.rm(paintPath, { force: true }));
     let originalFile: string | undefined;
     if (payload.originalDataUrl) {
       const original = decodeDataUrl(payload.originalDataUrl);
@@ -64,12 +69,14 @@ export class StoredFiles {
       const file = await this.paths.resolveReferenceReal(reference.id, relative);
       return toDataUrl(await fs.readFile(file), imageMime(file));
     };
-    const [originalDataUrl, canvasDataUrl, maskDataUrl] = await Promise.all([
+    const [originalDataUrl, canvasDataUrl, maskDataUrl, paintDataUrl] = await Promise.all([
       read(image.originalFile),
       read(image.canvasFile),
       read(image.maskFile),
+      // 그린 내용은 canvas.png에 합쳐져 있어 없어도 생성은 된다.
+      image.paintFile ? read(image.paintFile).catch(() => undefined) : undefined,
     ]);
-    return { originalDataUrl, canvasDataUrl, maskDataUrl };
+    return { originalDataUrl, canvasDataUrl, maskDataUrl, paintDataUrl };
   }
 
   async copyReferenceFiles(fromId: string, toId: string): Promise<void> {

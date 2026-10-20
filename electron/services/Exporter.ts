@@ -112,7 +112,14 @@ export class Exporter {
 
   private async imagesOf(reference: Reference): Promise<ReferenceImagesData | undefined> {
     const images = await this.library.readReferenceImages(reference).catch(() => null);
-    return images ? { original: images.originalDataUrl, canvas: images.canvasDataUrl, mask: images.maskDataUrl } : undefined;
+    return images
+      ? {
+          original: images.originalDataUrl,
+          canvas: images.canvasDataUrl,
+          mask: images.maskDataUrl,
+          ...(images.paintDataUrl ? { paint: images.paintDataUrl } : {}),
+        }
+      : undefined;
   }
 
   async exportReference(reference: Reference): Promise<string | null> {

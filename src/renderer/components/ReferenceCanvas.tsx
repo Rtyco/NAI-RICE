@@ -36,6 +36,8 @@ type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type Props = {
   image: CanvasImage;
+  /** 그리기 층. 바탕 위에 그린다. */
+  paint?: CanvasImageSource;
   /** 배경색을 다시 칠할 때마다 바뀐다. 이때는 마스크 보정을 유지한다. */
   imageVersion?: number;
   width: number;
@@ -218,6 +220,7 @@ export function ReferenceCanvas(props: Props) {
     if (!canvas || !context) return;
     context.clearRect(0, 0, props.width, props.height);
     context.drawImage(props.image, 0, 0, props.width, props.height);
+    if (props.paint) context.drawImage(props.paint, 0, 0, props.width, props.height);
     if (ghostBox && ghostImage) {
       // 참고 영역 밖으로 나가 잘린 부분도 보이게 한다.
       context.save();
@@ -298,6 +301,7 @@ export function ReferenceCanvas(props: Props) {
     props.maskOnly,
     opacity,
     props.image,
+    props.paint,
     props.width,
     props.height,
     props.referenceRect,

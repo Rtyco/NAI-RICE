@@ -43,6 +43,7 @@ export async function applyBundle(
       originalDataUrl: images.original,
       canvasDataUrl: images.canvas,
       maskDataUrl: images.mask,
+      paintDataUrl: images.paint ?? null,
     });
     bundle.references = bundle.references.map((reference) =>
       reference.id === referenceId && reference.image && saved.originalFile
