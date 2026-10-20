@@ -150,6 +150,12 @@ const ICONS = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  transform: (
+    <>
+      <rect x="6" y="6" width="12" height="12" />
+      <path d="M3 3h3v3H3zM18 3h3v3h-3zM3 18h3v3H3zM18 18h3v3h-3z" />
+    </>
+  ),
   center: (
     <>
       <circle cx="12" cy="12" r="3" />

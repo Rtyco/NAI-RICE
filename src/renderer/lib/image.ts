@@ -131,7 +131,7 @@ export type ComposedCanvas = {
 // 슬라이더를 움직이는 동안 같은 원본을 다시 디코딩하지 않는다.
 let lastOriginal: { dataUrl: string; image: Promise<HTMLImageElement> } | undefined;
 
-function loadOriginal(originalDataUrl: string): Promise<HTMLImageElement> {
+export function loadOriginal(originalDataUrl: string): Promise<HTMLImageElement> {
   if (lastOriginal?.dataUrl !== originalDataUrl) {
     lastOriginal = { dataUrl: originalDataUrl, image: loadHtmlImage(originalDataUrl) };
     lastOriginal.image.catch(() => (lastOriginal = undefined));

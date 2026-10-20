@@ -1,6 +1,22 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { CanvasLayout, DividerLine, Rect, Reference, ReferenceSide } from '../../core/domain/types';
-import { computeLayout, CUSTOM_MAX, CUSTOM_MIN, RESOLUTION_PRESETS, snapDimension } from '../../core/imaging/CanvasLayout';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type {
+  CanvasLayout,
+  DividerLine,
+  FreePlacement,
+  Rect,
+  Reference,
+  ReferenceSide,
+} from '../../core/domain/types';
+import {
+  computeLayout,
+  CUSTOM_MAX,
+  CUSTOM_MIN,
+  freePlacementOf,
+  imageBoxOf,
+  RESOLUTION_PRESETS,
+  snapDimension,
+} from '../../core/imaging/CanvasLayout';
+import type { ImageBox } from '../../core/imaging/FreeTransform';
 import { dividerPixels } from '../../core/imaging/Divider';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
 import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper';
@@ -20,6 +36,7 @@ import {
   finalCanvasDataUrl,
   layoutMaskFor,
   loadCanvas,
+  loadOriginal,
   maskToDataUrl,
   masksEqual,
   prepareImage,
@@ -86,6 +103,8 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   /** 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
   const [imageVersion, setImageVersion] = useState(0);
   const queuedRepaint = useRef<CanvasLayout | null>(null);
+  const [sourceImage, setSourceImage] = useState<HTMLImageElement>();
+  const transformStart = useRef<CanvasLayout | null>(null);
   const repaintRunning = useRef(false);
 
   useEffect(() => {
@@ -268,6 +287,55 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     else scheduleRebuild(source, next, threshold);
   };
 
+  const sourceUrl = source?.dataUrl;
+  useEffect(() => {
+    if (!sourceUrl) return;
+    let active = true;
+    loadOriginal(sourceUrl)
+      .then((image) => active && setSourceImage(image))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [sourceUrl]);
+
+  const composedLayout = useMemo(
+    () =>
+      layout.mode === 'auto' && sourceImage
+        ? computeLayout(layout, sourceImage.naturalWidth, sourceImage.naturalHeight)
+        : undefined,
+    [layout, sourceImage],
+  );
+  const imageBox = useMemo(() => composedLayout && imageBoxOf(composedLayout), [composedLayout]);
+
+  const placeImage = (box: ImageBox) => {
+    if (!composedLayout || !sourceImage) return;
+    changeLayout({
+      fit: 'free',
+      free: freePlacementOf(
+        box,
+        composedLayout.referenceArea,
+        sourceImage.naturalWidth,
+        sourceImage.naturalHeight,
+      ),
+    });
+  };
+
+  const changeFree = (patch: Partial<FreePlacement>) => {
+    if (layout.free) changeLayout({ free: { ...layout.free, ...patch } });
+  };
+
+  /** 회전과 반전은 그대로 두고 크기와 위치만 맞춘다. */
+  const fitImage = (fit: 'contain' | 'cover') => {
+    if (!sourceImage || !imageBox) return;
+    const fitted = computeLayout(
+      { ...layout, fit, anchor: 'center' },
+      sourceImage.naturalWidth,
+      sourceImage.naturalHeight,
+    );
+    placeImage({ ...imageBoxOf(fitted), rotation: imageBox.rotation, flipX: imageBox.flipX });
+  };
+
   const handleMaskChange = useCallback((data: Uint8Array) => {
     setMask(data);
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
@@ -366,6 +434,21 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             expansionPx={expansionPx}
             initialMask={initialMask}
             divider={divider.enabled ? divider : undefined}
+            transform={
+              imageBox && sourceImage
+                ? {
+                    box: imageBox,
+                    image: sourceImage,
+                    onBegin: () => (transformStart.current = layout),
+                    onChange: placeImage,
+                    onCancel: () => {
+                      const start = transformStart.current;
+                      if (start)
+                        changeLayout({ fit: start.fit, anchor: start.anchor, free: start.free });
+                    },
+                  }
+                : undefined
+            }
             detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
             status={
               <>
@@ -504,20 +587,33 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                   options={[
                     { value: 'contain', label: '전체 보이기' },
                     { value: 'cover', label: '꽉 채우기' },
+                    { value: 'free', label: '자유 배치' },
                   ]}
-                  onChange={(fit) => changeLayout({ fit })}
+                  onChange={(fit) => {
+                    if (fit !== 'free') changeLayout({ fit });
+                    else if (imageBox) placeImage(imageBox);
+                  }}
                 />
-                <SelectField
-                  label="세로 맞춤"
-                  value={layout.anchor}
-                  options={[
-                    { value: 'top', label: '상단' },
-                    { value: 'center', label: '중앙' },
-                    { value: 'bottom', label: '하단' },
-                  ]}
-                  onChange={(anchor) => changeLayout({ anchor })}
-                />
+                {layout.fit !== 'free' && (
+                  <SelectField
+                    label="세로 맞춤"
+                    value={layout.anchor}
+                    options={[
+                      { value: 'top', label: '상단' },
+                      { value: 'center', label: '중앙' },
+                      { value: 'bottom', label: '하단' },
+                    ]}
+                    onChange={(anchor) => changeLayout({ anchor })}
+                  />
+                )}
               </div>
+              {layout.fit === 'free' && layout.free && (
+                <FreePlacementFields
+                  free={layout.free}
+                  onChange={changeFree}
+                  onFit={fitImage}
+                />
+              )}
               <SettingRow label="배경색">
                 <input
                   type="color"
@@ -644,6 +740,76 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       </aside>
       <PanelResizer panel="side-panel" />
     </div>
+  );
+}
+
+function FreePlacementFields(props: {
+  free: FreePlacement;
+  onChange: (patch: Partial<FreePlacement>) => void;
+  onFit: (fit: 'contain' | 'cover') => void;
+}) {
+  const { free, onChange } = props;
+  return (
+    <>
+      <div>
+        <SettingRow label="가로 위치" unit="%" title="참고 영역 안에서 이미지 중심의 위치입니다">
+          <Stepper
+            label="가로 위치"
+            value={Math.round(free.x * 100)}
+            min={-100}
+            max={200}
+            step={1}
+            onChange={(percent) => onChange({ x: percent / 100 })}
+          />
+        </SettingRow>
+        <SettingRow label="세로 위치" unit="%">
+          <Stepper
+            label="세로 위치"
+            value={Math.round(free.y * 100)}
+            min={-100}
+            max={200}
+            step={1}
+            onChange={(percent) => onChange({ y: percent / 100 })}
+          />
+        </SettingRow>
+        <SettingRow label="가로 크기" unit="%" title="100%가 전체 보이기 크기입니다">
+          <Stepper
+            label="가로 크기"
+            value={Math.round(free.scaleX * 100)}
+            min={5}
+            max={1000}
+            step={5}
+            onChange={(percent) => onChange({ scaleX: percent / 100 })}
+          />
+        </SettingRow>
+        <SettingRow label="세로 크기" unit="%">
+          <Stepper
+            label="세로 크기"
+            value={Math.round(free.scaleY * 100)}
+            min={5}
+            max={1000}
+            step={5}
+            onChange={(percent) => onChange({ scaleY: percent / 100 })}
+          />
+        </SettingRow>
+        <SettingRow label="회전" unit="°">
+          <Stepper
+            label="회전"
+            value={Math.round(free.rotation)}
+            min={-180}
+            max={180}
+            step={1}
+            onChange={(rotation) => onChange({ rotation })}
+          />
+        </SettingRow>
+        <Toggle label="좌우 반전" checked={free.flipX} onChange={(flipX) => onChange({ flipX })} />
+      </div>
+      <div className="button-row">
+        <button onClick={() => props.onFit('contain')}>전체 보이기로</button>
+        <button onClick={() => props.onFit('cover')}>꽉 채우기로</button>
+        <button onClick={() => onChange({ x: 0.5, y: 0.5 })}>가운데로</button>
+      </div>
+    </>
   );
 }
 
