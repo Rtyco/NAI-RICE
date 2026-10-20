@@ -154,7 +154,10 @@ function paintLayout(
   context.clip();
   context.imageSmoothingQuality = 'high';
   const place = composed.imagePlacement;
-  context.drawImage(image, place.x, place.y, place.width, place.height);
+  context.translate(place.x + place.width / 2, place.y + place.height / 2);
+  context.rotate((composed.rotation * Math.PI) / 180);
+  if (composed.flipX) context.scale(-1, 1);
+  context.drawImage(image, -place.width / 2, -place.height / 2, place.width, place.height);
   context.restore();
 }
 

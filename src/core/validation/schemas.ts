@@ -145,8 +145,18 @@ export const canvasLayoutSchema = z.object({
   height: z.number().int().positive(),
   referenceSide: z.enum(['left', 'right', 'top', 'bottom']),
   referenceRatio: z.number().min(0.1).max(0.9),
-  fit: z.enum(['contain', 'cover']),
+  fit: z.enum(['contain', 'cover', 'free']),
   anchor: z.enum(['top', 'center', 'bottom']).default('center'),
+  free: z
+    .object({
+      x: z.number(),
+      y: z.number(),
+      scaleX: z.number().positive(),
+      scaleY: z.number().positive(),
+      rotation: z.number(),
+      flipX: z.boolean(),
+    })
+    .optional(),
   background: z.string(),
 });
 

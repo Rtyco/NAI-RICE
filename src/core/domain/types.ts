@@ -128,6 +128,19 @@ export type PieceSet = {
 export type ResolutionPresetId = '1216x832' | '832x1216' | '1024x1024' | 'custom';
 export type ReferenceSide = 'left' | 'right' | 'top' | 'bottom';
 
+/** 참고 영역 기준이라 해상도·비율을 바꿔도 구도가 유지된다. */
+export type FreePlacement = {
+  /** 이미지 중심. 참고 영역 너비·높이에 대한 비율(0.5가 가운데) */
+  x: number;
+  y: number;
+  /** 1 = 전체 보이기 크기 */
+  scaleX: number;
+  scaleY: number;
+  /** 도, 시계 방향 */
+  rotation: number;
+  flipX: boolean;
+};
+
 export type CanvasLayout = {
   mode: 'auto' | 'prepared';
   resolution: ResolutionPresetId;
@@ -136,9 +149,11 @@ export type CanvasLayout = {
   referenceSide: ReferenceSide;
   /** 0.2~0.8 */
   referenceRatio: number;
-  fit: 'contain' | 'cover';
+  fit: 'contain' | 'cover' | 'free';
   /** cover로 잘릴 때 남길 쪽이기도 하다. */
   anchor: 'top' | 'center' | 'bottom';
+  /** fit이 free일 때. 없으면 전체 보이기 */
+  free?: FreePlacement;
   background: string;
 };
 

@@ -1,4 +1,5 @@
-import type { CanvasLayout, Rect, ResolutionPresetId } from '../domain/types';
+import type { CanvasLayout, FreePlacement, Rect, ResolutionPresetId } from '../domain/types';
+import type { ImageBox } from './FreeTransform';
 
 export const RESOLUTION_PRESETS: Array<{
   id: Exclude<ResolutionPresetId, 'custom'>;
@@ -31,9 +32,16 @@ export type ComposedLayout = {
   height: number;
   referenceArea: Rect;
   generationArea: Rect;
-  /** cover면 레퍼런스 영역 밖으로 넘쳐 잘라서 그린다. */
+  /** 회전 전. 레퍼런스 영역 밖으로 넘친 부분은 잘라서 그린다. */
   imagePlacement: Rect;
+  /** 도, 시계 방향 */
+  rotation: number;
+  flipX: boolean;
 };
+
+function containScale(area: Rect, imageWidth: number, imageHeight: number): number {
+  return Math.min(area.width / imageWidth, area.height / imageHeight);
+}
 
 function roundTo8(value: number): number {
   return Math.round(value / 8) * 8;
@@ -72,6 +80,28 @@ export function computeLayout(
       break;
   }
 
+  if (layout.fit === 'free' && layout.free) {
+    const free = layout.free;
+    const base = containScale(referenceArea, imageWidth, imageHeight);
+    const drawWidth = imageWidth * base * free.scaleX;
+    const drawHeight = imageHeight * base * free.scaleY;
+    const imagePlacement: Rect = {
+      x: referenceArea.x + referenceArea.width * free.x - drawWidth / 2,
+      y: referenceArea.y + referenceArea.height * free.y - drawHeight / 2,
+      width: drawWidth,
+      height: drawHeight,
+    };
+    return {
+      width,
+      height,
+      referenceArea,
+      generationArea,
+      imagePlacement,
+      rotation: free.rotation,
+      flipX: free.flipX,
+    };
+  }
+
   const scale =
     layout.fit === 'cover'
       ? Math.max(referenceArea.width / imageWidth, referenceArea.height / imageHeight)
@@ -86,7 +116,44 @@ export function computeLayout(
     height: drawHeight,
   };
 
-  return { width, height, referenceArea, generationArea, imagePlacement };
+  return {
+    width,
+    height,
+    referenceArea,
+    generationArea,
+    imagePlacement,
+    rotation: 0,
+    flipX: false,
+  };
+}
+
+export function imageBoxOf(composed: ComposedLayout): ImageBox {
+  const place = composed.imagePlacement;
+  return {
+    cx: place.x + place.width / 2,
+    cy: place.y + place.height / 2,
+    width: place.width,
+    height: place.height,
+    rotation: composed.rotation,
+    flipX: composed.flipX,
+  };
+}
+
+export function freePlacementOf(
+  box: ImageBox,
+  referenceArea: Rect,
+  imageWidth: number,
+  imageHeight: number,
+): FreePlacement {
+  const base = containScale(referenceArea, imageWidth, imageHeight);
+  return {
+    x: (box.cx - referenceArea.x) / referenceArea.width,
+    y: (box.cy - referenceArea.y) / referenceArea.height,
+    scaleX: box.width / (imageWidth * base),
+    scaleY: box.height / (imageHeight * base),
+    rotation: box.rotation,
+    flipX: box.flipX,
+  };
 }
 
 /** 보호 영역 확장은 MaskBuilder가 한다. */
