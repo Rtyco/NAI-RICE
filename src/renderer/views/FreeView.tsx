@@ -314,10 +314,14 @@ export function FreeView() {
       )}
       {inpaintModelMissing && (
         <div className="missing-banner">
-          ⚠ {modelLabel(preset.generation.model)}은(는) 인페인팅을 지원하지 않습니다.{' '}
-          {noInpaintReason(preset.generation.model) &&
-            `${noInpaintReason(preset.generation.model)} `}
-          생성 설정에서 모델을 바꾸거나 「전체 다시 그리기」로 바꾸십시오.
+          ⚠{' '}
+          {[
+            `${modelLabel(preset.generation.model)}는 인페인팅을 지원하지 않습니다.`,
+            noInpaintReason(preset.generation.model),
+            '생성 설정에서 모델을 바꾸거나 「전체 다시 그리기」로 바꾸십시오.',
+          ]
+            .filter(Boolean)
+            .join(' ')}
         </div>
       )}
 

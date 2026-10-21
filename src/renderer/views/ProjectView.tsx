@@ -4,6 +4,7 @@ import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   AID_MODEL_MISSING,
+  INPAINT_MODEL_MISSING,
   effectiveGenerationSettings,
   generationKindFor,
   projectAid,
@@ -289,7 +290,13 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
-  const bannerMissing = resolved.missing.filter((item) => item !== AID_MODEL_MISSING);
+  const bannerMissing = resolved.missing.filter(
+    (item) => item !== AID_MODEL_MISSING && item !== INPAINT_MODEL_MISSING,
+  );
+  const inpaintModel =
+    project.mode === 'reference' && preset && !supportsInpaint(preset.generation.model)
+      ? preset.generation.model
+      : undefined;
 
   return (
     <section className="project-view">
@@ -321,18 +328,17 @@ export function ProjectView({ projectId }: { projectId: string }) {
         />
       </header>
       <ChainBar resolved={resolved} />
-      {bannerMissing.length > 0 && (
+      {(bannerMissing.length > 0 || inpaintModel) && (
         <div className="missing-banner">
-          ⚠ 생성하려면 {bannerMissing.join(', ')}이(가) 필요합니다.
-          {project.mode === 'reference' && preset && !supportsInpaint(preset.generation.model) && (
-            <span>
-              {' '}
-              {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다.{' '}
-              {noInpaintReason(preset.generation.model) &&
-                `${noInpaintReason(preset.generation.model)} `}
-              생성 설정에서 모델을 바꾸거나 일반 생성으로 전환하십시오.
-            </span>
-          )}
+          ⚠{bannerMissing.length > 0 && ` 생성하려면 ${bannerMissing.join(', ')}이(가) 필요합니다.`}
+          {inpaintModel &&
+            ` ${[
+              `${modelLabel(inpaintModel)}는 일반 생성 전용입니다.`,
+              noInpaintReason(inpaintModel),
+              '생성 설정에서 모델을 바꾸거나 일반 생성으로 전환하십시오.',
+            ]
+              .filter(Boolean)
+              .join(' ')}`}
           {project.mode === 'reference' && !reference?.image && reference && (
             <button
               className="link-button"
