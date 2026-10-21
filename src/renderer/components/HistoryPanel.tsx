@@ -141,15 +141,15 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
   );
 }
 
-/** 접으면 패널 자리가 없어지므로 화면 머리줄에 둔다. */
+/** 접으면 패널 자리가 없어지므로 화면 머리줄에 둔다. 열려 있을 때는 패널 머리를 눌러 접는다. */
 export function HistoryToggle() {
   const collapsed = useStore((state) => state.historyCollapsed);
+  if (!collapsed) return null;
   return (
     <button
-      className="icon-button history-toggle"
-      aria-pressed={!collapsed}
-      aria-label="히스토리"
-      title="히스토리 (Ctrl+H)"
+      className="icon-button"
+      aria-label="히스토리 열기"
+      title="히스토리 열기 (Ctrl+H)"
       onClick={toggleHistory}
     >
       <Icon name="panel-right" size={18} />

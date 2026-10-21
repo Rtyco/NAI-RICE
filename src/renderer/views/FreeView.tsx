@@ -280,7 +280,7 @@ export function FreeView() {
             )
           }
         >
-          <Icon name="folder" size={14} /> 폴더
+          <Icon name="folder" size={14} /> <span className="header-label">폴더</span>
         </button>
         <HistoryToggle />
       </header>

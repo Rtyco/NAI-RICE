@@ -312,7 +312,6 @@ export function ProjectView({ projectId }: { projectId: string }) {
         <ModeSwitch project={project} />
         <div className="header-spacer" />
         <AccountMeter />
-        <HistoryToggle />
         <Menu
           label="⋯"
           items={[
@@ -326,6 +325,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
             { label: '작업 삭제', danger: true, onSelect: () => void deleteProject(project) },
           ]}
         />
+        <HistoryToggle />
       </header>
       <ChainBar resolved={resolved} />
       {(bannerMissing.length > 0 || inpaintModel) && (
