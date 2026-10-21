@@ -69,7 +69,6 @@ export function ChainChip(props: {
     >
       <span className="chain-chip-label">
         <Icon name={label.icon} size={15} />
-        {label.text}
       </span>
       {props.children}
       {edit && (

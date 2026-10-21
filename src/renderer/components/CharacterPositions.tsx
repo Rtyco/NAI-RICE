@@ -92,7 +92,7 @@ export function PositionChip({ target }: { target: Target }) {
     <ChainChip
       label={{
         text: '위치',
-        icon: 'character',
+        icon: 'pin',
         usage: unavailable ?? '캐릭터를 캔버스 어디에 둘지 정합니다',
       }}
       edit={unavailable ? null : { title: '캐릭터 위치 정하기', open }}
