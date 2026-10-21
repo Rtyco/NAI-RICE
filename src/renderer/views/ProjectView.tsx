@@ -11,7 +11,12 @@ import {
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
-import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
+import {
+  maxCharactersFor,
+  modelLabel,
+  noInpaintReason,
+  supportsInpaint,
+} from '../../core/providers/NaiModels';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
@@ -322,8 +327,10 @@ export function ProjectView({ projectId }: { projectId: string }) {
           {project.mode === 'reference' && preset && !supportsInpaint(preset.generation.model) && (
             <span>
               {' '}
-              {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다. 생성 설정에서 모델을
-              바꾸거나 일반 생성으로 전환하십시오.
+              {modelLabel(preset.generation.model)}은(는) 일반 생성 전용입니다.{' '}
+              {noInpaintReason(preset.generation.model) &&
+                `${noInpaintReason(preset.generation.model)} `}
+              생성 설정에서 모델을 바꾸거나 일반 생성으로 전환하십시오.
             </span>
           )}
           {project.mode === 'reference' && !reference?.image && reference && (

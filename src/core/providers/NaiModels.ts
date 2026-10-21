@@ -26,6 +26,8 @@ export type NaiModelInfo = {
   maxScale: number;
   /** NovelAI 웹 `cfgDelaySigma`(2026-10). 없으면 Variety+ 미지원(V5). */
   varietySigma?: number;
+  /** 인페인트 경고에 덧붙인다. */
+  noInpaintReason?: string;
 };
 
 export const NAI_MODELS: NaiModelInfo[] = [
@@ -44,10 +46,12 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxScale: 10,
   },
   {
-    // NovelAI 웹도 V5 Curated 인페인트를 V4.5 Curated 인페인트 모델로 보내므로(2026-10) 일반 생성 전용으로 둔다.
+    // V5 출시 공지(2026-08-21): Curated 인페인트 모델은 준비 중이고 그동안 V4.5 Curated 인페인트를 쓴다. 웹 코드도 같다(2026-10).
     id: 'nai-diffusion-5-curated',
     requestIds: { generate: 'nai-diffusion-5-curated' },
     label: 'NAI Diffusion V5 Curated',
+    noInpaintReason:
+      'NovelAI가 V5 Curated 인페인트 모델을 아직 내놓지 않았습니다. NovelAI 웹은 그동안 V4.5 Curated 인페인트로 대신 그립니다.',
     family: 'v5-curated',
     generation: 'v5',
     maxCharacters: 32,
@@ -139,6 +143,10 @@ export const INPAINT_MODELS = NAI_MODELS.filter((model) => model.requestIds.inpa
 
 export function supportsInpaint(id: string): boolean {
   return Boolean(modelInfo(id)?.requestIds.inpaint);
+}
+
+export function noInpaintReason(id: string): string | undefined {
+  return modelInfo(id)?.noInpaintReason;
 }
 
 export function maxCharactersFor(id: string | undefined): number {
