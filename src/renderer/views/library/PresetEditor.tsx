@@ -372,7 +372,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(cfgRescale) => setting({ cfgRescale })}
           />
           <NumberField
-            label="Inpaint Strength"
+            label="Inpaint Strength (자유 생성)"
             value={g.inpaintStrength}
             min={0}
             max={1}

@@ -187,6 +187,8 @@ export function createReference(name: string): Reference {
     name: name.trim() || '새 인페인트',
     layout: { ...DEFAULT_LAYOUT },
     divider: { ...DEFAULT_DIVIDER },
+    inpaintStrength: 1,
+    colorCorrect: true,
     maskExpansionPx: 8,
     backgroundThreshold: 16,
     updatedAt: new Date().toISOString(),

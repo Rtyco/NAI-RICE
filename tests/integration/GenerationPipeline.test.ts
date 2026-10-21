@@ -59,6 +59,8 @@ function makeReference(width: number, height: number): Reference {
     },
     layout: { ...DEFAULT_LAYOUT, resolution: 'custom', width, height },
     divider: DEFAULT_DIVIDER,
+    inpaintStrength: 1,
+    colorCorrect: true,
     maskExpansionPx: 0,
     backgroundThreshold: 16,
     updatedAt: new Date().toISOString(),

@@ -189,6 +189,9 @@ export type Reference = {
   };
   layout: CanvasLayout;
   divider: DividerLine;
+  /** 작업의 인페인트 요청은 생성 설정 대신 이 두 값을 쓴다. 0~1 */
+  inpaintStrength: number;
+  colorCorrect: boolean;
   maskExpansionPx: number;
   backgroundThreshold: number;
   updatedAt: string;

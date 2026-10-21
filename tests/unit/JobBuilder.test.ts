@@ -34,6 +34,8 @@ const reference: Reference = {
   },
   layout: DEFAULT_LAYOUT,
   divider: DEFAULT_DIVIDER,
+  inpaintStrength: 1,
+  colorCorrect: true,
   maskExpansionPx: 8,
   backgroundThreshold: 16,
   updatedAt: '2026-01-01T00:00:00.000Z',
@@ -116,6 +118,22 @@ describe('buildJobs', () => {
     });
     expect(jobs.map((job) => job.seed)).toEqual([4_294_967_295, 0]);
     expect(seedForVariant(4_294_967_295, 2)).toBe(0);
+  });
+
+  it('인페인트 강도와 색 보정은 생성 설정 대신 인페인트 항목의 값을 써', () => {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 1);
+    preset.generation = { ...preset.generation, inpaintStrength: 0.3, colorCorrect: true };
+    const [job] = buildJobs({
+      project,
+      preset,
+      characters: [{ name: character.name, promptSet }],
+      emotionSet,
+      reference: { ...reference, inpaintStrength: 0.85, colorCorrect: false },
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job.settings).toMatchObject({ inpaintStrength: 0.85, colorCorrect: false });
   });
 
   it('품질 태그와 UC 프리셋을 모델 문구로 붙여', () => {

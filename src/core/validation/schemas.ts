@@ -191,6 +191,8 @@ export const referenceSchema = z.object({
       gapPx: z.number().int().min(0).max(64).default(0),
     })
     .default({ enabled: false, color: '#000000', widthPx: 8, placement: 'outside', gapPx: 0 }),
+  inpaintStrength: z.number().min(0).max(1).catch(1).default(1),
+  colorCorrect: z.boolean().catch(true).default(true),
   maskExpansionPx: z.number().nonnegative(),
   backgroundThreshold: z.number().min(0).max(255),
   updatedAt: z.string(),

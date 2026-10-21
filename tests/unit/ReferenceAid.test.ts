@@ -60,6 +60,8 @@ const reference: Reference = {
   },
   layout: DEFAULT_LAYOUT,
   divider: DEFAULT_DIVIDER,
+  inpaintStrength: 1,
+  colorCorrect: true,
   maskExpansionPx: 8,
   backgroundThreshold: 16,
   updatedAt: '2026-01-01T00:00:00.000Z',

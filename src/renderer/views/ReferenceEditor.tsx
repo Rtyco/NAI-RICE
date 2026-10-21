@@ -399,6 +399,11 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
   }, []);
 
+  const changeRequest = (patch: Partial<Pick<Reference, 'inpaintStrength' | 'colorCorrect'>>) =>
+    updateLibrary((library) =>
+      patchItem(library, 'references', reference.id, (item) => ({ ...item, ...patch })),
+    );
+
   const changeDivider = (patch: Partial<DividerLine>) => {
     setDivider((current) => ({ ...current, ...patch }));
     dirty.current = true;
@@ -855,6 +860,28 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               </div>
             </details>
           )}
+        </section>
+
+        <section className="detail-card settings-card">
+          <div className="detail-card-head">
+            <b>생성</b>
+          </div>
+          <SettingRow label="인페인트 강도" title="Inpaint Strength · 1은 생성 영역을 새로 그리고, 낮을수록 캔버스의 원래 모습을 남깁니다">
+            <Stepper
+              label="인페인트 강도"
+              value={reference.inpaintStrength}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={(inpaintStrength) => changeRequest({ inpaintStrength })}
+            />
+          </SettingRow>
+          <div title="결과 색을 보낸 캔버스의 색에 맞춥니다 (color_correct)">
+            <Toggle label="색 보정" checked={reference.colorCorrect} onChange={(colorCorrect) => changeRequest({ colorCorrect })} />
+          </div>
+          <p className="hint">
+            이 인페인트를 쓰는 작업에 생성 설정 대신 쓰입니다. 강도를 낮추면 생성 영역의 배경색이 결과에 섞입니다.
+          </p>
         </section>
       </aside>
       <PanelResizer panel="side-panel" />

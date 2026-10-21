@@ -50,6 +50,8 @@ export function splitV1Character(
       },
       layout: r.layout,
       divider: { ...DEFAULT_DIVIDER },
+      inpaintStrength: 1,
+      colorCorrect: true,
       maskExpansionPx: r.maskExpansionPx,
       backgroundThreshold: r.backgroundThreshold,
       updatedAt: r.updatedAt,

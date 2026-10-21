@@ -323,6 +323,11 @@ export function buildJobs(input: JobBuildInput): InpaintJobSnapshot[] {
     },
     (common) => ({
       ...common,
+      settings: {
+        ...common.settings,
+        inpaintStrength: input.reference.inpaintStrength,
+        colorCorrect: input.reference.colorCorrect,
+      },
       kind: 'inpaint',
       ...input.input,
       outputRect: { ...image.outputRect },
