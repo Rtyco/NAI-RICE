@@ -279,13 +279,22 @@ export function PromptPanel(props: {
   );
 }
 
-export function PromptPanelLayout(props: { panel: ReactNode; children: ReactNode }) {
+export function PromptPanelLayout(props: {
+  panel: ReactNode;
+  children: ReactNode;
+  history: ReactNode;
+}) {
   const collapsed = useStore((state) => state.promptPanelCollapsed);
+  const historyCollapsed = useStore((state) => state.historyCollapsed);
   return (
-    <div className={`prompt-panel-view ${collapsed ? 'panel-collapsed' : ''}`}>
+    <div
+      className={`prompt-panel-view ${collapsed ? 'panel-collapsed' : ''} ${historyCollapsed ? 'history-collapsed' : ''}`}
+    >
       {props.panel}
       {!collapsed && <PanelResizer panel="prompt-panel" />}
       {props.children}
+      {props.history}
+      {!historyCollapsed && <PanelResizer panel="history-panel" />}
     </div>
   );
 }

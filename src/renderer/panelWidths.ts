@@ -18,6 +18,13 @@ export const PANELS = {
     side: 'left',
   },
   'side-panel': { variable: '--side-panel-width', initial: 360, min: 280, max: 640, side: 'right' },
+  'history-panel': {
+    variable: '--history-panel-width',
+    initial: 150,
+    min: 110,
+    max: 400,
+    side: 'right',
+  },
 } as const;
 
 export type PanelId = keyof typeof PANELS;

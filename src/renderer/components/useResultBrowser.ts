@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { deleteResults, deleteShownResult } from '../generationOps';
+import { setShownResult, useStore } from '../store';
 import { useBoxSelection } from './useBoxSelection';
 
 export function useResultBrowser(
@@ -10,6 +11,8 @@ export function useResultBrowser(
     /** 고른 결과가 없을 때 보일 결과(대표 이미지). 없으면 최신. */
     preferredId?: string;
     onNewResult?: () => void;
+    /** 히스토리에서 이 화면의 결과를 골랐을 때 */
+    onRequested?: () => void;
     saveAs: (record: GenerationSummary) => void;
     /** 결과 막대가 보일 때만 */
     canDeleteShown?: boolean;
@@ -25,8 +28,10 @@ export function useResultBrowser(
   const newest = records[0];
   const seenNewest = useRef(newest?.createdAt);
   const onNewResult = useRef(options.onNewResult);
+  const onRequested = useRef(options.onRequested);
   useEffect(() => {
     onNewResult.current = options.onNewResult;
+    onRequested.current = options.onRequested;
   });
   useEffect(() => {
     if (newest && (!seenNewest.current || newest.createdAt > seenNewest.current)) {
@@ -35,6 +40,21 @@ export function useResultBrowser(
     }
     seenNewest.current = newest?.createdAt;
   }, [newest]);
+
+  const request = useStore((state) => state.resultRequest);
+  useEffect(() => {
+    if (request?.projectId !== projectId) return;
+    if (!records.some((record) => record.id === request.id)) return;
+    setSelectedId(request.id);
+    useStore.setState({ resultRequest: undefined });
+    onRequested.current?.();
+  }, [request, records, projectId]);
+
+  const shownId = selected?.id;
+  useEffect(() => {
+    setShownResult(shownId ? { projectId, id: shownId } : undefined);
+    return () => setShownResult(undefined);
+  }, [projectId, shownId]);
 
   const removeMany = (ids: string[]) =>
     void deleteResults(

@@ -85,6 +85,7 @@ export function FreeView() {
 
   const browser = useResultBrowser(FREE_PROJECT_ID, records, {
     onNewResult: () => setStage('result'),
+    onRequested: () => setStage('result'),
     saveAs,
     canDeleteShown: !showSource && !drawing,
   });

@@ -57,6 +57,11 @@ export type StoreState = {
   libraryListCollapsed: boolean;
   /** 작업·자유 생성 화면이 함께 쓴다. */
   promptPanelCollapsed: boolean;
+  historyCollapsed: boolean;
+  /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
+  resultRequest?: { projectId: string; id: string };
+  /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
+  shownResult?: { projectId: string; id: string };
   /** `<작업|라이브러리 칸>/<폴더 이름>` */
   foldedFolders: string[];
   /** `preset` 또는 `character:<ID>` */
@@ -117,6 +122,7 @@ const readGalleryColumns = () =>
 const FILMSTRIP_KEY = 'filmstrip-collapsed';
 const LIBRARY_LIST_KEY = 'library-list-collapsed';
 const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
+const HISTORY_KEY = 'history-collapsed';
 const FOLDED_FOLDERS_KEY = 'folded-folders';
 const FOLDED_PROMPT_GROUPS_KEY = 'folded-prompt-groups';
 
@@ -160,6 +166,7 @@ export const useStore = create<StoreState>(() => ({
   filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
   libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
   promptPanelCollapsed: readUiState(PROMPT_PANEL_KEY, (raw) => raw === '1', false),
+  historyCollapsed: readUiState(HISTORY_KEY, (raw) => raw === '1', false),
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -474,6 +481,20 @@ export function togglePromptPanel(): void {
   const collapsed = !get().promptPanelCollapsed;
   set({ promptPanelCollapsed: collapsed });
   saveUiState(PROMPT_PANEL_KEY, collapsed ? '1' : '0');
+}
+
+export function toggleHistory(): void {
+  const collapsed = !get().historyCollapsed;
+  set({ historyCollapsed: collapsed });
+  saveUiState(HISTORY_KEY, collapsed ? '1' : '0');
+}
+
+export function requestResult(projectId: string, id: string): void {
+  set({ resultRequest: { projectId, id } });
+}
+
+export function setShownResult(shown: { projectId: string; id: string } | undefined): void {
+  set({ shownResult: shown });
 }
 
 function toggleIn(list: string[], value: string, folded?: boolean): string[] {

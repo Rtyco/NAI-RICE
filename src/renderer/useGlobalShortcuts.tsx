@@ -15,6 +15,7 @@ import {
   refreshAccount,
   setSettingsOpen,
   toast,
+  toggleHistory,
   toggleSidebar,
   useStore,
 } from './store';
@@ -89,6 +90,7 @@ export function useGlobalShortcuts(): void {
         action = () => void importJsonFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = toggleSidebar;
+      if (ctrl && !event.shiftKey && key.toLowerCase() === 'h') action = toggleHistory;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;

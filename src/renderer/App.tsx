@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { ContextMenuHost, ErrorBoundary } from './components/ContextMenu';
 import { DialogHost, openDialog } from './components/Dialogs';
+import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { DropZone } from './components/DropImport';
+import { HistoryPanel } from './components/HistoryPanel';
 import { Icon } from './components/Icon';
 import { QueueBar } from './components/QueueBar';
 import { NewProjectDialog, Sidebar } from './components/Sidebar';
@@ -134,11 +136,17 @@ export default function App() {
                   {ready ? '작업 폴더를 열 수 없습니다.' : '작업 폴더를 여는 중…'}
                 </p>
               ) : view.kind === 'project' && projectExists ? (
-                <PromptPanelLayout panel={<ProjectPromptPanel projectId={view.projectId} />}>
+                <PromptPanelLayout
+                  panel={<ProjectPromptPanel projectId={view.projectId} />}
+                  history={<HistoryPanel projectId={view.projectId} />}
+                >
                   <ProjectView projectId={view.projectId} />
                 </PromptPanelLayout>
               ) : view.kind === 'free' ? (
-                <PromptPanelLayout panel={<FreePromptPanel />}>
+                <PromptPanelLayout
+                  panel={<FreePromptPanel />}
+                  history={<HistoryPanel projectId={FREE_PROJECT_ID} />}
+                >
                   <FreeView />
                 </PromptPanelLayout>
               ) : view.kind === 'library' ? (
