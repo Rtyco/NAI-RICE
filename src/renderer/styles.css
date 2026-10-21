@@ -2972,11 +2972,17 @@ textarea.syntax-input::selection {
   right: -2px;
   padding: 0 5px;
 }
-.sidebar.collapsed .library-nav,
+.sidebar.collapsed .library-nav {
+  justify-items: center;
+  padding: 0;
+}
+/* 펼친 상태의 3칸 격자를 그대로 쓰면 아이콘이 첫 칸에 붙어 왼쪽으로 쏠린다. 아바타와 같은 36px */
 .sidebar.collapsed .library-nav button {
-  display: grid;
+  grid-template-columns: none;
   place-items: center;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
 }
 .project-item.add .avatar {
   background: transparent;
@@ -3716,7 +3722,9 @@ textarea.syntax-input::selection {
   color: var(--muted);
   font-size: 11px;
 }
+/* 입력칸 기본 width: 100%에 여백이 더해져 넘친다. */
 .checklist-search {
+  width: auto;
   margin: 2px 8px 6px;
 }
 .checklist-body {
