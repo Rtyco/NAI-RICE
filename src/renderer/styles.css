@@ -245,6 +245,8 @@ textarea {
 :root {
   /* electron/window.ts의 TITLE_BAR_HEIGHT보다 1px 크다(아래 경계선). */
   --titlebar-height: 40px;
+  /* 프롬프트 패널·화면 머리줄·히스토리 머리가 한 줄로 맞도록 같이 쓴다. */
+  --view-head-height: 46px;
   --window-controls-width: calc(
     100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px))
   );
@@ -2480,6 +2482,8 @@ textarea.syntax-input::selection {
 /* 창을 줄이면 이름 칸, 계정 표시 순으로 덜어 끝의 버튼이 히스토리 밑으로 밀리지 않게 한다. */
 .project-header {
   container-type: inline-size;
+  height: var(--view-head-height);
+  padding-block: 0;
 }
 .project-header > :not(.project-name-input, .header-spacer, .account-meter) {
   flex: none;
@@ -2506,12 +2510,16 @@ textarea.syntax-input::selection {
     display: none;
   }
 }
+/* 글자 시작을 히스토리 제목처럼 머리줄 안쪽 16px에 맞춘다(입력 칸 padding 9 + border 1). */
 .project-name-input {
-  width: 320px;
+  field-sizing: content;
+  width: auto;
   min-width: 96px;
+  max-width: 240px;
+  margin-left: -10px;
   border-color: transparent;
   background: transparent;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
 }
 .record-input {
@@ -2522,8 +2530,7 @@ textarea.syntax-input::selection {
 .free-title {
   flex: none;
   margin: 0;
-  padding: 0 8px;
-  font-size: 17px;
+  font-size: 15px;
   white-space: nowrap;
 }
 .free-source-mode button {
@@ -3040,6 +3047,21 @@ textarea.syntax-input::selection {
 .prompt-panel-view > .project-view {
   min-width: 0;
 }
+.prompt-panel .library-list-head {
+  height: var(--view-head-height);
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.prompt-panel .library-list-toggle {
+  margin: 0 0 0 -4px;
+}
+.prompt-panel.collapsed .library-list-head {
+  padding: 0;
+}
+.prompt-panel.collapsed .library-list-toggle {
+  margin: 0;
+}
 .prompt-panel-body {
   flex: 1;
   min-height: 0;
@@ -3047,7 +3069,7 @@ textarea.syntax-input::selection {
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  padding: 0 12px 14px;
+  padding: 12px 12px 14px;
   animation: fade-in 220ms ease 120ms both;
 }
 .prompt-card {
@@ -3183,8 +3205,8 @@ textarea.syntax-input::selection {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: auto;
-  padding: 14px 16px 12px;
+  height: var(--view-head-height);
+  padding: 0 16px;
   border: none;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
