@@ -54,7 +54,7 @@ export function Img2ImgDialog(props: {
   const first = props.records[0];
   const [size, setSize] = useState<string>(nearestPreset(first.width, first.height).id);
   const [custom, setCustom] = useState(() => freeSizeForRatio(first.width, first.height));
-  const [options, setOptions] = useState<Omit<ResultImg2ImgOptions, 'width' | 'height'>>({
+  const [options, setOptions] = useState<Omit<ResultImg2ImgOptions, 'size'>>({
     fit: 'crop',
     strength: generation.img2imgStrength,
     noise: generation.img2imgNoise,
@@ -64,25 +64,31 @@ export function Img2ImgDialog(props: {
   });
   const patch = (value: Partial<typeof options>) =>
     setOptions((current) => ({ ...current, ...value }));
-  const target = RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom;
+  const fixed =
+    size === 'source-ratio'
+      ? undefined
+      : (RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom);
+  const ratioTargets = props.records.map((record) => freeSizeForRatio(record.width, record.height));
+  const ratioSizes = [...new Set(ratioTargets.map((item) => `${item.width}×${item.height}`))];
+  const targets = fixed ? props.records.map(() => fixed) : ratioTargets;
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
-  const costJob = {
+  const costJobs = props.records.map((record, index) => ({
     kind: 'img2img' as const,
     strength: options.strength,
-    settings: effectiveGenerationSettings({ ...generation, model: first.model }),
-    canvasWidth: target.width,
-    canvasHeight: target.height,
-  };
-  const estimate = estimateJobAnlas(costJob, token) * total;
-  const reasons = generationCostWarnings([costJob], token);
+    settings: effectiveGenerationSettings({ ...generation, model: record.model }),
+    canvasWidth: targets[index].width,
+    canvasHeight: targets[index].height,
+  }));
+  const estimate =
+    costJobs.reduce((sum, job) => sum + estimateJobAnlas(job, token), 0) * options.count;
+  const reasons = generationCostWarnings(costJobs, token);
 
   const submit = () => {
     props.close();
     void sendResultsToImg2Img(props.projectId, props.records, {
       ...options,
-      width: target.width,
-      height: target.height,
+      size: fixed ? { width: fixed.width, height: fixed.height } : 'source-ratio',
     });
   };
 
@@ -126,6 +132,13 @@ export function Img2ImgDialog(props: {
               value: item.id as string,
               label: `${item.label} (무료)`,
             })),
+            {
+              value: 'source-ratio',
+              label:
+                ratioSizes.length === 1
+                  ? `원본 비율 유지 ${ratioSizes[0]} (무료)`
+                  : '원본 비율 유지 (장마다, 무료)',
+            },
             { value: 'custom', label: '직접 입력' },
           ]}
           onChange={setSize}
@@ -175,9 +188,9 @@ export function Img2ImgDialog(props: {
           ))}
         </div>
       )}
-      {target.width * target.height > FREE_MAX_PIXELS && (
+      {fixed && fixed.width * fixed.height > FREE_MAX_PIXELS && (
         <p className="field-error">
-          {target.width}×{target.height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
+          {fixed.width}×{fixed.height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
         </p>
       )}
       <div className="four-column-fields">

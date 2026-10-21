@@ -21,6 +21,7 @@ import {
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
+import { freeSizeForRatio } from '../core/imaging/CanvasLayout';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
@@ -193,8 +194,8 @@ export function generateFree(
 }
 
 export type ResultImg2ImgOptions = {
-  width: number;
-  height: number;
+  /** source-ratio: 장마다 원본 비율의 무료 최대 크기 */
+  size: { width: number; height: number } | 'source-ratio';
   fit: 'crop' | 'pad';
   strength: number;
   noise: number;
@@ -218,21 +219,23 @@ export function sendResultsToImg2Img(
     const free = projectId === FREE_PROJECT_ID;
     const project = library.projects.find((item) => item.id === projectId);
     if (!free && !project) throw new Error('작업을 찾을 수 없습니다.');
+    const { size, ...rest } = options;
     const jobs: GenerationJobSnapshot[] = [];
     for (const summary of records) {
       const record = await libraryApi().getGeneration(projectId, summary.id);
+      const target = size === 'source-ratio' ? freeSizeForRatio(record.width, record.height) : size;
       const image = await libraryApi().prepareImageInput({
         projectId,
         source: { kind: 'record', projectId, generationId: record.id },
-        width: options.width,
-        height: options.height,
+        ...target,
         fit: options.fit,
       });
       jobs.push(
         ...buildResultImg2ImgJobs({
           record,
           image,
-          ...options,
+          ...rest,
+          ...target,
           projectName: free ? '자유 생성' : project!.name,
           outputFilenameTemplate: free
             ? FREE_FILENAME_TEMPLATE
