@@ -50,7 +50,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     id: 'nai-diffusion-5-curated',
     requestIds: { generate: 'nai-diffusion-5-curated' },
     label: 'NAI Diffusion V5 Curated',
-    noInpaintReason: 'NovelAI에서 V5 Curated 전용 인페인트 모델이 아직 나오지 않았습니다.',
+    noInpaintReason: 'V5 Curated 전용 인페인트 모델이 아직 나오지 않았습니다.',
     family: 'v5-curated',
     generation: 'v5',
     maxCharacters: 32,

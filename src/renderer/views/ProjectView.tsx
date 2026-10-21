@@ -330,7 +330,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
       <ChainBar resolved={resolved} />
       {(bannerMissing.length > 0 || inpaintModel) && (
         <div className="missing-banner">
-          ⚠{bannerMissing.length > 0 && ` 생성하려면 ${bannerMissing.join(', ')}이(가) 필요합니다.`}
+          ⚠
+          {bannerMissing.length > 0 &&
+            ` 생성에 필요한 항목이 없습니다: ${bannerMissing.join(', ')}.`}
           {inpaintModel &&
             ` ${[
               `${modelLabel(inpaintModel)}는 일반 생성 전용입니다.`,
