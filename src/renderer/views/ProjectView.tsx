@@ -17,6 +17,7 @@ import { batchEmotionIds, generateEmotions } from '../actions';
 import { Modal, openDialog } from '../components/Dialogs';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
+import { HistoryToggle } from '../components/HistoryPanel';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
@@ -297,6 +298,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
         <ModeSwitch project={project} />
         <div className="header-spacer" />
         <AccountMeter />
+        <HistoryToggle />
         <Menu
           label="⋯"
           items={[

@@ -19,6 +19,7 @@ import { PositionChip } from '../components/CharacterPositions';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
+import { HistoryToggle } from '../components/HistoryPanel';
 import { ResultBar, showResultMenu, type ResultAction } from '../components/ResultActions';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
@@ -276,6 +277,7 @@ export function FreeView() {
         >
           <Icon name="folder" size={14} /> 폴더
         </button>
+        <HistoryToggle />
       </header>
       {!director && (
         <div className="chain-bar">

@@ -101,55 +101,58 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
       },
     ]);
 
+  if (collapsed) return null;
   return (
-    <aside className={`history-panel ${collapsed ? 'collapsed' : ''}`} aria-label="히스토리">
-      <div className="history-head">
-        {!collapsed && (
-          <b>
-            히스토리 <small>{records.length}</small>
-          </b>
+    <aside className="history-panel" aria-label="히스토리">
+      <button className="history-head" title="히스토리 접기 (Ctrl+H)" onClick={toggleHistory}>
+        <b>히스토리</b>
+        <small>{records.length}</small>
+        <Icon name="chevron" size={16} />
+      </button>
+      <div className="history-list" ref={list}>
+        {running.length > 0 && <StreamPreview jobIds={running} className="history-live" />}
+        {waiting > 0 && <span className="history-waiting">생성 대기 {waiting}</span>}
+        {records.slice(0, limit).map((record) => (
+          <button
+            key={record.id}
+            className={`history-item ${record.id === shownId ? 'selected' : ''}`}
+            title={describe(record)}
+            onClick={() => open(record)}
+            onContextMenu={(event) => menu(event, record)}
+          >
+            <img
+              src={projectMedia(projectId, record.thumbFile ?? record.file)}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+            {favorites.includes(record.id) && <span className="card-favorite">★</span>}
+          </button>
+        ))}
+        {records.length > limit && (
+          <button className="link-button history-more" onClick={() => setLimit(limit + PAGE)}>
+            더 보기 ({records.length - limit}장)
+          </button>
         )}
-        <button
-          className="icon-button"
-          title={collapsed ? '히스토리 펴기 (Ctrl+H)' : '히스토리 접기 (Ctrl+H)'}
-          aria-label={collapsed ? '히스토리 펴기' : '히스토리 접기'}
-          aria-expanded={!collapsed}
-          onClick={toggleHistory}
-        >
-          <Icon name="filmstrip" size={16} />
-        </button>
+        {!records.length && !waiting && <p className="hint">결과가 없습니다</p>}
       </div>
-      {!collapsed && (
-        <div className="history-list" ref={list}>
-          {running.length > 0 && <StreamPreview jobIds={running} className="history-live" />}
-          {waiting > 0 && <span className="history-waiting">생성 대기 {waiting}</span>}
-          {records.slice(0, limit).map((record) => (
-            <button
-              key={record.id}
-              className={`history-item ${record.id === shownId ? 'selected' : ''}`}
-              style={{ aspectRatio: `${record.width} / ${record.height}` }}
-              title={describe(record)}
-              onClick={() => open(record)}
-              onContextMenu={(event) => menu(event, record)}
-            >
-              <img
-                src={projectMedia(projectId, record.thumbFile ?? record.file)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-              />
-              {favorites.includes(record.id) && <span className="card-favorite">★</span>}
-            </button>
-          ))}
-          {records.length > limit && (
-            <button className="link-button history-more" onClick={() => setLimit(limit + PAGE)}>
-              더 보기 ({records.length - limit}장)
-            </button>
-          )}
-          {!records.length && !waiting && <p className="hint">결과가 없습니다</p>}
-        </div>
-      )}
     </aside>
+  );
+}
+
+/** 접으면 패널 자리가 없어지므로 화면 머리줄에 둔다. */
+export function HistoryToggle() {
+  const collapsed = useStore((state) => state.historyCollapsed);
+  return (
+    <button
+      className="icon-button history-toggle"
+      aria-pressed={!collapsed}
+      aria-label="히스토리"
+      title="히스토리 (Ctrl+H)"
+      onClick={toggleHistory}
+    >
+      <Icon name="filmstrip" size={18} />
+    </button>
   );
 }

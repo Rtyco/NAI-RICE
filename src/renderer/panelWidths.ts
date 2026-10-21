@@ -20,9 +20,9 @@ export const PANELS = {
   'side-panel': { variable: '--side-panel-width', initial: 360, min: 280, max: 640, side: 'right' },
   'history-panel': {
     variable: '--history-panel-width',
-    initial: 150,
-    min: 110,
-    max: 400,
+    initial: 220,
+    min: 160,
+    max: 420,
     side: 'right',
   },
 } as const;
