@@ -2475,15 +2475,14 @@ textarea.syntax-input::selection {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  height: var(--view-head-height);
+  padding: 0 16px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
 }
 /* 창을 줄이면 이름 칸, 계정 표시 순으로 덜어 끝의 버튼이 히스토리 밑으로 밀리지 않게 한다. */
 .project-header {
   container-type: inline-size;
-  height: var(--view-head-height);
-  padding-block: 0;
 }
 .project-header > :not(.project-name-input, .header-spacer, .account-meter) {
   flex: none;
@@ -2562,8 +2561,11 @@ textarea.syntax-input::selection {
   border-radius: 4px;
   background: var(--bg-1);
 }
-.free-card {
-  padding: 6px 0;
+/* 위 4px + 카드 + 아래 4px가 머리 높이라 「자유 생성」이 머리줄 제목들과 한 줄에 놓인다. 경계선은 없다. */
+.sidebar-card.free-card {
+  height: calc(var(--view-head-height) - 8px);
+  justify-content: center;
+  padding: 0;
 }
 .project-name-input:hover {
   border-color: var(--line);
@@ -2621,17 +2623,17 @@ textarea.syntax-input::selection {
   grid-template-columns: 60px minmax(0, 1fr);
 }
 .library-list-toggle {
-  margin: -2px 0 0 -4px;
+  margin-left: -4px;
 }
 .library-list.collapsed .library-list-head {
   justify-content: center;
-  padding: 12px 0 8px;
+  padding: 0;
 }
 .library-list.collapsed .library-list-toggle {
   margin: 0;
 }
 .library-list.collapsed nav {
-  padding: 0;
+  padding: 8px 0 0;
 }
 .library-list.collapsed .library-item-main {
   justify-content: center;
@@ -2658,7 +2660,7 @@ textarea.syntax-input::selection {
 .library-list nav {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px;
+  padding: 8px 8px 0;
 }
 .library-list > .link-button {
   margin: 8px 12px 12px;
@@ -2817,19 +2819,13 @@ textarea.syntax-input::selection {
 .card-body > :last-child {
   margin-bottom: 0;
 }
-.eyebrow {
-  color: var(--faint) !important;
-  font-size: 10px !important;
-  letter-spacing: 0.06em;
-}
-
 /* ── 사이드바 ────────────────────────────────── */
 .app-shell.sidebar-collapsed {
   grid-template-columns: 60px minmax(0, 1fr);
 }
 .sidebar {
   gap: 8px;
-  padding: 8px 0;
+  padding: 4px 0 8px;
 }
 .brand-sub {
   color: var(--faint);
@@ -3046,21 +3042,6 @@ textarea.syntax-input::selection {
 }
 .prompt-panel-view > .project-view {
   min-width: 0;
-}
-.prompt-panel .library-list-head {
-  height: var(--view-head-height);
-  align-items: center;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line);
-}
-.prompt-panel .library-list-toggle {
-  margin: 0 0 0 -4px;
-}
-.prompt-panel.collapsed .library-list-head {
-  padding: 0;
-}
-.prompt-panel.collapsed .library-list-toggle {
-  margin: 0;
 }
 .prompt-panel-body {
   flex: 1;
@@ -3297,10 +3278,13 @@ textarea.syntax-input::selection {
 
 /* ── 라이브러리 화면 ──────────────────────────── */
 .library-list-head {
+  flex: none;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: 12px;
+  height: var(--view-head-height);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
 }
 .library-list-head > div {
   flex: 1;

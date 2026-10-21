@@ -215,7 +215,6 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           {!collapsed && (
             <>
               <div className="library-list-title">
-                <small className="eyebrow">라이브러리</small>
                 <b>{label.title}</b>
                 {label.description && <small>{label.description}</small>}
               </div>
