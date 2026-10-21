@@ -425,7 +425,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             canvasDataUrl: finalCanvasDataUrl(value.working.canvas, width, height, {
               paint: painted,
               divider: value.divider.enabled
-                ? { pixels: dividerPixels(value.mask, width, height, value.divider.widthPx), color: value.divider.color }
+                ? { pixels: dividerPixels(value.mask, width, height, value.divider), color: value.divider.color }
                 : undefined,
             }),
             maskDataUrl: maskToDataUrl(value.mask, value.working.width, value.working.height),
@@ -802,6 +802,28 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                   onChange={(widthPx) => changeDivider({ widthPx: Math.max(8, Math.min(32, Math.round(widthPx / 8) * 8)) })}
                 />
               </SettingRow>
+              <SelectField
+                label="선 위치"
+                value={divider.placement}
+                options={[
+                  { value: 'outside', label: '생성 영역 바깥' },
+                  { value: 'center', label: '경계에 걸침' },
+                  { value: 'inside', label: '생성 영역 안쪽 (다시 그려질 수 있음)' },
+                ]}
+                onChange={(placement) => changeDivider({ placement })}
+              />
+              {divider.placement !== 'center' && (
+                <SettingRow label="경계와 간격" unit="px" title="생성 영역 경계에서 선을 이만큼 띄웁니다">
+                  <Stepper
+                    label="경계와 간격"
+                    value={divider.gapPx}
+                    min={0}
+                    max={64}
+                    step={8}
+                    onChange={(gapPx) => changeDivider({ gapPx: Math.max(0, Math.min(64, Math.round(gapPx / 8) * 8)) })}
+                  />
+                </SettingRow>
+              )}
             </>
           )}
           {working && (

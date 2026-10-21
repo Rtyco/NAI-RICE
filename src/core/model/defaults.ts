@@ -106,7 +106,13 @@ export const DEFAULT_LAYOUT: CanvasLayout = {
   background: '#ffffff',
 };
 
-export const DEFAULT_DIVIDER: DividerLine = { enabled: false, color: '#000000', widthPx: 8 };
+export const DEFAULT_DIVIDER: DividerLine = {
+  enabled: false,
+  color: '#000000',
+  widthPx: 8,
+  placement: 'outside',
+  gapPx: 0,
+};
 
 export const DEFAULT_EMOTIONS: Array<{ name: string; prompt: string }> = [
   { name: '중립', prompt: 'neutral expression, closed mouth' },

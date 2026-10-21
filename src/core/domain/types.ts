@@ -162,6 +162,10 @@ export type DividerLine = {
   color: string;
   /** NovelAI 마스크 한 칸이 8px라 8 단위 */
   widthPx: number;
+  /** 생성 영역 경계 기준. center는 반씩 걸친다. */
+  placement: 'outside' | 'center' | 'inside';
+  /** 경계에서 띄우는 px. center에서는 쓰지 않는다. */
+  gapPx: number;
 };
 
 /** 파일은 `references/<id>/`. */

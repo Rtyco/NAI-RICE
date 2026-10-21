@@ -199,13 +199,19 @@ export function ReferenceCanvas(props: Props) {
   const hasGeneratePixels = useMemo(() => maskHasGeneratePixels(mask), [mask]);
 
   const dividerWidth = props.divider?.widthPx;
+  const dividerPlacement = props.divider?.placement;
+  const dividerGap = props.divider?.gapPx;
   const dividerColor = props.divider?.color;
   const dividerMask = useMemo(
     () =>
-      dividerWidth === undefined
+      dividerWidth === undefined || !dividerPlacement
         ? undefined
-        : dividerPixels(mask, props.width, props.height, dividerWidth),
-    [mask, props.width, props.height, dividerWidth],
+        : dividerPixels(mask, props.width, props.height, {
+            widthPx: dividerWidth,
+            placement: dividerPlacement,
+            gapPx: dividerGap ?? 0,
+          }),
+    [mask, props.width, props.height, dividerWidth, dividerPlacement, dividerGap],
   );
 
   const view = useCanvasViewport(props.width, props.height);
@@ -259,9 +265,10 @@ export function ReferenceCanvas(props: Props) {
       if (dividerMask && dividerColor) {
         const [red, green, blue] = hexToRgb(dividerColor);
         const line = ((255 << 24) | (blue << 16) | (green << 8) | red) >>> 0;
+        // 안쪽에 둔 선도 보이게 생성 영역 색보다 위에 둔다.
         for (let pixel = 0; pixel < mask.length; pixel += 1) {
-          if (mask[pixel]) pixels[pixel] = color;
-          else if (dividerMask[pixel]) pixels[pixel] = line;
+          if (dividerMask[pixel]) pixels[pixel] = line;
+          else if (mask[pixel]) pixels[pixel] = color;
         }
       } else {
         for (let pixel = 0; pixel < mask.length; pixel += 1) {

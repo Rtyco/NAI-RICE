@@ -186,8 +186,10 @@ export const referenceSchema = z.object({
       enabled: z.boolean(),
       color: z.string(),
       widthPx: z.number().int().min(0).max(64),
+      placement: z.enum(['outside', 'center', 'inside']).default('outside'),
+      gapPx: z.number().int().min(0).max(64).default(0),
     })
-    .default({ enabled: false, color: '#000000', widthPx: 8 }),
+    .default({ enabled: false, color: '#000000', widthPx: 8, placement: 'outside', gapPx: 0 }),
   maskExpansionPx: z.number().nonnegative(),
   backgroundThreshold: z.number().min(0).max(255),
   updatedAt: z.string(),
