@@ -10,7 +10,7 @@ import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/N
 import { sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
 import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
-import { NumberField, SelectField } from './ui';
+import { NumberField, SelectField, Toggle } from './ui';
 
 /** 크롭된 결과를 같은 비율로 키우는 업스케일 우회의 기본값. */
 function nearestPreset(width: number, height: number) {
@@ -47,6 +47,7 @@ export function Img2ImgDialog(props: {
     fit: 'crop',
     strength: generation.img2imgStrength,
     noise: generation.img2imgNoise,
+    colorCorrect: generation.colorCorrect,
     count: 1,
     seedMode: 'source',
   });
@@ -158,6 +159,11 @@ export function Img2ImgDialog(props: {
             { value: 'random', label: '무작위' },
           ]}
           onChange={(seedMode) => patch({ seedMode })}
+        />
+        <Toggle
+          label="색 보정 (Color Correct)"
+          checked={options.colorCorrect}
+          onChange={(colorCorrect) => patch({ colorCorrect })}
         />
       </div>
       <p className="hint">

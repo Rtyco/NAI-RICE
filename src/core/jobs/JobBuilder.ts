@@ -462,6 +462,8 @@ export type ResultImg2ImgInput = {
   height: number;
   strength: number;
   noise: number;
+  /** 없으면 원래 결과의 설정 */
+  colorCorrect?: boolean;
   count: number;
   /** source: 원본 seed부터 차례로. */
   seedMode: 'source' | 'random';
@@ -538,14 +540,18 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
     const seed =
       input.seedMode === 'source' ? seedForVariant(record.seed, variantIndex) : randomSeed();
     const createdAt = now().toISOString();
+    const common = resultJobCommon(record, {
+      ...input,
+      id: `${record.projectId}-${record.id}-i2i-${variantIndex}-${seed}-${createdAt}`,
+      createdAt,
+      seed,
+      variantIndex,
+    });
     jobs.push({
-      ...resultJobCommon(record, {
-        ...input,
-        id: `${record.projectId}-${record.id}-i2i-${variantIndex}-${seed}-${createdAt}`,
-        createdAt,
-        seed,
-        variantIndex,
-      }),
+      ...common,
+      ...(input.colorCorrect === undefined
+        ? {}
+        : { settings: { ...common.settings, colorCorrect: input.colorCorrect } }),
       kind: 'img2img',
       ...input.image,
       strength: input.strength,

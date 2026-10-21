@@ -26,6 +26,7 @@ const settings: GenerationSettings = {
   height: 1216,
   img2imgStrength: 0.4,
   img2imgNoise: 0,
+  colorCorrect: true,
   effort: 'high',
   variety: false,
   smea: 'off',
@@ -61,7 +62,12 @@ describe('NovelAIRequestBuilder', () => {
         mask: 'MASK',
         negative_prompt: 'text, watermark',
         strength: 1,
-        img2img: { strength: 1, noise: 0, extra_noise_seed: 4_294_967_295 },
+        img2img: {
+          strength: 1,
+          noise: 0,
+          extra_noise_seed: 4_294_967_295,
+          color_correct: true,
+        },
       },
     });
     expect(body.parameters.characterPrompts).toEqual([
@@ -100,6 +106,26 @@ describe('NovelAIRequestBuilder', () => {
     expect(body.use_new_shared_trial).toBeUndefined();
     expect(body.parameters.params_version).toBe(3);
     expect(body.parameters.add_original_image).toBe(true);
+  });
+
+  it('색 보정을 끄면 color_correct를 false로 보내고, 값이 없는 옛 작업은 켜서 보내', () => {
+    const request = (colorCorrect: boolean | undefined) =>
+      (
+        buildNovelAIInpaintRequest({
+          prompt: '',
+          negativePrompt: '',
+          characterPrompt: '',
+          characterNegativePrompt: '',
+          imageBase64: 'IMAGE',
+          maskBase64: 'MASK',
+          width: 1024,
+          height: 1024,
+          seed: 1,
+          settings: { ...settings, colorCorrect } as GenerationSettings,
+        }) as any
+      ).parameters.img2img.color_correct;
+    expect(request(false)).toBe(false);
+    expect(request(undefined)).toBe(true);
   });
 
   it('rejects unknown model identifiers before any network request', () => {

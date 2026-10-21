@@ -36,6 +36,33 @@ const FIELDS: Record<
   },
 };
 
+function patchGeneration(preset: Preset, value: Partial<Preset['generation']>) {
+  updateLibrary((library) =>
+    patchItem(library, 'presets', preset.id, (item) => ({
+      ...item,
+      generation: { ...item.generation, ...value },
+    })),
+  );
+}
+
+export function PresetColorCorrectRow({ preset }: { preset: Preset }) {
+  return (
+    <label
+      className="preset-number-row"
+      title={`결과 색을 입력 이미지에 맞춥니다 (color_correct) · 생성 설정 「${preset.name}」에 저장됩니다`}
+    >
+      <span>
+        <Icon name="palette" size={14} /> 색 보정
+      </span>
+      <input
+        type="checkbox"
+        checked={normalizeGenerationSettings(preset.generation).colorCorrect}
+        onChange={(event) => patchGeneration(preset, { colorCorrect: event.target.checked })}
+      />
+    </label>
+  );
+}
+
 export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
   const info = FIELDS[field];
   return (
@@ -52,14 +79,7 @@ export function PresetNumberRow({ preset, field }: { preset: Preset; field: Pres
         max={info.max}
         step={0.05}
         label={info.text}
-        onChange={(next) =>
-          updateLibrary((library) =>
-            patchItem(library, 'presets', preset.id, (item) => ({
-              ...item,
-              generation: { ...item.generation, [field]: next },
-            })),
-          )
-        }
+        onChange={(next) => patchGeneration(preset, { [field]: next })}
       />
     </div>
   );

@@ -77,7 +77,8 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const tagText = naiTagText(g.model, shown);
   const autoNsfw = addsAutoNsfw(g.model, shown.ucPreset);
   const unusedInMedium = medium ? 'Medium에서는 쓰이지 않음' : undefined;
-  const { width, height, img2imgStrength, img2imgNoise } = normalizeGenerationSettings(g);
+  const { width, height, img2imgStrength, img2imgNoise, colorCorrect } =
+    normalizeGenerationSettings(g);
   const sizePreset = RESOLUTION_PRESETS.find(
     (item) => item.width === width && item.height === height,
   );
@@ -270,7 +271,15 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(img2imgNoise) => setting({ img2imgNoise })}
           />
         </div>
-        <p className="hint">세기 0.3~0.5에서 얼굴과 구도가 유지됩니다.</p>
+        <Toggle
+          label="색 보정 (Color Correct)"
+          checked={colorCorrect}
+          onChange={(colorCorrect) => setting({ colorCorrect })}
+        />
+        <p className="hint">
+          세기 0.3~0.5에서 얼굴과 구도가 유지됩니다. 색 보정은 결과 색을 입력 이미지에 맞추며, 자유
+          생성의 인페인팅에도 쓰입니다.
+        </p>
       </Card>
 
       <Card title="품질 태그 · UC 프리셋" subtitle="">

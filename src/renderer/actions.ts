@@ -198,6 +198,7 @@ export type ResultImg2ImgOptions = {
   fit: 'crop' | 'pad';
   strength: number;
   noise: number;
+  colorCorrect: boolean;
   count: number;
   seedMode: 'source' | 'random';
 };

@@ -190,7 +190,8 @@ export function buildNovelAIDiffusionRequest(
             begin_from_sigma: null,
             noise,
             extra_noise_seed: seed,
-            color_correct: true,
+            // 이전 버전에서 큐에 넣은 작업에는 값이 없다.
+            color_correct: input.settings.colorCorrect !== false,
           },
         }),
     // NovelAI 웹과 같다.

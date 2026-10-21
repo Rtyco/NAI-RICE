@@ -52,6 +52,8 @@ export type GenerationSettings = {
   /** 0~1 */
   img2imgStrength: number;
   img2imgNoise: number;
+  /** i2i·인페인트 요청의 `color_correct`. V3 요청에는 없다. */
+  colorCorrect: boolean;
   /** V5 Full에서만 쓴다. medium은 일부 설정을 고정한다(`effectiveGenerationSettings`). */
   effort: Effort;
   variety: boolean;
