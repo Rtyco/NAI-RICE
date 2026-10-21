@@ -16,7 +16,7 @@ const TOOLS: Array<{
   { id: 'pen', label: '펜', key: 'b', icon: 'pen' },
   { id: 'eraser', label: '지우개', key: 'e', icon: 'eraser' },
   { id: 'fill', label: '채우기', key: 'g', icon: 'bucket' },
-  { id: 'picker', label: '스포이트', key: 'c', icon: 'eyedropper' },
+  { id: 'picker', label: '스포이트', key: 'i', icon: 'eyedropper' },
 ];
 
 const TIPS: Array<{ id: Tip; label: string }> = [
@@ -44,6 +44,8 @@ const PALETTE = [
 /** 한 장이 1216×832 기준 약 4MB의 GPU 메모리다. */
 const HISTORY_LIMIT = 20;
 const MAX_SIZE = 300;
+/** 포토샵처럼 이 안에 숫자를 하나 더 누르면 두 자리 불투명도(4, 5 → 45%) */
+const OPACITY_TYPING_MS = 400;
 
 type Point = { x: number; y: number; pressure: number };
 
@@ -159,6 +161,10 @@ export function DrawCanvas(props: {
   const [opacity, setOpacity] = useState(100);
   const [tolerance, setTolerance] = useState(32);
   const [color, setColor] = useState('#000000');
+  const [backColor, setBackColor] = useState('#ffffff');
+  /** 앞 획의 끝. Shift+클릭이 여기서 곧게 잇는다. */
+  const lastPoint = useRef<Point | null>(null);
+  const typedOpacity = useRef<{ digit: number; at: number } | null>(null);
   const [dirty, setDirty] = useState(false);
   const undoStack = useRef<HTMLCanvasElement[]>([]);
   const redoStack = useRef<HTMLCanvasElement[]>([]);
@@ -239,6 +245,23 @@ export function DrawCanvas(props: {
     pushHistory();
     layer().clearRect(0, 0, width, height);
     changed();
+  };
+
+  const fillLayer = (fillColor: string) => {
+    pushHistory();
+    const context = layer();
+    context.fillStyle = fillColor;
+    context.fillRect(0, 0, width, height);
+    changed();
+  };
+
+  const typeOpacity = (digit: number) => {
+    const now = performance.now();
+    const previous = typedOpacity.current;
+    const second = previous && now - previous.at < OPACITY_TYPING_MS;
+    const value = second ? previous.digit * 10 + digit : digit === 0 ? 100 : digit * 10;
+    typedOpacity.current = second ? null : { digit, at: now };
+    setOpacity(Math.max(1, Math.min(100, value)));
   };
 
   const pointAt = (bounds: DOMRect, event: PointerEvent): Point => ({
@@ -329,8 +352,8 @@ export function DrawCanvas(props: {
     }
     if (event.button !== 0) return;
     const point = pointOf(event);
-    // NovelAI 웹처럼 Ctrl+클릭은 어느 도구에서나 스포이트.
-    if (event.ctrlKey || tool === 'picker') {
+    // 포토샵의 Alt+클릭, NovelAI 웹의 Ctrl+클릭은 어느 도구에서나 스포이트.
+    if (event.altKey || event.ctrlKey || tool === 'picker') {
       pick(point);
       return;
     }
@@ -342,7 +365,7 @@ export function DrawCanvas(props: {
     pushHistory();
     context2d(strokeRef.current!).clearRect(0, 0, width, height);
     active.current = { tool, last: point };
-    drawSegment(point, point);
+    drawSegment(event.shiftKey && lastPoint.current ? lastPoint.current : point, point);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -367,6 +390,7 @@ export function DrawCanvas(props: {
     const brush = active.current;
     if (!brush) return;
     active.current = null;
+    lastPoint.current = brush.last;
     if (brush.tool === 'pen') {
       const context = layer();
       context.globalAlpha = opacity / 100;
@@ -387,33 +411,46 @@ export function DrawCanvas(props: {
       const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
       if (dialog && !dialog.contains(layerRef.current)) return;
       const key = event.key.toLowerCase();
+      const digit = /^(?:Digit|Numpad)(\d)$/.exec(event.code)?.[1];
+      const shortcut = TOOLS.find((item) => item.key === key);
+      // 포토샵 단축키. 숫자는 화면 이동 단축키보다 먼저 받아야 해 캡처 단계에서 막는다.
       if (event.ctrlKey || event.metaKey) {
-        if (key === 'z' && !event.shiftKey) undo();
-        else if (key === 'y' || (key === 'z' && event.shiftKey)) redo();
+        if (key === 'z' && event.shiftKey) redo();
+        else if (key === 'z') undo();
+        else if (key === 'y') redo();
+        else if (event.key === 'Backspace') fillLayer(backColor);
         else return;
-        event.preventDefault();
-        return;
-      }
-      if (event.altKey) return;
-      if (event.code === 'Space') {
-        event.preventDefault();
-        setSpaceHeld(true);
-        return;
-      }
-      const next = TOOLS.find((item) => item.key === key);
-      if (next) setTool(next.id);
-      else if (key === '[') setSize((value) => Math.max(1, Math.round(value / 1.2)));
-      else if (key === ']') setSize((value) => Math.min(MAX_SIZE, Math.round(value * 1.2) + 1));
+      } else if (event.altKey) {
+        if (event.key === 'Backspace') fillLayer(color);
+        else return;
+      } else if (event.code === 'Space') setSpaceHeld(true);
+      else if (event.code === 'BracketLeft') {
+        if (event.shiftKey) setTip('soft');
+        else setSize((value) => Math.max(1, Math.round(value / 1.2)));
+      } else if (event.code === 'BracketRight') {
+        if (event.shiftKey) setTip('round');
+        else setSize((value) => Math.min(MAX_SIZE, Math.round(value * 1.2) + 1));
+      } else if (event.shiftKey) return;
+      else if (digit) typeOpacity(Number(digit));
+      else if (key === 'x') {
+        setColor(backColor);
+        setBackColor(color);
+      } else if (key === 'd') {
+        setColor('#000000');
+        setBackColor('#ffffff');
+      } else if (event.key === 'Delete' || event.key === 'Backspace') clearDrawing();
+      else if (shortcut) setTool(shortcut.id);
       else return;
       event.preventDefault();
+      event.stopPropagation();
     };
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.code === 'Space') setSpaceHeld(false);
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     window.addEventListener('keyup', onKeyUp);
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('keyup', onKeyUp);
     };
   });
@@ -437,14 +474,21 @@ export function DrawCanvas(props: {
           ))}
         </div>
         <span className="zone-divider" />
-        <label className="draw-color" title="색 (Ctrl+클릭: 그림에서 색 고르기)">
+        <div className="draw-colors" title="X: 전경색·배경색 바꾸기 · D: 검정·흰색 · Alt+클릭: 그림에서 색 고르기">
+          <input
+            type="color"
+            className="back"
+            value={backColor}
+            aria-label="배경색"
+            onChange={(event) => setBackColor(event.target.value)}
+          />
           <input
             type="color"
             value={color}
-            aria-label="색"
+            aria-label="전경색"
             onChange={(event) => setColor(event.target.value)}
           />
-        </label>
+        </div>
         <div className="draw-palette" role="group" aria-label="팔레트">
           {PALETTE.map((swatch) => (
             <button
@@ -471,7 +515,7 @@ export function DrawCanvas(props: {
               </button>
             ))}
           </div>
-          <label className="range-field" title="[ / ]로 줄이고 키웁니다">
+          <label className="range-field" title="[ / ]로 줄이고 키웁니다. Shift+[ / ]는 부드러운·둥근 끝">
             크기
             <input
               type="range"
@@ -483,11 +527,11 @@ export function DrawCanvas(props: {
             <b>{size}px</b>
           </label>
         </div>
-        <label className="range-field" title="펜과 채우기의 불투명도">
+        <label className="range-field" title="펜과 채우기의 불투명도. 숫자 키 1~0(10~100%), 두 번 빠르게 누르면 두 자리">
           불투명도
           <input
             type="range"
-            min="5"
+            min="1"
             max="100"
             value={opacity}
             onChange={(event) => setOpacity(Number(event.target.value))}
@@ -611,7 +655,10 @@ export function DrawCanvas(props: {
         {props.onApply && (
           <span>{dirty ? '합치지 않은 그림이 있습니다' : '바탕 이미지와 같습니다'}</span>
         )}
-        <span>B 펜 · E 지우개 · G 채우기 · C 스포이트 · [ ] 크기 · Ctrl+클릭 색 고르기</span>
+        <span>
+          B 펜 · E 지우개 · G 채우기 · I 스포이트 · Alt+클릭 색 고르기 · [ ] 크기 · 1~0 불투명도 · X
+          색 바꾸기 · Shift+클릭 직선 · Delete 모두 지우기 · F1 전체 단축키
+        </span>
       </div>
     </section>
   );

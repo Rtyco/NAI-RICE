@@ -1549,11 +1549,24 @@ textarea.syntax-input::selection {
   background: transparent;
   box-shadow: none;
 }
-.draw-color input {
-  width: 30px;
-  height: 26px;
+/* 포토샵처럼 전경색이 왼쪽 위, 배경색이 오른쪽 아래에 겹친다. */
+.draw-colors {
+  position: relative;
+  width: 40px;
+  height: 30px;
+}
+.draw-colors input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 20px;
   padding: 1px;
   cursor: pointer;
+}
+.draw-colors input.back {
+  top: 10px;
+  left: 14px;
 }
 .draw-palette {
   display: inline-flex;

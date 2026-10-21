@@ -561,6 +561,18 @@ export function ReferenceCanvas(props: Props) {
         setSpaceHeld(true);
         return;
       }
+      // 그리기 탭과 같은 포토샵 계열 키
+      if (!(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)) {
+        const key = event.key.toLowerCase();
+        if (key === 'b') setTool('generate');
+        else if (key === 'e') setTool('keep');
+        else if (key === 'x' && brushing) setTool(tool === 'generate' ? 'keep' : 'generate');
+        else if (event.code === 'BracketLeft') setBrushSize((value) => Math.max(1, value - 1));
+        else if (event.code === 'BracketRight') setBrushSize((value) => Math.min(32, value + 1));
+        else return;
+        event.preventDefault();
+        return;
+      }
       if (!(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       if (key === 't' && !event.shiftKey && props.transform) {
@@ -667,7 +679,7 @@ export function ReferenceCanvas(props: Props) {
           <button
             className={tool === 'generate' ? 'active teal' : ''}
             aria-pressed={tool === 'generate'}
-            title="생성 영역(청록색)을 칠합니다. NovelAI가 이곳을 새로 그립니다."
+            title="생성 영역(청록색)을 칠합니다. NovelAI가 이곳을 새로 그립니다. (B, X: 칠하기·지우기 바꾸기)"
             onClick={() => setTool('generate')}
           >
             <i className="teal-dot" /> 칠하기
@@ -675,7 +687,7 @@ export function ReferenceCanvas(props: Props) {
           <button
             className={tool === 'keep' ? 'active' : ''}
             aria-pressed={tool === 'keep'}
-            title="생성 영역을 지웁니다. 지운 곳은 그대로 남습니다."
+            title="생성 영역을 지웁니다. 지운 곳은 그대로 남습니다. (E)"
             onClick={() => setTool('keep')}
           >
             <Icon name="eraser" size={14} /> 지우기
@@ -700,7 +712,7 @@ export function ReferenceCanvas(props: Props) {
               <Icon name="square" size={14} />
             </button>
           </div>
-          <label className="range-field" title="NovelAI 웹처럼 8px 칸 단위로 칠합니다">
+          <label className="range-field" title="NovelAI 웹처럼 8px 칸 단위로 칠합니다. [ / ]로 줄이고 키웁니다.">
             크기
             <input
               type="range"
