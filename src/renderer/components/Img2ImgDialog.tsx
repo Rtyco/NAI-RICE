@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
-import { RESOLUTION_PRESETS } from '../../core/imaging/CanvasLayout';
+import {
+  CUSTOM_MAX,
+  CUSTOM_MIN,
+  freeSizeForRatio,
+  RESOLUTION_PRESETS,
+  snapDimension,
+} from '../../core/imaging/CanvasLayout';
 import {
   effectiveGenerationSettings,
   FREE_PROJECT_ID,
   normalizeGenerationSettings,
 } from '../../core/model/defaults';
-import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
+import {
+  estimateJobAnlas,
+  FREE_MAX_PIXELS,
+  generationCostWarnings,
+} from '../../core/providers/NaiCost';
 import { sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
 import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
@@ -42,7 +52,8 @@ export function Img2ImgDialog(props: {
     preset?.generation ?? library.presets[0].generation,
   );
   const first = props.records[0];
-  const [size, setSize] = useState(nearestPreset(first.width, first.height).id);
+  const [size, setSize] = useState<string>(nearestPreset(first.width, first.height).id);
+  const [custom, setCustom] = useState(() => freeSizeForRatio(first.width, first.height));
   const [options, setOptions] = useState<Omit<ResultImg2ImgOptions, 'width' | 'height'>>({
     fit: 'crop',
     strength: generation.img2imgStrength,
@@ -53,7 +64,7 @@ export function Img2ImgDialog(props: {
   });
   const patch = (value: Partial<typeof options>) =>
     setOptions((current) => ({ ...current, ...value }));
-  const target = RESOLUTION_PRESETS.find((item) => item.id === size)!;
+  const target = RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom;
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
   const costJob = {
@@ -110,10 +121,13 @@ export function Img2ImgDialog(props: {
         <SelectField
           label="목표 크기"
           value={size}
-          options={RESOLUTION_PRESETS.map((item) => ({
-            value: item.id,
-            label: `${item.label} (무료)`,
-          }))}
+          options={[
+            ...RESOLUTION_PRESETS.map((item) => ({
+              value: item.id as string,
+              label: `${item.label} (무료)`,
+            })),
+            { value: 'custom', label: '직접 입력' },
+          ]}
           onChange={setSize}
         />
         <SelectField
@@ -142,6 +156,30 @@ export function Img2ImgDialog(props: {
           onChange={(noise) => patch({ noise })}
         />
       </div>
+      {size === 'custom' && (
+        <div className="four-column-fields">
+          {(['width', 'height'] as const).map((side) => (
+            <NumberField
+              key={side}
+              label={side === 'width' ? '가로' : '세로'}
+              value={custom[side]}
+              min={CUSTOM_MIN}
+              max={CUSTOM_MAX}
+              step={64}
+              integer
+              suffix="px"
+              onChange={(value) =>
+                setCustom((current) => ({ ...current, [side]: snapDimension(value) }))
+              }
+            />
+          ))}
+        </div>
+      )}
+      {target.width * target.height > FREE_MAX_PIXELS && (
+        <p className="field-error">
+          {target.width}×{target.height}는 1024×1024보다 넓어 Opus 구독에서도 Anlas가 사용됩니다.
+        </p>
+      )}
       <div className="four-column-fields">
         <NumberField
           label="결과마다 장수"

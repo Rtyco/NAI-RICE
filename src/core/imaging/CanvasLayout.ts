@@ -1,4 +1,5 @@
 import type { CanvasLayout, FreePlacement, Rect, ResolutionPresetId } from '../domain/types';
+import { FREE_MAX_PIXELS } from '../providers/NaiCost';
 import type { ImageBox } from './FreeTransform';
 
 export const RESOLUTION_PRESETS: Array<{
@@ -19,6 +20,27 @@ export const CUSTOM_MAX = 2048;
 export function snapDimension(value: number): number {
   const snapped = Math.round(value / 64) * 64;
   return Math.max(CUSTOM_MIN, Math.min(CUSTOM_MAX, snapped || CUSTOM_MIN));
+}
+
+/** 원본 비율을 지키는 Opus 무료 최대 크기. 비율 오차와 넓이 손실(둘 다 log)을 같은 무게로 잰다. */
+export function freeSizeForRatio(width: number, height: number): { width: number; height: number } {
+  const ratio = width / height;
+  let best = { width: 1024, height: 1024 };
+  let bestScore = Infinity;
+  for (let w = CUSTOM_MIN; w <= CUSTOM_MAX; w += 64) {
+    const h = Math.min(
+      Math.floor(FREE_MAX_PIXELS / w / 64) * 64,
+      Math.round(w / ratio / 64) * 64,
+      CUSTOM_MAX,
+    );
+    if (h < CUSTOM_MIN) continue;
+    const score = Math.abs(Math.log(w / h / ratio)) + Math.log(FREE_MAX_PIXELS / (w * h));
+    if (score < bestScore) {
+      best = { width: w, height: h };
+      bestScore = score;
+    }
+  }
+  return best;
 }
 
 export function resolveResolution(layout: CanvasLayout): { width: number; height: number } {

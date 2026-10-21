@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeLayout,
+  freeSizeForRatio,
   layoutBackgroundMask,
   resolveResolution,
   snapDimension,
@@ -78,5 +79,14 @@ describe('computeLayout', () => {
     expect(mask[0]).toBe(0);
     expect(mask[255]).toBe(1);
     expect(mask.reduce((sum, value) => sum + value, 0)).toBe(128 * 256);
+  });
+});
+
+describe('freeSizeForRatio', () => {
+  it('원본 비율에 가까운 64 배수 무료 최대 크기를 고른다', () => {
+    expect(freeSizeForRatio(1000, 1500)).toEqual({ width: 832, height: 1216 });
+    expect(freeSizeForRatio(1500, 1000)).toEqual({ width: 1216, height: 832 });
+    expect(freeSizeForRatio(1080, 1920)).toEqual({ width: 768, height: 1344 });
+    expect(freeSizeForRatio(500, 500)).toEqual({ width: 1024, height: 1024 });
   });
 });
