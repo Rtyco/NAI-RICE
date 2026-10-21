@@ -86,7 +86,6 @@ export function PromptPanel(props: {
   /** 자유 생성이면 없다. */
   projectId?: string;
   noCharacter: string;
-  firstCharacterNote?: string;
   footer?: ReactNode;
 }) {
   const { preset, characters } = props;
@@ -265,9 +264,6 @@ export function PromptPanel(props: {
                   onChange={(negative) => patchPromptSet(character, promptSet, { negative })}
                 />
                 {shared && <p className="hint">{shared}</p>}
-                {index === 0 && characters.length > 1 && props.firstCharacterNote && (
-                  <p className="hint">{props.firstCharacterNote}</p>
-                )}
               </PromptCard>
             );
           })}
@@ -308,11 +304,6 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
       characters={resolved.characters}
       projectId={projectId}
       noCharacter="캐릭터 없이 생성합니다."
-      firstCharacterNote={
-        resolved.project.mode === 'reference'
-          ? '참고 이미지는 첫 캐릭터만 참고가 됩니다.'
-          : undefined
-      }
       footer={
         <button
           className="with-icon prompt-panel-preview"

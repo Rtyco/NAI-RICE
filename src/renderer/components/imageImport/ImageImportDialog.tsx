@@ -300,7 +300,6 @@ export function ImageImportDialog({
             />
           </label>
           <div className="select-all-row">
-            <span className="hint">불러올 항목 선택</span>
             <button className="link-button" onClick={() => setAll(true)}>
               전체 선택
             </button>
@@ -406,12 +405,6 @@ export function ImageImportDialog({
                 ? data.characters.map((item, index) => `${index + 1}. ${item.positive}`).join('\n')
                 : data.characters[characterIndex]?.positive || '(없음)'}
             </pre>
-            {allCharacters && (
-              <p className="hint">
-                캐릭터마다 새로 만듭니다({name} 1, {name} 2 …).
-                {data.characterCenters ? ' 위치도 옮깁니다.' : ''}
-              </p>
-            )}
           </Check>
           {useCharacter && data.characters.length > 0 && !allCharacters && (
             <div className="import-target">

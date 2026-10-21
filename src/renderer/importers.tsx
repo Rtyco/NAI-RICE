@@ -212,7 +212,6 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
         </>
       }
     >
-      <p className="hint">덮어쓰기는 이름이 같은 항목이 있을 때만 됩니다.</p>
       {GROUPS.filter((group) => bundle[group.key].length).map((group) => (
         <section className="card" key={group.key}>
           <header className="card-head">
@@ -247,12 +246,10 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
                   </select>
                   {value === SKIP ? (
                     <span className="hint">
-                      {isBlocked
-                        ? `${item.name} · 이 항목이 쓰는 다른 항목을 추가하지 않아 함께 제외`
-                        : item.name}
+                      {isBlocked ? `${item.name} · 쓰는 항목이 빠져 함께 제외` : item.name}
                     </span>
                   ) : target ? (
-                    <span className="hint">"{item.name}" 내용 교체 · 이름 유지</span>
+                    <span className="hint">{item.name}</span>
                   ) : (
                     <input
                       autoFocus={

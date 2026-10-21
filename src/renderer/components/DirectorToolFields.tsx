@@ -28,12 +28,12 @@ export function DirectorToolFields(props: {
       <label className="stack-field director-tools">
         툴
         <select
+          title={info.description}
           value={value.tool}
           onChange={(event) => onChange({ tool: event.target.value as AugmentSettings['tool'] })}
         >
           {AUGMENT_TOOLS.map(option)}
         </select>
-        <span className="hint">{info.description}</span>
       </label>
       <div className="director-fields">
         {value.tool === 'emotion' && (

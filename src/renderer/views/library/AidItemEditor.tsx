@@ -136,8 +136,7 @@ export function VibeEditor({ item }: { item: Vibe }) {
         </div>
         {encodedOnly && (
           <p className="field-error">
-            원본 그림 없이 인코딩만 가져온 바이브입니다. 아래의 저장된 인코딩과 같은 모델·정보 추출
-            값으로만 쓸 수 있고, 위 그림은 보기용입니다. 원본 그림을 불러오면 보통 바이브가 됩니다.
+            인코딩만 있는 바이브입니다. 저장된 인코딩의 모델·정보 추출 값으로만 쓸 수 있습니다.
           </p>
         )}
         <p className="hint">
@@ -151,7 +150,7 @@ export function VibeEditor({ item }: { item: Vibe }) {
                       `${generateModelLabel(encoding.model)} · 정보 추출 ${encoding.informationExtracted}`,
                   )
                   .join(', ')
-              : '없음(처음 생성할 때 인코딩합니다)'}
+              : '없음'}
         </p>
       </Card>
     </>

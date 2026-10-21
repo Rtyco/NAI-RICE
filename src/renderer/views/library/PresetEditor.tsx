@@ -32,7 +32,6 @@ import {
   qualityLevelsFor,
   SMEA_LABELS,
   supportsEffort,
-  supportsInpaint,
   UC_PRESET_LABELS,
   ucPresetsFor,
   usesMedium,
@@ -142,11 +141,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(referenceInsetPosition) => setting({ referenceInsetPosition })}
           />
         </div>
-        <p className="hint">
-          {!g.referenceInset
-            ? '넣지 않음'
-            : '인페인트에만 붙고, 직접 쓴 태그가 있으면 넣지 않습니다'}
-        </p>
         <div className="inset-row">
           <span className="inset-label">씬 프롬프트</span>
           <SelectField
@@ -159,12 +153,9 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(emotionPosition) => setting({ emotionPosition })}
           />
         </div>
-        {g.emotionPosition === 'character-end' && (
-          <p className="hint">V4 이상에서 그 캐릭터에만 적용</p>
-        )}
       </Card>
 
-      <Card title="모델" subtitle="품질 태그·UC 프리셋 문구는 모델에 따라 달라집니다">
+      <Card title="모델">
         <SelectField
           label="모델"
           value={g.model}
@@ -174,13 +165,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           }))}
           onChange={changeModel}
         />
-        {!supportsInpaint(g.model) && (
-          <p className="hint">인페인트 모델이 없어 인페인트 방식에는 쓸 수 없습니다</p>
-        )}
-        {isV3 && <p className="hint">V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합쳐 보냅니다</p>}
-        {isV5 && (
-          <p className="hint">V5: Noise Schedule karras 고정 · 무료 할당량(%)을 먼저 씁니다</p>
-        )}
         {supportsEffort(g.model) && (
           <>
             <div className="inset-row">
@@ -198,16 +182,12 @@ export function PresetEditor({ preset }: { preset: Preset }) {
                 ))}
               </div>
             </div>
-            <p className="hint">
-              {medium
-                ? 'Steps 14 · Euler Ancestral · UC Heavy 고정 · 네거티브는 보내지 않음'
-                : 'Medium은 사용량이 약 42% 적고 일부 설정이 고정됩니다'}
-            </p>
+            {medium && <p className="hint">네거티브 프롬프트는 보내지 않습니다</p>}
           </>
         )}
       </Card>
 
-      <Card title="일반 생성 · i2i" subtitle="인페인트 방식은 인페인트의 캔버스 크기를 씁니다">
+      <Card title="일반 생성 · i2i">
         <SelectField
           label="해상도"
           value={customSize || !sizePreset ? 'custom' : sizePreset.id}
@@ -276,10 +256,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           checked={colorCorrect}
           onChange={(colorCorrect) => setting({ colorCorrect })}
         />
-        <p className="hint">
-          세기 0.3~0.5에서 얼굴과 구도가 유지됩니다. 색 보정은 결과 색을 입력 이미지에 맞추며, 자유
-          생성의 인페인팅에도 쓰입니다.
-        </p>
       </Card>
 
       <Card title="품질 태그 · UC 프리셋" subtitle="">
@@ -430,9 +406,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         </div>
         {shown.steps > 28 && (
           <p className="field-error">Steps가 28을 넘으면 Opus 구독에서도 Anlas가 사용됩니다.</p>
-        )}
-        {medium && (
-          <p className="hint">Effort Medium이라 Steps·Sampler·CFG Rescale이 고정됩니다.</p>
         )}
       </Card>
 

@@ -102,8 +102,7 @@ export function DirectorToolDialog(props: {
         countLabel={count > 1 ? '결과마다 장수' : '장수'}
       >
         {options.tool === 'emotion' && props.onSceneSet && (
-          <p className="hint">
-            씬 모음의 씬마다 다른 표정으로 한꺼번에 만들려면{' '}
+          <p>
             <button
               className="link-button"
               onClick={() => {

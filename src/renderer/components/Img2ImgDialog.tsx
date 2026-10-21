@@ -166,10 +166,6 @@ export function Img2ImgDialog(props: {
           onChange={(colorCorrect) => patch({ colorCorrect })}
         />
       </div>
-      <p className="hint">
-        i2i를 활용해 크롭된 이미지를 NAI 기본 해상도로 업스케일링 합니다. 세기가 낮을수록 원본을
-        많이 남깁니다(0.3~0.5 권장).
-      </p>
     </Modal>
   );
 }

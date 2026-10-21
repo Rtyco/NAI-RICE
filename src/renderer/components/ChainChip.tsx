@@ -390,7 +390,6 @@ export function SizeChip({ preset }: { preset: Preset }) {
         {
           id: 'custom',
           name: current ? '직접 입력…' : `${custom}…`,
-          hint: '가로·세로를 64 단위로 정합니다',
         },
       ]}
       checked={[current?.id ?? 'custom']}
@@ -402,7 +401,6 @@ export function SizeChip({ preset }: { preset: Preset }) {
             <CustomSizeDialog size={{ width, height }} onApply={save} close={close} />
           ));
       }}
-      hint={`생성 설정 「${preset.name}」에 저장됩니다`}
     />
   );
 }

@@ -570,7 +570,7 @@ export function DrawCanvas(props: {
         >
           <Icon name="undo" size={15} />
         </button>
-        <button onClick={clearDrawing} title="그린 것을 모두 지웁니다. 바탕 이미지는 그대로입니다.">
+        <button onClick={clearDrawing} title="모두 지우기 (Delete)">
           그린 것 지우기
         </button>
         <div className="toolbar-zone view-zone">
@@ -652,13 +652,7 @@ export function DrawCanvas(props: {
         <span>
           캔버스 {width}×{height}
         </span>
-        {props.onApply && (
-          <span>{dirty ? '합치지 않은 그림이 있습니다' : '바탕 이미지와 같습니다'}</span>
-        )}
-        <span>
-          B 펜 · E 지우개 · G 채우기 · I 스포이트 · Alt+클릭 색 고르기 · [ ] 크기 · 1~0 불투명도 · X
-          색 바꾸기 · Shift+클릭 직선 · Delete 모두 지우기 · F1 전체 단축키
-        </span>
+        {props.onApply && dirty && <span>합치지 않은 그림이 있습니다</span>}
       </div>
     </section>
   );

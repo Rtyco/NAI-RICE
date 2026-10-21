@@ -31,11 +31,11 @@ export function TextEditorDialog({
       onClose={close}
       footer={
         <>
-          <span className="hint">
-            {draft.length.toLocaleString()}자 · Ctrl+Enter로 적용 · Esc로 취소
-          </span>
-          <button onClick={close}>취소</button>
-          <button className="accent" onClick={apply}>
+          <span className="hint">{draft.length.toLocaleString()}자</span>
+          <button title="Esc" onClick={close}>
+            취소
+          </button>
+          <button className="accent" title="Ctrl+Enter" onClick={apply}>
             적용
           </button>
         </>

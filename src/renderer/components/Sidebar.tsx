@@ -501,7 +501,6 @@ export function Sidebar() {
                   <>
                     <span className="library-nav-text">
                       <b>{section.label}</b>
-                      {section.role && <small>{section.role}</small>}
                     </span>
                     <span className="count">{counts[index]}</span>
                   </>

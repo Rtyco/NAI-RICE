@@ -162,11 +162,6 @@ export function CharacterPositionDialog({ target, close }: { target: Target; clo
               직접 지정
             </button>
           </div>
-          <p className="hint">
-            {freeform
-              ? 'V5: 캔버스 어디든 놓을 수 있습니다.'
-              : 'V4·V4.5: 5×5 칸에만 놓을 수 있습니다.'}
-          </p>
           <div
             ref={board}
             className={`position-board ${manual ? '' : 'disabled'}`}

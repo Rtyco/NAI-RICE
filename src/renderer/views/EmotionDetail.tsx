@@ -218,7 +218,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             empty={
               <div className="stage-empty">
                 <p>아직 생성된 이미지가 없습니다.</p>
-                <p className="hint">오른쪽에서 프롬프트 입력 후 생성</p>
               </div>
             }
             overlay={
@@ -275,9 +274,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             }
             onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
           />
-          <p className="hint">
-            씬 모음 "{set.name}"에 저장됩니다{sharedCount > 1 ? ` · 이 모음을 쓰는 작업 ${sharedCount}개에 함께 반영` : ''}.
-          </p>
+          {sharedCount > 1 && (
+            <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>
+          )}
           <label className="toggle-field">
             <input
               type="checkbox"

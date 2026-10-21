@@ -24,11 +24,14 @@ export function ScenePromptFields(props: {
           );
         const title = slots > 1 ? `씬 프롬프트 · ${index + 1}. ${names[index]}` : '씬 프롬프트';
         return (
-          <label className="prompt-field" key={index}>
+          <label
+            className="prompt-field"
+            key={index}
+            title={index === 0 ? props.firstPlacement : '이 캐릭터 프롬프트 뒤에 붙습니다'}
+          >
             <span>
               {title}
               <span className="prompt-field-tools">
-                <em>{index === 0 ? props.firstPlacement : '이 캐릭터 프롬프트 뒤에 붙습니다'}</em>
                 <ExpandTextButton
                   title={`${emotion.name} ${title}`}
                   value={value}

@@ -58,7 +58,10 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
                 >
                   {ref}
                 </button>
-                <label className="toggle-field compact">
+                <label
+                  className="toggle-field compact"
+                  title="같은 seed면 같은 줄 · 빈 줄은 넣지 않음"
+                >
                   <input
                     type="checkbox"
                     checked={piece.multi}
@@ -96,7 +99,6 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
         })}
         {!set.pieces.length && <p className="hint">조각 없음</p>}
       </div>
-      <p className="hint">줄마다 하나씩 고르기: 같은 seed면 같은 줄, 빈 줄은 넣지 않음</p>
     </Card>
   );
 }

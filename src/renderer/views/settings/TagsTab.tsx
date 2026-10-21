@@ -34,9 +34,6 @@ export function TagsTab() {
           checked={tagAutocomplete}
           onChange={(value) => patchSettings((current) => ({ ...current, tagAutocomplete: value }))}
         />
-        <p className="hint">
-          artist:로 시작하면 작가 태그만 찾습니다. 태그 목록은 2026년 10월 기준입니다.
-        </p>
       </Card>
       <Card title="품질 태그 · UC 프리셋 문구" subtitle="">
         <div className="chip-row">
@@ -52,12 +49,12 @@ export function TagsTab() {
         </div>
         <p className="hint">적용 모델: {models.join(', ')}</p>
       </Card>
-      <Card title="Quality Tags" subtitle="공통 포지티브 끝에 붙습니다.">
+      <Card title="Quality Tags">
         {(Object.keys(QUALITY_LEVEL_LABELS) as QualityLevel[]).map((level) => (
           <TagLine key={level} label={QUALITY_LEVEL_LABELS[level]} text={entry.quality[level]} />
         ))}
       </Card>
-      <Card title="UC 프리셋" subtitle="공통 네거티브 앞에 붙습니다.">
+      <Card title="UC 프리셋">
         {(Object.keys(UC_PRESET_LABELS) as UcPresetId[])
           .filter((id) => id !== 'none')
           .map((id) => (

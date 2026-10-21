@@ -221,11 +221,6 @@ export function FreeView() {
       empty={
         <div className="stage-empty">
           <p>아직 생성된 이미지가 없습니다.</p>
-          <p className="hint">
-            {director
-              ? '오른쪽에서 이미지와 툴을 고른 뒤 적용'
-              : '오른쪽에서 프롬프트 입력 후 생성'}
-          </p>
         </div>
       }
       overlay={
@@ -359,7 +354,6 @@ export function FreeView() {
                   ) : (
                     <div className="stage-empty">
                       <p>그릴 이미지가 없습니다.</p>
-                      <p className="hint">빈 캔버스에서 시작하거나 그 위에 그릴 이미지를 불러오십시오.</p>
                       <div className="stage-empty-actions">
                         <button
                           className="accent"

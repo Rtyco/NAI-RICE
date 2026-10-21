@@ -4,7 +4,7 @@ import type { ResolvedProject } from '../../core/model/defaults';
 import { coverRecord, emotionRecords, projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
-import { fileApi, libraryApi } from '../desktop';
+import { fileApi } from '../desktop';
 
 /** RisuAI 감정 이미지 업로드용. 감정마다 대표(또는 최신) 이미지 하나. */
 export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
@@ -55,7 +55,6 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
       wide
       footer={
         <>
-          <span className="hint">파일 이름 = 씬 이름 (예: 기쁨.{format})</span>
           <button onClick={close}>취소</button>
           <button className="accent" disabled={!selected.length} onClick={submit}>
             {selected.length}개 내보내기
@@ -101,20 +100,7 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
           onChange={setMode}
         />
       </div>
-      <p className="hint">
-        {format === 'png' ? '메타데이터 포함' : '메타데이터 없음'} · 원본은{' '}
-        <button
-          className="link-button"
-          onClick={() =>
-            void run('폴더를 여는 중', () =>
-              libraryApi().openInExplorer({ kind: 'outputs', projectId: project.id }),
-            )
-          }
-        >
-          결과 폴더
-        </button>
-        에 있습니다
-      </p>
+      <p className="hint">{format === 'png' ? '메타데이터 포함' : '메타데이터 없음'}</p>
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">
         {candidates.map(({ emotion, record }) => (

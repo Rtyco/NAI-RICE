@@ -728,7 +728,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             </>
           ) : (
             <>
-              <p className="hint">배경을 감지해 참고 영역을 찾습니다.</p>
               <SettingRow label="배경 임계값">
                 <Stepper
                   label="배경 임계값"
@@ -782,10 +781,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               }}
             />
           </SettingRow>
-          <p className="hint">결과 영역은 이 여백 바깥에서 자릅니다.</p>
-          <div title="생성 영역 바로 바깥에 선을 그어 따로 나뉜 칸임을 알립니다. 선은 다시 그리지 않습니다.">
-            <Toggle label="분리선" checked={divider.enabled} onChange={(enabled) => changeDivider({ enabled })} />
-          </div>
+          <Toggle label="분리선" checked={divider.enabled} onChange={(enabled) => changeDivider({ enabled })} />
           {divider.enabled && (
             <>
               <SettingRow label="선 색">
@@ -866,7 +862,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           <div className="detail-card-head">
             <b>생성</b>
           </div>
-          <SettingRow label="인페인트 강도" title="Inpaint Strength · 1은 생성 영역을 새로 그리고, 낮을수록 캔버스의 원래 모습을 남깁니다">
+          <SettingRow label="인페인트 강도" title="Inpaint Strength">
             <Stepper
               label="인페인트 강도"
               value={reference.inpaintStrength}
@@ -876,12 +872,9 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               onChange={(inpaintStrength) => changeRequest({ inpaintStrength })}
             />
           </SettingRow>
-          <div title="결과 색을 보낸 캔버스의 색에 맞춥니다 (color_correct)">
+          <div title="Color Correct">
             <Toggle label="색 보정" checked={reference.colorCorrect} onChange={(colorCorrect) => changeRequest({ colorCorrect })} />
           </div>
-          <p className="hint">
-            이 인페인트를 쓰는 작업에 생성 설정 대신 쓰입니다. 강도를 낮추면 생성 영역의 배경색이 결과에 섞입니다.
-          </p>
         </section>
       </aside>
       <PanelResizer panel="side-panel" />

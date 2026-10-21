@@ -52,9 +52,6 @@ export function LibraryEditorDialog(props: {
       large
       footer={
         <>
-          <span className="hint">
-            바로 저장되고, 이 {label.title}을(를) 쓰는 작업 모두에 반영됩니다.
-          </span>
           <button
             onClick={() => {
               close();

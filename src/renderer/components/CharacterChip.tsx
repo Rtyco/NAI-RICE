@@ -76,7 +76,6 @@ export function CharacterChip(props: {
       onPick={toggle}
       editSection="characters"
       empty="라이브러리에 캐릭터가 없습니다."
-      hint="번호가 씬 프롬프트 칸의 순서입니다"
       rowTools={(characterId, order) => {
         const index = slots.findIndex((slot) => slot.characterId === characterId);
         const slot = slots[index];

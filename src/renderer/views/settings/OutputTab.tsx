@@ -30,7 +30,7 @@ export function OutputTab() {
     patchSettings((current) => ({ ...current, export: { ...current.export, ...value } }));
   return (
     <>
-      <Card title="결과 파일" subtitle="outputs/<생성 방식>/<씬 이름>/에 저장됩니다">
+      <Card title="결과 파일">
         <label className="stack-field">
           파일명 규칙
           <input
@@ -73,7 +73,6 @@ export function OutputTab() {
           ]}
           onChange={(storageFormat) => patchSettings((current) => ({ ...current, storageFormat }))}
         />
-        <p className="hint">WebP 무손실도 픽셀과 메타데이터가 PNG와 같습니다.</p>
         <Toggle
           label="생성에 쓴 전체 캔버스도 보관 (diagnostic 폴더)"
           checked={settings.keepDiagnosticCanvas}

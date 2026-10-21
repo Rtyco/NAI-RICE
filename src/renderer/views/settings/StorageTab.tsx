@@ -324,10 +324,7 @@ export function StorageTab() {
 
   return (
     <>
-      <Card
-        title="작업 폴더"
-        subtitle="자동 저장 · 실행할 때마다 library.json을 backups 폴더에 백업합니다."
-      >
+      <Card title="작업 폴더">
         <div className="path-row">
           <code>{root}</code>
           <button

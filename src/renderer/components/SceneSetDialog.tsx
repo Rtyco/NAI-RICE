@@ -135,7 +135,6 @@ export function SceneSetDialog(props: {
           </figcaption>
         </figure>
         <div className="scene-set-body">
-          <p className="hint">정면을 보는 중립 표정의 캐릭터 한 명일 때 가장 잘 됩니다.</p>
           <div className="mood-table">
             <div className="mood-table-row head">
               <input
@@ -215,7 +214,6 @@ export function SceneSetDialog(props: {
               onChange={setShrink}
             />
           )}
-          <p className="hint">고른 표정과 강도는 씬 모음 「{set?.name}」에 저장됩니다.</p>
         </div>
       </div>
     </Modal>

@@ -32,7 +32,6 @@ function RequestDelayCard() {
           onChange={setDelay}
         />
       </div>
-      <p className="hint">0~1000ms</p>
     </Card>
   );
 }
@@ -40,7 +39,7 @@ function RequestDelayCard() {
 function StreamingCard() {
   const streaming = useLibrary().settings.streaming;
   return (
-    <Card title="스트리밍" subtitle="V3·디렉터 툴은 스트리밍하지 않습니다">
+    <Card title="스트리밍">
       <Toggle
         label="생성 과정 보기 (스트리밍)"
         checked={streaming}
@@ -61,7 +60,7 @@ export function AccountTab() {
     : undefined;
   return (
     <>
-      <Card title="NovelAI 연결" subtitle="Windows 보안 저장소에 암호화 · 백업에 포함되지 않습니다">
+      <Card title="NovelAI 연결">
         {!token.secureStorageAvailable && (
           <div className="warning-box">
             운영체제 보안 저장소를 사용할 수 없어 토큰을 저장할 수 없습니다.
@@ -108,7 +107,6 @@ export function AccountTab() {
 
       <Card
         title="계정 상태"
-        subtitle="생성할 때와 1분마다 확인합니다"
         actions={
           <button
             className="with-icon"

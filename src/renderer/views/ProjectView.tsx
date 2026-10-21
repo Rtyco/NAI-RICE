@@ -10,12 +10,7 @@ import {
 } from '../../core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
-import {
-  maxCharactersFor,
-  modelLabel,
-  supportsInpaint,
-  usesMedium,
-} from '../../core/providers/NaiModels';
+import { maxCharactersFor, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
@@ -241,15 +236,7 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
           );
         })}
       </div>
-      <p className="hint">
-        「줄마다 하나씩 고르기」 조각은 첫 줄로 보입니다.
-      </p>
-      <p className="hint">
-        모델: {modelLabel(resolved.preset.generation.model)}
-        {usesMedium(resolved.preset.generation) && ' · Effort Medium(네거티브는 UC 프리셋만)'}
-        {resolved.preset.generation.model.includes('-3-') &&
-          ' · V3: 캐릭터 프롬프트를 공통 프롬프트 뒤에 합침'}
-      </p>
+      <p className="hint">모델: {modelLabel(resolved.preset.generation.model)}</p>
     </Modal>
   );
 }

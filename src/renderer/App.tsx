@@ -77,7 +77,6 @@ function Welcome() {
           <Icon name="settings" /> 프로그램 설정 (NovelAI 토큰)
         </button>
       </div>
-      <p className="hint">이미지·JSON 파일은 창에 끌어다 놓아도 됩니다</p>
     </EmptyState>
   );
 }
