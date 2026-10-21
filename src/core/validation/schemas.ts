@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
+import {
+  DEFAULT_EXPORT_FILENAME_TEMPLATE,
+  DEFAULT_OUTPUT_FILENAME_TEMPLATE,
+} from '../output/OutputFilename';
 
 export const rectSchema = z.object({
   x: z.number().finite(),
@@ -344,8 +347,14 @@ export const appSettingsSchema = z.object({
       format: exportFormatSchema,
       quality: exportQualitySchema,
       target: z.enum(['favorite', 'latest']),
+      filenameTemplate: z.string().default(DEFAULT_EXPORT_FILENAME_TEMPLATE),
     })
-    .default({ format: 'png', quality: 90, target: 'favorite' }),
+    .default({
+      format: 'png',
+      quality: 90,
+      target: 'favorite',
+      filenameTemplate: DEFAULT_EXPORT_FILENAME_TEMPLATE,
+    }),
   // 예전 naiTags(직접 고친 품질 태그 문구)는 읽지 않는다.
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
   streaming: z.boolean().default(false),

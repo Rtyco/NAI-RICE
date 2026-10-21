@@ -358,6 +358,8 @@ export type AppSettings = {
     format: ExportFormat;
     quality: number;
     target: 'favorite' | 'latest';
+    /** 씬 내보내기 파일 이름. 토큰은 `EXPORT_FILENAME_TOKENS`. */
+    filenameTemplate: string;
   };
   /** 0~1000ms */
   requestDelayMs: number;

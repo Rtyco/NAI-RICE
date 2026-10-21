@@ -22,6 +22,20 @@ export const OUTPUT_FILENAME_TOKENS = [
   '{time}',
 ] as const;
 
+/** 씬 내보내기 기본값은 예전처럼 씬 이름만 쓴다. */
+export const DEFAULT_EXPORT_FILENAME_TEMPLATE = '{emotion}';
+
+export const EXPORT_FILENAME_TOKENS: Record<string, string> = {
+  '{emotion}': '씬 이름',
+  '{number}': '씬 모음 안 순서',
+  '{character}': '캐릭터',
+  '{project}': '작업 이름',
+  '{seed}': 'Seed',
+  '{model}': '모델',
+  '{date}': '생성 날짜',
+  '{time}': '생성 시각',
+};
+
 export type OutputFilenameContext = {
   character: string;
   emotion: string;
@@ -55,10 +69,13 @@ export function sanitizeFilenameStem(value: string): string {
   return cleaned || 'result';
 }
 
-export function validateOutputFilenameTemplate(template: string): string | null {
+export function validateOutputFilenameTemplate(
+  template: string,
+  allowed: readonly string[] = OUTPUT_FILENAME_TOKENS,
+): string | null {
   const trimmed = template.trim();
   if (!trimmed) return '파일명 템플릿을 입력하십시오.';
-  const known = new Set<string>(OUTPUT_FILENAME_TOKENS);
+  const known = new Set(allowed);
   const tokens = trimmed.match(/\{[^{}]*\}/g) ?? [];
   const unknown = tokens.find((token) => !known.has(token));
   if (unknown) return `지원하지 않는 토큰입니다: ${unknown}`;
@@ -78,12 +95,49 @@ export function renderOutputFilename(
     '{emotionId}': context.emotionId,
     '{variant}': String(context.variant),
     '{seed}': String(context.seed),
-    '{model}': context.model.replace(/^nai-diffusion-/, '').replace(/-inpainting$/, ''),
+    '{model}': shortModel(context.model),
     '{date}': date,
     '{time}': time,
   };
   let rendered = template.trim().replace(/\.png$/i, '');
   for (const token of OUTPUT_FILENAME_TOKENS) rendered = rendered.replaceAll(token, values[token]);
+  return sanitizeFilenameStem(rendered);
+}
+
+function shortModel(model: string): string {
+  return model.replace(/^nai-diffusion-/, '').replace(/-inpainting$/, '');
+}
+
+export function renderExportFilename(
+  template: string,
+  context: {
+    emotion: string;
+    /** 1부터. 씬 수의 자릿수만큼 0을 채운다. */
+    number: number;
+    total: number;
+    character: string;
+    project: string;
+    seed: number;
+    model: string;
+    createdAt: string;
+  },
+): string {
+  const { date, time } = timestampParts(context.createdAt);
+  const values: Record<string, string> = {
+    '{emotion}': context.emotion,
+    '{number}': String(context.number).padStart(String(context.total).length, '0'),
+    '{character}': context.character,
+    '{project}': context.project,
+    '{seed}': String(context.seed),
+    '{model}': shortModel(context.model),
+    '{date}': date,
+    '{time}': time,
+  };
+  // 한 번에 바꿔야 씬 이름 속 `{seed}` 같은 글자가 다시 바뀌지 않는다.
+  const rendered = template
+    .trim()
+    .replace(/\.(png|webp|avif)$/i, '')
+    .replace(/\{[^{}]*\}/g, (token) => values[token] ?? token);
   return sanitizeFilenameStem(rendered);
 }
 

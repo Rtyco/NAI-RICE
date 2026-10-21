@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_EXPORT_FILENAME_TEMPLATE,
   DEFAULT_OUTPUT_FILENAME_TEMPLATE,
+  EXPORT_FILENAME_TOKENS,
   exportFileNames,
+  renderExportFilename,
   renderOutputFilename,
   validateOutputFilenameTemplate,
 } from '../../src/core/output/OutputFilename';
@@ -35,6 +38,42 @@ describe('output filename template', () => {
     expect(validateOutputFilenameTemplate('{character')).toContain('중괄호');
     expect(validateOutputFilenameTemplate('')).toContain('입력');
     expect(validateOutputFilenameTemplate('{emotion}_{seed}')).toBeNull();
+  });
+});
+
+describe('export filename template', () => {
+  const scene = {
+    emotion: '기쁨',
+    number: 3,
+    total: 12,
+    character: '아리아',
+    project: '아리아 표정',
+    seed: 42,
+    model: 'nai-diffusion-4-5-full-inpainting',
+    createdAt: '2026-09-13T01:02:03.000Z',
+  };
+
+  it('기본값은 씬 이름만 쓴다', () => {
+    expect(renderExportFilename(DEFAULT_EXPORT_FILENAME_TEMPLATE, scene)).toBe('기쁨');
+  });
+
+  it('순서는 씬 수의 자릿수만큼 0을 채우고 확장자는 뺀다', () => {
+    expect(renderExportFilename('{number}_{character}_{emotion}.webp', scene)).toBe(
+      '03_아리아_기쁨',
+    );
+    expect(renderExportFilename('{project}-{model}-{seed}-{date}', scene)).toBe(
+      '아리아 표정-4-5-full-42-20260913',
+    );
+  });
+
+  it('씬 이름 속 중괄호 글자는 다시 바꾸지 않는다', () => {
+    expect(renderExportFilename('{emotion}', { ...scene, emotion: '{seed}' })).toBe('{seed}');
+  });
+
+  it('내보내기 토큰으로 검사한다', () => {
+    const tokens = Object.keys(EXPORT_FILENAME_TOKENS);
+    expect(validateOutputFilenameTemplate('{number}_{emotion}', tokens)).toBeNull();
+    expect(validateOutputFilenameTemplate('{variant}', tokens)).toContain('{variant}');
   });
 });
 

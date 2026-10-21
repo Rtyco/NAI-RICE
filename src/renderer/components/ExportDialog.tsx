@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { ExportFormat } from '../../core/domain/types';
 import type { ResolvedProject } from '../../core/model/defaults';
+import {
+  DEFAULT_EXPORT_FILENAME_TEMPLATE,
+  EXPORT_FILENAME_TOKENS,
+  renderExportFilename,
+  validateOutputFilenameTemplate,
+} from '../../core/output/OutputFilename';
 import { coverRecord, emotionRecords, projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
@@ -16,12 +22,18 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
   const [quality, setQuality] = useState(settings.export.quality);
   const [target, setTarget] = useState(settings.export.target);
   const [mode, setMode] = useState<'folder' | 'zip'>('folder');
+  const [filenameTemplate, setFilenameTemplate] = useState(settings.export.filenameTemplate);
+  const templateError = validateOutputFilenameTemplate(
+    filenameTemplate,
+    Object.keys(EXPORT_FILENAME_TOKENS),
+  );
 
   const candidates = useMemo(
     () =>
       emotions
-        .map((emotion) => ({
+        .map((emotion, index) => ({
           emotion,
+          number: index + 1,
           record: coverRecord(emotionRecords(records, emotion.id), project.favorites[emotion.id], target),
         }))
         .filter((item) => item.record),
@@ -30,14 +42,28 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const selected = candidates.filter((item) => !excluded.has(item.emotion.id));
   const missing = emotions.length - candidates.length;
+  const fileName = (item: (typeof candidates)[number]) =>
+    renderExportFilename(filenameTemplate, {
+      emotion: item.emotion.name,
+      number: item.number,
+      total: emotions.length,
+      character: item.record!.characterName,
+      project: project.name,
+      seed: item.record!.seed,
+      model: item.record!.model,
+      createdAt: item.record!.createdAt,
+    });
 
   const submit = () =>
     void run('이미지를 내보내는 중', async () => {
-      updateLibrary((current) => ({ ...current, settings: { ...current.settings, export: { format, quality, target } } }));
+      updateLibrary((current) => ({
+        ...current,
+        settings: { ...current.settings, export: { format, quality, target, filenameTemplate } },
+      }));
       const result = await fileApi().exportImages({
         projectId: project.id,
         name: project.name,
-        items: selected.map((item) => ({ generationId: item.record!.id, name: item.emotion.name })),
+        items: selected.map((item) => ({ generationId: item.record!.id, name: fileName(item) })),
         format,
         quality,
         mode,
@@ -56,7 +82,11 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
       footer={
         <>
           <button onClick={close}>취소</button>
-          <button className="accent" disabled={!selected.length} onClick={submit}>
+          <button
+            className="accent"
+            disabled={!selected.length || !!templateError}
+            onClick={submit}
+          >
             {selected.length}개 내보내기
           </button>
         </>
@@ -101,6 +131,44 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
         />
       </div>
       <p className="hint">{format === 'png' ? '메타데이터 포함' : '메타데이터 없음'}</p>
+      <label className="stack-field">
+        파일 이름
+        <input
+          className="template-input"
+          value={filenameTemplate}
+          spellCheck={false}
+          onChange={(event) => setFilenameTemplate(event.target.value)}
+        />
+      </label>
+      <div className="token-picker">
+        {Object.entries(EXPORT_FILENAME_TOKENS).map(([token, label]) => (
+          <button
+            key={token}
+            type="button"
+            title={label}
+            onClick={() => setFilenameTemplate(`${filenameTemplate}${token}`)}
+          >
+            {token}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => setFilenameTemplate(DEFAULT_EXPORT_FILENAME_TEMPLATE)}
+        >
+          기본값
+        </button>
+      </div>
+      {templateError ? (
+        <p className="field-error">{templateError}</p>
+      ) : (
+        selected[0] && (
+          <p className="hint">
+            미리보기: <code>{fileName(selected[0])}.{format}</code>
+            {selected.length > 1 && ` 외 ${selected.length - 1}개`}
+          </p>
+        )
+      )}
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">
         {candidates.map(({ emotion, record }) => (

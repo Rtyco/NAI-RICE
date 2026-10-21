@@ -97,7 +97,11 @@ export function migrateV1(workspace: V1Workspace, characters: V1Character[]): { 
       ...structuredClone(DEFAULT_SETTINGS),
       outputFilenameTemplate: workspace.outputFilenameTemplate,
       keepDiagnosticCanvas: workspace.keepDiagnosticCanvas,
-      export: { ...workspace.export, quality: Math.round(workspace.export.quality) },
+      export: {
+        ...DEFAULT_SETTINGS.export,
+        ...workspace.export,
+        quality: Math.round(workspace.export.quality),
+      },
     },
     presets: workspace.presets,
     pieceSets: [],

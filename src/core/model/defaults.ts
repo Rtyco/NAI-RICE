@@ -20,7 +20,10 @@ import type {
   CharacterReference,
   Vibe,
 } from '../domain/types';
-import { DEFAULT_OUTPUT_FILENAME_TEMPLATE } from '../output/OutputFilename';
+import {
+  DEFAULT_EXPORT_FILENAME_TEMPLATE,
+  DEFAULT_OUTPUT_FILENAME_TEMPLATE,
+} from '../output/OutputFilename';
 import {
   MEDIUM_FIXED,
   NAI_MODELS,
@@ -245,7 +248,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   outputFilenameTemplate: DEFAULT_OUTPUT_FILENAME_TEMPLATE,
   keepDiagnosticCanvas: true,
   storageFormat: 'webp-lossless',
-  export: { format: 'png', quality: 90, target: 'favorite' },
+  export: {
+    format: 'png',
+    quality: 90,
+    target: 'favorite',
+    filenameTemplate: DEFAULT_EXPORT_FILENAME_TEMPLATE,
+  },
   requestDelayMs: 300,
   streaming: false,
   tagAutocomplete: true,
