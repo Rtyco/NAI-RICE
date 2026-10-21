@@ -1,6 +1,6 @@
 import type { AidMode, CharacterReference, Project, Vibe } from '../../core/domain/types';
 import { aidItems, projectAid, projectAidMode, type AidChoice } from '../../core/model/defaults';
-import { supportsReferenceAid } from '../../core/providers/NaiModels';
+import { modelLabel, supportsReferenceAid } from '../../core/providers/NaiModels';
 import { pictureMedia, useLibrary } from '../store';
 import { ChecklistChip, type ChecklistItem } from './ChainChip';
 import { Toggle } from './ui';
@@ -24,9 +24,8 @@ export function AidChip(props: {
   const { value, onChange: patch } = props;
   const mode = projectAidMode(value);
   const aid = projectAid(library, value);
-  const missing =
-    aidItems(aid).some((item) => !item?.image) ||
-    Boolean(props.model && !supportsReferenceAid(props.model));
+  const unsupported = Boolean(props.model && !supportsReferenceAid(props.model));
+  const missing = aidItems(aid).some((item) => !item?.image) || unsupported;
   const row = (item: CharacterReference | Vibe): ChecklistItem => ({
     id: item.id,
     name: item.name,
@@ -89,23 +88,29 @@ export function AidChip(props: {
       pickTitle={`${label} 선택`}
       empty={`라이브러리에 ${label}가 없습니다.`}
       options={
-        character ? (
-          // NovelAI 웹은 V4.5 인페인트에 캐릭터 레퍼런스를 허용하지만 결과가 나빴다. 바이브는 괜찮아 알리기만 한다.
-          props.inpaint && (
+        <>
+          {unsupported ? (
             <p className="warning-box aid-warning">
-              인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수 있습니다. 인페인트에는
-              바이브를 쓰십시오.
+              {modelLabel(props.model!)}에서는 {label}를 쓸 수 없습니다. V4.5 모델로 바꾸십시오.
             </p>
-          )
-        ) : (
-          <>
+          ) : (
+            // NovelAI 웹은 V4.5 인페인트에 캐릭터 레퍼런스를 허용하지만 결과가 나빴다. 바이브는 괜찮아 알리기만 한다.
+            character &&
+            props.inpaint && (
+              <p className="warning-box aid-warning">
+                인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수 있습니다.
+                인페인트에는 바이브를 쓰십시오.
+              </p>
+            )
+          )}
+          {!character && (
             <Toggle
               label="세기 합 맞추기 (Normalize Reference Strengths)"
               checked={value.normalizeVibes ?? true}
               onChange={(normalizeVibes) => patch({ normalizeVibes })}
             />
-          </>
-        )
+          )}
+        </>
       }
       hint={character ? '' : ''}
     />

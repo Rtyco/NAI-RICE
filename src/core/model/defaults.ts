@@ -377,10 +377,13 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     items.some((item) => !item) && aidLabel,
     items.some((item) => item && !item.image) && `${aidLabel} 그림`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && '인페인트 모델',
-    aid && preset && !supportsReferenceAid(preset.generation.model) && 'V4.5 모델',
+    aid && preset && !supportsReferenceAid(preset.generation.model) && AID_MODEL_MISSING,
   ].filter(Boolean) as string[];
   return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }
+
+/** 경고는 참고 칩 메뉴가 보여서 작업 화면 경고 띠에는 넣지 않는다. */
+export const AID_MODEL_MISSING = 'V4.5 모델';
 
 export function hasScenePrompt(emotion: Pick<Emotion, 'prompt' | 'extraPrompts'>): boolean {
   return [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim());

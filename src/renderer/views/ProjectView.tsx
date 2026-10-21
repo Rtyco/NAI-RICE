@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
+  AID_MODEL_MISSING,
   effectiveGenerationSettings,
   generationKindFor,
   projectAid,
@@ -283,6 +284,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
+  const bannerMissing = resolved.missing.filter((item) => item !== AID_MODEL_MISSING);
 
   return (
     <section className="project-view">
@@ -314,9 +316,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
         />
       </header>
       <ChainBar resolved={resolved} />
-      {resolved.missing.length > 0 && (
+      {bannerMissing.length > 0 && (
         <div className="missing-banner">
-          ⚠ 생성하려면 {resolved.missing.join(', ')}이(가) 필요합니다.
+          ⚠ 생성하려면 {bannerMissing.join(', ')}이(가) 필요합니다.
           {project.mode === 'reference' && preset && !supportsInpaint(preset.generation.model) && (
             <span>
               {' '}
