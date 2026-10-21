@@ -85,6 +85,12 @@ const ICONS = {
       <path d="M9 4v16" />
     </>
   ),
+  'panel-right': (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M15 4v16" />
+    </>
+  ),
   refresh: <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />,
   output: <path d="M4 6h16M4 12h10M4 18h7M17 15l3 3-3 3" />,
   tag: (

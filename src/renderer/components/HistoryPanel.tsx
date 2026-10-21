@@ -152,7 +152,7 @@ export function HistoryToggle() {
       title="히스토리 (Ctrl+H)"
       onClick={toggleHistory}
     >
-      <Icon name="filmstrip" size={18} />
+      <Icon name="panel-right" size={18} />
     </button>
   );
 }

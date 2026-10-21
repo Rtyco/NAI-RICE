@@ -27,6 +27,7 @@ import {
 } from '../../core/imaging/FreeTransform';
 import { clampRect, contains } from '../../core/imaging/rects';
 import { hexToRgb, type CanvasImage } from '../lib/image';
+import { readUiState, saveUiState } from '../store';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
 import { ZOOM_STEP } from './zoom';
@@ -77,6 +78,16 @@ type DragState = {
 };
 
 const HISTORY_LIMIT = 40;
+const MASK_OPACITY_KEY = 'mask-opacity';
+const readMaskOpacity = () =>
+  readUiState(
+    MASK_OPACITY_KEY,
+    (raw) => {
+      const value = Number(raw ?? NaN);
+      return Number.isFinite(value) && value >= 0 && value <= 80 ? value : 42;
+    },
+    42,
+  );
 /** 화면 px */
 const TRANSFORM_HANDLE_SIZE = 9;
 const TRANSFORM_HIT = 8;
@@ -152,7 +163,7 @@ export function ReferenceCanvas(props: Props) {
   const cursorRef = useRef<HTMLDivElement>(null);
   /** 손 도구 */
   const [spaceHeld, setSpaceHeld] = useState(false);
-  const [opacity, setOpacity] = useState(42);
+  const [opacity, setOpacity] = useState(readMaskOpacity);
   /** 칸 수. NovelAI 웹 기본값 4칸 = 32px. */
   const [brushSize, setBrushSize] = useState(4);
   const [brushShape, setBrushShape] = useState<BrushShape>('circle');
@@ -771,7 +782,10 @@ export function ReferenceCanvas(props: Props) {
               min="0"
               max="80"
               value={opacity}
-              onChange={(event) => setOpacity(Number(event.target.value))}
+              onChange={(event) => {
+                setOpacity(Number(event.target.value));
+                saveUiState(MASK_OPACITY_KEY, event.target.value);
+              }}
             />
             <b>{opacity}%</b>
           </label>
