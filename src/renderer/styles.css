@@ -2075,7 +2075,8 @@ textarea.syntax-input::selection {
   border-radius: 6px;
   background: var(--bg-1);
 }
-.hint.cost-warn {
+.hint.cost-warn,
+.hint.caution {
   color: var(--orange-text);
 }
 .export-grid {

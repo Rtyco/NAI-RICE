@@ -3,7 +3,7 @@ import type { GenerationSummary } from '../../core/domain/types';
 import {
   CUSTOM_MAX,
   CUSTOM_MIN,
-  freeSizeForRatio,
+  closestRatioFreeSize,
   RESOLUTION_PRESETS,
   snapDimension,
 } from '../../core/imaging/CanvasLayout';
@@ -17,7 +17,7 @@ import {
   FREE_MAX_PIXELS,
   generationCostWarnings,
 } from '../../core/providers/NaiCost';
-import { sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
+import { RATIO_SIZES, sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
 import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField, Toggle } from './ui';
@@ -53,7 +53,7 @@ export function Img2ImgDialog(props: {
   );
   const first = props.records[0];
   const [size, setSize] = useState<string>(nearestPreset(first.width, first.height).id);
-  const [custom, setCustom] = useState(() => freeSizeForRatio(first.width, first.height));
+  const [custom, setCustom] = useState(() => closestRatioFreeSize(first.width, first.height));
   const [options, setOptions] = useState<Omit<ResultImg2ImgOptions, 'size'>>({
     fit: 'crop',
     strength: generation.img2imgStrength,
@@ -64,13 +64,32 @@ export function Img2ImgDialog(props: {
   });
   const patch = (value: Partial<typeof options>) =>
     setOptions((current) => ({ ...current, ...value }));
-  const fixed =
-    size === 'source-ratio'
-      ? undefined
-      : (RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom);
-  const ratioTargets = props.records.map((record) => freeSizeForRatio(record.width, record.height));
-  const ratioSizes = [...new Set(ratioTargets.map((item) => `${item.width}×${item.height}`))];
-  const targets = fixed ? props.records.map(() => fixed) : ratioTargets;
+  const ratioMode = size in RATIO_SIZES ? (size as keyof typeof RATIO_SIZES) : undefined;
+  const fixed = ratioMode
+    ? undefined
+    : (RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom);
+  const ratioTargets = (mode: keyof typeof RATIO_SIZES) =>
+    props.records.map((record) => RATIO_SIZES[mode](record.width, record.height));
+  const exact = ratioTargets('exact-ratio');
+  const closest = ratioTargets('closest-ratio');
+  const ratioLabel = (name: string, targets: Array<{ width: number; height: number }>) => {
+    const sizes = new Set(targets.map((item) => `${item.width}×${item.height}`));
+    return sizes.size === 1 ? `${name} ${[...sizes][0]} (무료)` : `${name} (장마다, 무료)`;
+  };
+  const pixels = (targets: Array<{ width: number; height: number }>) =>
+    targets.reduce((sum, item) => sum + item.width * item.height, 0);
+  const exactLoss = Math.round((1 - pixels(exact) / pixels(closest)) * 100);
+  const closestOff = props.records.some(
+    (record, index) =>
+      Math.abs(
+        Math.log((closest[index].width / closest[index].height) * (record.height / record.width)),
+      ) > 0.001,
+  );
+  const targets = fixed
+    ? props.records.map(() => fixed)
+    : ratioMode === 'exact-ratio'
+      ? exact
+      : closest;
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
   const costJobs = props.records.map((record, index) => ({
@@ -88,7 +107,7 @@ export function Img2ImgDialog(props: {
     props.close();
     void sendResultsToImg2Img(props.projectId, props.records, {
       ...options,
-      size: fixed ? { width: fixed.width, height: fixed.height } : 'source-ratio',
+      size: fixed ? { width: fixed.width, height: fixed.height } : ratioMode!,
     });
   };
 
@@ -132,13 +151,8 @@ export function Img2ImgDialog(props: {
               value: item.id as string,
               label: `${item.label} (무료)`,
             })),
-            {
-              value: 'source-ratio',
-              label:
-                ratioSizes.length === 1
-                  ? `원본 비율 유지 ${ratioSizes[0]} (무료)`
-                  : '원본 비율 유지 (장마다, 무료)',
-            },
+            { value: 'exact-ratio', label: ratioLabel('원본 비율 유지', exact) },
+            { value: 'closest-ratio', label: ratioLabel('비슷한 비율 · 최대 크기', closest) },
             { value: 'custom', label: '직접 입력' },
           ]}
           onChange={setSize}
@@ -187,6 +201,17 @@ export function Img2ImgDialog(props: {
             />
           ))}
         </div>
+      )}
+      {ratioMode === 'exact-ratio' && exactLoss > 0 && (
+        <p className="hint caution">
+          원본 비율에 맞는 64px 단위 크기를 찾느라 「비슷한 비율 · 최대 크기」보다 픽셀 수가 약{' '}
+          {exactLoss}% 적습니다.
+        </p>
+      )}
+      {ratioMode === 'closest-ratio' && closestOff && (
+        <p className="hint caution">
+          64px 단위로 맞추느라 원본과 비율이 조금 달라 가장자리가 몇 px 잘리거나 여백이 들어갑니다.
+        </p>
       )}
       {fixed && fixed.width * fixed.height > FREE_MAX_PIXELS && (
         <p className="field-error">

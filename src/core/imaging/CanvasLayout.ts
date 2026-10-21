@@ -22,8 +22,11 @@ export function snapDimension(value: number): number {
   return Math.max(CUSTOM_MIN, Math.min(CUSTOM_MAX, snapped || CUSTOM_MIN));
 }
 
-/** 원본 비율을 지키는 Opus 무료 최대 크기. 비율 오차와 넓이 손실(둘 다 log)을 같은 무게로 잰다. */
-export function freeSizeForRatio(width: number, height: number): { width: number; height: number } {
+/** 원본 비율에 가까운 Opus 무료 최대 크기. 비율 오차와 넓이 손실(둘 다 log)을 같은 무게로 잰다. */
+export function closestRatioFreeSize(
+  width: number,
+  height: number,
+): { width: number; height: number } {
   const ratio = width / height;
   let best = { width: 1024, height: 1024 };
   let bestScore = Infinity;
@@ -41,6 +44,36 @@ export function freeSizeForRatio(width: number, height: number): { width: number
     }
   }
   return best;
+}
+
+/** 1216px 변에서 12px 남짓만 잘린다. */
+const EXACT_RATIO_TOLERANCE = 0.01;
+
+/** 비율 오차가 1% 이내인 64 배수 크기 중 가장 넓은 것. 없으면 `closestRatioFreeSize`. */
+export function exactRatioFreeSize(
+  width: number,
+  height: number,
+): { width: number; height: number } {
+  const ratio = width / height;
+  const limit = Math.log(1 + EXACT_RATIO_TOLERANCE);
+  let best: { width: number; height: number } | undefined;
+  let bestError = Infinity;
+  for (let w = CUSTOM_MIN; w <= CUSTOM_MAX; w += 64) {
+    const maxHeight = Math.min(Math.floor(FREE_MAX_PIXELS / w / 64) * 64, CUSTOM_MAX);
+    const ideal = w / ratio / 64;
+    for (const h of [Math.floor(ideal) * 64, Math.ceil(ideal) * 64]) {
+      if (h < CUSTOM_MIN || h > maxHeight) continue;
+      const error = Math.abs(Math.log(w / h / ratio));
+      if (error > limit) continue;
+      const area = w * h;
+      const bestArea = best ? best.width * best.height : 0;
+      if (area > bestArea || (area === bestArea && error < bestError)) {
+        best = { width: w, height: h };
+        bestError = error;
+      }
+    }
+  }
+  return best ?? closestRatioFreeSize(width, height);
 }
 
 export function resolveResolution(layout: CanvasLayout): { width: number; height: number } {
