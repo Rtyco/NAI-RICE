@@ -522,9 +522,7 @@ export function FreeView() {
                       '\n',
                     )}
                   >
-                    {estimate
-                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
-                      : '예상 0 Anlas (무료)'}
+                    {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
                   </p>
                 )}
               </div>

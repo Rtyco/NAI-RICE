@@ -372,9 +372,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
                       '예상값이며 실제 차감량과 다를 수 있습니다.',
                     ].join('\n')}
                   >
-                    {estimate
-                      ? `예상 약 ${estimate.toLocaleString()} Anlas`
-                      : '예상 0 Anlas (무료)'}
+                    {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
                   </span>
                 )}
                 <button

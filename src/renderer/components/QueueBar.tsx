@@ -21,7 +21,7 @@ function anlasText(job: QueueJobView): string {
   const estimate = job.anlasEstimate;
   if (job.anlasSpent === undefined)
     return estimate === undefined ? '' : ` · 예상 ${estimate ? `약 ${estimate}` : '0'} Anlas`;
-  const spent = job.anlasSpent ? `-${job.anlasSpent}` : '0 (무료)';
+  const spent = job.anlasSpent ? `-${job.anlasSpent}` : '0';
   const expected =
     estimate !== undefined && (job.anlasSpent || estimate) ? ` (예상 ${estimate})` : '';
   return ` · Anlas ${spent}${expected}`;

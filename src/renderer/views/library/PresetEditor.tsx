@@ -194,7 +194,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           options={[
             ...RESOLUTION_PRESETS.map((item) => ({
               value: item.id,
-              label: `${item.label} (무료)`,
+              label: item.label,
             })),
             { value: 'custom' as const, label: '직접 입력' },
           ]}

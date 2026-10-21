@@ -74,7 +74,7 @@ export function Img2ImgDialog(props: {
   const closest = ratioTargets('closest-ratio');
   const ratioLabel = (name: string, targets: Array<{ width: number; height: number }>) => {
     const sizes = new Set(targets.map((item) => `${item.width}×${item.height}`));
-    return sizes.size === 1 ? `${name} ${[...sizes][0]} (무료)` : `${name} (장마다, 무료)`;
+    return sizes.size === 1 ? `${name} ${[...sizes][0]}` : `${name} (장마다)`;
   };
   const pixels = (targets: Array<{ width: number; height: number }>) =>
     targets.reduce((sum, item) => sum + item.width * item.height, 0);
@@ -122,7 +122,7 @@ export function Img2ImgDialog(props: {
             className="hint"
             title={[...reasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
           >
-            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas (무료)'}
+            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
           </span>
           <button onClick={props.close}>취소</button>
           <button className="accent" onClick={submit}>
@@ -149,7 +149,7 @@ export function Img2ImgDialog(props: {
           options={[
             ...RESOLUTION_PRESETS.map((item) => ({
               value: item.id as string,
-              label: `${item.label} (무료)`,
+              label: item.label,
             })),
             { value: 'exact-ratio', label: ratioLabel('원본 비율 유지', exact) },
             { value: 'closest-ratio', label: ratioLabel('비슷한 비율 · 최대 크기', closest) },

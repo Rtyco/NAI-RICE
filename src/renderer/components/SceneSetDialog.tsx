@@ -115,7 +115,7 @@ export function SceneSetDialog(props: {
             className={`hint ${estimate ? 'cost-warn' : ''}`}
             title="Emotion 툴은 무료 면적 안에서 Anlas가 들지 않습니다. 예상값이며 실제 차감량과 다를 수 있습니다."
           >
-            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas (무료)'}
+            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
           </span>
           <button onClick={props.close}>취소</button>
           <button className="accent" disabled={!targets.length} onClick={submit}>

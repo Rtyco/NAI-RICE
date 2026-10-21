@@ -628,7 +628,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
                 label="해상도 (NovelAI에 보내는 전체 캔버스)"
                 value={layout.resolution}
                 options={[
-                  ...RESOLUTION_PRESETS.map((item) => ({ value: item.id, label: `${item.label} (무료)` })),
+                  ...RESOLUTION_PRESETS.map((item) => ({ value: item.id, label: item.label })),
                   { value: 'custom' as const, label: '커스텀' },
                 ]}
                 onChange={(resolution) => {
