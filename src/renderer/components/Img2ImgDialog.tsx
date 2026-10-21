@@ -204,14 +204,12 @@ export function Img2ImgDialog(props: {
       )}
       {ratioMode === 'exact-ratio' && exactLoss > 0 && (
         <p className="hint caution">
-          원본 비율에 맞는 64px 단위 크기를 찾느라 「비슷한 비율 · 최대 크기」보다 픽셀 수가 약{' '}
+          64px 단위로 원본과 동일한 비율을 찾습니다. 「비슷한 비율 · 최대 크기」보다 픽셀 수가 약{' '}
           {exactLoss}% 적습니다.
         </p>
       )}
       {ratioMode === 'closest-ratio' && closestOff && (
-        <p className="hint caution">
-          64px 단위로 맞추느라 원본과 비율이 조금 달라 가장자리가 몇 px 잘리거나 여백이 들어갑니다.
-        </p>
+        <p className="hint caution">64px 단위로 원본과 가장 비슷한 비율을 찾습니다.</p>
       )}
       {fixed && fixed.width * fixed.height > FREE_MAX_PIXELS && (
         <p className="field-error">
