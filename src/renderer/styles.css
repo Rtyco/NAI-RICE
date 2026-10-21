@@ -1917,6 +1917,7 @@ textarea.syntax-input::selection {
   border-radius: 10px;
   background: var(--bg-2);
   box-shadow: 0 24px 60px #000c;
+  outline: none;
 }
 .modal.wide {
   width: min(900px, calc(100vw - 40px));

@@ -261,7 +261,6 @@ function ImportReviewDialog({ bundle, close }: { bundle: ImportBundle; close: ()
                       onChange={(event) =>
                         setNames((current) => ({ ...current, [item.id]: event.target.value }))
                       }
-                      onKeyDown={(event) => event.key === 'Enter' && confirm()}
                     />
                   )}
                 </div>

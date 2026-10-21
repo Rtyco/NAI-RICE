@@ -61,6 +61,27 @@ export function openDialog(render: (close: () => void) => ReactNode): Promise<vo
   return new Promise((resolve) => push({ kind: 'custom', render, resolve }));
 }
 
+/** 작은 창에서 Enter는 아래줄의 강조 버튼을 누른다. 버튼·여러 줄 글·목록 위의 Enter는 그 요소 몫이다. */
+function submitOnEnter(event: KeyboardEvent, modal: HTMLElement | null) {
+  if (!modal || event.defaultPrevented || event.isComposing || event.repeat) return;
+  if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
+  if (![...document.querySelectorAll('.modal-backdrop')].at(-1)?.contains(modal)) return;
+  const target = event.target as HTMLElement;
+  if (
+    modal.contains(target) &&
+    target.closest('button, a, textarea, select, [contenteditable="true"]')
+  )
+    return;
+  event.preventDefault();
+  const primary = [
+    ...modal.querySelectorAll<HTMLButtonElement>(':scope > footer button.accent'),
+  ].at(-1);
+  // 숫자 칸은 Enter의 blur로 값을 반영하므로 그 렌더가 끝난 뒤에 누른다.
+  setTimeout(() => {
+    if (primary?.isConnected && !primary.disabled) primary.click();
+  });
+}
+
 export function Modal({
   title,
   children,
@@ -77,16 +98,29 @@ export function Modal({
   /** 거의 창 크기 */
   large?: boolean;
 }) {
+  const ref = useRef<HTMLElement>(null);
+  // 연 버튼에 포커스가 남으면 Enter가 그 버튼을 다시 눌러 같은 창이 또 열린다.
+  useEffect(() => {
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
+  }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
+      if (event.key === 'Enter' && !large) submitOnEnter(event, ref.current);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, large]);
   return (
     <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className={`modal ${wide ? 'wide' : ''} ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+      <section
+        ref={ref}
+        tabIndex={-1}
+        className={`modal ${wide ? 'wide' : ''} ${large ? 'large' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <header>
           <b>{title}</b>
           <button className="icon-button" onClick={onClose} aria-label="닫기">
@@ -128,14 +162,7 @@ function PromptBody({
     >
       <label className="stack-field">
         {request.label}
-        <input
-          ref={ref}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && value.trim()) close(value.trim());
-          }}
-        />
+        <input ref={ref} value={value} onChange={(event) => setValue(event.target.value)} />
       </label>
     </Modal>
   );

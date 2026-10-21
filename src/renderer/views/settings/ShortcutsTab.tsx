@@ -34,6 +34,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Ctrl+V', '이미지 붙여 넣기 (끌어 놓기와 같음)'],
       ['Ctrl+W', '창 닫기'],
       ['Esc', '열린 창·메뉴 닫기'],
+      ['Enter', '열린 창에서 적용·확인'],
     ],
   },
   {

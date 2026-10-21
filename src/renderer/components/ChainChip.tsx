@@ -427,12 +427,7 @@ function CustomSizeDialog(props: {
         </>
       }
     >
-      <div
-        className="two-column-fields"
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') apply();
-        }}
-      >
+      <div className="two-column-fields">
         {(['width', 'height'] as const).map((side) => (
           <NumberField
             key={side}

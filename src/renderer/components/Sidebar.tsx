@@ -128,7 +128,6 @@ export function NewProjectDialog({ close }: { close: () => void }) {
           value={name}
           placeholder="예: 아리아 기본 의상"
           onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => event.key === 'Enter' && create()}
         />
       </label>
       <div className="chain-form">
