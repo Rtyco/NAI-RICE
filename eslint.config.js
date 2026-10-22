@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist-electron', 'dist-renderer', 'release', 'coverage', 'legacy'] },
+  { ignores: ['dist-electron', 'dist-renderer', 'release', 'release-*', 'coverage', 'legacy'] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -27,7 +27,14 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
+  },
+  {
+    // 요청 본문 모양을 그대로 들여다보는 테스트
+    files: ['tests/**'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
 );

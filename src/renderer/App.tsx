@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { ContextMenuHost, ErrorBoundary } from './components/ContextMenu';
-import { DialogHost, openDialog } from './components/Dialogs';
+import { ContextMenuHost } from './components/ContextMenu';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { DialogHost } from './components/Dialogs';
+import { openDialog } from './components/dialogStack';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { DropZone } from './components/DropImport';
 import { HistoryPanel } from './components/HistoryPanel';

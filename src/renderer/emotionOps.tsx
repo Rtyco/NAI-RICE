@@ -7,8 +7,8 @@ import {
   removeEmotion,
   updateEmotion,
 } from '../core/model/mutations';
-import { confirmDialog, promptDialog } from './components/Dialogs';
-import type { MenuItem } from './components/ContextMenu';
+import { confirmDialog, promptDialog } from './components/dialogStack';
+import type { MenuItem } from './components/contextMenuStore';
 import { generateEmotions } from './actions';
 import {
   coverRecord,

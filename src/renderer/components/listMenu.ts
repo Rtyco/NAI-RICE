@@ -1,4 +1,4 @@
-import type { MenuItem } from './ContextMenu';
+import type { MenuItem } from './contextMenuStore';
 
 export type ListMenuActions = {
   open: () => void;

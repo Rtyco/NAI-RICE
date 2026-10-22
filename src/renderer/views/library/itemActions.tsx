@@ -39,24 +39,14 @@ import {
   uniqueName,
 } from '../../../core/model/mutations';
 import { modelInfo } from '../../../core/providers/NaiModels';
-import { confirmDialog, openDialog } from '../../components/Dialogs';
+import { confirmDialog, openDialog } from '../../components/dialogStack';
 import { DeleteUsedDialog } from './DeleteUsedDialog';
-import { SECTIONS } from '../../sections';
+import { sectionInfo } from '../../sections';
 import { openLibrary, run, toast, updateLibrary, useStore, type LibrarySection } from '../../store';
 import { fileApi, libraryApi } from '../../desktop';
 import { importVibeFile } from '../../aidImport';
 
 export type Item = { id: string; name: string; folder?: string };
-
-export const LABELS = Object.fromEntries(
-  SECTIONS.map((section) => [
-    section.id,
-    { title: section.label, description: section.usage, kind: section.kind },
-  ]),
-) as Record<
-  LibrarySection,
-  { title: string; description: string; kind: (typeof SECTIONS)[number]['kind'] }
->;
 
 /** 조각 세트면 `<세트.조각>` 참조도 바꾼다. */
 export function withName(
@@ -95,7 +85,7 @@ export async function deleteItem(section: LibrarySection, item: Item) {
     openLibrary(section);
     return;
   }
-  const users = projectsUsing(library, LABELS[section].kind, item.id);
+  const users = projectsUsing(library, sectionInfo(section).kind, item.id);
   let replacementId: string | undefined;
   if (users.length) {
     let result: { replacementId: string } | null = null;
@@ -114,7 +104,7 @@ export async function deleteItem(section: LibrarySection, item: Item) {
     replacementId = (result as { replacementId: string }).replacementId || undefined;
   } else {
     const ok = await confirmDialog({
-      title: `${LABELS[section].title} 삭제`,
+      title: `${sectionInfo(section).label} 삭제`,
       message: (
         <p>
           "{item.name}"을(를) 삭제합니다.
@@ -145,12 +135,12 @@ export async function deleteItems(section: LibrarySection, items: Item[]): Promi
     toast('생성 설정은 최소 하나가 있어야 합니다.', 'error');
     return false;
   }
-  const kind = LABELS[section].kind;
+  const kind = sectionInfo(section).kind;
   const users = new Map<string, string>();
   for (const item of items)
     for (const project of projectsUsing(library, kind, item.id)) users.set(project.id, project.name);
   const ok = await confirmDialog({
-    title: `${LABELS[section].title} ${items.length}개 삭제`,
+    title: `${sectionInfo(section).label} ${items.length}개 삭제`,
     message: (
       <>
         <p>
@@ -251,7 +241,7 @@ export function exportItem(section: LibrarySection, item: Item) {
       saved = await fileApi().saveJsonFile(
         data,
         `${item.name}.json`,
-        `${LABELS[section].title} 내보내기`,
+        `${sectionInfo(section).label} 내보내기`,
       );
     }
     if (saved) toast(`저장했습니다: ${saved}`);

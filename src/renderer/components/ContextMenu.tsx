@@ -1,24 +1,5 @@
-import { Component, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ErrorInfo, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
-import { create } from 'zustand';
-
-export type MenuItem =
-  | { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean; hint?: string }
-  /** 누를 수 없는 작은 제목 */
-  | { heading: string }
-  | 'divider';
-
-const useContextMenu = create<{ x: number; y: number; items: MenuItem[] } | null>(() => null);
-
-export function showContextMenu(event: ReactMouseEvent, items: MenuItem[]): void {
-  event.preventDefault();
-  event.stopPropagation();
-  useContextMenu.setState({ x: event.clientX, y: event.clientY, items }, true);
-}
-
-export function closeContextMenu(): void {
-  useContextMenu.setState(null, true);
-}
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { closeContextMenu, useContextMenu } from './contextMenuStore';
 
 export function ContextMenuHost() {
   const menu = useContextMenu();
@@ -81,33 +62,4 @@ export function ContextMenuHost() {
       )}
     </div>
   );
-}
-
-export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { error?: Error }> {
-  state: { error?: Error } = {};
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error(error, info.componentStack);
-  }
-
-  componentDidUpdate(previous: { resetKey?: string }) {
-    if (previous.resetKey !== this.props.resetKey && this.state.error) this.setState({ error: undefined });
-  }
-
-  render() {
-    if (!this.state.error) return this.props.children;
-    return (
-      <div className="empty-state">
-        <h2>화면을 표시하는 중 오류가 발생했습니다</h2>
-        <pre className="prompt-code">{this.state.error.message}</pre>
-        <button className="accent" onClick={() => this.setState({ error: undefined })}>
-          다시 시도
-        </button>
-      </div>
-    );
-  }
 }

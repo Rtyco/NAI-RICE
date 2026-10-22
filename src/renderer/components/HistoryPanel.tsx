@@ -15,7 +15,7 @@ import {
   useStore,
 } from '../store';
 import { Icon } from './Icon';
-import { showResultMenu } from './ResultActions';
+import { showResultMenu } from './resultMenu';
 import { StreamPreview } from './StreamPreview';
 
 const NO_RECORDS: GenerationSummary[] = [];

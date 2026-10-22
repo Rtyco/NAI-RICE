@@ -35,7 +35,8 @@ import {
   useStore,
   type SidebarSection,
 } from '../store';
-import { Modal, openDialog } from './Dialogs';
+import { Modal } from './Dialogs';
+import { openDialog } from './dialogStack';
 import { Icon, type IconName } from './Icon';
 import { useBoxSelection } from './useBoxSelection';
 import { dragPayload } from './listDrag';

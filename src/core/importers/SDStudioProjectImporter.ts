@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 import type { Character, EmotionSet, ImportWarning, PieceSet, Preset } from '../domain/types';
 import {
   createCharacter,

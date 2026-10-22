@@ -6,11 +6,11 @@ import { importVibeFile } from '../aidImport';
 import { importJsonText } from '../importers';
 import { blobToDataUrl, decodePixels } from '../lib/image';
 import { run } from '../store';
-import { openDialog } from './Dialogs';
+import { openDialog } from './dialogStack';
 import { ImageImportDialog } from './imageImport/ImageImportDialog';
 import { PlainImageDialog } from './imageImport/PlainImageDialog';
 
-export async function importDroppedFile(file: File): Promise<void> {
+async function importDroppedFile(file: File): Promise<void> {
   const name = file.name;
   if (VIBE_FILE_PATTERN.test(name)) {
     await importVibeFile(await file.text(), name);

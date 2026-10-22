@@ -11,7 +11,7 @@ import {
   setFolder,
   ungroupFolder,
 } from '../../core/model/folders';
-import { showContextMenu } from '../components/ContextMenu';
+import { showContextMenu } from '../components/contextMenuStore';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
@@ -42,13 +42,12 @@ import {
   importVibeFromPicker,
   openReferenceFolder,
   itemSubtitle,
-  LABELS,
   withName,
   type Item,
 } from './library/itemActions';
 import { UsedBy } from './library/UsedBy';
 import { LibraryItemEditor } from './library/LibraryEditorDialog';
-import { exportable } from '../sections';
+import { exportable, sectionInfo } from '../sections';
 import { useShortcut } from '../useShortcut';
 
 const DRAG_TYPE = 'application/x-library-item';
@@ -73,7 +72,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const library = useLibrary();
   const items = library[section] as Item[];
   const selected = items.find((item) => item.id === itemId) ?? items[0];
-  const label = LABELS[section];
+  const info = sectionInfo(section);
   const [dragging, setDragging] = useState<string[]>([]);
   const collapsed = useStore((state) => state.libraryListCollapsed);
   const removeMany = (ids: string[]) =>
@@ -124,7 +123,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     !selection.selected.size,
   );
   const renderItem = (item: Item) => {
-    const uses = projectsUsing(library, label.kind, item.id).length;
+    const uses = projectsUsing(library, info.kind, item.id).length;
     const picked = !collapsed && selection.isSelected(item.id);
     return (
       <ListRow
@@ -206,8 +205,8 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
         <div className="library-list-head">
           <button
             className="icon-button library-list-toggle"
-            title={`${label.title} 목록 ${collapsed ? '펼치기' : '접기'}`}
-            aria-label={`${label.title} 목록 ${collapsed ? '펼치기' : '접기'}`}
+            title={`${info.label} 목록 ${collapsed ? '펼치기' : '접기'}`}
+            aria-label={`${info.label} 목록 ${collapsed ? '펼치기' : '접기'}`}
             onClick={toggleLibraryList}
           >
             <Icon name="sidebar" size={18} />
@@ -215,8 +214,8 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           {!collapsed && (
             <>
               <div className="library-list-title">
-                <b>{label.title}</b>
-                {label.description && <small>{label.description}</small>}
+                <b>{info.label}</b>
+                {info.usage && <small>{info.usage}</small>}
               </div>
               <button className="accent" onClick={add}>
                 ＋ 추가
@@ -404,7 +403,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           </>
         ) : (
           <div className="empty-state">
-            <h2>{label.title}이(가) 없습니다</h2>
+            <h2>{info.label}이(가) 없습니다</h2>
             <button className="accent" onClick={add}>
               ＋ 추가
             </button>

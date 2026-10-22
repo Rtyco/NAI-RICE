@@ -44,28 +44,37 @@ export type NovelAIUserStatus = {
   };
 };
 
-export function parseNovelAIUserStatus(payload: Record<string, any>): NovelAIUserStatus {
-  const steps = payload?.subscription?.trainingStepsLeft;
+type JsonObject = Record<string, unknown>;
+
+function child(value: JsonObject | undefined, key: string): JsonObject | undefined {
+  const next = value?.[key];
+  return typeof next === 'object' && next !== null ? (next as JsonObject) : undefined;
+}
+
+export function parseNovelAIUserStatus(payload: JsonObject): NovelAIUserStatus {
+  const subscription = child(payload, 'subscription');
+  const steps = child(subscription, 'trainingStepsLeft');
   const fixed = Number(steps?.fixedTrainingStepsLeft);
   const purchased = Number(steps?.purchasedTrainingSteps);
-  const usage = payload?.subscription?.usage;
+  const usage = child(subscription, 'usage');
   const percent = Number(usage?.percent);
   const timeUntilNextPercent = Number(usage?.timeUntilNextPercent);
-  const tier = payload?.subscription?.tier;
+  const tier = subscription?.tier;
+  const isNegative = usage?.isNegative;
   const hasV5Quota =
     Number.isFinite(percent) &&
-    typeof usage?.isNegative === 'boolean' &&
+    typeof isNegative === 'boolean' &&
     Number.isFinite(timeUntilNextPercent);
 
   return {
     valid: true,
     ...(Number.isFinite(fixed) && Number.isFinite(purchased) ? { anlas: fixed + purchased } : {}),
-    ...(Number.isInteger(tier) ? { tier } : {}),
+    ...(typeof tier === 'number' && Number.isInteger(tier) ? { tier } : {}),
     ...(hasV5Quota
       ? {
           v5Quota: {
             percent: Math.max(0, Math.round(percent)),
-            isNegative: usage.isNegative,
+            isNegative,
             timeUntilNextPercent: Math.max(0, timeUntilNextPercent),
           },
         }
@@ -155,7 +164,7 @@ async function requestNovelAI(
 export class NovelAIProvider {
   async validateToken(token: string, signal?: AbortSignal): Promise<NovelAIUserStatus> {
     const response = await requestNovelAI(NAI_USER_ENDPOINT, token, { method: 'GET', signal });
-    return parseNovelAIUserStatus((await response.json()) as Record<string, any>);
+    return parseNovelAIUserStatus((await response.json()) as JsonObject);
   }
 
   async generate(request: NovelAIImageRequest): Promise<Buffer[]> {

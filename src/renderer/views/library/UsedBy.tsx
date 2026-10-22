@@ -1,10 +1,10 @@
 import { projectsUsing } from '../../../core/model/defaults';
 import { openProject, useLibrary, type LibrarySection } from '../../store';
-import { LABELS } from './itemActions';
+import { sectionInfo } from '../../sections';
 
 export function UsedBy({ section, id }: { section: LibrarySection; id: string }) {
   const library = useLibrary();
-  const projects = projectsUsing(library, LABELS[section].kind, id);
+  const projects = projectsUsing(library, sectionInfo(section).kind, id);
   if (!projects.length) return <p className="hint">아직 이 항목을 쓰는 작업이 없습니다.</p>;
   return (
     <div className="used-by">

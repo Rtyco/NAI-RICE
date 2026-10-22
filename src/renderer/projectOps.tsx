@@ -1,7 +1,7 @@
 import type { Project } from '../core/domain/types';
 import { readableId } from '../core/model/defaults';
 import { uniqueName } from '../core/model/mutations';
-import { confirmDialog } from './components/Dialogs';
+import { confirmDialog } from './components/dialogStack';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { libraryApi } from './desktop';
 

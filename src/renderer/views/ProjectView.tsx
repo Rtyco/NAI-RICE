@@ -21,7 +21,8 @@ import {
 import { CharacterChip } from '../components/CharacterChip';
 import { PositionChip } from '../components/CharacterPositions';
 import { batchEmotionIds, generateEmotions } from '../actions';
-import { Modal, openDialog } from '../components/Dialogs';
+import { Modal } from '../components/Dialogs';
+import { openDialog } from '../components/dialogStack';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';

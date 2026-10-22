@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toggleFolder, useStore } from '../store';
 import { folderKey } from './listFolders';
-import { showContextMenu } from './ContextMenu';
+import { showContextMenu } from './contextMenuStore';
 import { focusAndSelect } from './focusAndSelect';
 import { Icon } from './Icon';
 import { readDragPayload, writeDragPayload, type DragPayload } from './listDrag';

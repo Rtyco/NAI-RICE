@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GenerationSummary, Project } from '../../../core/domain/types';
 import type { ProjectInspection, ProjectUsage, StorageUsage } from '../../../shared/ipc';
-import { Modal, confirmDialog, openDialog } from '../../components/Dialogs';
+import { Modal } from '../../components/Dialogs';
+import { confirmDialog, openDialog } from '../../components/dialogStack';
 import { FREE_PROJECT_ID } from '../../../core/model/defaults';
 import { Card } from '../../components/ui';
 import { fileApi, libraryApi, queueApi, storageApi } from '../../desktop';

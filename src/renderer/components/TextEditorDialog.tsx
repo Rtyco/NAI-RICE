@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, openDialog } from './Dialogs';
+import { Modal } from './Dialogs';
+import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
 

@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
-import { openDialog } from './components/Dialogs';
+import { openDialog } from './components/dialogStack';
 import { UpdateDialog } from './components/UpdateDialog';
 import { appApi } from './desktop';
 import { errorMessage, toast, useStore } from './store';

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { projectMedia, useStore } from '../store';
 import { Icon } from './Icon';
-import { showResultMenu, type ResultAction } from './ResultActions';
+import { showResultMenu, type ResultAction } from './resultMenu';
 import type { ResultBrowser } from './useResultBrowser';
 
 /** 목록을 접으면 막대도 숨긴다. */

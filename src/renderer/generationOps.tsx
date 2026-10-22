@@ -1,5 +1,5 @@
 import type { GenerationSummary } from '../core/domain/types';
-import { confirmDialog, openDialog } from './components/Dialogs';
+import { confirmDialog, openDialog } from './components/dialogStack';
 import { DirectorToolDialog } from './components/DirectorToolDialog';
 import { Img2ImgDialog } from './components/Img2ImgDialog';
 import { SceneSetDialog } from './components/SceneSetDialog';

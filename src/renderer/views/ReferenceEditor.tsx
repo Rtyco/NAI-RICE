@@ -26,7 +26,7 @@ import { clampRect, expandRect } from '../../core/imaging/rects';
 import { effectiveGenerationSettings } from '../../core/model/defaults';
 import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
-import { confirmDialog } from '../components/Dialogs';
+import { confirmDialog } from '../components/dialogStack';
 import { DrawCanvas } from '../components/DrawCanvas';
 import { PanelResizer } from '../components/PanelResizer';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';

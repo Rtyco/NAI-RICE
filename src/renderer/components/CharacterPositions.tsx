@@ -16,7 +16,8 @@ import { normalizeGenerationSettings, resolveProject } from '../../core/model/de
 import { modelInfo } from '../../core/providers/NaiModels';
 import { resolveFreeGeneration, updateFreeGeneration, updateProject, useLibrary } from '../store';
 import { ChainChip } from './ChainChip';
-import { Modal, openDialog } from './Dialogs';
+import { Modal } from './Dialogs';
+import { openDialog } from './dialogStack';
 
 /** 창을 연 채로 캐릭터를 바꿔도 따라오도록 저장된 값을 읽는다. */
 type Target = { projectId: string } | 'free';

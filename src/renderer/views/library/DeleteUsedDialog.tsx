@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { Project } from '../../../core/domain/types';
 import { Modal } from '../../components/Dialogs';
 import { useLibrary, type LibrarySection } from '../../store';
-import { LABELS, type Item } from './itemActions';
+import { sectionInfo } from '../../sections';
+import type { Item } from './itemActions';
 
 /** 비워 두면 작업에서 다시 고르면 된다. */
 export function DeleteUsedDialog(props: {
@@ -12,7 +13,7 @@ export function DeleteUsedDialog(props: {
   close: (result: { replacementId: string } | null) => void;
 }) {
   const library = useLibrary();
-  const { title } = LABELS[props.section];
+  const title = sectionInfo(props.section).label;
   const others = (library[props.section] as Item[]).filter((entry) => entry.id !== props.item.id);
   const [replacementId, setReplacementId] = useState(others[0]?.id ?? '');
   return (

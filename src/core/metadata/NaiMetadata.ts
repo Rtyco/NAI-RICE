@@ -195,12 +195,20 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function parseJsonObject(value: unknown): Record<string, any> | undefined {
-  if (typeof value === 'object' && value !== null) return value as Record<string, any>;
-  if (typeof value !== 'string') return undefined;
+type JsonObject = Record<string, unknown>;
+
+function asObject(value: unknown): JsonObject | undefined {
+  return typeof value === 'object' && value !== null ? (value as JsonObject) : undefined;
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function parseJsonObject(value: unknown): JsonObject | undefined {
+  if (typeof value !== 'string') return asObject(value);
   try {
-    const parsed = JSON.parse(value);
-    return typeof parsed === 'object' && parsed !== null ? parsed : undefined;
+    return asObject(JSON.parse(value));
   } catch {
     return undefined;
   }
@@ -229,28 +237,24 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     result.effort = v5SourceHash(result.modelLabel)?.effort ?? 'high';
 
   if (comment) {
-    const v4 = comment.v4_prompt?.caption;
-    const v4Negative = comment.v4_negative_prompt?.caption;
+    const v4Prompt = asObject(comment.v4_prompt);
+    const v4 = asObject(v4Prompt?.caption);
+    const v4Negative = asObject(asObject(comment.v4_negative_prompt)?.caption);
     const base =
       asString(v4?.base_caption) ?? asString(comment.prompt) ?? asString(entries.Description);
     const negative = asString(v4Negative?.base_caption) ?? asString(comment.uc);
     if (base !== undefined) result.commonPositive = removeReferenceInset(base);
     if (negative !== undefined) result.commonNegative = negative;
-    const positives: unknown[] = Array.isArray(v4?.char_captions) ? v4.char_captions : [];
-    const negatives: unknown[] = Array.isArray(v4Negative?.char_captions)
-      ? v4Negative.char_captions
-      : [];
+    const positives = asList(v4?.char_captions);
+    const negatives = asList(v4Negative?.char_captions);
     result.characters = positives.map((item, index) => ({
-      positive: removeReferenceInset(
-        asString((item as Record<string, unknown>)?.char_caption) ?? '',
-      ),
-      negative: asString((negatives[index] as Record<string, unknown>)?.char_caption) ?? '',
+      positive: removeReferenceInset(asString(asObject(item)?.char_caption) ?? ''),
+      negative: asString(asObject(negatives[index])?.char_caption) ?? '',
     }));
-    const useCoords = comment.v4_prompt?.use_coords ?? comment.use_coords;
+    const useCoords = v4Prompt?.use_coords ?? comment.use_coords;
     if (useCoords === true && positives.length) {
       const centers = positives.map((item) => {
-        const center = (item as { centers?: unknown[] })?.centers?.[0] as
-          Record<string, unknown> | undefined;
+        const center = asObject(asList(asObject(item)?.centers)[0]);
         const x = asNumber(center?.x);
         const y = asNumber(center?.y);
         return x !== undefined && y !== undefined ? { x, y } : undefined;
@@ -266,8 +270,10 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     if (scale !== undefined) settings.promptGuidance = scale;
     if (rescale !== undefined) settings.cfgRescale = rescale;
     if (strength !== undefined) settings.inpaintStrength = Math.max(0, Math.min(1, strength));
-    if (asString(comment.sampler)) settings.sampler = comment.sampler;
-    if (asString(comment.noise_schedule)) settings.noiseSchedule = comment.noise_schedule;
+    const sampler = asString(comment.sampler);
+    const noiseSchedule = asString(comment.noise_schedule);
+    if (sampler) settings.sampler = sampler as GenerationSettings['sampler'];
+    if (noiseSchedule) settings.noiseSchedule = noiseSchedule as GenerationSettings['noiseSchedule'];
     if (typeof comment.skip_cfg_above_sigma === 'number') settings.variety = true;
     if (comment.sm === true) settings.smea = comment.sm_dyn === true ? 'dyn' : 'smea';
     if (comment.dynamic_thresholding === true) settings.decrisp = true;

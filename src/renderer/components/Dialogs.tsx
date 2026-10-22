@@ -1,65 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { create } from 'zustand';
-
-type DialogRequest =
-  | {
-      kind: 'confirm';
-      title: string;
-      message: ReactNode;
-      confirmLabel: string;
-      danger?: boolean;
-      resolve: (value: boolean) => void;
-    }
-  | {
-      kind: 'prompt';
-      title: string;
-      label: string;
-      initial: string;
-      confirmLabel: string;
-      resolve: (value: string | null) => void;
-    }
-  | {
-      kind: 'custom';
-      render: (close: () => void) => ReactNode;
-      resolve: () => void;
-    };
-
-const useDialogs = create<{ stack: DialogRequest[] }>(() => ({ stack: [] }));
-
-function push(request: DialogRequest) {
-  useDialogs.setState((state) => ({ stack: [...state.stack, request] }));
-}
-
-function pop(request: DialogRequest) {
-  useDialogs.setState((state) => ({ stack: state.stack.filter((item) => item !== request) }));
-}
-
-export function confirmDialog(options: {
-  title: string;
-  message: ReactNode;
-  confirmLabel?: string;
-  danger?: boolean;
-}): Promise<boolean> {
-  return new Promise((resolve) =>
-    push({ kind: 'confirm', confirmLabel: '확인', ...options, resolve }),
-  );
-}
-
-export function promptDialog(options: {
-  title: string;
-  label: string;
-  initial?: string;
-  confirmLabel?: string;
-}): Promise<string | null> {
-  return new Promise((resolve) =>
-    push({ kind: 'prompt', initial: '', confirmLabel: '확인', ...options, resolve }),
-  );
-}
-
-export function openDialog(render: (close: () => void) => ReactNode): Promise<void> {
-  return new Promise((resolve) => push({ kind: 'custom', render, resolve }));
-}
+import { popDialog, useDialogs, type DialogRequest } from './dialogStack';
 
 /** 작은 창에서 Enter는 아래줄의 강조 버튼을 누른다. 버튼·여러 줄 글·목록 위의 Enter는 그 요소 몫이다. */
 function submitOnEnter(event: KeyboardEvent, modal: HTMLElement | null) {
@@ -175,7 +116,7 @@ export function DialogHost() {
       {stack.map((request, index) => {
         if (request.kind === 'confirm') {
           const close = (value: boolean) => {
-            pop(request);
+            popDialog(request);
             request.resolve(value);
           };
           return (
@@ -206,7 +147,7 @@ export function DialogHost() {
               key={index}
               request={request}
               close={(value) => {
-                pop(request);
+                popDialog(request);
                 request.resolve(value);
               }}
             />
@@ -215,7 +156,7 @@ export function DialogHost() {
         return (
           <div key={index}>
             {request.render(() => {
-              pop(request);
+              popDialog(request);
               request.resolve();
             })}
           </div>

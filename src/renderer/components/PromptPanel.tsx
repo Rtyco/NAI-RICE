@@ -16,7 +16,7 @@ import {
 } from '../store';
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { PreviewDialog } from '../views/ProjectView';
-import { openDialog } from './Dialogs';
+import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PanelResizer } from './PanelResizer';
 import { PromptField } from './ui';

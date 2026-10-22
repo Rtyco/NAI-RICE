@@ -1,6 +1,6 @@
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useRenameRequest } from '../renameRequest';
-import { showContextMenu } from './ContextMenu';
+import { showContextMenu } from './contextMenuStore';
 import { focusAndSelect } from './focusAndSelect';
 import { Icon } from './Icon';
 import { readDragPayload, writeDragPayload, type DragPayload } from './listDrag';

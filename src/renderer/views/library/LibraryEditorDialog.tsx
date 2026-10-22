@@ -14,7 +14,8 @@ import { ReferenceEditor } from '../ReferenceEditor';
 import { CharacterReferenceEditor, VibeEditor } from './AidItemEditor';
 import { CharacterEditor } from './CharacterEditor';
 import { EmotionSetEditor } from './EmotionSetEditor';
-import { LABELS, withName, type Item } from './itemActions';
+import { sectionInfo } from '../../sections';
+import { withName, type Item } from './itemActions';
 import { PieceSetEditor } from './PieceSetEditor';
 import { PresetEditor } from './PresetEditor';
 import { UsedBy } from './UsedBy';
@@ -44,10 +45,10 @@ export function LibraryEditorDialog(props: {
     if (!item) close();
   }, [item, close]);
   if (!item) return null;
-  const label = LABELS[section];
+  const label = sectionInfo(section).label;
   return (
     <Modal
-      title={`${label.title} 편집`}
+      title={`${label} 편집`}
       onClose={close}
       large
       footer={

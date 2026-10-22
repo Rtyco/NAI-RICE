@@ -12,8 +12,8 @@ import type { Emotion, EmotionSet, GenerationSummary, QueueJobView } from '../..
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotions } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
-import { showContextMenu } from '../components/ContextMenu';
-import { openDialog } from '../components/Dialogs';
+import { showContextMenu } from '../components/contextMenuStore';
+import { openDialog } from '../components/dialogStack';
 import { BottomSlot } from '../components/BottomSlot';
 import { ExportDialog } from '../components/ExportDialog';
 import { useShortcut } from '../useShortcut';

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { openDialog } from './components/Dialogs';
+import { openDialog } from './components/dialogStack';
 import { NewProjectDialog } from './components/Sidebar';
 import { appApi } from './desktop';
 import { importJsonFromPicker } from './importers';
