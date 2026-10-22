@@ -38,7 +38,7 @@ function boundaryRegion(
   };
 }
 
-/** 영역 안에서 `side` 쪽이 아닌 픽셀까지 정사각 거리가 `reach` 이하면 1. 가로·세로로 나눠 픽셀마다 몇 번만 본다. */
+/** 영역 안에서 반대쪽(`!mask`가 `keep`이 아닌) 픽셀까지 정사각 거리가 `reach` 이하면 1. 가로·세로로 나눠 픽셀마다 몇 번만 본다. */
 function nearOther(
   mask: Uint8Array,
   stride: number,

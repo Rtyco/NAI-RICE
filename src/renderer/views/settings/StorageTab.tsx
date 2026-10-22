@@ -337,7 +337,7 @@ export function StorageTab() {
           </button>
         </div>
       </Card>
-      <Card title="사용량" subtitle="">
+      <Card title="사용량">
         {!usage ? (
           <p className="hint">계산하는 중…</p>
         ) : (
@@ -404,7 +404,7 @@ export function StorageTab() {
           </>
         )}
       </Card>
-      <Card title="앱 캐시 · 생성 큐" subtitle="">
+      <Card title="앱 캐시 · 생성 큐">
         <div className="storage-line">
           <span>
             화면 캐시 <b>{usage ? formatBytes(usage.app.cache) : '…'}</b>
@@ -438,7 +438,7 @@ export function StorageTab() {
           </button>
         </div>
       </Card>
-      <Card title="백업 · 공유" subtitle="">
+      <Card title="백업 · 공유">
         <div className="button-row">
           <button
             className="accent"

@@ -46,7 +46,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxScale: 10,
   },
   {
-    // V5 출시 공지(2026-08-21): Curated 인페인트 모델은 준비 중이고 그동안 V4.5 Curated 인페인트를 쓴다. 웹 코드도 같다(2026-10).
+    // V5 출시 공지(2026-08-21)·웹 코드(2026-10): Curated 인페인트는 V4.5 Curated 모델로 보낸다.
     id: 'nai-diffusion-5-curated',
     requestIds: { generate: 'nai-diffusion-5-curated' },
     label: 'NAI Diffusion V5 Curated',

@@ -26,7 +26,7 @@ import {
   type TransformHandle,
 } from '../../core/imaging/FreeTransform';
 import { clampRect, contains } from '../../core/imaging/rects';
-import { hexToRgb, type CanvasImage } from '../lib/image';
+import { drawImageBox, hexToRgb, packedColor, type CanvasImage } from '../lib/image';
 import { readUiState, saveUiState } from '../store';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
@@ -78,6 +78,8 @@ type DragState = {
 };
 
 const HISTORY_LIMIT = 40;
+/** 생성 영역 표시 색(청록) */
+const MASK_RGB: [number, number, number] = [23, 208, 190];
 const MASK_OPACITY_KEY = 'mask-opacity';
 const readMaskOpacity = () =>
   readUiState(
@@ -242,16 +244,7 @@ export function ReferenceCanvas(props: Props) {
       // 참고 영역 밖으로 나가 잘린 부분도 보이게 한다.
       context.save();
       context.globalAlpha = 0.4;
-      context.translate(ghostBox.cx, ghostBox.cy);
-      context.rotate((ghostBox.rotation * Math.PI) / 180);
-      if (ghostBox.flipX) context.scale(-1, 1);
-      context.drawImage(
-        ghostImage,
-        -ghostBox.width / 2,
-        -ghostBox.height / 2,
-        ghostBox.width,
-        ghostBox.height,
-      );
+      drawImageBox(context, ghostImage, ghostBox);
       context.restore();
     }
     // 이미지 변형 중에는 프레임마다 다시 그리므로 마스크 층은 바뀔 때만 만든다.
@@ -269,13 +262,10 @@ export function ReferenceCanvas(props: Props) {
       // putImageData는 합성하지 않고 덮어쓴다.
       const overlayContext = overlayCanvas.getContext('2d')!;
       const overlay = overlayContext.createImageData(props.width, props.height);
-      const alpha = Math.round((opacity / 100) * 255);
-      // 리틀 엔디언이라 RGBA가 ABGR 순서다.
       const pixels = new Uint32Array(overlay.data.buffer);
-      const color = ((alpha << 24) | (190 << 16) | (208 << 8) | 23) >>> 0;
+      const color = packedColor(MASK_RGB, Math.round((opacity / 100) * 255));
       if (dividerMask && dividerColor) {
-        const [red, green, blue] = hexToRgb(dividerColor);
-        const line = ((255 << 24) | (blue << 16) | (green << 8) | red) >>> 0;
+        const line = packedColor(hexToRgb(dividerColor));
         // 안쪽에 둔 선도 보이게 생성 영역 색보다 위에 둔다.
         for (let pixel = 0; pixel < mask.length; pixel += 1) {
           if (dividerMask[pixel]) pixels[pixel] = line;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { deleteResults, deleteShownResult } from '../generationOps';
-import { setShownResult, useStore } from '../store';
+import { requestResult, setShownResult, useStore } from '../store';
 import { useBoxSelection } from './useBoxSelection';
 
 export function useResultBrowser(
@@ -46,7 +46,7 @@ export function useResultBrowser(
     if (request?.projectId !== projectId) return;
     if (!records.some((record) => record.id === request.id)) return;
     setSelectedId(request.id);
-    useStore.setState({ resultRequest: undefined });
+    requestResult(undefined);
     onRequested.current?.();
   }, [request, records, projectId]);
 

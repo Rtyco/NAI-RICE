@@ -28,14 +28,14 @@ export function TagsTab() {
   const tagAutocomplete = useLibrary().settings.tagAutocomplete;
   return (
     <>
-      <Card title="태그 자동완성" subtitle="">
+      <Card title="태그 자동완성">
         <Toggle
           label="태그 후보 보이기"
           checked={tagAutocomplete}
           onChange={(value) => patchSettings((current) => ({ ...current, tagAutocomplete: value }))}
         />
       </Card>
-      <Card title="품질 태그 · UC 프리셋 문구" subtitle="">
+      <Card title="품질 태그 · UC 프리셋 문구">
         <div className="chip-row">
           {(Object.keys(FAMILY_LABELS) as NaiTagFamily[]).map((id) => (
             <button

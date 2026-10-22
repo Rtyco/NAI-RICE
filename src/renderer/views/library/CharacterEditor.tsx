@@ -17,10 +17,7 @@ export function CharacterEditor({ character }: { character: Character }) {
       return repairPromptSetRefs(next, updated);
     });
   return (
-    <Card
-      title="캐릭터 프롬프트 세트"
-      subtitle=""
-    >
+    <Card title="캐릭터 프롬프트 세트">
       {character.promptSets.map((set, index) => (
         <section className="prompt-set" key={set.id}>
           <div className="prompt-set-head">

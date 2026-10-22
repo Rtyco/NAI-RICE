@@ -27,7 +27,6 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
   return (
     <Card
       title={`조각 (${set.pieces.length})`}
-      subtitle=""
       actions={
         <button className="accent" onClick={() => save((item) => addPiece(item).set)}>
           ＋ 조각 추가

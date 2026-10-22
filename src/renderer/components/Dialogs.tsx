@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { popDialog, useDialogs, type DialogRequest } from './dialogStack';
 
-/** 작은 창에서 Enter는 아래줄의 강조 버튼을 누른다. 버튼·여러 줄 글·목록 위의 Enter는 그 요소 몫이다. */
+/** 버튼·여러 줄 글·목록 위의 Enter는 그 요소 몫이다. */
 function submitOnEnter(event: KeyboardEvent, modal: HTMLElement | null) {
   if (!modal || event.defaultPrevented || event.isComposing || event.repeat) return;
   if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;

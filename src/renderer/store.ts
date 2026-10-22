@@ -39,6 +39,15 @@ export type PendingReference = { referenceId: string; dataUrl: string; name: str
 
 export type SidebarSection = 'projects' | 'library';
 
+export type ResultRef = { projectId: string; id: string };
+
+type CollapsedFlag =
+  | 'sidebarCollapsed'
+  | 'filmstripCollapsed'
+  | 'libraryListCollapsed'
+  | 'promptPanelCollapsed'
+  | 'historyCollapsed';
+
 export type StoreState = {
   ready: boolean;
   root: string;
@@ -59,9 +68,9 @@ export type StoreState = {
   promptPanelCollapsed: boolean;
   historyCollapsed: boolean;
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
-  resultRequest?: { projectId: string; id: string };
+  resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
-  shownResult?: { projectId: string; id: string };
+  shownResult?: ResultRef;
   /** `<작업|라이브러리 칸>/<폴더 이름>` */
   foldedFolders: string[];
   /** `preset` 또는 `character:<ID>` */
@@ -136,7 +145,7 @@ const readStringList = (key: string) =>
     [] as string[],
   );
 
-const readSidebarCollapsed = () => readUiState(SIDEBAR_KEY, (raw) => raw === '1', false);
+const readCollapsed = (key: string) => readUiState(key, (raw) => raw === '1', false);
 
 const readSidebarSections = (): Record<SidebarSection, boolean> =>
   readUiState(
@@ -155,7 +164,7 @@ export const useStore = create<StoreState>(() => ({
   library: null,
   view: { kind: 'home' },
   settingsOpen: false,
-  sidebarCollapsed: readSidebarCollapsed(),
+  sidebarCollapsed: readCollapsed(SIDEBAR_KEY),
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
   galleryAspect: readUiState(
@@ -163,10 +172,10 @@ export const useStore = create<StoreState>(() => ({
     (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
     'portrait' as GalleryAspect,
   ),
-  filmstripCollapsed: readUiState(FILMSTRIP_KEY, (raw) => raw === '1', false),
-  libraryListCollapsed: readUiState(LIBRARY_LIST_KEY, (raw) => raw === '1', false),
-  promptPanelCollapsed: readUiState(PROMPT_PANEL_KEY, (raw) => raw === '1', false),
-  historyCollapsed: readUiState(HISTORY_KEY, (raw) => raw === '1', false),
+  filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
+  libraryListCollapsed: readCollapsed(LIBRARY_LIST_KEY),
+  promptPanelCollapsed: readCollapsed(PROMPT_PANEL_KEY),
+  historyCollapsed: readCollapsed(HISTORY_KEY),
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -443,10 +452,14 @@ export function setSettingsOpen(open: boolean, tab?: string): void {
   set({ settingsOpen: open, settingsTab: tab });
 }
 
+function toggleCollapsed(flag: CollapsedFlag, key: string): void {
+  const collapsed = !get()[flag];
+  set({ [flag]: collapsed });
+  saveUiState(key, collapsed ? '1' : '0');
+}
+
 export function toggleSidebar(): void {
-  const collapsed = !get().sidebarCollapsed;
-  set({ sidebarCollapsed: collapsed });
-  saveUiState(SIDEBAR_KEY, collapsed ? '1' : '0');
+  toggleCollapsed('sidebarCollapsed', SIDEBAR_KEY);
 }
 
 export function toggleSidebarSection(section: SidebarSection): void {
@@ -466,34 +479,26 @@ export function setGalleryAspect(aspect: GalleryAspect): void {
 }
 
 export function toggleFilmstrip(): void {
-  const collapsed = !get().filmstripCollapsed;
-  set({ filmstripCollapsed: collapsed });
-  saveUiState(FILMSTRIP_KEY, collapsed ? '1' : '0');
+  toggleCollapsed('filmstripCollapsed', FILMSTRIP_KEY);
 }
 
 export function toggleLibraryList(): void {
-  const collapsed = !get().libraryListCollapsed;
-  set({ libraryListCollapsed: collapsed });
-  saveUiState(LIBRARY_LIST_KEY, collapsed ? '1' : '0');
+  toggleCollapsed('libraryListCollapsed', LIBRARY_LIST_KEY);
 }
 
 export function togglePromptPanel(): void {
-  const collapsed = !get().promptPanelCollapsed;
-  set({ promptPanelCollapsed: collapsed });
-  saveUiState(PROMPT_PANEL_KEY, collapsed ? '1' : '0');
+  toggleCollapsed('promptPanelCollapsed', PROMPT_PANEL_KEY);
 }
 
 export function toggleHistory(): void {
-  const collapsed = !get().historyCollapsed;
-  set({ historyCollapsed: collapsed });
-  saveUiState(HISTORY_KEY, collapsed ? '1' : '0');
+  toggleCollapsed('historyCollapsed', HISTORY_KEY);
 }
 
-export function requestResult(projectId: string, id: string): void {
-  set({ resultRequest: { projectId, id } });
+export function requestResult(request: ResultRef | undefined): void {
+  set({ resultRequest: request });
 }
 
-export function setShownResult(shown: { projectId: string; id: string } | undefined): void {
+export function setShownResult(shown: ResultRef | undefined): void {
   set({ shownResult: shown });
 }
 

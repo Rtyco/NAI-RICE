@@ -102,7 +102,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
 
   return (
     <>
-      <Card title="공통 프롬프트" subtitle="">
+      <Card title="공통 프롬프트">
         <div className="two-column">
           <PromptField
             label="공통 포지티브"
@@ -258,7 +258,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         />
       </Card>
 
-      <Card title="품질 태그 · UC 프리셋" subtitle="">
+      <Card title="품질 태그 · UC 프리셋">
         <div className="tag-row">
           <SelectField
             label="Quality Tags (공통 포지티브 끝에 추가)"
@@ -319,7 +319,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         )}
       </Card>
 
-      <Card title="샘플링" subtitle="">
+      <Card title="샘플링">
         <div className="four-column-fields">
           <NumberField
             label="Steps"
@@ -409,7 +409,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
         )}
       </Card>
 
-      <Card title="Seed · 생성 수" subtitle="">
+      <Card title="Seed · 생성 수">
         <div className="four-column-fields">
           <SelectField
             label="Seed 방식"

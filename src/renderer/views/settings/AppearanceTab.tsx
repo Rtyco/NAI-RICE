@@ -12,7 +12,7 @@ export function AppearanceTab() {
     appearance.mode === 'light' ? 'light' : appearance.mode === 'dark' ? 'dark' : undefined;
   return (
     <>
-      <Card title="밝기" subtitle="">
+      <Card title="밝기">
         <div className="segmented">
           {(Object.keys(MODE_LABELS) as ThemeMode[]).map((mode) => (
             <button
@@ -25,7 +25,7 @@ export function AppearanceTab() {
           ))}
         </div>
       </Card>
-      <Card title="색상 프리셋" subtitle="">
+      <Card title="색상 프리셋">
         <div className="theme-grid">
           {(Object.keys(THEMES) as ThemeId[]).map((id) => {
             const swatch = themeSwatch(

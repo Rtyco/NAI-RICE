@@ -1,7 +1,8 @@
 import type { BackgroundDetection, PixelBuffer } from '../../core/imaging/BackgroundDetector';
 import { detectBackground } from '../../core/imaging/BackgroundDetector';
 import { normalizeCanvasSize } from '../../core/imaging/CanvasNormalizer';
-import { computeLayout, layoutBackgroundMask } from '../../core/imaging/CanvasLayout';
+import { computeLayout, imageBoxOf, layoutBackgroundMask } from '../../core/imaging/CanvasLayout';
+import type { ImageBox } from '../../core/imaging/FreeTransform';
 import type { CanvasLayout, Rect } from '../../core/domain/types';
 
 export type PreparedImage = {
@@ -153,11 +154,20 @@ function paintLayout(
   context.rect(area.x, area.y, area.width, area.height);
   context.clip();
   context.imageSmoothingQuality = 'high';
-  const place = composed.imagePlacement;
-  context.translate(place.x + place.width / 2, place.y + place.height / 2);
-  context.rotate((composed.rotation * Math.PI) / 180);
-  if (composed.flipX) context.scale(-1, 1);
-  context.drawImage(image, -place.width / 2, -place.height / 2, place.width, place.height);
+  drawImageBox(context, image, imageBoxOf(composed));
+  context.restore();
+}
+
+export function drawImageBox(
+  context: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  box: ImageBox,
+): void {
+  context.save();
+  context.translate(box.cx, box.cy);
+  context.rotate((box.rotation * Math.PI) / 180);
+  if (box.flipX) context.scale(-1, 1);
+  context.drawImage(image, -box.width / 2, -box.height / 2, box.width, box.height);
   context.restore();
 }
 
@@ -216,6 +226,11 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
+/** `ImageData`를 `Uint32Array`로 쓸 때의 픽셀 값. 리틀 엔디언이라 ABGR 순서다. */
+export function packedColor([red, green, blue]: [number, number, number], alpha = 255): number {
+  return ((alpha << 24) | (blue << 16) | (green << 8) | red) >>> 0;
+}
+
 /** NovelAI에 보내는 canvas.png. 편집기는 층을 합치지 않은 base를 따로 둔다. */
 export function finalCanvasDataUrl(
   base: CanvasImage,
@@ -230,10 +245,10 @@ export function finalCanvasDataUrl(
   if (layers.divider) {
     const line = canvas2d(width, height, false);
     const image = line.context.createImageData(width, height);
-    const [red, green, blue] = hexToRgb(layers.divider.color);
+    const pixels = new Uint32Array(image.data.buffer);
+    const color = packedColor(hexToRgb(layers.divider.color));
     layers.divider.pixels.forEach((value, pixel) => {
-      if (!value) return;
-      image.data.set([red, green, blue, 255], pixel * 4);
+      if (value) pixels[pixel] = color;
     });
     line.context.putImageData(image, 0, 0);
     context.drawImage(line.canvas, 0, 0);

@@ -3,10 +3,18 @@ import type { GenerationSummary } from '../../core/domain/types';
 import {
   CUSTOM_MAX,
   CUSTOM_MIN,
-  closestRatioFreeSize,
   RESOLUTION_PRESETS,
   snapDimension,
 } from '../../core/imaging/CanvasLayout';
+import {
+  closestRatioFreeSize,
+  isRatioSizeMode,
+  RATIO_SIZES,
+  ratioError,
+  totalPixels,
+  type RatioSizeMode,
+  type Size,
+} from '../../core/imaging/FreeSize';
 import {
   effectiveGenerationSettings,
   FREE_PROJECT_ID,
@@ -17,19 +25,15 @@ import {
   FREE_MAX_PIXELS,
   generationCostWarnings,
 } from '../../core/providers/NaiCost';
-import { RATIO_SIZES, sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
+import { sendResultsToImg2Img, type ResultImg2ImgOptions } from '../actions';
 import { projectMedia, resolveFreeGeneration, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField, Toggle } from './ui';
 
 /** 크롭된 결과를 같은 비율로 키우는 업스케일 우회의 기본값. */
 function nearestPreset(width: number, height: number) {
-  const ratio = width / height;
   return RESOLUTION_PRESETS.reduce((best, item) =>
-    Math.abs(Math.log(item.width / item.height / ratio)) <
-    Math.abs(Math.log(best.width / best.height / ratio))
-      ? item
-      : best,
+    ratioError(item, width, height) < ratioError(best, width, height) ? item : best,
   );
 }
 
@@ -64,26 +68,21 @@ export function Img2ImgDialog(props: {
   });
   const patch = (value: Partial<typeof options>) =>
     setOptions((current) => ({ ...current, ...value }));
-  const ratioMode = size in RATIO_SIZES ? (size as keyof typeof RATIO_SIZES) : undefined;
+  const ratioMode = isRatioSizeMode(size) ? size : undefined;
   const fixed = ratioMode
     ? undefined
     : (RESOLUTION_PRESETS.find((item) => item.id === size) ?? custom);
-  const ratioTargets = (mode: keyof typeof RATIO_SIZES) =>
+  const ratioTargets = (mode: RatioSizeMode) =>
     props.records.map((record) => RATIO_SIZES[mode](record.width, record.height));
   const exact = ratioTargets('exact-ratio');
   const closest = ratioTargets('closest-ratio');
-  const ratioLabel = (name: string, targets: Array<{ width: number; height: number }>) => {
+  const ratioLabel = (name: string, targets: Size[]) => {
     const sizes = new Set(targets.map((item) => `${item.width}×${item.height}`));
     return sizes.size === 1 ? `${name} ${[...sizes][0]}` : `${name} (장마다)`;
   };
-  const pixels = (targets: Array<{ width: number; height: number }>) =>
-    targets.reduce((sum, item) => sum + item.width * item.height, 0);
-  const exactLoss = Math.round((1 - pixels(exact) / pixels(closest)) * 100);
+  const exactLoss = Math.round((1 - totalPixels(exact) / totalPixels(closest)) * 100);
   const closestOff = props.records.some(
-    (record, index) =>
-      Math.abs(
-        Math.log((closest[index].width / closest[index].height) * (record.height / record.width)),
-      ) > 0.001,
+    (record, index) => ratioError(closest[index], record.width, record.height) > 0.001,
   );
   const targets = fixed
     ? props.records.map(() => fixed)

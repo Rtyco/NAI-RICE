@@ -112,7 +112,6 @@ export function AidChip(props: {
           )}
         </>
       }
-      hint={character ? '' : ''}
     />
   );
 }

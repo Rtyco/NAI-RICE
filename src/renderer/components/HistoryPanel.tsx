@@ -32,7 +32,6 @@ function describe(record: GenerationSummary): string {
     .join(' · ');
 }
 
-/** NovelAI 웹의 History처럼 화면 오른쪽 끝에 최신 결과부터 세로로 쌓는다. */
 export function HistoryPanel({ projectId }: { projectId: string }) {
   const collapsed = useStore((state) => state.historyCollapsed);
   const allRecords = useStore((state) => state.generations[projectId]) ?? NO_RECORDS;
@@ -69,18 +68,18 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
   }, [shownId]);
 
   const open = (record: GenerationSummary) => {
-    requestResult(projectId, record.id);
-    if (projectId === FREE_PROJECT_ID) return;
-    const { library, detailEmotionId } = useStore.getState();
-    const project = library?.projects.find((item) => item.id === projectId);
-    const emotions =
-      library?.emotionSets.find((set) => set.id === project?.emotionSetId)?.emotions ?? [];
-    if (!emotions.some((emotion) => emotion.id === record.emotionId)) {
-      useStore.setState({ resultRequest: undefined });
-      toast(`「${record.emotionName}」 씬이 지금 씬 모음에 없어 열 수 없습니다.`);
-      return;
+    if (projectId !== FREE_PROJECT_ID) {
+      const { library, detailEmotionId } = useStore.getState();
+      const project = library?.projects.find((item) => item.id === projectId);
+      const emotions =
+        library?.emotionSets.find((set) => set.id === project?.emotionSetId)?.emotions ?? [];
+      if (!emotions.some((emotion) => emotion.id === record.emotionId)) {
+        toast(`「${record.emotionName}」 씬이 지금 씬 모음에 없어 열 수 없습니다.`);
+        return;
+      }
+      if (detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
     }
-    if (detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
+    requestResult({ projectId, id: record.id });
   };
 
   const menu = (event: MouseEvent, record: GenerationSummary) =>
@@ -141,7 +140,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
   );
 }
 
-/** 접으면 패널 자리가 없어지므로 화면 머리줄에 둔다. 열려 있을 때는 패널 머리를 눌러 접는다. */
+/** 접힌 패널은 자리가 없어 화면 머리줄에서 다시 연다. */
 export function HistoryToggle() {
   const collapsed = useStore((state) => state.historyCollapsed);
   if (!collapsed) return null;

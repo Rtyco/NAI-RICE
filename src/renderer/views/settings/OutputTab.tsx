@@ -81,7 +81,7 @@ export function OutputTab() {
           }
         />
       </Card>
-      <Card title="내보내기 기본값" subtitle="">
+      <Card title="내보내기 기본값">
         <div className="four-column-fields three">
           <SelectField
             label="형식"

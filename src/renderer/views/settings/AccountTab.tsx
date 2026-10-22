@@ -10,7 +10,7 @@ function RequestDelayCard() {
   const setDelay = (requestDelayMs: number) =>
     patchSettings((current) => ({ ...current, requestDelayMs }));
   return (
-    <Card title="요청 간격" subtitle="">
+    <Card title="요청 간격">
       <div className="delay-row">
         <input
           type="range"

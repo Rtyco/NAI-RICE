@@ -21,7 +21,7 @@ import {
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
-import { closestRatioFreeSize, exactRatioFreeSize } from '../core/imaging/CanvasLayout';
+import { RATIO_SIZES, type RatioSizeMode, type Size } from '../core/imaging/FreeSize';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
@@ -193,14 +193,8 @@ export function generateFree(
   }).then(() => undefined);
 }
 
-/** 장마다 원본 크기로 정하는 다듬기 목표 크기 */
-export const RATIO_SIZES = {
-  'exact-ratio': exactRatioFreeSize,
-  'closest-ratio': closestRatioFreeSize,
-};
-
 export type ResultImg2ImgOptions = {
-  size: { width: number; height: number } | keyof typeof RATIO_SIZES;
+  size: Size | RatioSizeMode;
   fit: 'crop' | 'pad';
   strength: number;
   noise: number;
