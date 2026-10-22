@@ -16,20 +16,13 @@ import {
   strokeStamps,
   type BrushShape,
 } from '../../core/imaging/MaskBrush';
-import {
-  dragBox,
-  handleAt,
-  handleDirection,
-  handlePoint,
-  RESIZE_HANDLES,
-  type ImageBox,
-  type TransformHandle,
-} from '../../core/imaging/FreeTransform';
 import { clampRect, contains } from '../../core/imaging/rects';
 import { drawImageBox, hexToRgb, packedColor, type CanvasImage } from '../lib/image';
 import { readUiState, saveUiState } from '../store';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
+import { TransformActions, TransformFrame } from './TransformFrame';
+import { useFreeTransform, type TransformTarget } from './useFreeTransform';
 import { ZOOM_STEP } from './zoom';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep' | 'transform';
@@ -57,24 +50,15 @@ type Props = {
   maskOnly?: boolean;
   /** 켜져 있을 때만 */
   divider?: DividerLine;
-  /** 자동 구성에서만. 바뀐 상자를 받아 다시 칠한다. */
-  transform?: {
-    box: ImageBox;
-    image: CanvasImageSource;
-    onBegin: () => void;
-    onChange: (box: ImageBox) => void;
-    onCancel: () => void;
-  };
+  transform?: TransformTarget;
 };
 
 type DragState = {
-  kind: 'rect' | 'brush' | 'transform';
+  kind: 'rect' | 'brush';
   startX: number;
   startY: number;
   originalRect?: Rect;
   handle?: RectHandle;
-  startBox?: ImageBox;
-  transformHandle?: TransformHandle;
 };
 
 const HISTORY_LIMIT = 40;
@@ -90,22 +74,6 @@ const readMaskOpacity = () =>
     },
     42,
   );
-/** 화면 px */
-const TRANSFORM_HANDLE_SIZE = 9;
-const TRANSFORM_HIT = 8;
-
-const RESIZE_CURSORS = ['ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize'];
-const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
-  "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><g fill='none' stroke-linecap='round'><path d='M5 15a8 8 0 0 1 13-8' stroke='white' stroke-width='4'/><path d='M5 15a8 8 0 0 1 13-8' stroke='black' stroke-width='1.6'/></g><path d='M15 4l5 3-5 3z' fill='black' stroke='white'/><path d='M2 13l3 5 3-5z' fill='black' stroke='white'/></svg>",
-)}") 12 12, crosshair`;
-
-function transformCursor(box: ImageBox, handle: TransformHandle): string {
-  if (handle === 'move') return 'move';
-  if (handle === 'rotate') return ROTATE_CURSOR;
-  const direction = ((handleDirection(box, handle) % 180) + 180) % 180;
-  return RESIZE_CURSORS[Math.round(direction / 45) % 4];
-}
-
 type OverrideBase = Pick<Props, 'width' | 'height' | 'backgroundMask' | 'referenceRect' | 'expansionPx'>;
 
 /** 붓으로 고친 픽셀만 남겨 나머지는 여백 값 변경을 따른다. 예전 두 배 확장 마스크도 알아본다. */
@@ -175,7 +143,6 @@ export function ReferenceCanvas(props: Props) {
   const [undoStack, setUndoStack] = useState<Int8Array[]>([]);
   const [redoStack, setRedoStack] = useState<Int8Array[]>([]);
   const previousToolRef = useRef<Tool>('reference');
-  const transformHistory = useRef<ImageBox[]>([]);
   const overlayInputsRef = useRef<unknown[]>([]);
   const { onMaskChange } = props;
 
@@ -229,7 +196,25 @@ export function ReferenceCanvas(props: Props) {
 
   const view = useCanvasViewport(props.width, props.height);
   const scale = view.scale;
-  const transforming = tool === 'transform' && Boolean(props.transform);
+  const transform = useFreeTransform({
+    target: props.transform,
+    active: tool === 'transform',
+    canvasRef,
+    width: props.width,
+    height: props.height,
+    view,
+    spaceHeld,
+    onStart: () => {
+      previousToolRef.current = tool;
+      moveCursor(null);
+      setTool('transform');
+    },
+    onEnd: () => {
+      dragRef.current = null;
+      setTool(previousToolRef.current);
+    },
+  });
+  const { transforming } = transform;
   const ghostBox = transforming ? props.transform?.box : undefined;
   const ghostImage = props.transform?.image;
 
@@ -380,95 +365,9 @@ export function ReferenceCanvas(props: Props) {
     cursor.style.width = cursor.style.height = `${brushSize * cell}px`;
   };
 
-  const canvasPoint = (event: { clientX: number; clientY: number }) => {
-    const bounds = canvasRef.current!.getBoundingClientRect();
-    return {
-      x: ((event.clientX - bounds.left) / bounds.width) * props.width,
-      y: ((event.clientY - bounds.top) / bounds.height) * props.height,
-    };
-  };
-
-  const beginTransform = () => {
-    if (!props.transform || tool === 'transform') return;
-    previousToolRef.current = tool;
-    transformHistory.current = [];
-    props.transform.onBegin();
-    moveCursor(null);
-    setTool('transform');
-  };
-
-  const commitTransform = () => {
-    dragRef.current = null;
-    setTool(previousToolRef.current);
-  };
-
-  const cancelTransform = () => {
-    props.transform?.onCancel();
-    commitTransform();
-  };
-
-  const recordTransform = (box: ImageBox) => {
-    transformHistory.current = [...transformHistory.current.slice(-(HISTORY_LIMIT - 1)), box];
-  };
-
-  const undoTransform = () => {
-    const previous = transformHistory.current.pop();
-    if (previous) props.transform?.onChange(previous);
-  };
-
   useEffect(() => {
     if (tool === 'transform' && !props.transform) setTool('reference');
-    if (tool !== 'transform' && view.viewport.current) view.viewport.current.style.cursor = '';
-  }, [tool, props.transform, view.viewport]);
-
-  // 손잡이가 캔버스 밖에 있어도 잡을 수 있게 화면 전체에서 받는다.
-  const onTransformPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!transforming || !props.transform) return;
-    if (event.button === 1 || (event.button === 0 && spaceHeld)) {
-      view.pan.begin(event);
-      return;
-    }
-    if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const point = canvasPoint(event);
-    const box = props.transform.box;
-    recordTransform(box);
-    dragRef.current = {
-      kind: 'transform',
-      startX: point.x,
-      startY: point.y,
-      startBox: box,
-      transformHandle: handleAt(box, point.x, point.y, TRANSFORM_HIT / scale),
-    };
-  };
-
-  const onTransformPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!transforming || !props.transform) return;
-    if (view.pan.move(event)) return;
-    const point = canvasPoint(event);
-    const drag = dragRef.current;
-    if (drag?.kind === 'transform' && drag.startBox && drag.transformHandle) {
-      props.transform.onChange(
-        dragBox(drag.startBox, drag.transformHandle, { x: drag.startX, y: drag.startY }, point, {
-          shift: event.shiftKey,
-          alt: event.altKey,
-        }),
-      );
-      return;
-    }
-    const box = props.transform.box;
-    event.currentTarget.style.cursor = spaceHeld
-      ? ''
-      : transformCursor(box, handleAt(box, point.x, point.y, TRANSFORM_HIT / scale));
-  };
-
-  const onTransformPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!transforming) return;
-    if (event.currentTarget.hasPointerCapture(event.pointerId))
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    if (view.pan.end()) return;
-    dragRef.current = null;
-  };
+  }, [tool, props.transform]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (transforming) return;
@@ -585,8 +484,8 @@ export function ReferenceCanvas(props: Props) {
       const key = event.key.toLowerCase();
       if (key === 't' && !event.shiftKey && props.transform) {
         event.preventDefault();
-        if (transforming) commitTransform();
-        else beginTransform();
+        if (transforming) transform.commit();
+        else transform.begin();
       } else if (key === 'z' && !event.shiftKey) {
         event.preventDefault();
         undo();
@@ -604,34 +503,6 @@ export function ReferenceCanvas(props: Props) {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKeyUp);
     };
-  });
-
-  // 대화상자의 Esc(닫기)와 마스크 Ctrl+Z보다 먼저 받는다.
-  useEffect(() => {
-    if (!transforming) return;
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
-      const box = props.transform?.box;
-      const step = event.shiftKey ? 10 : 1;
-      const nudge: Record<string, [number, number]> = {
-        ArrowLeft: [-step, 0],
-        ArrowRight: [step, 0],
-        ArrowUp: [0, -step],
-        ArrowDown: [0, step],
-      };
-      if (event.key === 'Enter') commitTransform();
-      else if (event.key === 'Escape') cancelTransform();
-      else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') undoTransform();
-      else if (nudge[event.key] && box) {
-        const [dx, dy] = nudge[event.key];
-        if (!event.repeat) recordTransform(box);
-        props.transform?.onChange({ ...box, cx: box.cx + dx, cy: box.cy + dy });
-      } else return;
-      event.preventDefault();
-      event.stopPropagation();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
   });
 
   const invert = () => {
@@ -675,7 +546,7 @@ export function ReferenceCanvas(props: Props) {
                 className={`with-icon ${transforming ? 'active' : ''}`}
                 aria-pressed={transforming}
                 title="Ctrl+T · 안쪽: 이동 · 모서리: 크기(Shift: 비율 무시, Alt: 가운데 기준) · 변: 늘리기 · 바깥: 회전(Shift: 15°) · 방향키: 1px(Shift: 10px)"
-                onClick={transforming ? commitTransform : beginTransform}
+                onClick={transforming ? transform.commit : transform.begin}
               >
                 <Icon name="transform" size={14} /> 이미지 변형
               </button>
@@ -820,16 +691,11 @@ export function ReferenceCanvas(props: Props) {
           // 가운데 버튼 자동 스크롤 대신 끌어서 옮기기
           if (event.button === 1) event.preventDefault();
         }}
-        onPointerDown={onTransformPointerDown}
-        onPointerMove={onTransformPointerMove}
-        onPointerUp={onTransformPointerUp}
-        onPointerCancel={onTransformPointerUp}
-        onDoubleClick={(event) => {
-          if (!transforming || !props.transform) return;
-          const point = canvasPoint(event);
-          if (handleAt(props.transform.box, point.x, point.y, TRANSFORM_HIT / scale) === 'move')
-            commitTransform();
-        }}
+        onPointerDown={transform.viewportHandlers.onPointerDown}
+        onPointerMove={transform.viewportHandlers.onPointerMove}
+        onPointerUp={transform.viewportHandlers.onPointerUp}
+        onPointerCancel={transform.viewportHandlers.onPointerUp}
+        onDoubleClick={transform.viewportHandlers.onDoubleClick}
       >
         <div className="canvas-stack" style={view.stackStyle}>
           <canvas
@@ -852,19 +718,12 @@ export function ReferenceCanvas(props: Props) {
               box={props.transform.box}
               width={props.width}
               height={props.height}
-              handleSize={TRANSFORM_HANDLE_SIZE / scale}
+              scale={scale}
             />
           )}
         </div>
         {transforming && (
-          <div className="transform-actions" onPointerDown={(event) => event.stopPropagation()}>
-            <button className="accent" title="Enter · 상자 안 더블클릭" onClick={commitTransform}>
-              확정
-            </button>
-            <button title="Esc · 변형을 시작하기 전으로 되돌립니다" onClick={cancelTransform}>
-              취소
-            </button>
-          </div>
+          <TransformActions onCommit={transform.commit} onCancel={transform.cancel} />
         )}
       </div>
       <div className="canvas-status">
@@ -875,43 +734,5 @@ export function ReferenceCanvas(props: Props) {
         {props.status}
       </div>
     </section>
-  );
-}
-
-function TransformFrame(props: {
-  box: ImageBox;
-  width: number;
-  height: number;
-  handleSize: number;
-}) {
-  const { box, handleSize } = props;
-  const outline = (['nw', 'ne', 'se', 'sw'] as const)
-    .map((handle) => handlePoint(box, handle))
-    .map((point) => `${point.x},${point.y}`)
-    .join(' ');
-  return (
-    <svg
-      className="transform-frame"
-      viewBox={`0 0 ${props.width} ${props.height}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <polygon className="shadow" points={outline} />
-      <polygon points={outline} />
-      {RESIZE_HANDLES.map((handle) => {
-        const point = handlePoint(box, handle);
-        return (
-          <rect
-            key={handle}
-            x={point.x - handleSize / 2}
-            y={point.y - handleSize / 2}
-            width={handleSize}
-            height={handleSize}
-            transform={`rotate(${box.rotation} ${point.x} ${point.y})`}
-          />
-        );
-      })}
-      <circle cx={box.cx} cy={box.cy} r={handleSize / 3} />
-    </svg>
   );
 }

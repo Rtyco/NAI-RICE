@@ -1,30 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type {
-  CanvasLayout,
-  DividerLine,
-  FreePlacement,
-  Rect,
-  Reference,
-  ReferenceSide,
-} from '../../core/domain/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CanvasLayout, DividerLine, FreePlacement, Rect, Reference } from '../../core/domain/types';
 import {
   computeLayout,
-  CUSTOM_MAX,
-  CUSTOM_MIN,
   freePlacementOf,
   imageBoxOf,
   resolveResolution,
-  RESOLUTION_PRESETS,
-  snapDimension,
 } from '../../core/imaging/CanvasLayout';
 import { normalizeCanvasSize } from '../../core/imaging/CanvasNormalizer';
 import type { ImageBox } from '../../core/imaging/FreeTransform';
-import { dividerPixels } from '../../core/imaging/Divider';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
 import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper';
-import { clampRect, expandRect } from '../../core/imaging/rects';
+import { expandRect } from '../../core/imaging/rects';
 import { effectiveGenerationSettings } from '../../core/model/defaults';
-import { patchItem } from '../../core/model/mutations';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { confirmDialog } from '../components/dialogStack';
 import { DrawCanvas } from '../components/DrawCanvas';
@@ -32,56 +19,40 @@ import { PanelResizer } from '../components/PanelResizer';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
-import { EmptyState, SelectField, Toggle } from '../components/ui';
-import type { CanvasImage } from '../lib/image';
+import { EmptyState } from '../components/ui';
 import {
   composeCanvas,
-  decodeMask,
-  finalCanvasDataUrl,
   imageSizeOf,
   isBlank,
-  layoutMaskFor,
-  loadCanvas,
   loadOriginal,
-  maskToDataUrl,
   masksEqual,
   prepareImage,
   repaintComposed,
 } from '../lib/image';
-import { errorMessage, run, scheduleSave, setPendingReference, toast, updateLibrary, useStore } from '../store';
-import { fileApi, libraryApi } from '../desktop';
-
-type Source = { dataUrl: string; name: string; changed: boolean };
-
-type Working = {
-  canvas: CanvasImage;
-  width: number;
-  height: number;
-  backgroundMask: Uint8Array;
-  detectionLabel: string;
-};
-
-const SIDES: Array<{ value: ReferenceSide; label: string }> = [
-  { value: 'left', label: '왼쪽' },
-  { value: 'right', label: '오른쪽' },
-  { value: 'top', label: '위쪽' },
-  { value: 'bottom', label: '아래쪽' },
-];
-
-const CROP_FIELDS = [
-  { key: 'x', label: 'X' },
-  { key: 'y', label: 'Y' },
-  { key: 'width', label: '가로' },
-  { key: 'height', label: '세로' },
-] as const;
+import { LatestOnly } from '../lib/LatestOnly';
+import { errorMessage, run, scheduleSave, setPendingReference, toast, useStore } from '../store';
+import { fileApi } from '../desktop';
+import { CanvasLayoutCard } from './reference/CanvasLayoutCard';
+import {
+  DividerFields,
+  InpaintRequestCard,
+  OutputRectFields,
+  SettingRow,
+} from './reference/ReferenceFields';
+import {
+  canSaveImages,
+  detectionText,
+  loadReference,
+  saveReferenceImages,
+  saveReferenceLayout,
+  type Source,
+  type Working,
+} from './reference/referenceStorage';
 
 /** 영역이 그대로인 값. 다시 구성하면 붓으로 고친 마스크와 결과 영역이 초기화된다. */
 const REPAINT_KEYS: ReadonlySet<string> = new Set<keyof CanvasLayout>(['background', 'fit', 'anchor', 'free']);
 
-function detectionText(mode: string, confidence: number): string {
-  const label = mode === 'transparent' ? '투명 배경' : mode === 'solid' ? '단색 배경' : '수동 확인 필요';
-  return `${label} · 신뢰도 ${Math.round(confidence * 100)}%`;
-}
+type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayout };
 
 export function ReferenceEditor({ reference }: { reference: Reference }) {
   const pendingReference = useStore((state) => state.pendingReference);
@@ -103,76 +74,34 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const [mask, setMask] = useState<Uint8Array>();
   const savedMask = useRef<Uint8Array | undefined>(undefined);
   const dirty = useRef(false);
-  const queuedRebuild = useRef<[Source, CanvasLayout, number] | null>(null);
-  const rebuildRunning = useRef(false);
   const rebuildSeq = useRef(0);
   /** 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
   const [imageVersion, setImageVersion] = useState(0);
-  const queuedRepaint = useRef<CanvasLayout | null>(null);
   const [sourceImage, setSourceImage] = useState<HTMLImageElement>();
   const [stage, setStage] = useState<'mask' | 'draw'>('mask');
   /** 그린 것이 없으면 undefined. 저장 전까지 PNG로 바꾸지 않는다. */
   const [paint, setPaint] = useState<HTMLCanvasElement>();
   const paintChanged = useRef(false);
   const transformStart = useRef<CanvasLayout | null>(null);
-  const repaintRunning = useRef(false);
 
   useEffect(() => {
     if (!reference.image) return;
     let active = true;
-    void (async () => {
-      try {
-        const image = reference.image!;
-        const images = await libraryApi().readReferenceImages(reference);
-        if (!images || !active) return;
-        const loadedMask = await decodeMask(images.maskDataUrl, image.canvasWidth, image.canvasHeight);
-        const loadedPaint = images.paintDataUrl ? await loadCanvas(images.paintDataUrl) : undefined;
-        // canvas.png에 층이 합쳐져 있으면 원본에서 base를 다시 만든다.
-        const layered = reference.divider.enabled || Boolean(loadedPaint);
-        let canvas: CanvasImage;
-        let backgroundMask: Uint8Array;
-        let detectionLabel = '저장된 마스크';
-        if (reference.layout.mode === 'auto') {
-          backgroundMask = layoutMaskFor(reference.layout);
-          const composed = layered ? await composeCanvas(images.originalDataUrl, reference.layout) : undefined;
-          canvas =
-            composed && composed.width === image.canvasWidth && composed.height === image.canvasHeight
-              ? composed.canvas
-              : await loadCanvas(images.canvasDataUrl);
-        } else {
-          const prepared = await prepareImage(
-            layered ? images.originalDataUrl : images.canvasDataUrl,
-            reference.backgroundThreshold,
-          );
-          canvas = prepared.canvas;
-          backgroundMask = prepared.backgroundMask;
-          detectionLabel = `저장된 마스크 · ${detectionText(prepared.detection.mode, prepared.detection.confidence)}`;
-        }
-        if (!active) return;
-        savedMask.current = loadedMask;
-        setPaint(loadedPaint);
-        setSource({ dataUrl: images.originalDataUrl, name: image.originalName, changed: false });
-        setWorking({
-          canvas,
-          width: image.canvasWidth,
-          height: image.canvasHeight,
-          backgroundMask,
-          detectionLabel,
-        });
-        setInitialMask(loadedMask);
-        // 예전 버전의 크롭이 보호 영역과 겹치면 바깥으로 맞춘다.
-        const blocked = expandRect(image.referenceRect, reference.maskExpansionPx, image.canvasWidth, image.canvasHeight);
-        const fitted = cropOutside(image.outputRect, blocked);
-        if (JSON.stringify(fitted) !== JSON.stringify(image.outputRect)) {
-          setOutputRect(fitted);
+    loadReference(reference)
+      .then((loaded) => {
+        if (!loaded || !active) return;
+        savedMask.current = loaded.mask;
+        setPaint(loaded.paint);
+        setSource(loaded.source);
+        setWorking(loaded.working);
+        setInitialMask(loaded.mask);
+        if (loaded.fittedOutputRect) {
+          setOutputRect(loaded.fittedOutputRect);
           dirty.current = true;
         }
-      } catch (error) {
-        toast(`인페인트를 불러올 수 없습니다: ${errorMessage(error)}`, 'error');
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
+      })
+      .catch((error) => toast(`인페인트를 불러올 수 없습니다: ${errorMessage(error)}`, 'error'))
+      .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
@@ -221,31 +150,26 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     }
   }, []);
 
-  // 진행 중이면 마지막 값만 남겼다가 끝나는 즉시 잇는다. 일정 시간 기다리는 방식은 늦게 따라와 답답하다.
-  const scheduleRebuild = useCallback(
-    (nextSource: Source | null, nextLayout: CanvasLayout, nextThreshold: number) => {
-      if (!nextSource) return;
-      queuedRebuild.current = [nextSource, nextLayout, nextThreshold];
-      if (rebuildRunning.current) return;
-      rebuildRunning.current = true;
-      void (async () => {
-        try {
-          for (let next = queuedRebuild.current; next; next = queuedRebuild.current) {
-            queuedRebuild.current = null;
-            await rebuild(...next);
-          }
-        } finally {
-          rebuildRunning.current = false;
-        }
-      })();
-    },
-    [rebuild],
+  const [rebuilds] = useState(
+    () => new LatestOnly<[Source, CanvasLayout, number]>((args) => rebuild(...args)),
   );
-  useEffect(
-    () => () => {
-      queuedRebuild.current = null;
-    },
-    [],
+  useEffect(() => () => rebuilds.clear(), [rebuilds]);
+  const scheduleRebuild = (nextSource: Source | null, nextLayout: CanvasLayout, nextThreshold: number) => {
+    if (nextSource) rebuilds.push([nextSource, nextLayout, nextThreshold]);
+  };
+
+  /** 프레임마다 한 번 */
+  const [repaints] = useState(
+    () =>
+      new LatestOnly<Repaint>(async ({ canvas, dataUrl, layout: next }) => {
+        try {
+          await repaintComposed(canvas, dataUrl, next);
+          setImageVersion((version) => version + 1);
+        } catch (error) {
+          toast(`캔버스를 다시 칠할 수 없습니다: ${errorMessage(error)}`, 'error');
+        }
+        await new Promise(requestAnimationFrame);
+      }),
   );
 
   /** 캔버스 크기가 바뀌면 그린 층을 맞출 수 없어 지운다. */
@@ -275,6 +199,21 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     const next = { dataUrl, name, changed: true };
     setSource(next);
     void rebuild(next, layout, threshold);
+  };
+
+  const changeLayout = (patch: Partial<CanvasLayout>) => {
+    const next = { ...layout, ...patch };
+    setLayout(next);
+    dirty.current = true;
+    if (
+      Object.keys(patch).every((key) => REPAINT_KEYS.has(key)) &&
+      next.mode === 'auto' &&
+      source &&
+      working?.canvas instanceof HTMLCanvasElement &&
+      !rebuilds.busy
+    )
+      repaints.push({ canvas: working.canvas, dataUrl: source.dataUrl, layout: next });
+    else scheduleRebuild(source, next, threshold);
   };
 
   const changeCanvasSize = async (patch: Partial<CanvasLayout>) => {
@@ -308,42 +247,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     setPendingReference(undefined);
     void applySourceRef.current(pendingReference.dataUrl, pendingReference.name);
   }, [pendingReference, reference.id, loading]);
-
-  /** 프레임마다 한 번 */
-  const repaint = (canvas: HTMLCanvasElement, dataUrl: string, next: CanvasLayout) => {
-    queuedRepaint.current = next;
-    if (repaintRunning.current) return;
-    repaintRunning.current = true;
-    void (async () => {
-      try {
-        for (let target = queuedRepaint.current; target; target = queuedRepaint.current) {
-          queuedRepaint.current = null;
-          await repaintComposed(canvas, dataUrl, target);
-          setImageVersion((version) => version + 1);
-          await new Promise(requestAnimationFrame);
-        }
-      } catch (error) {
-        toast(`캔버스를 다시 칠할 수 없습니다: ${errorMessage(error)}`, 'error');
-      } finally {
-        repaintRunning.current = false;
-      }
-    })();
-  };
-
-  const changeLayout = (patch: Partial<CanvasLayout>) => {
-    const next = { ...layout, ...patch };
-    setLayout(next);
-    dirty.current = true;
-    if (
-      Object.keys(patch).every((key) => REPAINT_KEYS.has(key)) &&
-      next.mode === 'auto' &&
-      source &&
-      working?.canvas instanceof HTMLCanvasElement &&
-      !rebuildRunning.current
-    )
-      repaint(working.canvas, source.dataUrl, next);
-    else scheduleRebuild(source, next, threshold);
-  };
 
   const sourceUrl = source?.dataUrl;
   useEffect(() => {
@@ -379,6 +282,11 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     });
   };
 
+  const selectFit = (fit: CanvasLayout['fit']) => {
+    if (fit !== 'free') changeLayout({ fit });
+    else if (imageBox) placeImage(imageBox);
+  };
+
   const changeFree = (patch: Partial<FreePlacement>) => {
     if (layout.free) changeLayout({ free: { ...layout.free, ...patch } });
   };
@@ -399,13 +307,18 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     if (!masksEqual(data, savedMask.current)) dirty.current = true;
   }, []);
 
-  const changeRequest = (patch: Partial<Pick<Reference, 'inpaintStrength' | 'colorCorrect'>>) =>
-    updateLibrary((library) =>
-      patchItem(library, 'references', reference.id, (item) => ({ ...item, ...patch })),
-    );
-
   const changeDivider = (patch: Partial<DividerLine>) => {
     setDivider((current) => ({ ...current, ...patch }));
+    dirty.current = true;
+  };
+
+  const changeExpansion = (value: number) => {
+    setExpansionPx(value);
+    if (working) {
+      // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
+      const base = layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
+      setOutputRect(cropOutside(base, expandRect(referenceRect, value, working.width, working.height)));
+    }
     dirty.current = true;
   };
 
@@ -418,54 +331,14 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       `reference:${reference.id}`,
       async () => {
         const value = latest.current;
-        if (value.working && value.mask && value.source && value.mask.length === value.working.width * value.working.height) {
-          const { width, height } = value.working;
-          const painted = value.paint && !isBlank(value.paint) ? value.paint : undefined;
+        if (canSaveImages(value)) {
           const paintSaved = paintChanged.current;
           paintChanged.current = false;
-          const result = await libraryApi().saveReferenceImages({
-            referenceId: reference.id,
-            originalDataUrl: value.source.changed ? value.source.dataUrl : undefined,
-            paintDataUrl: paintSaved ? (painted?.toDataURL('image/png') ?? null) : undefined,
-            canvasDataUrl: finalCanvasDataUrl(value.working.canvas, width, height, {
-              paint: painted,
-              divider: value.divider.enabled
-                ? { pixels: dividerPixels(value.mask, width, height, value.divider), color: value.divider.color }
-                : undefined,
-            }),
-            maskDataUrl: maskToDataUrl(value.mask, value.working.width, value.working.height),
-          });
+          await saveReferenceImages(reference.id, value, paintSaved);
           if (value.source.changed) setSource({ ...value.source, changed: false });
           savedMask.current = value.mask;
-          updateLibrary((library) =>
-            patchItem(library, 'references', reference.id, (item) => ({
-              ...item,
-              image: {
-                originalFile: result.originalFile ?? item.image?.originalFile ?? 'original.png',
-                canvasFile: 'canvas.png',
-                maskFile: 'mask.png',
-                originalName: value.source!.name,
-                canvasWidth: value.working!.width,
-                canvasHeight: value.working!.height,
-                referenceRect: value.referenceRect,
-                outputRect: value.outputRect,
-                paintFile: painted ? 'paint.png' : undefined,
-              },
-              layout: value.layout,
-              divider: value.divider,
-              maskExpansionPx: value.expansionPx,
-              backgroundThreshold: value.threshold,
-              updatedAt: new Date().toISOString(),
-            })),
-          );
         } else {
-          updateLibrary((library) =>
-            patchItem(library, 'references', reference.id, (item) => ({
-              ...item,
-              layout: value.layout,
-              divider: value.divider,
-            })),
-          );
+          saveReferenceLayout(reference.id, value);
         }
         dirty.current = false;
       },
@@ -484,7 +357,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     ? checkFreeGeneration({ steps: Math.min(...presets.map((preset) => effectiveGenerationSettings(preset.generation).steps), 28) }, working.width, working.height)
     : undefined;
   const maskOk = mask ? maskHasGeneratePixels(mask) : false;
-  const auto = layout.mode === 'auto';
 
   return (
     <div className="canvas-view">
@@ -610,148 +482,21 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           </button>
         </section>
 
-        <section className="detail-card settings-card">
-          <div className="detail-card-head">
-            <b>캔버스 구성</b>
-          </div>
-          <div className="segmented full">
-            <button className={auto ? 'active' : ''} onClick={() => void changeCanvasSize({ mode: 'auto' })}>
-              자동 구성
-            </button>
-            <button className={!auto ? 'active' : ''} onClick={() => void changeCanvasSize({ mode: 'prepared' })}>
-              직접 준비한 캔버스
-            </button>
-          </div>
-          {auto ? (
-            <>
-              <SelectField
-                label="해상도 (NovelAI에 보내는 전체 캔버스)"
-                value={layout.resolution}
-                options={[
-                  ...RESOLUTION_PRESETS.map((item) => ({ value: item.id, label: item.label })),
-                  { value: 'custom' as const, label: '커스텀' },
-                ]}
-                onChange={(resolution) => {
-                  const preset = RESOLUTION_PRESETS.find((item) => item.id === resolution);
-                  void changeCanvasSize(
-                    preset ? { resolution, width: preset.width, height: preset.height } : { resolution },
-                  );
-                }}
-              />
-              {layout.resolution === 'custom' && (
-                <>
-                  <SettingRow label="가로" unit="px">
-                    <Stepper
-                      label="가로"
-                      value={layout.width}
-                      min={CUSTOM_MIN}
-                      max={CUSTOM_MAX}
-                      step={64}
-                      onChange={(width) => void changeCanvasSize({ width: snapDimension(width) })}
-                    />
-                  </SettingRow>
-                  <SettingRow label="세로" unit="px">
-                    <Stepper
-                      label="세로"
-                      value={layout.height}
-                      min={CUSTOM_MIN}
-                      max={CUSTOM_MAX}
-                      step={64}
-                      onChange={(height) => void changeCanvasSize({ height: snapDimension(height) })}
-                    />
-                  </SettingRow>
-                </>
-              )}
-              <SelectField
-                label="참고 이미지 위치"
-                value={layout.referenceSide}
-                options={SIDES}
-                onChange={(referenceSide) => changeLayout({ referenceSide })}
-              />
-              <SettingRow
-                label="참고 영역 비율"
-                unit="%"
-                title="캔버스에서 참고 이미지가 차지하는 몫입니다. 나머지가 결과 쪽 크기입니다."
-              >
-                <Stepper
-                  label="참고 영역 비율"
-                  value={Math.round(layout.referenceRatio * 100)}
-                  min={20}
-                  max={80}
-                  step={5}
-                  onChange={(percent) => changeLayout({ referenceRatio: percent / 100 })}
-                />
-              </SettingRow>
-              <div className="two-column-fields">
-                <SelectField
-                  label="이미지 맞춤"
-                  value={layout.fit}
-                  options={[
-                    { value: 'contain', label: '전체 보이기' },
-                    { value: 'cover', label: '꽉 채우기' },
-                    { value: 'free', label: '자유 배치' },
-                  ]}
-                  onChange={(fit) => {
-                    if (fit !== 'free') changeLayout({ fit });
-                    else if (imageBox) placeImage(imageBox);
-                  }}
-                />
-                {layout.fit !== 'free' && (
-                  <SelectField
-                    label="세로 맞춤"
-                    value={layout.anchor}
-                    options={[
-                      { value: 'top', label: '상단' },
-                      { value: 'center', label: '중앙' },
-                      { value: 'bottom', label: '하단' },
-                    ]}
-                    onChange={(anchor) => changeLayout({ anchor })}
-                  />
-                )}
-              </div>
-              {layout.fit === 'free' && layout.free && (
-                <FreePlacementFields
-                  free={layout.free}
-                  onChange={changeFree}
-                  onFit={fitImage}
-                />
-              )}
-              <SettingRow label="배경색">
-                <input
-                  type="color"
-                  className="color-swatch"
-                  aria-label="배경색"
-                  value={layout.background}
-                  onChange={(event) => changeLayout({ background: event.target.value })}
-                />
-              </SettingRow>
-            </>
-          ) : (
-            <>
-              <SettingRow label="배경 임계값">
-                <Stepper
-                  label="배경 임계값"
-                  value={threshold}
-                  min={4}
-                  max={64}
-                  step={1}
-                  onChange={(value) => {
-                    setThreshold(value);
-                    scheduleRebuild(source, layout, value);
-                  }}
-                />
-              </SettingRow>
-            </>
-          )}
-          <button
-            className="with-icon full-width"
-            disabled={!source || rebuilding}
-            title="참고 영역·결과 영역·생성 영역을 처음 상태로 다시 만듭니다"
-            onClick={() => source && void rebuild(source, layout, threshold)}
-          >
-            <Icon name="refresh" size={14} /> {auto ? '자동 배치로 되돌리기' : '배경 다시 감지'}
-          </button>
-        </section>
+        <CanvasLayoutCard
+          layout={layout}
+          threshold={threshold}
+          canReset={Boolean(source) && !rebuilding}
+          onCanvasSize={(patch) => void changeCanvasSize(patch)}
+          onLayout={changeLayout}
+          onFit={selectFit}
+          onFree={changeFree}
+          onFitFree={fitImage}
+          onThreshold={(value) => {
+            setThreshold(value);
+            scheduleRebuild(source, layout, value);
+          }}
+          onReset={() => source && void rebuild(source, layout, threshold)}
+        />
 
         <section className="detail-card settings-card">
           <div className="detail-card-head">
@@ -764,202 +509,26 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               min={0}
               max={64}
               step={4}
-              onChange={(value) => {
-                setExpansionPx(value);
-                if (working) {
-                  // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
-                  const base =
-                    layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
-                  setOutputRect(
-                    cropOutside(
-                      base,
-                      expandRect(referenceRect, value, working.width, working.height),
-                    ),
-                  );
-                }
+              onChange={changeExpansion}
+            />
+          </SettingRow>
+          <DividerFields divider={divider} onChange={changeDivider} />
+          {working && (
+            <OutputRectFields
+              rect={outputRect}
+              width={working.width}
+              height={working.height}
+              onChange={(rect) => {
+                setOutputRect(rect);
                 dirty.current = true;
               }}
             />
-          </SettingRow>
-          <Toggle label="분리선" checked={divider.enabled} onChange={(enabled) => changeDivider({ enabled })} />
-          {divider.enabled && (
-            <>
-              <SettingRow label="선 색">
-                <input
-                  type="color"
-                  className="color-swatch"
-                  aria-label="분리선 색"
-                  value={divider.color}
-                  onChange={(event) => changeDivider({ color: event.target.value })}
-                />
-              </SettingRow>
-              <SettingRow label="선 두께" unit="px" title="NovelAI 마스크 한 칸(8px) 단위입니다">
-                <Stepper
-                  label="선 두께"
-                  value={divider.widthPx}
-                  min={8}
-                  max={32}
-                  step={8}
-                  onChange={(widthPx) => changeDivider({ widthPx: Math.max(8, Math.min(32, Math.round(widthPx / 8) * 8)) })}
-                />
-              </SettingRow>
-              <SelectField
-                label="선 위치"
-                value={divider.placement}
-                options={[
-                  { value: 'outside', label: '생성 영역 바깥' },
-                  { value: 'center', label: '경계에 걸침' },
-                  { value: 'inside', label: '생성 영역 안쪽 (다시 그려질 수 있음)' },
-                ]}
-                onChange={(placement) => changeDivider({ placement })}
-              />
-              {divider.placement !== 'center' && (
-                <SettingRow label="경계와 간격" unit="px" title="생성 영역 경계에서 선을 이만큼 띄웁니다">
-                  <Stepper
-                    label="경계와 간격"
-                    value={divider.gapPx}
-                    min={0}
-                    max={64}
-                    step={8}
-                    onChange={(gapPx) => changeDivider({ gapPx: Math.max(0, Math.min(64, Math.round(gapPx / 8) * 8)) })}
-                  />
-                </SettingRow>
-              )}
-            </>
-          )}
-          {working && (
-            <details className="crop-details">
-              <summary>결과 영역 숫자로 맞추기</summary>
-              <div className="two-column-fields">
-                {CROP_FIELDS.map(({ key, label }) => (
-                  <SettingRow key={key} label={label}>
-                    <Stepper
-                      label={`결과 영역 ${label}`}
-                      value={Math.round(outputRect[key])}
-                      min={key === 'width' || key === 'height' ? 16 : 0}
-                      max={key === 'x' || key === 'width' ? working.width : working.height}
-                      step={8}
-                      onChange={(value) => {
-                        setOutputRect(
-                          clampRect(
-                            { ...outputRect, [key]: value },
-                            working.width,
-                            working.height,
-                            16,
-                          ),
-                        );
-                        dirty.current = true;
-                      }}
-                    />
-                  </SettingRow>
-                ))}
-              </div>
-            </details>
           )}
         </section>
 
-        <section className="detail-card settings-card">
-          <div className="detail-card-head">
-            <b>생성</b>
-          </div>
-          <SettingRow label="인페인트 강도" title="Inpaint Strength">
-            <Stepper
-              label="인페인트 강도"
-              value={reference.inpaintStrength}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={(inpaintStrength) => changeRequest({ inpaintStrength })}
-            />
-          </SettingRow>
-          <div title="Color Correct">
-            <Toggle label="색 보정" checked={reference.colorCorrect} onChange={(colorCorrect) => changeRequest({ colorCorrect })} />
-          </div>
-        </section>
+        <InpaintRequestCard reference={reference} />
       </aside>
       <PanelResizer panel="side-panel" />
-    </div>
-  );
-}
-
-function FreePlacementFields(props: {
-  free: FreePlacement;
-  onChange: (patch: Partial<FreePlacement>) => void;
-  onFit: (fit: 'contain' | 'cover') => void;
-}) {
-  const { free, onChange } = props;
-  return (
-    <>
-      <div>
-        <SettingRow label="가로 위치" unit="%" title="참고 영역 안에서 이미지 중심의 위치입니다">
-          <Stepper
-            label="가로 위치"
-            value={Math.round(free.x * 100)}
-            min={-100}
-            max={200}
-            step={1}
-            onChange={(percent) => onChange({ x: percent / 100 })}
-          />
-        </SettingRow>
-        <SettingRow label="세로 위치" unit="%">
-          <Stepper
-            label="세로 위치"
-            value={Math.round(free.y * 100)}
-            min={-100}
-            max={200}
-            step={1}
-            onChange={(percent) => onChange({ y: percent / 100 })}
-          />
-        </SettingRow>
-        <SettingRow label="가로 크기" unit="%" title="100%가 전체 보이기 크기입니다">
-          <Stepper
-            label="가로 크기"
-            value={Math.round(free.scaleX * 100)}
-            min={5}
-            max={1000}
-            step={5}
-            onChange={(percent) => onChange({ scaleX: percent / 100 })}
-          />
-        </SettingRow>
-        <SettingRow label="세로 크기" unit="%">
-          <Stepper
-            label="세로 크기"
-            value={Math.round(free.scaleY * 100)}
-            min={5}
-            max={1000}
-            step={5}
-            onChange={(percent) => onChange({ scaleY: percent / 100 })}
-          />
-        </SettingRow>
-        <SettingRow label="회전" unit="°">
-          <Stepper
-            label="회전"
-            value={Math.round(free.rotation)}
-            min={-180}
-            max={180}
-            step={1}
-            onChange={(rotation) => onChange({ rotation })}
-          />
-        </SettingRow>
-        <Toggle label="좌우 반전" checked={free.flipX} onChange={(flipX) => onChange({ flipX })} />
-      </div>
-      <div className="button-row">
-        <button onClick={() => props.onFit('contain')}>전체 보이기로</button>
-        <button onClick={() => props.onFit('cover')}>꽉 채우기로</button>
-        <button onClick={() => onChange({ x: 0.5, y: 0.5 })}>가운데로</button>
-      </div>
-    </>
-  );
-}
-
-function SettingRow(props: { label: string; unit?: string; title?: string; children: ReactNode }) {
-  return (
-    <div className="setting-row" title={props.title}>
-      <span>{props.label}</span>
-      <span>
-        {props.children}
-        {props.unit}
-      </span>
     </div>
   );
 }
