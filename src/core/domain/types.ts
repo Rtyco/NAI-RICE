@@ -387,6 +387,8 @@ export type FreeGeneration = {
   characters: CharacterSlot[];
   positionMode: CharacterPositionMode;
   prompt: string;
+  /** `prompt`와 같은 쪽 네거티브 뒤에 붙는다. */
+  negative: string;
   /** 한 장씩 따로 요청한다(Opus 무료 범위). */
   count: number;
   mode: 'txt2img' | 'img2img' | 'augment';

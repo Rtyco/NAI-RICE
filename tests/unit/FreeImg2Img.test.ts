@@ -95,11 +95,16 @@ describe('자유 생성 i2i 작업', () => {
 
 describe('자유 생성 프롬프트 위치', () => {
   const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
-  const build = (positive: string, promptPosition?: 'character-end' | 'common-end') =>
+  const build = (
+    positive: string,
+    promptPosition?: 'character-end' | 'common-end',
+    negative?: string,
+  ) =>
     buildFreeJobs({
       preset,
       characters: [{ name: 'C', promptSet: createPromptSet('기본', { positive }) }],
       prompt: 'sitting',
+      negative,
       promptPosition,
       count: 1,
     })[0];
@@ -116,6 +121,17 @@ describe('자유 생성 프롬프트 위치', () => {
     const job = build('', 'character-end');
     expect(job.prompt).toContain('sitting');
     expect(job.characterPrompt).toBe('');
+  });
+
+  it('네거티브는 프롬프트와 같은 쪽 네거티브 뒤에 붙이고 작업에 따로 남겨', () => {
+    const common = build('1girl', 'common-end', 'standing');
+    expect(common.negativePrompt).toContain('standing');
+    expect(common.characterNegativePrompt).toBe('');
+    expect(common.emotionNegative).toBe('standing');
+    const character = build('1girl', 'character-end', 'standing');
+    expect(character.negativePrompt).not.toContain('standing');
+    expect(character.characterNegativePrompt).toBe('standing');
+    expect(build('1girl').emotionNegative).toBeUndefined();
   });
 });
 

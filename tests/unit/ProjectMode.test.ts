@@ -227,6 +227,7 @@ describe('자유 생성 작업', () => {
       characters: [],
       positionMode: 'ai',
       prompt: '',
+      negative: '',
       count: 1,
       mode: 'txt2img',
       inpaint: false,

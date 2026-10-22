@@ -139,7 +139,7 @@ export function freeTokenScenes(library: Library): TokenScene[] {
   const prompts = composeRequestPrompts(
     freePromptPreset(preset, promptSets, free.promptPosition),
     promptSets,
-    free.prompt,
+    { prompt: free.prompt, negative: free.negative },
     { sets: library.pieceSets },
     'txt2img',
   );

@@ -276,6 +276,7 @@ export function createDefaultLibrary(): Library {
       characters: [],
       positionMode: 'ai',
       prompt: '',
+      negative: '',
       count: 1,
       mode: 'txt2img',
       inpaint: false,

@@ -14,6 +14,7 @@ import {
   modelLabel,
   noInpaintReason,
   supportsInpaint,
+  usesMedium,
 } from '../../core/providers/NaiModels';
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { PROMPT_POSITIONS } from '../promptPositions';
@@ -156,9 +157,15 @@ export function FreeView() {
             label: '프롬프트 복원',
             icon: 'undo',
             group: 'main',
-            title: '이 결과를 만들 때 입력한 프롬프트로 되돌립니다',
-            disabled: record.emotionPrompt === free.prompt,
-            onSelect: () => updateFreeGeneration({ prompt: record.emotionPrompt }),
+            title: '이 결과를 만들 때 입력한 프롬프트와 네거티브로 되돌립니다',
+            disabled:
+              record.emotionPrompt === free.prompt &&
+              (record.emotionNegative ?? '') === free.negative,
+            onSelect: () =>
+              updateFreeGeneration({
+                prompt: record.emotionPrompt,
+                negative: record.emotionNegative ?? '',
+              }),
           },
         ];
 
@@ -467,6 +474,34 @@ export function FreeView() {
                       value={free.prompt}
                       placeholder="예: sitting, cafe, window, warm lighting"
                       onChange={(prompt) => updateFreeGeneration({ prompt })}
+                    />
+                  </label>
+                  <label
+                    className="prompt-field negative-field"
+                    title={
+                      promptPosition === 'character-end'
+                        ? '첫 캐릭터 네거티브 뒤에 붙습니다'
+                        : '공통 네거티브 뒤에 붙습니다'
+                    }
+                  >
+                    <span>
+                      네거티브
+                      <span className="prompt-field-tools">
+                        {generation && usesMedium(generation) && <em>Medium에서는 쓰이지 않음</em>}
+                        <ExpandTextButton
+                          title="자유 생성 네거티브"
+                          value={free.negative}
+                          placeholder="이번 생성에서만 뺄 태그"
+                          tone="negative"
+                          onApply={(negative) => updateFreeGeneration({ negative })}
+                        />
+                      </span>
+                    </span>
+                    <PromptTextarea
+                      rows={3}
+                      value={free.negative}
+                      placeholder="이번 생성에서만 뺄 태그"
+                      onChange={(negative) => updateFreeGeneration({ negative })}
                     />
                   </label>
                   <div className="prompt-position">

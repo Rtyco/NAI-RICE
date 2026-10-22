@@ -437,6 +437,7 @@ export const librarySchema = z.object({
           })
           .optional()
           .catch(undefined),
+        negative: z.string().default(''),
         // 예전에는 늘 공통 포지티브 끝이었다.
         promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
         aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
@@ -450,6 +451,7 @@ export const librarySchema = z.object({
       characters: [],
       positionMode: 'ai',
       prompt: '',
+      negative: '',
       count: 1,
       mode: 'txt2img',
       inpaint: false,

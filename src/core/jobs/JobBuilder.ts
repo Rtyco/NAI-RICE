@@ -355,6 +355,7 @@ export type FreeJobBuildInput = {
   characters?: JobCharacter[];
   positionMode?: CharacterPositionMode;
   prompt: string;
+  negative?: string;
   /** 캐릭터 프롬프트가 없으면 공통 포지티브 끝. */
   promptPosition?: EmotionPosition;
   count: number;
@@ -412,7 +413,7 @@ export function buildFreeJobs(
     const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
       preset,
       characters.map((character) => character.promptSet),
-      input.prompt,
+      { prompt: input.prompt, negative: input.negative },
       { sets: input.pieceSets ?? [], seed },
       'txt2img',
     );
@@ -431,6 +432,7 @@ export function buildFreeJobs(
       emotionId: '',
       emotionName: '',
       emotionPrompt: input.prompt,
+      ...(input.negative?.trim() ? { emotionNegative: input.negative } : {}),
       presetName: input.preset.name,
       emotionSetName: '',
       referenceName: '',

@@ -180,6 +180,7 @@ export function generateFree(
       characters: jobCharacters(characters),
       positionMode: free.positionMode,
       prompt,
+      negative: free.negative,
       promptPosition: free.promptPosition,
       count: options.count ?? free.count,
       pieceSets: library.pieceSets,
