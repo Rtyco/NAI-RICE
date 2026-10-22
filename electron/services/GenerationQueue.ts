@@ -70,6 +70,7 @@ export class GenerationQueue {
     jobs: [],
   };
   private processing = false;
+  private writing: Promise<void> = Promise.resolve();
   private activeController?: AbortController;
   private activeJobId?: string;
   private wakeRetry?: () => void;
@@ -193,10 +194,11 @@ export class GenerationQueue {
   private async commit(): Promise<void> {
     this.pruneFinished();
     this.snapshot.updatedAt = new Date().toISOString();
-    await atomicWrite(
-      this.dependencies.persistencePath,
-      `${JSON.stringify(this.snapshot, null, 2)}\n`,
-    );
+    const contents = `${JSON.stringify(this.snapshot, null, 2)}\n`;
+    // Windows는 같은 파일로 rename이 겹치면 EPERM을 내므로 저장을 차례로 한다.
+    const write = this.writing.then(() => atomicWrite(this.dependencies.persistencePath, contents));
+    this.writing = write.catch(() => undefined);
+    await write;
     this.dependencies.emit(toQueueView(this.snapshot));
   }
 
