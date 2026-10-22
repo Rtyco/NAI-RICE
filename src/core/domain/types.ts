@@ -52,8 +52,6 @@ export type GenerationSettings = {
   /** 0~1 */
   img2imgStrength: number;
   img2imgNoise: number;
-  /** i2i·인페인트 요청의 `color_correct`. V3 요청에는 없다. */
-  colorCorrect: boolean;
   /** V5 Full에서만 쓴다. medium은 일부 설정을 고정한다(`effectiveGenerationSettings`). */
   effort: Effort;
   variety: boolean;
@@ -189,9 +187,8 @@ export type Reference = {
   };
   layout: CanvasLayout;
   divider: DividerLine;
-  /** 작업의 인페인트 요청은 생성 설정 대신 이 두 값을 쓴다. 0~1 */
+  /** 작업의 인페인트 요청은 생성 설정 대신 이 값을 쓴다. 0~1 */
   inpaintStrength: number;
-  colorCorrect: boolean;
   maskExpansionPx: number;
   backgroundThreshold: number;
   updatedAt: string;

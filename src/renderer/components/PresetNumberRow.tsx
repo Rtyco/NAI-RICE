@@ -45,24 +45,6 @@ function patchGeneration(preset: Preset, value: Partial<Preset['generation']>) {
   );
 }
 
-export function PresetColorCorrectRow({ preset }: { preset: Preset }) {
-  return (
-    <label
-      className="preset-number-row"
-      title={`결과 색을 입력 이미지에 맞춥니다 (color_correct) · 생성 설정 「${preset.name}」에 저장됩니다`}
-    >
-      <span>
-        <Icon name="palette" size={14} /> 색 보정
-      </span>
-      <input
-        type="checkbox"
-        checked={normalizeGenerationSettings(preset.generation).colorCorrect}
-        onChange={(event) => patchGeneration(preset, { colorCorrect: event.target.checked })}
-      />
-    </label>
-  );
-}
-
 export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
   const info = FIELDS[field];
   return (

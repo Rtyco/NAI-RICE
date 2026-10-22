@@ -139,6 +139,8 @@ export function buildNovelAIDiffusionRequest(
     cfg_rescale: input.settings.cfgRescale,
     skip_cfg_above_sigma: varietySigma(input.settings, width, height),
     ...imageParams,
+    // NovelAI 웹은 i2i·다듬기·변형에 색 보정을 끄고 보낸다(2026-10).
+    ...(image.action === 'img2img' ? { color_correct: false } : {}),
     // 품질 태그·UC 프리셋은 NovelAI 웹처럼 프롬프트에 직접 넣고 힌트로만 알린다.
     ...naiTagHints(model.id, input.settings),
   };
@@ -182,18 +184,8 @@ export function buildNovelAIDiffusionRequest(
     use_coords: useCoords,
     prefer_brownian: sampler === 'k_euler_ancestral',
     deliberate_euler_ancestral_bug: false,
-    ...(image.action === 'generate'
-      ? {}
-      : {
-          img2img: {
-            strength,
-            begin_from_sigma: null,
-            noise,
-            extra_noise_seed: seed,
-            // 이전 버전에서 큐에 넣은 작업에는 값이 없다.
-            color_correct: input.settings.colorCorrect !== false,
-          },
-        }),
+    // NovelAI 웹(2026-10)은 인페인트 강도가 1이 아닐 때만 이 블록을 보낸다.
+    ...(infill && strength !== 1 ? { img2img: { strength, color_correct: true } } : {}),
     // NovelAI 웹과 같다.
     ...(image.action === 'img2img' ? { extra_noise_seed: seed } : {}),
     v4_prompt: {

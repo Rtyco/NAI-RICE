@@ -76,8 +76,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const tagText = naiTagText(g.model, shown);
   const autoNsfw = addsAutoNsfw(g.model, shown.ucPreset);
   const unusedInMedium = medium ? 'Medium에서는 쓰이지 않음' : undefined;
-  const { width, height, img2imgStrength, img2imgNoise, colorCorrect } =
-    normalizeGenerationSettings(g);
+  const { width, height, img2imgStrength, img2imgNoise } = normalizeGenerationSettings(g);
   const sizePreset = RESOLUTION_PRESETS.find(
     (item) => item.width === width && item.height === height,
   );
@@ -251,11 +250,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
             onChange={(img2imgNoise) => setting({ img2imgNoise })}
           />
         </div>
-        <Toggle
-          label="색 보정 (Color Correct)"
-          checked={colorCorrect}
-          onChange={(colorCorrect) => setting({ colorCorrect })}
-        />
       </Card>
 
       <Card title="품질 태그 · UC 프리셋">

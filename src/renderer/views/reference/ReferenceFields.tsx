@@ -201,9 +201,9 @@ export function OutputRectFields(props: {
 }
 
 export function InpaintRequestCard({ reference }: { reference: Reference }) {
-  const change = (patch: Partial<Pick<Reference, 'inpaintStrength' | 'colorCorrect'>>) =>
+  const changeStrength = (inpaintStrength: number) =>
     updateLibrary((library) =>
-      patchItem(library, 'references', reference.id, (item) => ({ ...item, ...patch })),
+      patchItem(library, 'references', reference.id, (item) => ({ ...item, inpaintStrength })),
     );
   return (
     <section className="detail-card settings-card">
@@ -217,16 +217,9 @@ export function InpaintRequestCard({ reference }: { reference: Reference }) {
           min={0}
           max={1}
           step={0.05}
-          onChange={(inpaintStrength) => change({ inpaintStrength })}
+          onChange={changeStrength}
         />
       </SettingRow>
-      <div title="Color Correct">
-        <Toggle
-          label="색 보정"
-          checked={reference.colorCorrect}
-          onChange={(colorCorrect) => change({ colorCorrect })}
-        />
-      </div>
     </section>
   );
 }

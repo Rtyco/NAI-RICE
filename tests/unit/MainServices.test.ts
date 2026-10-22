@@ -109,7 +109,6 @@ describe('GenerationRequests', () => {
       height: 1216,
       img2imgStrength: 0.4,
       img2imgNoise: 0,
-      colorCorrect: true,
       effort: 'high',
       variety: false,
       smea: 'off',

@@ -166,15 +166,16 @@ describe('작업별 NovelAI 요청', () => {
       expect(params).not.toHaveProperty(key);
   });
 
-  it('i2i는 이미지·강도·노이즈를 보내고 마스크와 원본 섞기는 보내지 않아', () => {
+  it('i2i는 이미지·강도·노이즈를 보내고 색 보정은 끄며, 마스크와 원본 섞기는 보내지 않아', () => {
     const params = body({ ...img2img, noise: 0.1 }).parameters;
     expect(params).toMatchObject({
       image: 'IMG',
       strength: 0.4,
       noise: 0.1,
       extra_noise_seed: 7,
-      img2img: { strength: 0.4, noise: 0.1, extra_noise_seed: 7 },
+      color_correct: false,
     });
+    expect(params).not.toHaveProperty('img2img');
     expect(params).not.toHaveProperty('mask');
     expect(params).not.toHaveProperty('add_original_image');
   });

@@ -42,7 +42,6 @@ export const generationSettingsSchema = z.object({
   height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
   img2imgStrength: z.number().min(0.01).max(0.99).default(0.4),
   img2imgNoise: z.number().min(0).max(0.99).default(0),
-  colorCorrect: z.boolean().catch(true).default(true),
   variety: z.boolean().catch(false).default(false),
   smea: z.enum(['off', 'smea', 'dyn']).catch('off').default('off'),
   decrisp: z.boolean().catch(false).default(false),
@@ -196,7 +195,6 @@ export const referenceSchema = z.object({
     })
     .default(() => ({ ...DEFAULT_DIVIDER })),
   inpaintStrength: z.number().min(0).max(1).catch(1).default(1),
-  colorCorrect: z.boolean().catch(true).default(true),
   maskExpansionPx: z.number().nonnegative(),
   backgroundThreshold: z.number().min(0).max(255),
   updatedAt: z.string(),

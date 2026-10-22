@@ -1,6 +1,6 @@
 import type { FreeGeneration, Preset } from '../../../core/domain/types';
 import { Icon } from '../../components/Icon';
-import { PresetColorCorrectRow, PresetNumberRow } from '../../components/PresetNumberRow';
+import { PresetNumberRow } from '../../components/PresetNumberRow';
 import { clearFreeImage, loadFreeImageFromFile, sourceMedia } from '../../freeImageOps';
 import { updateFreeGeneration } from '../../store';
 
@@ -63,7 +63,6 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
             <PresetNumberRow preset={preset} field="img2imgNoise" />
           </>
         ))}
-      {preset && !director && <PresetColorCorrectRow preset={preset} />}
     </section>
   );
 }
