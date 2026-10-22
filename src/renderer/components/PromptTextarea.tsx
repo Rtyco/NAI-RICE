@@ -294,10 +294,6 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
     const sync = () => {
       const style = getComputedStyle(textarea);
       for (const key of MIRRORED) layer.style[key] = style[key];
-      layer.style.top = `${textarea.offsetTop}px`;
-      layer.style.left = `${textarea.offsetLeft}px`;
-      layer.style.width = `${textarea.offsetWidth}px`;
-      layer.style.height = `${textarea.offsetHeight}px`;
       layer.scrollTop = textarea.scrollTop;
     };
     sync();

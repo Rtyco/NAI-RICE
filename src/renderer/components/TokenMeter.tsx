@@ -25,7 +25,7 @@ function TokenRow({ label, usage, limit }: { label: string; usage: SideUsage; li
   const over = usage.count - limit;
   return (
     <div
-      className={`token-row ${over > 0 ? 'over' : ''}`}
+      className={`token-usage ${over > 0 ? 'over' : ''}`}
       title={[
         usage.scene && `가장 긴 씬 「${usage.scene}」 기준`,
         '품질 태그·씬·캐릭터 프롬프트까지 합친 실제 요청입니다',

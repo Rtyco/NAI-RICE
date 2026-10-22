@@ -1034,8 +1034,10 @@ textarea {
   position: relative;
   min-width: 0;
 }
+/* offsetWidth로 크기를 재면 정수로 반올림돼, 폭이 소수일 때 입력칸과 줄바꿈이 어긋난다. */
 .syntax-backdrop {
   position: absolute;
+  inset: 0;
   overflow: hidden;
   scrollbar-gutter: stable;
   border-style: solid;
@@ -3180,7 +3182,7 @@ textarea.syntax-input::selection {
 .token-meter .hint {
   margin: 0;
 }
-.token-row {
+.token-usage {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -3188,7 +3190,7 @@ textarea.syntax-input::selection {
   color: var(--muted);
   font-size: 11px;
 }
-.token-row b {
+.token-usage b {
   color: var(--text-2);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -3204,10 +3206,10 @@ textarea.syntax-input::selection {
   height: 100%;
   background: var(--accent);
 }
-.token-row.over b {
+.token-usage.over b {
   color: var(--red-text);
 }
-.token-row.over .token-track > span {
+.token-usage.over .token-track > span {
   background: var(--red);
 }
 
