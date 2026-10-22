@@ -131,17 +131,24 @@ export function composeRequestPrompts(
   // NovelAI 웹은 medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10).
   const medium = usesMedium(settings);
   const commonPositive = expand(rawPreset.commonPositive);
+  // 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다.
+  const emotionPosition = rawCharacters.length ? settings.emotionPosition : 'common-end';
+  // 씬 네거티브는 씬 프롬프트와 같은 쪽(공통 또는 첫 캐릭터)에 붙는다.
+  const sceneNegative = typeof scene === 'object' && !medium ? expand(scene.negative ?? '') : '';
+  const sceneOnCommon = emotionPosition === 'common-end';
   const commonNegative = medium
     ? ''
-    : joinPrompts(
-        [rawPreset.commonNegative, typeof scene === 'object' ? (scene.negative ?? '') : ''].map(
-          expand,
-        ),
-      );
-  const characters = rawCharacters.map((set) => ({
-    positive: expand(set.positive),
-    negative: medium ? '' : expand(set.negative),
-  }));
+    : joinPrompts([expand(rawPreset.commonNegative), sceneOnCommon ? sceneNegative : '']);
+  const characters = rawCharacters.map((set, index) => {
+    const negative = medium ? '' : expand(set.negative);
+    return {
+      positive: expand(set.positive),
+      negative:
+        index === 0 && !sceneOnCommon && sceneNegative
+          ? joinPrompts([negative, sceneNegative])
+          : negative,
+    };
+  });
   const first = characters[0] ?? { positive: '', negative: '' };
   const firstScene =
     scene === undefined ? undefined : typeof scene === 'string' ? scene : scene.prompt;
@@ -157,8 +164,7 @@ export function composeRequestPrompts(
     qualityTags: naiTagText(settings.model, settings).quality,
     characterPositive: first.positive,
     emotion: emotionPrompt,
-    // 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다.
-    emotionPosition: characters.length ? settings.emotionPosition : 'common-end',
+    emotionPosition,
     referenceInset: {
       enabled: settings.referenceInset && kind === 'inpaint' && !insetWritten,
       position: characters.length

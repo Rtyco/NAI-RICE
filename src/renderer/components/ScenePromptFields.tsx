@@ -9,6 +9,7 @@ export function ScenePromptFields(props: {
   /** 비어 있으면 칸 하나 */
   names: string[];
   firstPlacement: string;
+  negativePlacement: string;
   negativeHint?: string;
   onChange: (patch: Partial<Pick<Emotion, 'prompt' | 'extraPrompts' | 'negative'>>) => void;
 }) {
@@ -54,7 +55,7 @@ export function ScenePromptFields(props: {
           </label>
         );
       })}
-      <label className="prompt-field negative-field" title="공통 네거티브 뒤에 붙습니다">
+      <label className="prompt-field negative-field" title={props.negativePlacement}>
         <span>
           씬 네거티브
           <span className="prompt-field-tools">

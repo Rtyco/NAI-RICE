@@ -219,7 +219,7 @@ export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; 
           <pre className="prompt-code">{prompts.prompt}</pre>
         </div>
         <div className="prompt-preview negative-preview">
-          <span>공통 네거티브 (UC 프리셋·씬 네거티브 포함)</span>
+          <span>공통 네거티브 (UC 프리셋 포함)</span>
           <pre className="prompt-code">{prompts.negativePrompt || '(비어 있음)'}</pre>
         </div>
         {[

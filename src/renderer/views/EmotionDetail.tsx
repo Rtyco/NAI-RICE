@@ -39,6 +39,13 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     (state) => state.library!.projects.filter((item) => item.emotionSetId === set.id).length,
   );
   const allRecords = useStore((state) => state.generations[project.id]);
+  // JobBuilder와 같이 캐릭터가 없으면 공통 쪽에 붙는다.
+  const sceneSide =
+    resolved.preset?.generation.emotionPosition === 'common-end' || !resolved.characters.length
+      ? undefined
+      : resolved.characters.length > 1
+        ? '첫 캐릭터'
+        : '캐릭터';
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
@@ -274,12 +281,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             emotion={emotion}
             names={resolved.characters.map((item) => item.character.name)}
             firstPlacement={
-              resolved.preset?.generation.emotionPosition === 'common-end'
-                ? '공통 포지티브 뒤에 붙습니다'
-                : resolved.characters.length > 1
-                  ? '첫 캐릭터 프롬프트 뒤에 붙습니다'
-                  : '캐릭터 프롬프트 뒤에 붙습니다'
+              sceneSide ? `${sceneSide} 프롬프트 뒤에 붙습니다` : '공통 포지티브 뒤에 붙습니다'
             }
+            negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
             negativeHint={
               resolved.preset && usesMedium(resolved.preset.generation)
                 ? 'Medium에서는 쓰이지 않음'

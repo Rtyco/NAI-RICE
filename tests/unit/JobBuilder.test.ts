@@ -226,33 +226,55 @@ describe('buildJobs', () => {
     expect(prompts.characterNegativePrompt).toBe('bad hands');
   });
 
-  it('씬 네거티브는 공통 네거티브 뒤에 붙이고 작업에 따로 남겨', () => {
+  it('씬 네거티브는 씬 프롬프트와 같은 쪽 네거티브 뒤에 붙이고 작업에 따로 남겨', () => {
     const { character, promptSet, emotionSet, preset, project } = setup('fixed', 1);
-    preset.generation = { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' };
-    emotionSet.emotions[0].negative = ', open mouth ';
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-4-5-full-inpainting',
+      emotionPosition: 'character-end',
+    };
+    const scene = emotionSet.emotions[0];
+    scene.negative = ', open mouth ';
     const [job] = buildJobs({
       project,
       preset,
       characters: [{ name: character.name, promptSet }],
       emotionSet,
       reference,
-      emotionIds: [emotionSet.emotions[0].id],
+      emotionIds: [scene.id],
       input,
       settings: DEFAULT_SETTINGS,
     });
-    expect(job.negativePrompt).toBe('lowres, open mouth');
-    expect(job.characterNegativePrompt).toBe('bad hands');
+    expect(job.negativePrompt).toBe('lowres');
+    expect(job.characterNegativePrompt).toBe('bad hands, open mouth');
     expect(job.emotionNegative).toBe(', open mouth ');
     expect(job.source.commonNegative).toBe('lowres');
 
-    preset.generation = {
-      ...preset.generation,
-      model: 'nai-diffusion-5-full-inpainting',
-      effort: 'medium',
-    };
-    expect(
-      composeRequestPrompts(preset, [promptSet], emotionSet.emotions[0]).negativePrompt,
-    ).not.toMatch(/open mouth/);
+    const second = createPromptSet('둘째', { positive: 'black hair', negative: 'hat' });
+    const both = composeRequestPrompts(preset, [promptSet, second], scene);
+    expect(both.characterNegativePrompt).toBe('bad hands, open mouth');
+    expect(both.extraCharacters[0].negative).toBe('hat');
+
+    const alone = composeRequestPrompts(preset, [], scene);
+    expect(alone.negativePrompt).toBe('lowres, open mouth');
+
+    preset.generation = { ...preset.generation, emotionPosition: 'common-end' };
+    const common = composeRequestPrompts(preset, [promptSet], scene);
+    expect(common.negativePrompt).toBe('lowres, open mouth');
+    expect(common.characterNegativePrompt).toBe('bad hands');
+
+    for (const emotionPosition of ['character-end', 'common-end'] as const) {
+      preset.generation = {
+        ...preset.generation,
+        model: 'nai-diffusion-5-full-inpainting',
+        effort: 'medium',
+        emotionPosition,
+      };
+      const medium = composeRequestPrompts(preset, [promptSet], scene);
+      expect(`${medium.negativePrompt} ${medium.characterNegativePrompt}`).not.toMatch(
+        /open mouth/,
+      );
+    }
   });
 
   it('참고 이미지가 없으면 작업을 만들지 않아', () => {
