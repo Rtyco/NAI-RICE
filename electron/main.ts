@@ -5,6 +5,7 @@ import { NovelAIProvider } from '../src/core/providers/NovelAIProvider';
 import { registerIpc, type AppServices } from './ipc';
 import { AccountService } from './services/AccountService';
 import { AppCache } from './services/AppCache';
+import { TokenizerFiles } from './services/TokenizerFiles';
 import { Exporter } from './services/Exporter';
 import { FilePicker } from './services/FilePicker';
 import { removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
@@ -65,6 +66,9 @@ async function createServices(): Promise<AppServices> {
     requests: new GenerationRequests(queue, account, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
     vibes: new VibeFiles(library, dialog),
+    tokenizers: new TokenizerFiles(path.join(userData, 'Tokenizers'), (url, init) =>
+      net.fetch(url, init),
+    ),
     // electron-builder가 포터블 실행 파일에 넣어 준다.
     updates: new UpdateChecker(
       app.getVersion(),

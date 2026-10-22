@@ -93,6 +93,7 @@ function createPreviewApi(): DesktopApi {
     clearAppCache: async () => 0,
     appVersion: async () => '0.9.0-preview',
     checkForUpdate: unsupported,
+    loadTokenizer: unsupported,
     openReleasePage: unsupported,
     setTitleBarColors: () => undefined,
     zoomWindow: () => undefined,

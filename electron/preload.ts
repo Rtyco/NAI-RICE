@@ -87,6 +87,7 @@ const api: DesktopApi = {
 
   appVersion: () => ipcRenderer.invoke('app:version'),
   checkForUpdate: () => ipcRenderer.invoke('app:check-update'),
+  loadTokenizer: (name) => ipcRenderer.invoke('app:load-tokenizer', name),
   openReleasePage: (url) => ipcRenderer.invoke('app:open-release', url),
   setTitleBarColors: (colors) => ipcRenderer.send('app:titlebar', colors),
   zoomWindow: (direction) => ipcRenderer.send('app:zoom', direction),

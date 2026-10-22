@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
-import { projectsUsing, type ResolvedCharacter } from '../../core/model/defaults';
+import {
+  effectiveGenerationSettings,
+  projectsUsing,
+  type ResolvedCharacter,
+} from '../../core/model/defaults';
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
@@ -16,9 +20,11 @@ import {
 } from '../store';
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { PreviewDialog } from '../views/ProjectView';
+import { freeTokenScenes, projectTokenScenes, sameTokenScenes } from '../promptTokens';
 import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PanelResizer } from './PanelResizer';
+import { TokenMeter } from './TokenMeter';
 import { PromptField } from './ui';
 
 function editInPopup(section: 'presets' | 'characters', itemId: string) {
@@ -86,6 +92,7 @@ export function PromptPanel(props: {
   /** 자유 생성이면 없다. */
   projectId?: string;
   noCharacter: string;
+  meter?: ReactNode;
   footer?: ReactNode;
 }) {
   const { preset, characters } = props;
@@ -269,10 +276,15 @@ export function PromptPanel(props: {
           })}
           {!characters.length && <p className="hint">{props.noCharacter}</p>}
         </div>
+        {props.meter}
         {props.footer}
       </div>
     </aside>
   );
+}
+
+function presetModel(preset: Preset | undefined): string | undefined {
+  return preset && effectiveGenerationSettings(preset.generation).model;
 }
 
 export function PromptPanelLayout(props: {
@@ -297,6 +309,11 @@ export function PromptPanelLayout(props: {
 
 export function ProjectPromptPanel({ projectId }: { projectId: string }) {
   const resolved = useResolvedProject(projectId);
+  const pieceSets = useStore((state) => state.library?.pieceSets);
+  const scenes = useMemo(
+    () => (resolved ? projectTokenScenes(resolved, pieceSets ?? []) : []),
+    [resolved, pieceSets],
+  );
   if (!resolved) return null;
   return (
     <PromptPanel
@@ -304,6 +321,7 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
       characters={resolved.characters}
       projectId={projectId}
       noCharacter="캐릭터 없이 생성합니다."
+      meter={<TokenMeter model={presetModel(resolved.preset)} scenes={scenes} />}
       footer={
         <button
           className="with-icon prompt-panel-preview"
@@ -324,7 +342,13 @@ export function FreePromptPanel() {
     (state) => resolveFreeGeneration(state.library!),
     (a, b) => a.preset === b.preset && sameCharacters(a.characters, b.characters),
   );
+  const scenes = useStoreMemo((state) => freeTokenScenes(state.library!), sameTokenScenes);
   return (
-    <PromptPanel preset={preset} characters={characters} noCharacter="캐릭터 없이 생성합니다." />
+    <PromptPanel
+      preset={preset}
+      characters={characters}
+      noCharacter="캐릭터 없이 생성합니다."
+      meter={<TokenMeter model={presetModel(preset)} scenes={scenes} />}
+    />
   );
 }

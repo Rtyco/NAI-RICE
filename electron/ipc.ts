@@ -16,9 +16,11 @@ import type { FilePicker } from './services/FilePicker';
 import type { GenerationQueue } from './services/GenerationQueue';
 import type { GenerationRequests } from './services/GenerationRequests';
 import { toQueueView } from '../src/core/jobs/QueueView';
+import type { TokenizerName } from '../src/core/prompts/PromptTokens';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
 import { ZOOM_STEP, zoomWindow } from './window';
 import type { AppCache } from './services/AppCache';
+import type { TokenizerFiles } from './services/TokenizerFiles';
 import type { Library } from './services/Library';
 import type { UpdateChecker } from './services/UpdateChecker';
 import type { VibeFiles } from './services/VibeFiles';
@@ -36,6 +38,7 @@ export type AppServices = {
   appCache: AppCache;
   updates: UpdateChecker;
   vibes: VibeFiles;
+  tokenizers: TokenizerFiles;
 };
 
 export function registerIpc(services: AppServices): void {
@@ -50,6 +53,7 @@ export function registerIpc(services: AppServices): void {
     appCache,
     updates,
     vibes,
+    tokenizers,
   } = services;
 
   ipcMain.handle('library:load', () => library.load());
@@ -177,6 +181,7 @@ export function registerIpc(services: AppServices): void {
 
   ipcMain.handle('app:version', () => services.version);
   ipcMain.handle('app:check-update', () => updates.check());
+  ipcMain.handle('app:load-tokenizer', (_event, name: TokenizerName) => tokenizers.load(name));
   // 화면이 보낸 주소는 GitHub 것만 연다.
   ipcMain.handle('app:open-release', async (_event, url: unknown) => {
     if (typeof url !== 'string' || !url.startsWith('https://github.com/'))

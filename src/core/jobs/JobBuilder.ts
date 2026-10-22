@@ -23,7 +23,6 @@ import type {
   Txt2ImgJobSnapshot,
 } from '../domain/types';
 import {
-  createPromptSet,
   DEFAULT_GENERATION_SETTINGS,
   effectiveGenerationSettings,
   FREE_PROJECT_ID,
@@ -359,22 +358,31 @@ export type FreeJobBuildInput = {
   randomSeed?: () => number;
 };
 
+/** 자유 생성의 입력 프롬프트 자리를 생성 설정의 씬 자리로 바꾼다. */
+export function freePromptPreset(
+  preset: Preset,
+  promptSets: Array<Pick<CharacterPromptSet, 'positive'>>,
+  promptPosition: EmotionPosition | undefined,
+): Preset {
+  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다.
+  const emotionPosition =
+    promptPosition === 'character-end' && promptSets[0]?.positive.trim()
+      ? 'character-end'
+      : 'common-end';
+  return { ...preset, generation: { ...preset.generation, emotionPosition } };
+}
+
 export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
   const settings = effectiveGenerationSettings(input.preset.generation);
   assertAidModel(input.aid, settings.model);
   const characters = input.characters ?? [];
-  const promptSet = characters[0]?.promptSet ?? createPromptSet('', {});
-  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다.
-  const emotionPosition =
-    input.promptPosition === 'character-end' && promptSet.positive.trim()
-      ? 'character-end'
-      : 'common-end';
-  const preset: Preset = {
-    ...input.preset,
-    generation: { ...input.preset.generation, emotionPosition },
-  };
+  const preset = freePromptPreset(
+    input.preset,
+    characters.map((character) => character.promptSet),
+    input.promptPosition,
+  );
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
   const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> = [];
@@ -414,7 +422,7 @@ export function buildFreeJobs(
       source: {
         commonPositive: input.preset.commonPositive,
         commonNegative: input.preset.commonNegative,
-        characterPositive: promptSet.positive,
+        characterPositive: characters[0]?.promptSet.positive ?? '',
       },
       seed,
       variantIndex,

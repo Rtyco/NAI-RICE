@@ -86,6 +86,36 @@ function join(...parts: string[]): string {
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
+type PromptFields = Pick<
+  NaiPromptInput,
+  'prompt' | 'negativePrompt' | 'characterPrompt' | 'characterNegativePrompt' | 'extraCharacters'
+>;
+
+export type RequestPromptTexts = { positive: string[]; negative: string[] };
+
+function requestCharacters(input: PromptFields): Array<{ prompt: string; negative: string }> {
+  return [
+    { prompt: input.characterPrompt, negative: input.characterNegativePrompt },
+    ...(input.extraCharacters ?? []),
+  ];
+}
+
+/** NovelAI에 보내는 프롬프트 칸. V3는 캐릭터 프롬프트가 없어 하나로 합치고, V4부터는 프롬프트가 빈 캐릭터를 뺀다. */
+export function requestPromptTexts(model: string, input: PromptFields): RequestPromptTexts {
+  const characters = requestCharacters(input);
+  if (modelInfo(model)?.generation === 'v3') {
+    return {
+      positive: [join(input.prompt, ...characters.map((character) => character.prompt))],
+      negative: [join(input.negativePrompt, ...characters.map((character) => character.negative))],
+    };
+  }
+  const sent = characters.filter((character) => character.prompt.trim());
+  return {
+    positive: [input.prompt, ...sent.map((character) => character.prompt)],
+    negative: [input.negativePrompt, ...sent.map((character) => character.negative)],
+  };
+}
+
 export function buildNovelAIDiffusionRequest(
   input: NaiPromptInput,
   image: NaiImageInput,
@@ -100,17 +130,10 @@ export function buildNovelAIDiffusionRequest(
   const strength = image.action === 'generate' ? 0 : clamp(image.strength, 0, 1);
   const noise = image.action === 'img2img' ? clamp(image.noise, 0, 1) : 0;
 
-  const characters = [
-    { prompt: input.characterPrompt, negative: input.characterNegativePrompt },
-    ...(input.extraCharacters ?? []),
-  ];
-  // V3는 캐릭터 프롬프트가 없다.
-  const prompt = isV3
-    ? join(input.prompt, ...characters.map((character) => character.prompt))
-    : input.prompt;
-  const negativePrompt = isV3
-    ? join(input.negativePrompt, ...characters.map((character) => character.negative))
-    : input.negativePrompt;
+  const characters = requestCharacters(input);
+  const texts = requestPromptTexts(model.id, input);
+  const prompt = texts.positive[0];
+  const negativePrompt = texts.negative[0];
 
   const imageParams =
     image.action === 'generate'

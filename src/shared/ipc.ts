@@ -12,6 +12,7 @@ import type {
   Vibe,
 } from '../core/domain/types';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
+import type { TokenizerName } from '../core/prompts/PromptTokens';
 import type { MetadataVibe } from '../core/vibes/VibeFile';
 
 export type ImportedVibe = {
@@ -285,6 +286,8 @@ export type StorageApi = {
 export type AppApi = {
   appVersion: () => Promise<string>;
   checkForUpdate: () => Promise<UpdateCheckResult>;
+  /** NovelAI 웹의 압축된 토크나이저 파일. 처음 한 번만 받는다. */
+  loadTokenizer: (name: TokenizerName) => Promise<Uint8Array>;
   openReleasePage: (url: string) => Promise<void>;
   /** #rrggbb */
   setTitleBarColors: (colors: TitleBarColors) => void;

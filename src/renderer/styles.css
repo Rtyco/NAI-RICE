@@ -3172,6 +3172,44 @@ textarea.syntax-input::selection {
 .prompt-panel-preview {
   align-self: flex-start;
 }
+.token-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.token-meter .hint {
+  margin: 0;
+}
+.token-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.token-row b {
+  color: var(--text-2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.token-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-1);
+}
+.token-track > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.token-row.over b {
+  color: var(--red-text);
+}
+.token-row.over .token-track > span {
+  background: var(--red);
+}
 
 /* ── 히스토리 (작업·자유 생성) ──────────────── */
 .history-panel {

@@ -28,6 +28,8 @@ export type NaiModelInfo = {
   varietySigma?: number;
   /** 인페인트 경고에 덧붙인다. */
   noInpaintReason?: string;
+  /** NovelAI 웹 `maxTokensForModel`(2026-10). 기본·캐릭터 프롬프트를 합친 한도 */
+  maxPromptTokens: number;
 };
 
 export const NAI_MODELS: NaiModelInfo[] = [
@@ -44,6 +46,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 32,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 1471,
   },
   {
     // V5 출시 공지(2026-08-21)·웹 코드(2026-10): Curated 인페인트는 V4.5 Curated 모델로 보낸다.
@@ -56,6 +59,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 32,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 703,
   },
   {
     id: 'nai-diffusion-4-5-full-inpainting',
@@ -70,6 +74,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 512,
   },
   {
     id: 'nai-diffusion-4-5-curated-inpainting',
@@ -84,6 +89,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 512,
   },
   {
     id: 'nai-diffusion-4-full-inpainting',
@@ -95,6 +101,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 512,
   },
   {
     id: 'nai-diffusion-4-curated-inpainting',
@@ -109,6 +116,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 512,
   },
   {
     id: 'nai-diffusion-3-inpainting',
@@ -120,6 +128,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 225,
   },
   {
     id: 'nai-diffusion-furry-3-inpainting',
@@ -131,6 +140,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     maxCharacters: 6,
     maxSteps: 50,
     maxScale: 10,
+    maxPromptTokens: 225,
   },
 ];
 
