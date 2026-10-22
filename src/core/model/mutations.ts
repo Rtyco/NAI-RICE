@@ -261,13 +261,14 @@ export function moveEmotions(
 
 export function mergeEmotions(
   set: EmotionSet,
-  incoming: Array<{ name: string; prompt: string }>,
+  incoming: Array<Pick<Emotion, 'name' | 'prompt' | 'negative'>>,
 ): EmotionSet {
   const emotions = [...set.emotions];
   for (const item of incoming) {
     const existing = emotions.findIndex((emotion) => emotion.name === item.name);
-    if (existing >= 0) emotions[existing] = { ...emotions[existing], prompt: item.prompt };
-    else emotions.push(createEmotion(item.name, item.prompt));
+    if (existing >= 0)
+      emotions[existing] = { ...emotions[existing], prompt: item.prompt, negative: item.negative };
+    else emotions.push({ ...createEmotion(item.name, item.prompt), negative: item.negative });
   }
   return { ...set, emotions };
 }
@@ -328,7 +329,12 @@ function mapPromptTexts(library: Library, map: (text: string) => string): Librar
     })),
     emotionSets: library.emotionSets.map((set) => ({
       ...set,
-      emotions: set.emotions.map((emotion) => ({ ...emotion, prompt: map(emotion.prompt) })),
+      emotions: set.emotions.map((emotion) => ({
+        ...emotion,
+        prompt: map(emotion.prompt),
+        ...(emotion.extraPrompts ? { extraPrompts: emotion.extraPrompts.map(map) } : {}),
+        ...(emotion.negative ? { negative: map(emotion.negative) } : {}),
+      })),
     })),
     pieceSets: library.pieceSets.map((set) => ({
       ...set,

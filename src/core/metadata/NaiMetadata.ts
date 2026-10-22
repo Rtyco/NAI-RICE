@@ -23,7 +23,7 @@ export type DeskMetadata = {
   commonPositive: string;
   commonNegative: string;
   promptSet: { name: string; positive: string; negative: string };
-  emotion: { name: string; prompt: string };
+  emotion: { name: string; prompt: string; negative?: string };
   seed: number;
   /** v2부터 */
   qualityTags?: boolean;

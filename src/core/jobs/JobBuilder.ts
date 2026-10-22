@@ -105,7 +105,13 @@ export type RequestPrompts = {
 };
 
 /** 자유 생성은 문자열 하나. */
-export type ScenePrompts = string | Pick<Emotion, 'prompt' | 'extraPrompts'>;
+export type ScenePrompts = string | Pick<Emotion, 'prompt' | 'extraPrompts' | 'negative'>;
+
+const joinPrompts = (texts: string[]) =>
+  texts
+    .map((text) => text.trim().replace(/^[,\s]+|[,\s]+$/g, ''))
+    .filter(Boolean)
+    .join(', ');
 
 /** 미리보기와 생성이 같이 쓴다. 조각을 먼저 펼치며 multi는 seed로 고른다(seed가 없으면 첫 줄). reference inset은 인페인트의 첫 캐릭터에만 붙는다. */
 export function composeRequestPrompts(
@@ -125,7 +131,13 @@ export function composeRequestPrompts(
   // NovelAI 웹은 medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10).
   const medium = usesMedium(settings);
   const commonPositive = expand(rawPreset.commonPositive);
-  const commonNegative = medium ? '' : expand(rawPreset.commonNegative);
+  const commonNegative = medium
+    ? ''
+    : joinPrompts(
+        [rawPreset.commonNegative, typeof scene === 'object' ? (scene.negative ?? '') : ''].map(
+          expand,
+        ),
+      );
   const characters = rawCharacters.map((set) => ({
     positive: expand(set.positive),
     negative: medium ? '' : expand(set.negative),
@@ -136,10 +148,7 @@ export function composeRequestPrompts(
   const extraScenes = typeof scene === 'object' ? (scene.extraPrompts ?? []) : [];
   const emotionPrompt = firstScene === undefined ? undefined : expand(firstScene);
   const extraCharacters = characters.slice(1).map((character, index) => ({
-    prompt: [character.positive, expand(extraScenes[index] ?? '')]
-      .map((text) => text.trim().replace(/^[,\s]+|[,\s]+$/g, ''))
-      .filter(Boolean)
-      .join(', '),
+    prompt: joinPrompts([character.positive, expand(extraScenes[index] ?? '')]),
     negative: character.negative,
   }));
   const insetWritten = extraCharacters.some((character) => referenceInsetCount(character.prompt));
@@ -287,6 +296,7 @@ function buildEmotionJobs<T>(
           emotionId: emotion.id,
           emotionName: emotion.name,
           emotionPrompt: emotion.prompt,
+          ...(emotion.negative?.trim() ? { emotionNegative: emotion.negative } : {}),
           presetName: input.preset.name,
           emotionSetName: input.emotionSet.name,
           ...prompts,
@@ -508,6 +518,7 @@ function resultJobCommon(
     emotionId: record.emotionId,
     emotionName: record.emotionName,
     emotionPrompt: record.emotionPrompt,
+    ...(record.emotionNegative ? { emotionNegative: record.emotionNegative } : {}),
     presetName: record.presetName,
     promptSetName: record.promptSetName,
     emotionSetName: record.emotionSetName,
@@ -571,6 +582,7 @@ export type AugmentTarget = {
   emotionId: string;
   emotionName: string;
   emotionPrompt: string;
+  emotionNegative?: string;
   mood?: string;
   defry?: number;
 };
@@ -655,6 +667,7 @@ export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSna
       emotionId: record.emotionId,
       emotionName: record.emotionName,
       emotionPrompt: record.emotionPrompt,
+      emotionNegative: record.emotionNegative,
     },
   ];
   const variants = Array.from({ length: Math.max(1, input.count ?? 1) }, (_, index) => index + 1);
@@ -672,6 +685,7 @@ export function buildResultAugmentJobs(input: ResultAugmentInput): AugmentJobSna
         emotionId: target.emotionId,
         emotionName: target.emotionName,
         emotionPrompt: target.emotionPrompt,
+        emotionNegative: target.emotionNegative,
         kind: 'augment',
         ...input.image,
         tool: input.tool,

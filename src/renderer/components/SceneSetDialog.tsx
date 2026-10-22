@@ -95,6 +95,7 @@ export function SceneSetDialog(props: {
             emotionId: emotion.id,
             emotionName: emotion.name,
             emotionPrompt: emotion.prompt,
+            emotionNegative: emotion.negative,
             mood: rows[emotion.id].mood,
             defry: rows[emotion.id].defry,
           })),

@@ -9,7 +9,8 @@ export function ScenePromptFields(props: {
   /** 비어 있으면 칸 하나 */
   names: string[];
   firstPlacement: string;
-  onChange: (patch: Partial<Pick<Emotion, 'prompt' | 'extraPrompts'>>) => void;
+  negativeHint?: string;
+  onChange: (patch: Partial<Pick<Emotion, 'prompt' | 'extraPrompts' | 'negative'>>) => void;
 }) {
   const { emotion, names } = props;
   const slots = Math.max(1, names.length);
@@ -53,6 +54,27 @@ export function ScenePromptFields(props: {
           </label>
         );
       })}
+      <label className="prompt-field negative-field" title="공통 네거티브 뒤에 붙습니다">
+        <span>
+          씬 네거티브
+          <span className="prompt-field-tools">
+            {props.negativeHint && <em>{props.negativeHint}</em>}
+            <ExpandTextButton
+              title={`${emotion.name} 씬 네거티브`}
+              value={emotion.negative ?? ''}
+              placeholder="이 씬에서만 뺄 태그"
+              tone="negative"
+              onApply={(negative) => props.onChange({ negative: negative || undefined })}
+            />
+          </span>
+        </span>
+        <PromptTextarea
+          rows={2}
+          value={emotion.negative ?? ''}
+          placeholder="이 씬에서만 뺄 태그"
+          onChange={(negative) => props.onChange({ negative: negative || undefined })}
+        />
+      </label>
       {hidden.length > 0 && (
         <p className="hint">
           {slots + 1}번째 이후 캐릭터 칸에 프롬프트 {hidden.length}개가 더 있습니다.

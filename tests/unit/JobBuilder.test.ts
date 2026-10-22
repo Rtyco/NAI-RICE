@@ -226,6 +226,35 @@ describe('buildJobs', () => {
     expect(prompts.characterNegativePrompt).toBe('bad hands');
   });
 
+  it('씬 네거티브는 공통 네거티브 뒤에 붙이고 작업에 따로 남겨', () => {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 1);
+    preset.generation = { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' };
+    emotionSet.emotions[0].negative = ', open mouth ';
+    const [job] = buildJobs({
+      project,
+      preset,
+      characters: [{ name: character.name, promptSet }],
+      emotionSet,
+      reference,
+      emotionIds: [emotionSet.emotions[0].id],
+      input,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(job.negativePrompt).toBe('lowres, open mouth');
+    expect(job.characterNegativePrompt).toBe('bad hands');
+    expect(job.emotionNegative).toBe(', open mouth ');
+    expect(job.source.commonNegative).toBe('lowres');
+
+    preset.generation = {
+      ...preset.generation,
+      model: 'nai-diffusion-5-full-inpainting',
+      effort: 'medium',
+    };
+    expect(
+      composeRequestPrompts(preset, [promptSet], emotionSet.emotions[0]).negativePrompt,
+    ).not.toMatch(/open mouth/);
+  });
+
   it('참고 이미지가 없으면 작업을 만들지 않아', () => {
     const { character, promptSet, emotionSet, preset, project } = setup('fixed');
     expect(() =>

@@ -131,6 +131,20 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                   </div>
                 ),
               )}
+              <div className="emotion-extra-prompt negative-field">
+                <span>네거티브</span>
+                <PromptTextarea
+                  rows={2}
+                  value={emotion.negative ?? ''}
+                  aria-label={`${emotion.name} 씬 네거티브`}
+                  placeholder="이 씬에서만 공통 네거티브 뒤에 붙일 태그"
+                  onChange={(negative) =>
+                    save((item) =>
+                      updateEmotion(item, emotion.id, { negative: negative || undefined }),
+                    )
+                  }
+                />
+              </div>
             </div>
           </div>
         ))}

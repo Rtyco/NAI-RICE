@@ -136,6 +136,12 @@ export function RecordInfo({
       </dd>
       <dt>씬 프롬프트</dt>
       <dd className="mono">{record.emotionPrompt || '—'}</dd>
+      {record.emotionNegative && (
+        <>
+          <dt>씬 네거티브</dt>
+          <dd className="mono">{record.emotionNegative}</dd>
+        </>
+      )}
       <dt>캐릭터 프롬프트</dt>
       <dd className="mono">{prompt((value) => value.characterPrompt)}</dd>
       {full?.extraCharacters?.map((character, index) => (

@@ -97,6 +97,8 @@ export type Emotion = {
   prompt: string;
   /** 두 번째 캐릭터부터. 씬 모음은 여러 작업이 함께 써서 캐릭터 ID가 아니라 순서로 맞춘다. */
   extraPrompts?: string[];
+  /** 공통 네거티브 뒤에 붙는다. */
+  negative?: string;
   /** NovelAI mood 값(예: happy). 비면 씬 이름으로 추천한다. */
   augmentMood?: string;
   /** 0(강함)~5(약함) */
@@ -492,6 +494,8 @@ export type GenerationRecord = {
   /** 없으면 AI가 정했다. */
   characterCenters?: CharacterCenter[];
   emotionPrompt: string;
+  /** 이 값 이전의 기록에는 없다. */
+  emotionNegative?: string;
   settings: GenerationSettings;
   /** 생성 전후 Anlas 차이. 조회할 수 없었으면 없다. */
   anlasSpent?: number;
@@ -511,6 +515,7 @@ export type JobSnapshotCommon = {
   emotionId: string;
   emotionName: string;
   emotionPrompt: string;
+  emotionNegative?: string;
   presetName: string;
   promptSetName: string;
   emotionSetName: string;

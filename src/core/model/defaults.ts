@@ -440,7 +440,7 @@ function projectsUsingPieceSet(library: Library, id: string): Project[] {
       ) ||
       Boolean(
         resolved.emotionSet?.emotions.some((emotion) =>
-          mentions(emotion.prompt, ...(emotion.extraPrompts ?? [])),
+          mentions(emotion.prompt, ...(emotion.extraPrompts ?? []), emotion.negative),
         ),
       )
     );

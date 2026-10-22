@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
+import { usesMedium } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
@@ -113,9 +114,15 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       label: '프롬프트 복원',
       icon: 'undo',
       group: 'main',
-      title: '이 결과를 만들 때의 씬 프롬프트로 되돌립니다',
-      disabled: record.emotionPrompt === emotion.prompt,
-      onSelect: () => patchEmotion(set.id, emotion.id, { prompt: record.emotionPrompt }),
+      title: '이 결과를 만들 때의 씬 프롬프트와 씬 네거티브로 되돌립니다',
+      disabled:
+        record.emotionPrompt === emotion.prompt &&
+        (record.emotionNegative ?? '') === (emotion.negative ?? ''),
+      onSelect: () =>
+        patchEmotion(set.id, emotion.id, {
+          prompt: record.emotionPrompt,
+          negative: record.emotionNegative,
+        }),
     },
     {
       label: '다듬기',
@@ -272,6 +279,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                 : resolved.characters.length > 1
                   ? '첫 캐릭터 프롬프트 뒤에 붙습니다'
                   : '캐릭터 프롬프트 뒤에 붙습니다'
+            }
+            negativeHint={
+              resolved.preset && usesMedium(resolved.preset.generation)
+                ? 'Medium에서는 쓰이지 않음'
+                : undefined
             }
             onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
           />

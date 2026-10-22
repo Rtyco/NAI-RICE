@@ -172,13 +172,18 @@ export function applyImageImport(
     const targetSet = choices.emotion.emotionSet;
     if (choices.emotion.target === 'current' && targetSet) {
       next = patchItem(next, 'emotionSets', targetSet.id, (set) =>
-        mergeEmotions(set, [{ name: desk.emotion.name, prompt: desk.emotion.prompt }]),
+        mergeEmotions(set, [desk.emotion]),
       );
       emotionSetId = targetSet.id;
     } else {
       const set: EmotionSet = {
         ...createEmotionSet(name, []),
-        emotions: [createEmotion(desk.emotion.name, desk.emotion.prompt)],
+        emotions: [
+          {
+            ...createEmotion(desk.emotion.name, desk.emotion.prompt),
+            negative: desk.emotion.negative,
+          },
+        ],
       };
       next = { ...next, emotionSets: [...next.emotionSets, set] };
       emotionSetId = set.id;
