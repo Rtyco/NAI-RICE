@@ -1,7 +1,7 @@
 {
   "name": "nai-rice",
   "productName": "NAI RICE",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Character emotion image studio using NovelAI Reference Inpainting",
   "author": "NAI RICE contributors",
   "main": "dist-electron/main.cjs",
