@@ -44,6 +44,10 @@ export function AidChip(props: {
   const label = character ? '캐릭터 레퍼런스' : '바이브';
   const names = ids.map((id) => list.find((item) => item.id === id)?.name ?? '(없음)');
   const first = list.find((item) => item.id === ids[0]);
+  const switchMode = {
+    title: `${AID_MODES[mode].title} · 누르면 ${AID_MODES[next].label}로 바꿉니다`,
+    run: () => patch({ aidMode: next }),
+  };
   return (
     <ChecklistChip
       label={{
@@ -51,14 +55,11 @@ export function AidChip(props: {
         icon: character ? 'portrait' : 'vibe',
         usage: '캐릭터 레퍼런스나 바이브를 씁니다(V4.5 전용)',
       }}
+      iconAction={switchMode}
       missing={Boolean(aid) && missing}
       before={
         <span className="segmented chain-chip-switch">
-          <button
-            className="active blue"
-            title={`${AID_MODES[mode].title} · 누르면 ${AID_MODES[next].label}로 바꿉니다`}
-            onClick={() => patch({ aidMode: next })}
-          >
+          <button className="active blue" title={switchMode.title} onClick={switchMode.run}>
             {AID_MODES[mode].label}
           </button>
         </span>

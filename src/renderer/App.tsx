@@ -34,6 +34,7 @@ import { PanelResizer } from './components/PanelResizer';
 import { FreePromptPanel, ProjectPromptPanel, PromptPanelLayout } from './components/PromptPanel';
 import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
+import { useMiddleClickScroll } from './useMiddleClickScroll';
 import { checkForUpdate } from './updates';
 
 function Toasts() {
@@ -109,6 +110,7 @@ export default function App() {
     void initialize();
   }, []);
   useGlobalShortcuts();
+  useMiddleClickScroll();
 
   const checkedUpdate = useRef(false);
   useEffect(() => {

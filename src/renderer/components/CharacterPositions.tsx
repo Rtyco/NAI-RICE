@@ -18,6 +18,7 @@ import { resolveFreeGeneration, updateFreeGeneration, updateProject, useLibrary 
 import { ChainChip } from './ChainChip';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
+import { Icon } from './Icon';
 
 /** 창을 연 채로 캐릭터를 바꿔도 따라오도록 저장된 값을 읽는다. */
 type Target = { projectId: string } | 'free';
@@ -104,8 +105,13 @@ export function PositionChip({ target }: { target: Target }) {
       edit={unavailable ? null : { title: '캐릭터 위치 정하기', open }}
       value={value}
     >
-      <button className="chain-chip-value" disabled={Boolean(unavailable)} onClick={open}>
-        {value}
+      <button
+        className="chain-chip-value chain-chip-trigger"
+        disabled={Boolean(unavailable)}
+        onClick={open}
+      >
+        <span>{value}</span>
+        <Icon name="chevron" size={12} className="rotate-down" />
       </button>
     </ChainChip>
   );

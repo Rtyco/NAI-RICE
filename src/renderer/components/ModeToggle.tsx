@@ -20,7 +20,7 @@ export function ModeToggle(props: {
       onClick={props.onToggle}
     >
       <Icon name={current.icon} size={14} />
-      <span>{current.label}</span>
+      <span className="header-label">{current.label}</span>
       <Icon name="swap" size={13} className="mode-toggle-swap" />
     </button>
   );

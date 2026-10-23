@@ -43,6 +43,8 @@ type ChainLabel = { text: string; icon: IconName; usage: string };
 /** null이면 버튼이 없다. */
 type ChainEdit = { title: string; open: () => void } | null;
 
+type ChainIconAction = { title: string; run: () => void };
+
 export function ChainChip(props: {
   section?: LibrarySection;
   itemId?: string;
@@ -53,6 +55,8 @@ export function ChainChip(props: {
   chipRef?: React.Ref<HTMLDivElement>;
   /** 접은 설정 줄에서 아이콘만 남을 때 설명에 보인다. */
   value?: string;
+  /** 있으면 아이콘이 버튼이 된다. */
+  iconAction?: ChainIconAction;
   children: ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
@@ -72,9 +76,19 @@ export function ChainChip(props: {
         .filter(Boolean)
         .join(' · ')}
     >
-      <span className="chain-chip-label">
-        <Icon name={label.icon} size={15} />
-      </span>
+      {props.iconAction ? (
+        <button
+          className="chain-chip-label chain-chip-icon-button"
+          title={props.iconAction.title}
+          onClick={props.iconAction.run}
+        >
+          <Icon name={label.icon} size={15} />
+        </button>
+      ) : (
+        <span className="chain-chip-label">
+          <Icon name={label.icon} size={15} />
+        </span>
+      )}
       {props.children}
       {edit && (
         <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
@@ -211,6 +225,7 @@ export function ChecklistChip(props: {
   itemId?: string;
   missing?: boolean;
   edit?: ChainEdit;
+  iconAction?: ChainIconAction;
   value: string;
   thumb?: string;
   items: ChecklistItem[];
@@ -301,6 +316,7 @@ export function ChecklistChip(props: {
       itemId={props.itemId}
       missing={props.missing}
       edit={props.edit}
+      iconAction={props.iconAction}
       value={props.value}
     >
       {props.before}

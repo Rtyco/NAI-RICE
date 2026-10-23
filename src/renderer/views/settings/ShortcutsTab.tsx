@@ -32,6 +32,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Tab', '집중 모드: 패널을 한 번에 숨기기·되돌리기 (입력 칸 밖에서)'],
       ['Ctrl++ / Ctrl+- / Ctrl+휠', '화면 확대·축소'],
       ['Ctrl+0', '화면 크기 되돌리기'],
+      ['휠 클릭', '목록 자동 스크롤 (위아래로 움직여 속도 조절, 다시 누르면 멈춤)'],
       ['Ctrl+N', '새 작업'],
       ['Ctrl+O', 'JSON 가져오기'],
       ['Ctrl+S', '지금 저장 (평소에도 자동 저장)'],
