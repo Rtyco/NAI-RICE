@@ -4884,27 +4884,64 @@ kbd {
   border: 1px solid var(--line-strong);
   border-radius: 6px;
 }
-.fp-stage {
-  fill: var(--bg-0);
+.focus-preview {
+  background: var(--bg-0);
 }
 .fp-chrome {
   fill: var(--bg-3);
 }
-.fp-panel {
-  fill: var(--bg-2);
+.fp-region > rect {
+  fill: var(--bg-3);
   stroke: var(--line-strong);
   stroke-width: 0.6;
 }
-.fp-image {
-  fill: var(--accent-a33);
+.fp-region .icon {
+  color: var(--text-2);
 }
-.fp-palette {
-  fill: var(--bg-4);
+.fp-hidden > rect {
+  stroke: var(--orange);
+  stroke-width: 0.8;
+  stroke-dasharray: 2 1.5;
+}
+.fp-hidden-line {
+  fill: var(--orange-line);
+}
+.fp-hidden .icon {
+  color: var(--orange-text);
+  opacity: 0.55;
+}
+.fp-palette > rect {
+  fill: var(--bg-5);
   stroke: var(--accent);
   stroke-width: 0.8;
 }
-.fp-go {
-  fill: var(--green);
+.fp-palette .icon {
+  color: var(--green);
+}
+.focus-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+.focus-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.focus-legend i {
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+}
+.focus-legend .hidden-swatch {
+  border: 1px dashed var(--orange);
+  background: repeating-linear-gradient(45deg, var(--orange-line) 0 1.5px, transparent 1.5px 4px);
+}
+.focus-legend .palette-swatch {
+  border: 1px solid var(--accent);
+  background: var(--bg-5);
 }
 
 /* ── 가장자리에 마우스를 대면 보이기 ─────────────── */
