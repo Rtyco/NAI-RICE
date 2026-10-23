@@ -1,0 +1,24 @@
+/* 순서가 곧 우선순위다. 예: gallery가 scene-detail보다 앞이어야 .stage-status가 .card-status를 덮는다. */
+@import './base.css';
+@import './gallery.css';
+@import './scene-detail.css';
+@import './layout.css';
+@import './prompt-editor.css';
+@import './canvas.css';
+@import './library.css';
+@import './overlays.css';
+@import './components.css';
+@import './queue.css';
+@import './sidebar.css';
+@import './project.css';
+@import './prompt-panel.css';
+@import './history.css';
+@import './motion.css';
+@import './welcome.css';
+@import './chips.css';
+@import './toolbar.css';
+@import './settings.css';
+@import './find.css';
+@import './palette.css';
+@import './focus.css';
+@import './autoscroll.css';

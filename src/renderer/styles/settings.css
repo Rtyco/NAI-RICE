@@ -1,0 +1,273 @@
+/* ── 설정 창 ─────────────────────────────────── */
+/* 탭마다 창 크기가 바뀌지 않게 「화면 · 테마」 탭 크기로 고정한다. */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 16px;
+  height: min(460px, calc(100vh - 160px));
+}
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-tabs button.active {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.settings-body {
+  min-width: 0;
+}
+.four-column-fields.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ── 설정 창 ─────────────────────────────────── */
+.settings-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+.settings-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.tag-line {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.tag-line b {
+  padding-top: 6px;
+  font-size: 12px;
+}
+.tag-line.unsupported b {
+  color: var(--faint);
+}
+.tag-line.unsupported .hint {
+  padding-top: 6px;
+}
+.delay-row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  align-items: center;
+  gap: 14px;
+}
+.delay-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* ── 설정: 테마·업데이트 ─────────────────────── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.theme-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.theme-swatch {
+  position: relative;
+  height: 56px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.theme-swatch span:first-child {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  height: 18px;
+  border-radius: 4px;
+}
+.theme-swatch span:nth-child(2) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 12px;
+  border-radius: 999px;
+}
+.theme-swatch i {
+  position: absolute;
+  top: 6px;
+  left: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+.version-row strong {
+  font-size: 14px;
+}
+.project-header .account-meter {
+  margin-right: 4px;
+}
+
+/* ── 단축키·정보 목록 ───────────────────────── */
+.shortcut-list,
+.credit-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.shortcut-list > div,
+.credit-list > div {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+}
+.shortcut-list dd,
+.credit-list dd {
+  margin: 0;
+  color: var(--text-2);
+}
+.credit-list {
+  margin: 10px 0;
+}
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+/* ── 설정 › 저장 공간 ────────────────────────── */
+.storage-summary {
+  margin: 0 0 10px;
+}
+.storage-table-wrap {
+  overflow-x: auto;
+}
+.storage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.storage-table th,
+.storage-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.storage-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.storage-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.storage-table .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.storage-table .actions button,
+.inspection-row button {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.inspection-row td {
+  color: var(--text-2);
+  background: var(--bg-3);
+  white-space: normal;
+}
+.inspection-row button {
+  margin-left: 8px;
+}
+.storage-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+.cleanup-preview {
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+}
+.toggle-field input[type='date'] {
+  width: auto;
+  margin-left: 4px;
+}
+
+/* ── 업데이트 ──────────────────────────────── */
+.update-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-1);
+}
+.update-result.newer {
+  border-color: var(--green-line);
+  background: var(--green-bg);
+}
+.update-versions {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.update-versions span,
+.update-versions small {
+  color: var(--muted);
+}
+.update-versions b {
+  color: var(--green-text);
+}
+.update-notes {
+  max-height: 260px;
+  overflow: auto;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.update-notes b {
+  display: block;
+  margin: 8px 0 2px;
+  color: var(--text);
+  font-size: 13px;
+}
+.update-notes b:first-child {
+  margin-top: 0;
+}
+.update-notes p {
+  margin: 0;
+}
+.update-notes p.sub {
+  padding-left: 14px;
+}

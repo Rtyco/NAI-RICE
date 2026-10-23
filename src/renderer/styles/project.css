@@ -1,0 +1,160 @@
+/* ── 작업 화면 ───────────────────────────────── */
+.project-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.project-header,
+.library-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--view-head-height);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+/* 창을 줄이면 이름 칸, 계정 표시 순으로 덜어 끝의 버튼이 히스토리 밑으로 밀리지 않게 한다. */
+.project-header {
+  container-type: inline-size;
+}
+.project-header > :not(.project-name-input, .header-spacer, .account-meter, .chain-bar) {
+  flex: none;
+}
+.project-header .account-meter {
+  flex-shrink: 0.01;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+@container (max-width: 820px) {
+  .project-header .account-meter .checked,
+  .project-header .quota-track {
+    display: none;
+  }
+}
+@container (max-width: 680px) {
+  .project-header .account-meter {
+    display: none;
+  }
+}
+@container (max-width: 520px) {
+  .project-header .header-label {
+    display: none;
+  }
+}
+/* 글자 시작을 히스토리 제목처럼 머리줄 안쪽 16px에 맞춘다(입력 칸 padding 9 + border 1). */
+.project-name-input {
+  field-sizing: content;
+  width: auto;
+  min-width: 96px;
+  max-width: 240px;
+  margin-left: -10px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 700;
+}
+.record-input {
+  width: 72px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.free-title {
+  flex: none;
+  margin: 0;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.free-source-mode button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.free-source {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.free-source-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.free-source-body img,
+.free-source-empty {
+  width: 72px;
+  height: 96px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: top;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
+}
+/* 위 4px + 카드 + 아래 4px가 머리 높이라 「자유 생성」이 머리줄 제목들과 한 줄에 놓인다. 경계선은 없다. */
+.sidebar-card.free-card {
+  height: calc(var(--view-head-height) - 8px);
+  justify-content: center;
+  padding: 0;
+}
+.project-name-input:hover {
+  border-color: var(--line);
+}
+.chain-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  object-fit: cover;
+  object-position: top;
+}
+.missing-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--orange-line);
+  background: var(--orange-bg);
+  color: var(--orange-text);
+}
+.project-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.context-menu {
+  position: fixed;
+  z-index: 90;
+  right: auto;
+}
+.menu-popup button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.menu-heading {
+  padding: 6px 10px 2px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+.menu-popup button small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ── 작업 화면: 구성 영역 ────────────────────── */
+.chain-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bg-5);
+  color: var(--accent-text);
+}

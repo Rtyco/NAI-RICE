@@ -1,0 +1,470 @@
+/* ── 사이드바 ────────────────────────────────── */
+.sidebar {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.save-indicator {
+  font-size: 11px;
+  color: var(--muted);
+}
+.save-indicator.saving {
+  color: var(--orange);
+}
+.save-indicator.error {
+  color: var(--red);
+}
+.avatar {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg-5);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.pill.busy {
+  border-color: var(--green-line);
+  color: var(--green-text);
+}
+.pill.warn {
+  border-color: var(--orange-line);
+  color: var(--orange);
+}
+
+/* ── 사이드바: 작업·라이브러리 ─────────────────── */
+.pad-x {
+  padding: 0 8px;
+}
+.project-meta b,
+.project-meta small {
+  white-space: nowrap;
+}
+.project-item,
+.library-item-main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 3px;
+  padding: 6px 8px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+.project-item.active {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.library-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+.library-item:hover {
+  background: var(--bg-4);
+}
+.library-item.selected {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.library-item .library-item-main {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+.library-item .item-actions {
+  display: none;
+  min-width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  padding: 0 4px;
+}
+.library-item:hover .item-actions,
+.library-item:focus-within .item-actions {
+  display: inline-flex;
+  align-items: center;
+}
+.library-item.drop-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.library-item.dragging {
+  opacity: 0.35;
+}
+.selectable {
+  position: relative;
+}
+/* useBoxSelection이 직접 보이고 위치를 정한다. */
+.select-box {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  border: 1px solid var(--accent);
+  background: var(--accent-a12);
+  pointer-events: none;
+}
+.library-item.picked {
+  border-color: var(--accent);
+  background: var(--accent-a12);
+}
+.emotion-card.picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 8px 0;
+  padding: 4px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  background: var(--accent-bg);
+  font-size: 13px;
+}
+.selection-count {
+  flex: 1;
+  white-space: nowrap;
+}
+.selection-bar.inline {
+  margin: 0;
+}
+.selection-bar button {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+/* 기준 폭은 글자를 모두 보일 때 막대에 필요한 폭. 바이브는 「내보내기」가 더 있어 넓다. */
+.selection-bar {
+  container-type: inline-size;
+}
+@container (max-width: 300px) {
+  .selection-bar .bar-label {
+    display: none;
+  }
+}
+@container (max-width: 400px) {
+  .selection-bar.wide .bar-label {
+    display: none;
+  }
+}
+.library-list nav.selectable {
+  padding-bottom: 32px;
+}
+.project-list.selectable {
+  padding-bottom: 24px;
+}
+.project-row .project-item {
+  margin: 0;
+}
+.list-folder-head {
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.list-folder-head.drop-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.list-folder-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent-text);
+  text-align: left;
+}
+.list-folder-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.list-folder-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.list-folder-toggle b {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-folder-toggle .count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-4);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.list-folder-body {
+  margin-left: 12px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line);
+}
+.library-item-rename {
+  width: 100%;
+  padding: 1px 4px;
+  font-weight: 700;
+}
+.project-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.project-meta b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-meta small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ── 사이드바 ────────────────────────────────── */
+.app-shell.sidebar-icons {
+  grid-template-columns: 60px minmax(0, 1fr);
+}
+.app-shell.sidebar-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.app-shell.sidebar-hidden > .sidebar {
+  display: none;
+}
+.sidebar {
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.brand-sub {
+  color: var(--faint);
+  font-size: 9.5px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 8px;
+  padding-bottom: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-3);
+}
+.sidebar-card.grow {
+  flex: 1 1 auto;
+  transition: flex-grow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sidebar-card.grow.folded {
+  flex-grow: 0;
+}
+.sidebar-card:not(.grow) {
+  flex-shrink: 0;
+}
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 2px 10px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+.sidebar-section-title > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.sidebar-section-title:has(> .sidebar-section-toggle) {
+  padding: 4px 4px 0;
+}
+.sidebar-section-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.sidebar-section-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.section-chevron {
+  color: var(--faint);
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sidebar-section-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.sidebar-card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 220ms ease,
+    visibility 0s;
+}
+.sidebar-card.folded .sidebar-card-body {
+  height: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    height 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease,
+    visibility 0s linear 240ms;
+}
+.sidebar-caption {
+  margin: 0 10px 6px;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.project-list {
+  flex: 1;
+  min-height: 60px;
+  overflow-y: auto;
+  padding: 0 6px;
+}
+.library-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 6px;
+}
+.library-nav button {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent-text);
+  text-align: left;
+}
+.library-nav button.active {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.library-nav-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.library-nav-text b {
+  color: var(--text);
+}
+.library-nav-text small {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.library-nav .count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-4);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.sidebar.collapsed .sidebar-card {
+  margin: 0 6px;
+  align-items: center;
+}
+.sidebar.collapsed .sidebar-card-body {
+  align-self: stretch;
+  align-items: center;
+}
+.sidebar.collapsed .sidebar-section-title {
+  justify-content: center;
+  padding: 8px 0 6px;
+}
+.sidebar.collapsed .project-list {
+  padding: 0;
+}
+/* 스크롤 막대(10px)가 생기면 아바타를 밀어내 잘린다. 휠로만 스크롤한다. */
+.sidebar.collapsed .project-list,
+.library-list.collapsed nav {
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sidebar.collapsed .project-list::-webkit-scrollbar,
+.library-list.collapsed nav::-webkit-scrollbar {
+  display: none;
+}
+.sidebar.collapsed .project-item {
+  justify-content: center;
+  padding: 3px;
+  position: relative;
+}
+.sidebar.collapsed .project-item .pill {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  padding: 0 5px;
+}
+.sidebar.collapsed .library-nav {
+  justify-items: center;
+  padding: 0;
+}
+/* 펼친 상태의 3칸 격자를 그대로 쓰면 아이콘이 첫 칸에 붙어 왼쪽으로 쏠린다. 아바타와 같은 36px */
+.sidebar.collapsed .library-nav button {
+  grid-template-columns: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+.project-item.add .avatar {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+}

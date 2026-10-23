@@ -1,0 +1,92 @@
+/* ── 히스토리 (작업·자유 생성) ──────────────── */
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.history-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--view-head-height);
+  padding: 0 16px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.history-head b {
+  font-size: 15px;
+  white-space: nowrap;
+}
+.history-head small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.history-head .icon {
+  margin-left: auto;
+  color: var(--muted);
+}
+.history-head:hover .icon {
+  color: var(--text);
+}
+/* NovelAI 웹처럼 같은 크기의 칸에 그림 전체를 넣는다. 넓히면 두 줄이 된다. */
+.history-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  /* 칸이 overflow: hidden이라 auto 행은 목록 높이에 맞춰 줄어든다. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 10px;
+  padding: 12px 10px;
+}
+.history-item,
+.stream-preview.history-live {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--bg-1);
+}
+.history-item:hover {
+  border-color: var(--line-strong);
+}
+.history-item.selected {
+  border-color: var(--accent);
+}
+/* 버튼 안에서는 aspect-ratio로 정한 높이를 100%가 따르지 않는다. */
+.history-item img,
+.stream-preview.history-live img {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  object-fit: contain;
+}
+.history-waiting,
+.history-list > .hint,
+.history-more {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin: 2px 0;
+  font-size: 11px;
+  text-align: center;
+}
+.history-waiting {
+  color: var(--muted);
+}

@@ -2,7 +2,7 @@ import type { AppSettings, ThemeId, ThemeMode } from '../core/domain/types';
 
 type Appearance = AppSettings['appearance'];
 
-/** styles.css는 여기서 만든 --bg-0 … --red-bg 변수만 쓴다. */
+/** styles/의 CSS는 여기서 만든 --bg-0 … --red-bg 변수만 쓴다. */
 export const THEMES: Record<
   ThemeId,
   { label: string; hue: number; tint: number; accent: string; lightAccent: string }

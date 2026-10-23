@@ -1,0 +1,158 @@
+/* ── 전체 레이아웃 ──────────────────────────── */
+#root {
+  display: flex;
+  flex-direction: column;
+}
+/* 창 버튼 폭은 Electron의 titlebar-area 값(확대 비율을 따른다), 없으면 버튼 세 개(46px씩). */
+:root {
+  /* electron/window.ts의 TITLE_BAR_HEIGHT보다 1px 크다(아래 경계선). */
+  --titlebar-height: 40px;
+  /* 프롬프트 패널·화면 머리줄·히스토리 머리가 한 줄로 맞도록 같이 쓴다. */
+  --view-head-height: 46px;
+  --window-controls-width: calc(
+    100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px))
+  );
+}
+:root[data-fullscreen='true'] {
+  --window-controls-width: 0px;
+}
+.titlebar {
+  position: relative;
+  flex: none;
+  height: var(--titlebar-height);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 calc(8px + var(--window-controls-width)) 0 6px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.titlebar button {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.titlebar-toggle {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-2);
+}
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.titlebar-action {
+  width: 32px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+}
+.titlebar-action:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+.titlebar-brand {
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.titlebar-version {
+  margin-left: -2px;
+  color: var(--faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.titlebar .update-badge {
+  height: 22px;
+  padding: 0 8px;
+  border-color: var(--green-line);
+  background: var(--green-bg);
+  color: var(--green-text);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.titlebar-location {
+  position: absolute;
+  left: 50%;
+  max-width: 30%;
+  overflow: hidden;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.app-shell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--sidebar-width, 240px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.main-area {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.header-spacer {
+  flex: 1;
+}
+
+/* ── 패널 폭 조절 ───────────────────────────── */
+/* grid 칸에 들지 않게 절대 위치로 둔다(위치는 PanelResizer가 CSS 변수로). */
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 6;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.panel-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+.panel-resizer:hover::after,
+.panel-resizer:focus-visible::after,
+.panel-resizing .panel-resizer::after {
+  left: 2px;
+  width: 3px;
+  background: var(--accent);
+}
+.panel-resizer:focus-visible {
+  outline: none;
+}
+.panel-resizing,
+.panel-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+.panel-resizing .app-shell,
+.panel-resizing .library-view,
+.panel-resizing .prompt-panel-view {
+  transition: none;
+}

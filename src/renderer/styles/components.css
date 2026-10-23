@@ -1,0 +1,74 @@
+/* ── 아이콘·카드 ─────────────────────────────── */
+.icon {
+  flex: none;
+  vertical-align: -3px;
+}
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mode-toggle,
+.tool-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.mode-toggle {
+  border-color: var(--accent-strong);
+  color: var(--accent-text);
+}
+.mode-toggle-swap {
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+.mode-toggle:hover .mode-toggle-swap {
+  color: var(--accent-text);
+  transform: rotate(180deg);
+}
+.mode-toggle.dimmed {
+  border-color: var(--line);
+  color: var(--muted);
+}
+.tool-toggle.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+.card {
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.card-head > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card-head b {
+  color: var(--text);
+  font-size: 13px;
+}
+.card-head small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.card-body {
+  padding: 12px 14px;
+}
+.card-body > :last-child {
+  margin-bottom: 0;
+}

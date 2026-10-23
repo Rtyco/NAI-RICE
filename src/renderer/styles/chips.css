@@ -1,0 +1,399 @@
+/* ── 작업 화면: 한 줄 구성 칩 ───────────────── */
+.chain-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.top-bar-toggle {
+  margin-left: auto;
+}
+/* 머리줄 안에 접어 둔 설정 줄. 칩이 줄면 아이콘끼리 겹쳐서 줄이지 않는다. */
+.chain-bar.compact {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+/* 창이 아주 좁아 끝의 칩이 잘려도 펼치기 버튼은 보인다. */
+.chain-bar.compact .top-bar-toggle {
+  position: sticky;
+  right: 0;
+  margin-left: 0;
+  background: var(--bg-2);
+}
+.chain-bar.compact .chain-chip {
+  position: relative;
+  flex: none;
+  gap: 0;
+  height: 26px;
+  padding: 0 2px 0 7px;
+}
+.chain-bar.compact
+  :is(.chain-chip-edit, .chain-chip-switch, .chain-thumb, .chain-chip-trigger > span) {
+  display: none;
+}
+.chain-bar.compact .chain-chip-value {
+  align-self: stretch;
+  padding: 0 4px 0 3px;
+  border-radius: 999px;
+}
+/* 칩 어디를 눌러도 고르기 창이 열린다. 아이콘 버튼만 그 위에 둔다. */
+.chain-bar.compact .chain-chip-value::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.chain-bar.compact .chain-chip-icon-button {
+  position: relative;
+  z-index: 1;
+}
+@container (max-width: 760px) {
+  .project-header:has(.chain-bar.compact) .header-label {
+    display: none;
+  }
+}
+@container (max-width: 560px) {
+  .chain-bar.compact .chain-chip {
+    padding: 0 7px;
+  }
+  .chain-bar.compact .chain-chip-value {
+    padding: 0;
+  }
+  .chain-bar.compact .chain-chip-trigger > .icon {
+    display: none;
+  }
+}
+.scene-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.detail-nav.top-hidden {
+  display: none;
+}
+.chain-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 2px 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-3);
+}
+.chain-chip:hover {
+  border-color: var(--line-strong);
+}
+.chain-chip.missing {
+  border-color: var(--orange-line);
+}
+.chain-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.chain-chip-label .icon {
+  color: var(--accent-text);
+}
+.chain-chip-icon-button {
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: -4px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+}
+.chain-chip-icon-button:hover {
+  background: var(--accent-a12);
+}
+.chain-chip-edit {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.chain-chip:hover .chain-chip-edit,
+.chain-chip-edit:focus-visible {
+  opacity: 1;
+}
+.chain-chip-switch {
+  margin-left: 4px;
+  padding: 1px;
+  border-radius: 999px;
+}
+.chain-chip-switch button {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.chain-chip select {
+  width: auto;
+  max-width: 220px;
+  padding: 3px 4px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
+}
+.chain-chip select:hover {
+  background: var(--bg-4);
+}
+.icon.rotate-up {
+  transform: rotate(-90deg);
+}
+.icon.rotate-down {
+  transform: rotate(90deg);
+}
+.chain-chip-value {
+  padding: 3px 6px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
+}
+.chain-chip-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 240px;
+}
+.chain-chip-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chain-chip-trigger .icon {
+  flex: none;
+  color: var(--faint);
+}
+.chain-chip-trigger:hover,
+.chain-chip-trigger[aria-expanded='true'] {
+  background: var(--bg-4);
+}
+
+/* ── 구성 칩의 고르기 창 ───────────────────── */
+.checklist-popover {
+  position: fixed;
+  z-index: 60;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  box-shadow: 0 12px 30px #0009;
+  animation: pop-in 120ms ease-out both;
+  transform-origin: top left;
+}
+.checklist-head {
+  padding: 8px 10px 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+/* 입력칸 기본 width: 100%에 여백이 더해져 넘친다. */
+.checklist-search {
+  width: auto;
+  margin: 2px 8px 6px;
+}
+.checklist-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 4px 4px;
+}
+.checklist-body > .hint {
+  margin: 6px;
+}
+.checklist-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.checklist-row:hover {
+  background: var(--bg-4);
+}
+.checklist-row.checked {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+.checklist-pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+.checklist-pick:hover:not(:disabled) {
+  background: transparent;
+}
+.checklist-pick:disabled {
+  opacity: 0.5;
+}
+.checklist-mark {
+  flex: none;
+  width: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+}
+.checklist-row.checked .checklist-mark {
+  color: var(--accent);
+}
+.checklist-mark i {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+.checklist-thumb {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-5);
+}
+.checklist-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.checklist-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.checklist-name b,
+.checklist-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.checklist-name b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.checklist-row.checked .checklist-name b {
+  color: var(--accent-text);
+}
+.checklist-name small {
+  color: var(--faint);
+  font-size: 11px;
+}
+.checklist-edit {
+  flex: none;
+  min-width: 24px;
+  height: 24px;
+  opacity: 0;
+}
+.checklist-row:hover .checklist-edit,
+.checklist-edit:focus-visible {
+  opacity: 1;
+}
+.checklist-select {
+  width: auto;
+  max-width: 96px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+.checklist-folder {
+  margin: 4px 0 2px;
+}
+.checklist-folder-name {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+.checklist-folder-name:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.checklist-folder-name[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.checklist-folder-name span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.checklist-folder-name em {
+  color: var(--accent-text);
+  font-style: normal;
+  font-weight: 600;
+}
+.checklist-folder-name small {
+  color: var(--faint);
+  font-weight: 400;
+}
+.checklist-folder .checklist-row {
+  margin-left: 12px;
+}
+.checklist-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--line);
+}
+.checklist-options small {
+  color: var(--faint);
+  font-size: 11px;
+}
+.checklist-options .aid-warning {
+  margin: 0;
+  font-size: 12px;
+}
+.checklist-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--line);
+}
+.checklist-footer small {
+  flex: 1;
+  color: var(--faint);
+  font-size: 11px;
+}
+.checklist-footer .link-button {
+  margin-left: auto;
+  font-size: 12px;
+}

@@ -1,0 +1,110 @@
+/* ── 새 작업·환영·가져오기 ───────────────────── */
+.chain-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+}
+.image-import h3 {
+  margin: 8px 0 2px;
+  color: var(--accent-text);
+  font-size: 13px;
+}
+.import-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+}
+.prompt-code.negative {
+  color: var(--red-text);
+}
+.import-target label.disabled {
+  opacity: 0.45;
+}
+
+/* ── 환영·가져오기 ───────────────────────────── */
+.welcome-chain {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.welcome-chain button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  color: var(--accent-text);
+}
+.welcome-chain button b {
+  color: var(--text);
+}
+.import-name-field {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 360px);
+  justify-content: start;
+  align-items: center;
+  gap: 4px 10px;
+  margin-bottom: 10px;
+}
+.import-name-field .hint {
+  grid-column: 2;
+  margin: 0;
+}
+.select-all-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.select-all-row .hint {
+  flex: 1;
+  margin: 0;
+}
+.import-name {
+  width: 100%;
+  max-width: 360px;
+  margin: 2px 0 4px 22px;
+}
+.import-names {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── JSON 가져오기 ───────────────────────── */
+.import-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 4px 22px;
+}
+.import-pick .import-name {
+  width: auto;
+  max-width: 260px;
+  margin: 0;
+}
+.json-import-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.json-import-row select {
+  width: auto;
+  max-width: 220px;
+  flex: none;
+}
+.json-import-row input {
+  flex: 1;
+}
+.json-import-row .hint {
+  margin: 0;
+}
+.json-import-row.skipped .hint {
+  text-decoration: line-through;
+  color: var(--faint);
+}

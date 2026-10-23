@@ -6,7 +6,7 @@ import type { DesktopApi } from '../shared/ipc';
 import App from './App';
 import { applyAppearance, cachedAppearance } from './theme';
 import { restorePanelWidths } from './panelWidths';
-import './styles.css';
+import './styles/index.css';
 
 /** 브라우저(vite 단독)에서 화면만 볼 때 쓰는 메모리 API */
 function createPreviewApi(): DesktopApi {

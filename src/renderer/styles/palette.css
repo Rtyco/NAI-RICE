@@ -1,0 +1,115 @@
+/* ── 떠 있는 빠른 버튼 ─────────────────────────── */
+/* 열린 창(60)보다 아래, 화면 내용보다 위 */
+.floating-palette {
+  position: fixed;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px 5px 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-3);
+  box-shadow: 0 10px 28px #0009;
+}
+.palette-grip {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 32px;
+  color: var(--faint);
+  cursor: grab;
+  touch-action: none;
+}
+.palette-grip:active {
+  cursor: grabbing;
+}
+.palette-slot {
+  display: flex;
+  gap: 4px;
+}
+.palette-slot:empty {
+  display: none;
+}
+.palette-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+}
+.palette-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border: 1px solid var(--bg-3);
+  border-radius: 9px;
+  background: var(--accent-deep);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.palette-badge.danger {
+  background: var(--red-deep);
+}
+.palette-button.active {
+  border-color: var(--accent);
+}
+.palette-popup {
+  position: fixed;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-2);
+  box-shadow: 0 10px 28px #0009;
+}
+.palette-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-3);
+  font-size: 12px;
+}
+.palette-popup-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.palette-popup-body > aside {
+  flex: 1;
+  min-height: 0;
+  border-left: none;
+}
+.palette-popup-body.queue-panel {
+  display: block;
+  max-height: none;
+  overflow-y: auto;
+  border-bottom: none;
+}
+.palette-queue.busy {
+  color: var(--green);
+}
+.palette-queue.busy .icon {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.palette-queue.paused {
+  color: var(--orange);
+}
+.titlebar-action.active {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}

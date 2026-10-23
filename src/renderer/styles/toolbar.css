@@ -1,0 +1,121 @@
+/* ── 도구 막대·숫자 입력 ────────────────────── */
+.toolbar .generate-button {
+  padding: 7px 14px;
+}
+.bottom-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bottom-slot:not(:empty)::before {
+  content: '';
+  width: 1px;
+  height: 22px;
+  margin-right: 4px;
+  background: var(--line);
+}
+.bottom-slot {
+  gap: 10px;
+  font-size: 13px;
+}
+.queue-summary .bottom-slot button {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.bottom-slot .zone-field {
+  font-size: 13px;
+}
+.bottom-slot .zone-field b {
+  font-size: 15px;
+}
+.bottom-slot .stepper .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.bottom-slot .stepper input {
+  font-size: 15px;
+}
+.bottom-slot .pill {
+  font-size: 12px;
+}
+.queue-summary .bottom-slot .generate-button {
+  padding: 9px 24px;
+  font-size: 15px;
+}
+.gallery-toolbar {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.toolbar-zone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+.toolbar-zone.active {
+  background: var(--accent-bg);
+}
+.toolbar-zone > button {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.stepper input {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
+  text-align: center;
+}
+.stepper input:focus {
+  outline: none;
+  border-radius: 4px;
+  background: var(--bg-4);
+}
+.chain-chip .stepper {
+  border-color: transparent;
+}
+.stepper .icon-button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+}
+.zone-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.zone-field b,
+.zone-count {
+  color: var(--text);
+}
+.zone-divider {
+  align-self: center;
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--line);
+}
+.view-zone {
+  margin-left: auto;
+}
+.view-zone::before {
+  content: '';
+  width: 1px;
+  height: 22px;
+  margin-right: 6px;
+  background: var(--line);
+}

@@ -1,0 +1,237 @@
+:root {
+  /* 값은 theme.ts가 고른 테마로 덮어쓴다(아래는 기본 네이비·다크). */
+  color: var(--text);
+  background: var(--bg-0);
+  font-family: Pretendard, 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
+  --bg-0: #070c15;
+  --bg-1: #0a1221;
+  --bg-2: #0c1424;
+  --bg-3: #111b2e;
+  --bg-4: #172338;
+  --bg-5: #22324b;
+  --line: #26344b;
+  --line-strong: #344760;
+  --text: #e5e7eb;
+  --text-2: #b9c9dc;
+  --muted: #8fa0b7;
+  --faint: #5d6f88;
+  --accent: #38a3ff;
+  --accent-strong: #2389dc;
+  --accent-deep: #1977c3;
+  --accent-text: #9fc4ec;
+  --accent-bg: #142a45;
+  --accent-line: #2f5c88;
+  --accent-a33: #38a3ff55;
+  --accent-a12: #38a3ff1e;
+  --green: #39d98a;
+  --green-strong: #2dbb77;
+  --green-deep: #24965f;
+  --green-line: #2d7e5a;
+  --green-text: #7de5ad;
+  --green-bg: #0d2219;
+  --teal: #21c9bf;
+  --teal-line: #36968f;
+  --teal-text: #74e6de;
+  --orange: #f4a340;
+  --orange-text: #f6cf8b;
+  --orange-line: #8a6421;
+  --orange-bg: #241b0b;
+  --red: #f56b7a;
+  --red-text: #ff98a4;
+  --red-strong: #c4475a;
+  --red-deep: #a63446;
+  --red-line: #8b3443;
+  --red-bg: #2b1219;
+  --overlay: #06101ecc;
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 1120px;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+body {
+  background: var(--bg-0);
+}
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+h1 {
+  margin: 0 0 18px;
+  font-size: 20px;
+}
+p {
+  margin: 0 0 8px;
+}
+code,
+.mono {
+  font-family: Consolas, 'D2Coding', monospace;
+}
+
+/* ── 기본 컨트롤 ─────────────────────────────── */
+button {
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: var(--bg-4);
+  border-radius: 5px;
+  padding: 7px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+button:hover:not(:disabled) {
+  border-color: var(--faint);
+  background: var(--bg-5);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+button.accent {
+  border-color: var(--accent-strong);
+  background: var(--accent-deep);
+  color: white;
+  font-weight: 650;
+}
+button.accent:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+button.generate-button {
+  border-color: var(--green-strong);
+  background: var(--green-deep);
+  color: white;
+  font-weight: 700;
+}
+button.generate-button:hover:not(:disabled) {
+  background: var(--green-strong);
+}
+button.danger-quiet,
+.link-button.danger,
+.menu-popup button.danger,
+.icon-button.danger {
+  color: var(--red-text);
+}
+button.pause-solid {
+  border-color: #b8860b;
+  background: #e0b020;
+  color: #2a1f00;
+  font-weight: 650;
+}
+button.pause-solid:hover:not(:disabled) {
+  border-color: #b8860b;
+  background: #f0c430;
+}
+button.danger-solid {
+  border-color: var(--red-strong);
+  background: var(--red-deep);
+  color: white;
+  font-weight: 650;
+}
+button.danger-solid:hover:not(:disabled) {
+  background: var(--red-strong);
+}
+.icon-button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+}
+.icon-button:hover:not(:disabled) {
+  border-color: var(--line);
+}
+.link-button {
+  border: none;
+  background: none;
+  color: var(--accent-text);
+  padding: 2px 4px;
+}
+.link-button:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+input,
+textarea,
+select {
+  width: 100%;
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  border-radius: 4px;
+  padding: 7px 9px;
+  outline: none;
+}
+/* 투명한 select의 펼친 목록은 흰 바탕에 밝은 글자가 되어 보이지 않는다. */
+option,
+optgroup {
+  background: var(--bg-2);
+  color: var(--text);
+}
+option:disabled {
+  color: var(--faint);
+}
+input:disabled,
+select:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
+  accent-color: var(--accent);
+}
+input[type='range'] {
+  padding: 0;
+  accent-color: var(--accent);
+}
+input[type='color'] {
+  height: 34px;
+  padding: 2px;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a12);
+}
+textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pad {
+  padding: 24px;
+}
+.error-text {
+  color: var(--red);
+}
+.field-error {
+  color: var(--red);
+  font-size: 12px;
+}

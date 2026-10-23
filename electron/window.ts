@@ -61,7 +61,7 @@ export function anyWindowVisible(): boolean {
   );
 }
 
-/** styles.css --titlebar-height(40px)보다 1px 낮아야 아래 경계선이 창 버튼 밑까지 이어진다. */
+/** layout.css --titlebar-height(40px)보다 1px 낮아야 아래 경계선이 창 버튼 밑까지 이어진다. */
 const TITLE_BAR_HEIGHT = 39;
 
 /** 외부 링크와 페이지 이동은 막는다. */

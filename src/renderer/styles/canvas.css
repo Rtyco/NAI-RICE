@@ -1,0 +1,415 @@
+/* ── 레퍼런스 캔버스 ────────────────────────── */
+.canvas-view {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-panel-width, 360px);
+}
+.canvas-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 14px 16px 24px;
+  border-left: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.settings-card {
+  flex-shrink: 0;
+}
+.import-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  text-align: left;
+}
+.import-card > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.import-card b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.import-card small {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: normal;
+}
+.file-icon {
+  flex: 0 0 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--bg-5);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.stack-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+.number-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+.number-input {
+  position: relative;
+  display: flex;
+}
+.number-input em {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+  pointer-events: none;
+}
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.canvas-settings .setting-row {
+  margin-bottom: 8px;
+}
+.setting-row > span:first-child {
+  white-space: nowrap;
+}
+.canvas-settings .full-width {
+  width: 100%;
+  justify-content: center;
+  margin-top: 2px;
+}
+.color-swatch {
+  width: 64px;
+  height: 28px;
+  padding: 2px;
+}
+.crop-details summary {
+  margin: 2px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-1);
+}
+.segmented.full {
+  margin-bottom: 10px;
+}
+.segmented.full button {
+  flex: 1;
+}
+.segmented button {
+  border-color: transparent;
+  padding: 5px 9px;
+  background: transparent;
+  font-size: 12px;
+}
+.segmented button.active {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: var(--bg-5);
+}
+.segmented button.active.green {
+  color: var(--green-text);
+  border-color: var(--green-strong);
+}
+.segmented button.active.blue {
+  color: var(--accent-text);
+  border-color: var(--accent-strong);
+}
+.segmented button.active.teal {
+  color: var(--teal-text);
+  border-color: var(--teal-line);
+}
+.warning-box {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--orange-line);
+  border-radius: var(--radius);
+  background: var(--orange-bg);
+  color: var(--orange-text);
+}
+.canvas-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 10px;
+  background-color: var(--bg-0);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--text) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 3%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.canvas-view .canvas-panel {
+  display: flex;
+  flex-direction: column;
+}
+.canvas-panel > .stage-tabs {
+  margin: 0 0 8px;
+}
+.canvas-stage {
+  flex: 1;
+  min-height: 0;
+}
+.canvas-card {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  margin-bottom: 7px;
+}
+.canvas-toolbar .segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.canvas-toolbar > button {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+.canvas-toolbar .icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+.canvas-toolbar .redo svg {
+  transform: scaleX(-1);
+}
+.brush-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
+}
+/* 미리 바꿔 둘 수 있게 막지는 않는다. */
+.brush-settings.idle {
+  opacity: 0.5;
+}
+.range-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.range-field input {
+  width: 70px;
+}
+.range-field b {
+  min-width: 4ch;
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-stack {
+  position: relative;
+  flex: none;
+}
+/* 스크롤 대신 offset으로 밀어야 화면보다 작아도 옮길 수 있다(canvasViewport). */
+.canvas-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--bg-4);
+  background: var(--bg-0);
+  touch-action: none;
+}
+.canvas-viewport > .canvas-stack {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+.canvas-viewport canvas {
+  display: block;
+  max-width: none;
+  background: white;
+  box-shadow: 0 10px 40px #000d;
+  touch-action: none;
+  cursor: crosshair;
+}
+.canvas-viewport canvas.pick-cursor {
+  cursor: copy;
+}
+.canvas-viewport.hand canvas {
+  cursor: grab;
+}
+.canvas-viewport.panning canvas {
+  cursor: grabbing;
+}
+.canvas-viewport canvas.draw-overlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  box-shadow: none;
+}
+/* 포토샵처럼 전경색이 왼쪽 위, 배경색이 오른쪽 아래에 겹친다. */
+.draw-colors {
+  position: relative;
+  width: 40px;
+  height: 30px;
+}
+.draw-colors input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 20px;
+  padding: 1px;
+  cursor: pointer;
+}
+.draw-colors input.back {
+  top: 10px;
+  left: 14px;
+}
+.draw-palette {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 230px;
+}
+.draw-palette button {
+  width: 15px;
+  height: 15px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+}
+.draw-palette button.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.stage-empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.canvas-stack canvas {
+  width: 100%;
+  height: 100%;
+}
+.brush-cursor {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid #fff;
+  outline: 1px solid #000a;
+  pointer-events: none;
+}
+.canvas-viewport.transforming canvas {
+  cursor: inherit;
+}
+.transform-actions {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--bg-4);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-2) 88%, transparent);
+  transform: translateX(-50%);
+  cursor: default;
+}
+.transform-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.transform-frame polygon {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.transform-frame polygon.shadow {
+  stroke: #000a;
+  stroke-width: 3;
+}
+.transform-frame rect,
+.transform-frame circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.brush-cursor.circle {
+  border-radius: 50%;
+}
+.brush-cursor.erase {
+  border-style: dashed;
+}
+.canvas-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.canvas-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.canvas-status .ok {
+  color: var(--green-text);
+}
+.canvas-status .warn {
+  color: var(--orange-text);
+}
+.green-dot,
+.blue-dot,
+.teal-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.green-dot {
+  background: var(--green);
+}
+.blue-dot {
+  background: var(--accent);
+}
+.teal-dot {
+  background: var(--teal);
+}

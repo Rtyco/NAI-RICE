@@ -1,0 +1,336 @@
+/* ── 설정: 집중 모드 ─────────────────────────── */
+.focus-level-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.focus-level-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  text-align: left;
+}
+.focus-level-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.focus-level-card small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+/* 숨긴 곳은 칸을 0으로 줄여 가운데가 넓어진다. */
+.fp-window {
+  --fp-sidebar: 20px;
+  --fp-left: 34px;
+  --fp-side: 38px;
+  --fp-history: 18px;
+  --fp-top: 9px;
+  --fp-queue: 8px;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: grid;
+  grid-template-columns: var(--fp-sidebar) minmax(0, 1fr);
+  grid-template-rows: 7px minmax(0, 1fr) var(--fp-queue);
+  overflow: hidden;
+  margin-bottom: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--bg-0);
+  transition:
+    grid-template-columns 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    grid-template-rows 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.focus-level-card:not(:hover) .fp-window.hide-sidebar {
+  --fp-sidebar: 0px;
+}
+.focus-level-card:not(:hover) .fp-window.hide-leftPanel {
+  --fp-left: 0px;
+}
+.focus-level-card:not(:hover) .fp-window.hide-sidePanel {
+  --fp-side: 0px;
+}
+.focus-level-card:not(:hover) .fp-window.hide-history {
+  --fp-history: 0px;
+}
+.focus-level-card:not(:hover) .fp-window.hide-topBar {
+  --fp-top: 0px;
+}
+.focus-level-card:not(:hover) .fp-window.hide-queueBar {
+  --fp-queue: 0px;
+}
+.fp-window i {
+  display: block;
+}
+.fp-titlebar {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  background: var(--bg-3);
+}
+.fp-titlebar i {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text-2);
+}
+.fp-part {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-2);
+  transition:
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+.fp-sidebar {
+  grid-row: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 4px;
+  border-right: 1px solid var(--line);
+}
+.fp-workspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: var(--fp-left) minmax(0, 1fr) var(--fp-history);
+  transition: grid-template-columns 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fp-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 3px;
+  border-right: 1px solid var(--line);
+}
+.fp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-3);
+}
+.fp-main {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 10px var(--fp-top) minmax(0, 1fr);
+  transition: grid-template-rows 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fp-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.fp-head .fp-line {
+  width: 18px;
+  flex: none;
+}
+.fp-segment {
+  width: 22px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--accent-a33);
+}
+.fp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.fp-pill {
+  width: 16px;
+  height: 5px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--bg-4);
+}
+.fp-content {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--fp-side);
+  transition: grid-template-columns 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.fp-gallery {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11px, 1fr));
+  align-content: start;
+  gap: 3px;
+  overflow: hidden;
+  padding: 5px;
+}
+.fp-tile {
+  aspect-ratio: 2 / 3;
+  border-radius: 2px;
+  background: linear-gradient(160deg, var(--accent-a33), var(--accent-a12));
+}
+.fp-tile:nth-child(3n + 2) {
+  background: linear-gradient(160deg, var(--accent-a12), var(--bg-4));
+}
+.fp-side {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border-left: 1px solid var(--line);
+}
+.fp-field {
+  height: 16px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg-1);
+}
+.fp-go {
+  width: 7px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: var(--green);
+}
+.fp-go.wide {
+  width: auto;
+  margin-top: auto;
+}
+.fp-history {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 3px;
+  border-left: 1px solid var(--line);
+}
+.fp-history .fp-tile {
+  flex: none;
+}
+.fp-queue {
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  border-top: 1px solid var(--line);
+}
+.fp-queue .fp-line {
+  width: 20px;
+}
+.fp-line {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+}
+.fp-line.accent {
+  background: var(--accent);
+}
+.fp-palette {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 3px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg-5);
+  box-shadow: 0 2px 6px #0008;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+.fp-palette > i:last-child {
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: var(--text-2);
+}
+.fp-palette.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.fp-part.off {
+  border-width: 0;
+}
+/* 마우스를 올리면 숨는 곳이 돌아와 파란 칸으로 보인다. */
+.focus-level-card:hover .fp-part.off {
+  background: var(--accent-a12);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.focus-level-card:hover .fp-part.off > * {
+  opacity: 0.35;
+}
+.focus-level-card:hover .fp-palette.on {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fp-window,
+  .fp-window * {
+    transition: none;
+  }
+}
+
+/* ── 가장자리에 마우스를 대면 보이기 ─────────────── */
+.edge-peek {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 6px;
+}
+.app-shell.peek-left.sidebar-hidden {
+  --peek-left: var(--sidebar-width, 240px);
+}
+.prompt-panel-view.history-collapsed {
+  --peek-right: var(--history-panel-width, 220px);
+}
+.app-shell.peek-left.sidebar-hidden > .sidebar,
+.app-shell.peek-left .prompt-panel.stage-hidden,
+.app-shell.peek-left .library-list.stage-hidden,
+.app-shell.peek-right .history-panel.stage-hidden,
+.app-shell.peek-right .detail-body.side-hidden > .detail-side,
+.app-shell.peek-right .canvas-view.side-hidden > .canvas-settings {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 45;
+  box-shadow: 0 0 28px #000a;
+  animation: fade-in 120ms ease both;
+}
+.app-shell.peek-left.sidebar-hidden > .sidebar {
+  left: 0;
+  z-index: 46;
+  width: var(--sidebar-width, 240px);
+}
+.app-shell.peek-left .prompt-panel.stage-hidden {
+  left: var(--peek-left, 0px);
+  width: var(--prompt-panel-width, 300px);
+}
+.app-shell.peek-left .library-list.stage-hidden {
+  left: var(--peek-left, 0px);
+  width: var(--library-list-width, 260px);
+}
+.app-shell.peek-right .history-panel.stage-hidden {
+  right: 0;
+  z-index: 46;
+  width: var(--history-panel-width, 220px);
+}
+.app-shell.peek-right .detail-body.side-hidden > .detail-side,
+.app-shell.peek-right .canvas-view.side-hidden > .canvas-settings {
+  right: var(--peek-right, 0px);
+  width: var(--side-panel-width, 360px);
+}
