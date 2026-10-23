@@ -83,6 +83,7 @@ export function useGlobalShortcuts(): void {
       if (plain && key === 'F1') action = () => setSettingsOpen(true, 'keys');
       if (plain && key === 'F2') action = requestRename;
       if (plain && key === 'F5') action = () => void refreshView();
+      if (plain && key === 'F7') action = toggleHistory;
       if (ctrl && key === 'Tab') action = () => cycleProject(event.shiftKey ? -1 : 1);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);
@@ -90,7 +91,6 @@ export function useGlobalShortcuts(): void {
         action = () => void importJsonFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = toggleSidebar;
-      if (ctrl && !event.shiftKey && key.toLowerCase() === 'h') action = toggleHistory;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;
