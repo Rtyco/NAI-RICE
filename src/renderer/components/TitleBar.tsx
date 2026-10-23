@@ -79,7 +79,7 @@ export function TitleBar() {
       <div className="titlebar-actions">
         <button
           className={`titlebar-action ${focusing ? 'active' : ''}`}
-          title={focusing ? '집중 모드 끝내기 (Tab)' : '집중 모드: 패널을 한 번에 숨기기 (Tab)'}
+          title={focusing ? '집중 모드 끝내기 (Tab)' : '집중 모드 (Tab)'}
           aria-label="집중 모드"
           aria-pressed={focusing}
           onClick={toggleFocusMode}

@@ -137,7 +137,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                   rows={2}
                   value={emotion.negative ?? ''}
                   aria-label={`${emotion.name} 씬 네거티브`}
-                  placeholder="이 씬에서만 뺄 태그. 씬 프롬프트와 같은 쪽 네거티브에 붙습니다"
+                  placeholder="이 씬에서만 뺄 태그"
                   onChange={(negative) =>
                     save((item) =>
                       updateEmotion(item, emotion.id, { negative: negative || undefined }),

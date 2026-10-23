@@ -52,12 +52,8 @@ import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
 
 const MODES: Record<ProjectMode, ModeInfo> = {
-  reference: {
-    label: '인페인트',
-    icon: 'reference',
-    title: '참고 이미지 옆에 인페인트로 그립니다',
-  },
-  txt2img: { label: '일반 생성', icon: 'sparkle', title: '참고 이미지 없이 프롬프트로만 그립니다' },
+  reference: { label: '인페인트', icon: 'reference' },
+  txt2img: { label: '일반 생성', icon: 'sparkle' },
 };
 
 const MAX_VARIANTS = 20;

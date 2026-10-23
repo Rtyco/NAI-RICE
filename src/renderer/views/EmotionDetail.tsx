@@ -120,7 +120,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       label: '프롬프트 복원',
       icon: 'undo',
       group: 'main',
-      title: '이 결과를 만들 때의 씬 프롬프트와 씬 네거티브로 되돌립니다',
       disabled:
         record.emotionPrompt === emotion.prompt &&
         (record.emotionNegative ?? '') === (emotion.negative ?? ''),

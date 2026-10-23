@@ -223,8 +223,8 @@ function FindPanelBody() {
     const confirmed = await confirmDialog({
       title: only ? '이 항목에서 바꾸기' : '라이브러리 전체 바꾸기',
       message: `${libraryHits.length}개 ${names ? '이름' : '칸'}에서 ${libraryCount}개를 ${
-        shown ? `「${shown}」(으)로 바꿉니다` : '지웁니다'
-      }. ${names ? '바꾸면 비게 되는 이름은 그대로 둡니다.' : '생성 기록은 바꾸지 않습니다.'}`,
+        shown ? '바꿉니다' : '지웁니다'
+      }. 「${query}」${shown ? ` → 「${shown}」` : ''}`,
       confirmLabel: '모두 바꾸기',
     });
     if (!confirmed) return;
@@ -306,7 +306,7 @@ function FindPanelBody() {
           <span className="find-indent" />
           <input
             value={replacement}
-            placeholder={wholeTag && !names ? '바꿀 내용 (비우면 태그를 지웁니다)' : '바꿀 내용'}
+            placeholder="바꿀 내용"
             aria-label="바꿀 내용"
             onChange={(event) => useFind.setState({ replacement: event.target.value })}
             onKeyDown={onReplaceKey}
@@ -369,9 +369,6 @@ function FindOptions(props: {
         <button
           className={scope === 'field' ? 'active' : ''}
           disabled={!props.fieldAvailable || names}
-          title={
-            props.fieldAvailable ? undefined : '프롬프트 칸에서 Ctrl+F를 누르면 고를 수 있습니다'
-          }
           onClick={() => useFind.setState({ scope: 'field' })}
         >
           이 칸
@@ -379,11 +376,6 @@ function FindOptions(props: {
         <button
           className={scope === 'item' ? 'active' : ''}
           disabled={!props.itemAvailable || !props.libraryAllowed}
-          title={
-            props.itemAvailable
-              ? undefined
-              : '라이브러리 항목이나 자유 생성 화면을 열면 고를 수 있습니다'
-          }
           onClick={() => useFind.setState({ scope: 'item' })}
         >
           이 항목
@@ -391,13 +383,12 @@ function FindOptions(props: {
         <button
           className={scope === 'library' ? 'active' : ''}
           disabled={!props.libraryAllowed}
-          title={props.libraryAllowed ? undefined : '열린 창을 닫으면 고를 수 있습니다'}
           onClick={() => useFind.setState({ scope: 'library' })}
         >
           라이브러리 전체
         </button>
       </span>
-      <label title="쉼표로 나뉜 태그와 통째로 같을 때만 찾습니다. 끄면 글자가 들어 있는 곳을 모두 찾습니다">
+      <label>
         <input
           type="checkbox"
           checked={wholeTag}
@@ -406,7 +397,7 @@ function FindOptions(props: {
         />
         태그 단위
       </label>
-      <label title="프롬프트 대신 항목·프롬프트 세트·씬·조각 이름에서 찾고 바꿉니다. 이름은 글자가 들어 있으면 찾습니다">
+      <label>
         <input
           type="checkbox"
           checked={names}
@@ -415,7 +406,7 @@ function FindOptions(props: {
         이름만
       </label>
       {props.recordsAllowed && (
-        <label title="이미 만든 결과의 프롬프트에서도 찾습니다. 바꾸지는 않습니다">
+        <label>
           <input
             type="checkbox"
             checked={includeRecords}
@@ -486,7 +477,7 @@ function FindResults(props: {
             );
           })}
           {records && records !== 'loading' && records.total > recordHits.length && (
-            <p className="hint">최신 {recordHits.length}개만 보여 줍니다.</p>
+            <p className="hint">최신 {recordHits.length}개</p>
           )}
           {records && records !== 'loading' && !records.total && (
             <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>

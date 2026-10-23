@@ -100,7 +100,7 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
       <PaletteButton
         icon="queue"
         label="생성 큐 보기"
-        title={`${status}${active.length ? ` · 남은 작업 ${active.length}` : ''} · 누르면 생성 큐 보기`}
+        title={`생성 큐 · ${status}${active.length ? ` · 남은 작업 ${active.length}` : ''}`}
         className={`palette-queue ${phase} ${open ? 'active' : ''}`}
         badge={active.length || undefined}
         aria-expanded={open}
@@ -198,7 +198,7 @@ function Palette({ queueShown }: { queueShown: boolean }) {
         aria-label="빠른 버튼"
         style={{ left, top }}
       >
-        <span className="palette-grip" title="끌어서 옮기기" onPointerDown={onPointerDown}>
+        <span className="palette-grip" onPointerDown={onPointerDown}>
           <Icon name="grip" size={14} />
         </span>
         <div className="palette-slot" ref={setPaletteSlot} />

@@ -1,14 +1,12 @@
 import type { AidMode, CharacterReference, Project, Vibe } from '../../core/domain/types';
 import { aidItems, projectAid, projectAidMode, type AidChoice } from '../../core/model/defaults';
 import { modelLabel, supportsReferenceAid } from '../../core/providers/NaiModels';
+import { withRo } from '../lib/korean';
 import { pictureMedia, useLibrary } from '../store';
 import { ChecklistChip, type ChecklistItem } from './ChainChip';
 import { Toggle } from './ui';
 
-const AID_MODES: Record<AidMode, { label: string; title: string }> = {
-  character: { label: '레퍼런스', title: '캐릭터 레퍼런스를 씁니다' },
-  vibe: { label: '바이브', title: '바이브를 씁니다' },
-};
+const AID_MODES: Record<AidMode, string> = { character: '레퍼런스', vibe: '바이브' };
 
 export type AidValue = AidChoice & Pick<Project, 'normalizeVibes'>;
 
@@ -45,7 +43,7 @@ export function AidChip(props: {
   const names = ids.map((id) => list.find((item) => item.id === id)?.name ?? '(없음)');
   const first = list.find((item) => item.id === ids[0]);
   const switchMode = {
-    title: `${AID_MODES[mode].title} · 누르면 ${AID_MODES[next].label}로 바꿉니다`,
+    title: `${withRo(AID_MODES[next])} 바꾸기`,
     run: () => patch({ aidMode: next }),
   };
   return (
@@ -60,7 +58,7 @@ export function AidChip(props: {
       before={
         <span className="segmented chain-chip-switch">
           <button className="active blue" title={switchMode.title} onClick={switchMode.run}>
-            {AID_MODES[mode].label}
+            {AID_MODES[mode]}
           </button>
         </span>
       }

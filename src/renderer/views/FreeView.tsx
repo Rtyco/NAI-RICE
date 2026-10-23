@@ -157,7 +157,6 @@ export function FreeView() {
             label: '프롬프트 복원',
             icon: 'undo',
             group: 'main',
-            title: '이 결과를 만들 때 입력한 프롬프트와 네거티브로 되돌립니다',
             disabled:
               record.emotionPrompt === free.prompt &&
               (record.emotionNegative ?? '') === free.negative,
