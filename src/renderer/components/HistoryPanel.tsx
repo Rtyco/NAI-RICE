@@ -103,7 +103,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
   if (collapsed) return null;
   return (
     <aside className="history-panel" aria-label="히스토리">
-      <button className="history-head" title="히스토리 접기 (F7)" onClick={toggleHistory}>
+      <button className="history-head" title="히스토리 접기 (F8)" onClick={toggleHistory}>
         <b>히스토리</b>
         <small>{records.length}</small>
         <Icon name="chevron" size={16} />
@@ -148,7 +148,7 @@ export function HistoryToggle() {
     <button
       className="icon-button"
       aria-label="히스토리 열기"
-      title="히스토리 열기 (F7)"
+      title="히스토리 열기 (F8)"
       onClick={toggleHistory}
     >
       <Icon name="panel-right" size={18} />

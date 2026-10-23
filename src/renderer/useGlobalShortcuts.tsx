@@ -9,6 +9,8 @@ import { openFind } from './find';
 import { requestRename } from './renameRequest';
 import { SECTIONS } from './sections';
 import {
+  cycleLibraryList,
+  cyclePromptPanel,
   cycleSidebar,
   flushSaves,
   loadGenerations,
@@ -17,6 +19,7 @@ import {
   refreshAccount,
   setSettingsOpen,
   toast,
+  toggleFilmstrip,
   toggleHistory,
   useStore,
 } from './store';
@@ -47,6 +50,13 @@ function cycleProject(step: 1 | -1): void {
         : projects.length - 1
       : (index + step + projects.length) % projects.length;
   openProject(projects[next].id);
+}
+
+/** 라이브러리에서는 목록, 작업·자유 생성에서는 프롬프트 패널 */
+function cycleLeftPanel(): void {
+  const { view } = useStore.getState();
+  if (view.kind === 'library') cycleLibraryList();
+  else if (view.kind === 'project' || view.kind === 'free') cyclePromptPanel();
 }
 
 async function refreshView(): Promise<void> {
@@ -84,7 +94,10 @@ export function useGlobalShortcuts(): void {
       if (plain && key === 'F1') action = () => setSettingsOpen(true, 'keys');
       if (plain && key === 'F2') action = requestRename;
       if (plain && key === 'F5') action = () => void refreshView();
-      if (plain && key === 'F7') action = toggleHistory;
+      // Lightroom처럼 F6 이미지 목록, F7 왼쪽 패널, F8 오른쪽(히스토리)
+      if (plain && key === 'F6') action = toggleFilmstrip;
+      if (plain && key === 'F7') action = cycleLeftPanel;
+      if (plain && key === 'F8') action = toggleHistory;
       if (ctrl && key === 'Tab') action = () => cycleProject(event.shiftKey ? -1 : 1);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);

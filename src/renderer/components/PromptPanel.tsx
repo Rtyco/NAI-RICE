@@ -137,7 +137,7 @@ export function PromptPanel(props: {
         <div className="library-list-head">
           <button
             className="icon-button library-list-toggle"
-            title={stageTitle('프롬프트 패널', stage)}
+            title={stageTitle('프롬프트 패널', stage, 'F7')}
             aria-label={stageTitle('프롬프트 패널', stage)}
             onClick={cyclePromptPanel}
           >
@@ -176,7 +176,7 @@ export function PromptPanel(props: {
       <div className="library-list-head">
         <button
           className="icon-button library-list-toggle"
-          title={stageTitle('프롬프트 패널', stage)}
+          title={stageTitle('프롬프트 패널', stage, 'F7')}
           aria-label={stageTitle('프롬프트 패널', stage)}
           onClick={cyclePromptPanel}
         >
@@ -319,7 +319,7 @@ export function PromptPanelToggle() {
   return (
     <button
       className="icon-button"
-      title={stageTitle('프롬프트 패널', 'hidden')}
+      title={stageTitle('프롬프트 패널', 'hidden', 'F7')}
       aria-label={stageTitle('프롬프트 패널', 'hidden')}
       onClick={cyclePromptPanel}
     >

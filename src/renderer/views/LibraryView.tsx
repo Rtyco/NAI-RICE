@@ -77,7 +77,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const [dragging, setDragging] = useState<string[]>([]);
   const stage = useStore((state) => state.libraryListStage);
   const collapsed = stage === 'icons';
-  const listTitle = stageTitle(`${info.label} 목록`, stage);
+  const listTitle = stageTitle(`${info.label} 목록`, stage, 'F7');
   const reopenList = stage === 'hidden' && (
     <button
       className="icon-button"

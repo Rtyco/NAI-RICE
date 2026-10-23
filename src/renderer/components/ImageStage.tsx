@@ -227,7 +227,7 @@ export function ImageStage(props: {
   const filmstripButton = props.filmstrip && (
     <button
       className={`icon-button ${collapsed ? '' : 'active'}`}
-      title={collapsed ? '이미지 목록 펴기' : '이미지 목록 접기'}
+      title={collapsed ? '이미지 목록 펴기 (F6)' : '이미지 목록 접기 (F6)'}
       aria-pressed={!collapsed}
       onClick={toggleFilmstrip}
     >
