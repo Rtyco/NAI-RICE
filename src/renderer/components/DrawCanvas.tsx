@@ -9,55 +9,15 @@ import {
   type CanvasImage,
 } from '../lib/image';
 import { useCanvasViewport } from './canvasViewport';
-import { CanvasZoom, UndoRedoButtons } from './CanvasControls';
-import { Icon } from './Icon';
-
-type Tool = 'pen' | 'eraser' | 'fill' | 'picker';
-type Tip = 'round' | 'soft' | 'square';
-
-const TOOLS: Array<{
-  id: Tool;
-  label: string;
-  key: string;
-  icon: 'pen' | 'eraser' | 'bucket' | 'eyedropper';
-}> = [
-  { id: 'pen', label: '펜', key: 'b', icon: 'pen' },
-  { id: 'eraser', label: '지우개', key: 'e', icon: 'eraser' },
-  { id: 'fill', label: '채우기', key: 'g', icon: 'bucket' },
-  { id: 'picker', label: '스포이트', key: 'i', icon: 'eyedropper' },
-];
-
-const TIPS: Array<{ id: Tip; label: string }> = [
-  { id: 'round', label: '둥근' },
-  { id: 'soft', label: '부드러운' },
-  { id: 'square', label: '네모' },
-];
-
-const PALETTE = [
-  '#000000',
-  '#ffffff',
-  '#808080',
-  '#f5d0b5',
-  '#e53935',
-  '#fb8c00',
-  '#fdd835',
-  '#43a047',
-  '#00acc1',
-  '#1e88e5',
-  '#5e35b1',
-  '#d81b60',
-  '#6d4c41',
-];
+import { useDrawSettings, type DrawTip } from './drawSettings';
+import { DrawToolbar } from './DrawToolbar';
 
 /** 한 장이 1216×832 기준 약 4MB의 GPU 메모리다. */
 const HISTORY_LIMIT = 20;
-const MAX_SIZE = 300;
-/** 포토샵처럼 이 안에 숫자를 하나 더 누르면 두 자리 불투명도(4, 5 → 45%) */
-const OPACITY_TYPING_MS = 400;
 
 type Point = { x: number; y: number; pressure: number };
 
-/** `willReadFrequently`(CPU)면 보일 때마다 통째로 GPU에 올려 붓이 늦게 따라온다. 픽셀은 `readable` 사본에서 읽는다. */
+/** `willReadFrequently`(CPU)면 보일 때마다 통째로 GPU에 올려 붓이 늦게 따라온다. 픽셀은 `composite()` 사본에서 읽는다. */
 function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return canvas.getContext('2d')!;
 }
@@ -66,7 +26,7 @@ function stamp(
   context: CanvasRenderingContext2D,
   point: Point,
   size: number,
-  tip: Tip,
+  tip: DrawTip,
   color: string,
 ) {
   const radius = Math.max(0.5, (size * point.pressure) / 2);
@@ -113,16 +73,10 @@ export function DrawCanvas(props: {
   const layerRef = useRef<HTMLCanvasElement | null>(null);
   const strokeRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [tool, setTool] = useState<Tool>('pen');
-  const [tip, setTip] = useState<Tip>('round');
-  const [size, setSize] = useState(12);
-  const [opacity, setOpacity] = useState(100);
-  const [tolerance, setTolerance] = useState(32);
-  const [color, setColor] = useState('#000000');
-  const [backColor, setBackColor] = useState('#ffffff');
+  const settings = useDrawSettings();
+  const { tool, tip, size, opacity, tolerance, color, backColor } = settings;
   /** 앞 획의 끝. Shift+클릭이 여기서 곧게 잇는다. */
   const lastPoint = useRef<Point | null>(null);
-  const typedOpacity = useRef<{ digit: number; at: number } | null>(null);
   const [dirty, setDirty] = useState(false);
   const undoStack = useRef<HTMLCanvasElement[]>([]);
   const redoStack = useRef<HTMLCanvasElement[]>([]);
@@ -213,15 +167,6 @@ export function DrawCanvas(props: {
     changed();
   };
 
-  const typeOpacity = (digit: number) => {
-    const now = performance.now();
-    const previous = typedOpacity.current;
-    const second = previous && now - previous.at < OPACITY_TYPING_MS;
-    const value = second ? previous.digit * 10 + digit : digit === 0 ? 100 : digit * 10;
-    typedOpacity.current = second ? null : { digit, at: now };
-    setOpacity(Math.max(1, Math.min(100, value)));
-  };
-
   const pointAt = (bounds: DOMRect, event: PointerEvent): Point => ({
     x: ((event.clientX - bounds.left) / bounds.width) * width,
     y: ((event.clientY - bounds.top) / bounds.height) * height,
@@ -235,7 +180,7 @@ export function DrawCanvas(props: {
     const x = Math.min(width - 1, Math.max(0, Math.floor(point.x)));
     const y = Math.min(height - 1, Math.max(0, Math.floor(point.y)));
     const [r, g, b] = composite().getImageData(x, y, 1, 1).data;
-    setColor(rgbToHex(r, g, b));
+    settings.setColor(rgbToHex(r, g, b));
   };
 
   const fill = (point: Point) => {
@@ -363,7 +308,7 @@ export function DrawCanvas(props: {
       if (dialog && !dialog.contains(layerRef.current)) return;
       const key = event.key.toLowerCase();
       const digit = /^(?:Digit|Numpad)(\d)$/.exec(event.code)?.[1];
-      const shortcut = TOOLS.find((item) => item.key === key);
+      const shortcut = settings.toolForKey(key);
       // 포토샵 단축키. 숫자는 화면 이동 단축키보다 먼저 받아야 해 캡처 단계에서 막는다.
       if (event.ctrlKey || event.metaKey) {
         if (key === 'z' && event.shiftKey) redo();
@@ -376,21 +321,17 @@ export function DrawCanvas(props: {
         else return;
       } else if (event.code === 'Space') setSpaceHeld(true);
       else if (event.code === 'BracketLeft') {
-        if (event.shiftKey) setTip('soft');
-        else setSize((value) => Math.max(1, Math.round(value / 1.2)));
+        if (event.shiftKey) settings.setTip('soft');
+        else settings.shrink();
       } else if (event.code === 'BracketRight') {
-        if (event.shiftKey) setTip('round');
-        else setSize((value) => Math.min(MAX_SIZE, Math.round(value * 1.2) + 1));
+        if (event.shiftKey) settings.setTip('round');
+        else settings.grow();
       } else if (event.shiftKey) return;
-      else if (digit) typeOpacity(Number(digit));
-      else if (key === 'x') {
-        setColor(backColor);
-        setBackColor(color);
-      } else if (key === 'd') {
-        setColor('#000000');
-        setBackColor('#ffffff');
-      } else if (event.key === 'Delete' || event.key === 'Backspace') clearDrawing();
-      else if (shortcut) setTool(shortcut.id);
+      else if (digit) settings.typeOpacity(Number(digit));
+      else if (key === 'x') settings.swapColors();
+      else if (key === 'd') settings.resetColors();
+      else if (event.key === 'Delete' || event.key === 'Backspace') clearDrawing();
+      else if (shortcut) settings.setTool(shortcut);
       else return;
       event.preventDefault();
       event.stopPropagation();
@@ -406,124 +347,20 @@ export function DrawCanvas(props: {
     };
   });
 
-  const brushing = tool === 'pen' || tool === 'eraser';
-
   return (
     <section className="canvas-card draw-canvas">
-      <div className="canvas-toolbar">
-        <div className="segmented" role="group" aria-label="도구">
-          {TOOLS.map((item) => (
-            <button
-              key={item.id}
-              className={tool === item.id ? 'active blue' : ''}
-              aria-pressed={tool === item.id}
-              title={`${item.label} (${item.key.toUpperCase()})`}
-              onClick={() => setTool(item.id)}
-            >
-              <Icon name={item.icon} size={14} /> {item.label}
-            </button>
-          ))}
-        </div>
-        <span className="zone-divider" />
-        <div
-          className="draw-colors"
-          title="전경색·배경색 (X: 바꾸기 · D: 검정·흰색 · Alt+클릭: 스포이트)"
-        >
-          <input
-            type="color"
-            className="back"
-            value={backColor}
-            aria-label="배경색"
-            onChange={(event) => setBackColor(event.target.value)}
-          />
-          <input
-            type="color"
-            value={color}
-            aria-label="전경색"
-            onChange={(event) => setColor(event.target.value)}
-          />
-        </div>
-        <div className="draw-palette" role="group" aria-label="팔레트">
-          {PALETTE.map((swatch) => (
-            <button
-              key={swatch}
-              className={swatch === color ? 'active' : ''}
-              style={{ background: swatch }}
-              title={swatch}
-              aria-label={`색 ${swatch}`}
-              onClick={() => setColor(swatch)}
-            />
-          ))}
-        </div>
-        <span className="zone-divider" />
-        <div className={`brush-settings ${brushing ? '' : 'idle'}`}>
-          <div className="segmented" role="group" aria-label="펜 끝">
-            {TIPS.map((item) => (
-              <button
-                key={item.id}
-                className={tip === item.id ? 'active' : ''}
-                aria-pressed={tip === item.id}
-                onClick={() => setTip(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <label className="range-field" title="크기 ([ / ]) · 끝 모양 (Shift+[ / ])">
-            크기
-            <input
-              type="range"
-              min="1"
-              max={MAX_SIZE}
-              value={size}
-              onChange={(event) => setSize(Number(event.target.value))}
-            />
-            <b>{size}px</b>
-          </label>
-        </div>
-        <label className="range-field" title="불투명도 (1~0)">
-          불투명도
-          <input
-            type="range"
-            min="1"
-            max="100"
-            value={opacity}
-            onChange={(event) => setOpacity(Number(event.target.value))}
-          />
-          <b>{opacity}%</b>
-        </label>
-        {tool === 'fill' && (
-          <label className="range-field">
-            허용 오차
-            <input
-              type="range"
-              min="0"
-              max="128"
-              value={tolerance}
-              onChange={(event) => setTolerance(Number(event.target.value))}
-            />
-            <b>{tolerance}</b>
-          </label>
-        )}
-        <span className="zone-divider" />
-        <UndoRedoButtons
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={undoStack.current.length > 0}
-          canRedo={redoStack.current.length > 0}
-        />
-        <button onClick={clearDrawing} title="모두 지우기 (Delete)">
-          그린 것 지우기
-        </button>
-        <div className="toolbar-zone view-zone">
-          <CanvasZoom view={view} />
-          {props.onApply && (
-            <button className="accent" disabled={!dirty} onClick={() => void apply()}>
-              이미지에 합치기
-            </button>
-          )}
-        </div>
-      </div>
+      <DrawToolbar
+        settings={settings}
+        view={view}
+        history={{
+          onUndo: undo,
+          onRedo: redo,
+          canUndo: undoStack.current.length > 0,
+          canRedo: redoStack.current.length > 0,
+        }}
+        onClear={clearDrawing}
+        apply={props.onApply && { pending: dirty, run: () => void apply() }}
+      />
       <div
         ref={view.viewport}
         className={`canvas-viewport ${view.panning ? 'panning' : ''} ${spaceHeld ? 'hand' : ''}`}

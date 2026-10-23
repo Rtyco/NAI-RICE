@@ -2,9 +2,9 @@ import type { useCanvasViewport } from './canvasViewport';
 import { Icon } from './Icon';
 import { ZOOM_STEP } from './zoom';
 
-type View = Pick<ReturnType<typeof useCanvasViewport>, 'scale' | 'zoomTo' | 'fit'>;
+export type ZoomView = Pick<ReturnType<typeof useCanvasViewport>, 'scale' | 'zoomTo' | 'fit'>;
 
-export function CanvasZoom({ view }: { view: View }) {
+export function CanvasZoom({ view }: { view: ZoomView }) {
   return (
     <span className="canvas-zoom">
       <button
