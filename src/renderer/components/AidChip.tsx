@@ -88,6 +88,19 @@ export function AidChip(props: {
       empty={`라이브러리에 ${label}가 없습니다.`}
       options={
         <>
+          {/* 접은 설정 줄에서는 칩의 전환 버튼이 숨는다. */}
+          <div className="segmented full aid-mode" role="group" aria-label="참고 방식">
+            {(['character', 'vibe'] as const).map((item) => (
+              <button
+                key={item}
+                className={item === mode ? 'active blue' : ''}
+                aria-pressed={item === mode}
+                onClick={() => patch({ aidMode: item })}
+              >
+                {AID_MODES[item]}
+              </button>
+            ))}
+          </div>
           {unsupported ? (
             <p className="warning-box aid-warning">
               {modelLabel(props.model!)}에서는 {label}를 쓸 수 없습니다. V4.5 모델로 바꾸십시오.

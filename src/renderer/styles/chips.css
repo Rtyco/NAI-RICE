@@ -377,6 +377,9 @@
   color: var(--faint);
   font-size: 11px;
 }
+.checklist-options .aid-mode {
+  margin: 2px 0 4px;
+}
 .checklist-options .aid-warning {
   margin: 0;
   font-size: 12px;
