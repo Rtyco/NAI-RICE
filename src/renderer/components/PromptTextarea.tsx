@@ -44,6 +44,43 @@ const MIRRORED = [
   'letterSpacing',
 ] as const;
 
+const layersOf = new WeakMap<Element, () => Array<HTMLElement | null>>();
+let layerObserver: ResizeObserver | undefined;
+
+/** 칸마다 읽고 쓰면 칸 수만큼 스타일을 다시 계산한다. 씬 40개 편집기를 열 때 그 비용이 컸다. */
+function mirrorLayers(textareas: Element[]): void {
+  const reads = textareas.map((textarea) => {
+    const style = getComputedStyle(textarea);
+    return {
+      layers: layersOf.get(textarea)?.() ?? [],
+      values: MIRRORED.map((key) => style[key]),
+      scrollTop: textarea.scrollTop,
+    };
+  });
+  for (const { layers, values, scrollTop } of reads)
+    for (const layer of layers) {
+      if (!layer) continue;
+      MIRRORED.forEach((key, index) => (layer.style[key] = values[index]));
+      layer.scrollTop = scrollTop;
+    }
+}
+
+/** 처음 관찰할 때도 알려 주므로 칠하기 전에 맞춰지고, 화면 밖 행은 보일 때 맞춘다. */
+function observeLayers(textarea: Element, layers: () => Array<HTMLElement | null>): () => void {
+  layerObserver ??= new ResizeObserver((entries) =>
+    mirrorLayers(entries.map((entry) => entry.target)),
+  );
+  layersOf.set(textarea, layers);
+  layerObserver.observe(textarea);
+  return () => layerObserver?.unobserve(textarea);
+}
+
+/** 새로 관찰하면 처음처럼 알려 줘 새 레이어를 다른 칸과 함께 맞춘다. Chromium은 관찰 중인 요소의 `observe`를 무시한다. */
+function refreshLayers(textarea: Element): void {
+  layerObserver?.unobserve(textarea);
+  layerObserver?.observe(textarea);
+}
+
 function tokenClass(token: SyntaxToken, matched: boolean): string {
   const names = [`syn-${token.kind}`];
   if (token.depth !== undefined) names.push(`syn-d${token.depth % 3}`);
@@ -335,21 +372,15 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
 
   useLayoutEffect(() => {
     const textarea = area.current;
-    const layers = [backdrop.current, findLayer.current];
     if (!textarea) return;
-    const sync = () => {
-      const style = getComputedStyle(textarea);
-      for (const layer of layers) {
-        if (!layer) continue;
-        for (const key of MIRRORED) layer.style[key] = style[key];
-        layer.scrollTop = textarea.scrollTop;
-      }
-    };
-    sync();
-    const observer = new ResizeObserver(sync);
-    observer.observe(textarea);
-    return () => observer.disconnect();
+    return observeLayers(textarea, () => [backdrop.current, findLayer.current]);
   }, []);
+
+  // 찾기 레이어는 찾은 곳이 있을 때만 생긴다.
+  const finding = marks.length > 0;
+  useLayoutEffect(() => {
+    if (finding && area.current) refreshLayers(area.current);
+  }, [finding]);
 
   useLayoutEffect(() => {
     if (!area.current) return;
@@ -393,9 +424,11 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
         <div ref={backdrop} className="syntax-backdrop" aria-hidden>
           {renderHighlights(value, report, matched)}
         </div>
-        <div ref={findLayer} className="syntax-backdrop find-layer" aria-hidden>
-          {marks.length > 0 && renderFindMarks(value, marks, findCurrent)}
-        </div>
+        {finding && (
+          <div ref={findLayer} className="syntax-backdrop find-layer" aria-hidden>
+            {renderFindMarks(value, marks, findCurrent)}
+          </div>
+        )}
         <textarea
           {...rest}
           ref={area}

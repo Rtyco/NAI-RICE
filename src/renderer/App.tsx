@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { ContextMenuHost } from './components/ContextMenu';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DialogHost } from './components/Dialogs';
@@ -22,7 +22,7 @@ import {
   subscribeToMain,
   useStore,
 } from './store';
-import { queueBarShownOf, sidebarStageOf, useLayout } from './layout';
+import { sidebarStageOf, useLayout } from './layout';
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
@@ -88,14 +88,25 @@ function Welcome() {
   );
 }
 
+/** 패널을 접고 펴도 안의 화면까지 다시 그리지 않게 레이아웃은 바깥 틀만 구독한다. */
+function AppShell({ children }: { children: ReactNode }) {
+  const sidebar = useLayout(sidebarStageOf);
+  const peek = useLayout((state) => state.peek);
+  return (
+    <main className={`app-shell sidebar-${sidebar} ${peek ? `peek-${peek}` : ''}`}>{children}</main>
+  );
+}
+
+function SidebarResizer() {
+  const open = useLayout((state) => sidebarStageOf(state) === 'open');
+  return open ? <PanelResizer panel="sidebar" /> : null;
+}
+
 export default function App() {
   const ready = useStore((state) => state.ready);
   const view = useStore((state) => state.view);
   const hasLibrary = useStore((state) => Boolean(state.library));
   const settingsOpen = useStore((state) => state.settingsOpen);
-  const sidebar = useLayout(sidebarStageOf);
-  const queueShown = useLayout(queueBarShownOf);
-  const peek = useLayout((state) => state.peek);
   const appearance = useStore((state) => state.library?.settings.appearance);
   const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
   const projectExists = useStore(
@@ -134,9 +145,9 @@ export default function App() {
   return (
     <>
       <TitleBar />
-      <main className={`app-shell sidebar-${sidebar} ${peek ? `peek-${peek}` : ''}`}>
+      <AppShell>
         {hasLibrary ? <Sidebar /> : <aside className="sidebar" />}
-        {sidebar === 'open' && <PanelResizer panel="sidebar" />}
+        <SidebarResizer />
         <div className="main-area">
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>
@@ -166,7 +177,7 @@ export default function App() {
             </div>
           </ErrorBoundary>
         </div>
-        {queueShown && <QueueBar />}
+        <QueueBar />
         <EdgePeek />
         <FloatingPalette />
         <Toasts />
@@ -175,7 +186,7 @@ export default function App() {
         <FindPanel />
         <ContextMenuHost />
         <DropZone />
-      </main>
+      </AppShell>
     </>
   );
 }

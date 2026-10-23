@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { QueueJobView } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
+import { queueBarShownOf, useLayout } from '../layout';
 import { openEmotion, openFree, openProject, useStore } from '../store';
 import { queueCommands, STATUS, summarizeQueue } from '../queueSummary';
 import { BottomSlotTarget } from './BottomSlot';
@@ -58,6 +59,11 @@ export function QueueJobs() {
 }
 
 export function QueueBar() {
+  const shown = useLayout(queueBarShownOf);
+  return shown ? <QueueBarContent /> : null;
+}
+
+function QueueBarContent() {
   const queue = useStore((state) => state.queue);
   const [open, setOpen] = useState(false);
 
