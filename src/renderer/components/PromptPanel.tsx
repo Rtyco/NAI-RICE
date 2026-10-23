@@ -143,7 +143,7 @@ export function PromptPanel(props: {
             aria-label={stageTitle('프롬프트 패널', stage)}
             onClick={cyclePromptPanel}
           >
-            <Icon name="sidebar" size={18} />
+            <Icon name="chevron-left" size={18} />
           </button>
         </div>
         <div className="prompt-panel-icons">
@@ -182,7 +182,7 @@ export function PromptPanel(props: {
           aria-label={stageTitle('프롬프트 패널', stage)}
           onClick={cyclePromptPanel}
         >
-          <Icon name="sidebar" size={18} />
+          <Icon name="chevron-left" size={18} />
         </button>
         <div className="library-list-title">
           <b>프롬프트</b>
@@ -325,7 +325,7 @@ export function PromptPanelToggle() {
       aria-label={stageTitle('프롬프트 패널', 'hidden')}
       onClick={cyclePromptPanel}
     >
-      <Icon name="sidebar" size={18} />
+      <Icon name="chevron" size={18} />
     </button>
   );
 }

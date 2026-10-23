@@ -87,7 +87,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
       aria-label={listTitle}
       onClick={cycleLibraryList}
     >
-      <Icon name="sidebar" size={18} />
+      <Icon name="chevron" size={18} />
     </button>
   );
   const removeMany = (ids: string[]) =>
@@ -226,7 +226,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             aria-label={listTitle}
             onClick={cycleLibraryList}
           >
-            <Icon name="sidebar" size={18} />
+            <Icon name="chevron-left" size={18} />
           </button>
           {!collapsed && (
             <>
