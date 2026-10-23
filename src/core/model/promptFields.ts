@@ -1,24 +1,44 @@
 import type { GenerationRecord, Library } from '../domain/types';
 import { findRanges, replaceAll, type FindQuery, type TextRange } from '../prompts/PromptFind';
-import { mapPromptTexts } from './mutations';
+import {
+  mapPromptTexts,
+  patchItem,
+  renamePiece,
+  renamePieceSet,
+  updateEmotion,
+  updatePromptSet,
+} from './mutations';
 
-export type PromptFieldSection = 'presets' | 'characters' | 'emotionSets' | 'pieceSets' | 'free';
+type ItemSection =
+  | 'presets'
+  | 'characters'
+  | 'emotionSets'
+  | 'references'
+  | 'characterReferences'
+  | 'vibes'
+  | 'pieceSets';
 
-export type PromptField = {
-  section: PromptFieldSection;
-  /** 자유 생성은 빈 값 */
-  itemId: string;
+export type FindSection = ItemSection | 'free';
+
+/** 라이브러리 항목 하나. 자유 생성은 `itemId`가 빈 값이다. */
+export type FindPlace = { section: FindSection; itemId: string };
+
+export type FindTarget = 'prompts' | 'names';
+
+export type FindField = FindPlace & {
   /** 항목 이름부터 칸 이름까지 */
   path: string[];
   text: string;
 };
 
-export type PromptFieldHit = PromptField & { ranges: TextRange[] };
+export type FindFieldHit = FindField & { ranges: TextRange[] };
+
+type NameField = FindField & { rename: (library: Library, name: string) => Library };
 
 /** `mapPromptTexts`와 같은 칸을 돈다. */
-export function listPromptFields(library: Library): PromptField[] {
-  const fields: PromptField[] = [];
-  const add = (section: PromptFieldSection, itemId: string, path: string[], text = '') =>
+export function listPromptFields(library: Library): FindField[] {
+  const fields: FindField[] = [];
+  const add = (section: FindSection, itemId: string, path: string[], text = '') =>
     fields.push({ section, itemId, path, text });
   for (const preset of library.presets) {
     add('presets', preset.id, [preset.name, '공통 포지티브'], preset.commonPositive);
@@ -44,14 +64,111 @@ export function listPromptFields(library: Library): PromptField[] {
   return fields;
 }
 
-export function findInLibrary(library: Library, query: FindQuery): PromptFieldHit[] {
-  return listPromptFields(library)
-    .map((field) => ({ ...field, ranges: findRanges(field.text, query) }))
+/** 항목 이름과 그 안의 프롬프트 세트·씬·조각 이름 */
+function listNameFields(library: Library): NameField[] {
+  const fields: NameField[] = [];
+  const add = (
+    section: ItemSection,
+    itemId: string,
+    path: string[],
+    text: string,
+    rename: NameField['rename'],
+  ) => fields.push({ section, itemId, path, text, rename });
+  const itemName = (section: ItemSection, item: { id: string; name: string }) =>
+    add(section, item.id, [item.name, '이름'], item.name, (current, name) => {
+      if (section !== 'pieceSets')
+        return patchItem(current, section, item.id, (entry) => ({ ...entry, name }));
+      // 점이 들어간 모음 이름은 `<세트.조각>`으로 부를 수 없다.
+      return name.includes('.') ? current : renamePieceSet(current, item.id, name);
+    });
+  for (const preset of library.presets) itemName('presets', preset);
+  for (const character of library.characters) {
+    itemName('characters', character);
+    for (const set of character.promptSets)
+      add(
+        'characters',
+        character.id,
+        [character.name, set.name, '세트 이름'],
+        set.name,
+        (current, name) =>
+          patchItem(current, 'characters', character.id, (entry) =>
+            updatePromptSet(entry, set.id, { name }),
+          ),
+      );
+  }
+  for (const set of library.emotionSets) {
+    itemName('emotionSets', set);
+    for (const emotion of set.emotions)
+      add(
+        'emotionSets',
+        set.id,
+        [set.name, emotion.name, '씬 이름'],
+        emotion.name,
+        (current, name) =>
+          patchItem(current, 'emotionSets', set.id, (entry) =>
+            updateEmotion(entry, emotion.id, { name }),
+          ),
+      );
+  }
+  for (const reference of library.references) itemName('references', reference);
+  for (const reference of library.characterReferences) itemName('characterReferences', reference);
+  for (const vibe of library.vibes) itemName('vibes', vibe);
+  for (const set of library.pieceSets) {
+    itemName('pieceSets', set);
+    for (const piece of set.pieces)
+      add('pieceSets', set.id, [set.name, piece.name, '조각 이름'], piece.name, (current, name) =>
+        renamePiece(current, set.id, piece.id, name),
+      );
+  }
+  return fields;
+}
+
+const inPlace = (place: FindPlace, only?: FindPlace) =>
+  !only || (place.section === only.section && place.itemId === only.itemId);
+
+/** 이름은 태그 목록이 아니라서 「태그 단위」와 관계없이 글자가 들어 있으면 찾는다. */
+function targetQuery(query: FindQuery, target: FindTarget): FindQuery {
+  return target === 'names' ? { ...query, wholeTag: false } : query;
+}
+
+export function findInLibrary(
+  library: Library,
+  query: FindQuery,
+  target: FindTarget = 'prompts',
+  only?: FindPlace,
+): FindFieldHit[] {
+  const fields = target === 'names' ? listNameFields(library) : listPromptFields(library);
+  return fields
+    .filter((field) => inPlace(field, only))
+    .map(({ section, itemId, path, text }) => ({
+      section,
+      itemId,
+      path,
+      text,
+      ranges: findRanges(text, targetQuery(query, target)),
+    }))
     .filter((field) => field.ranges.length > 0);
 }
 
-export function replaceInLibrary(library: Library, query: FindQuery, replacement: string): Library {
-  return mapPromptTexts(library, (text) => replaceAll(text, query, replacement));
+/** 바꾸면 비게 되는 이름은 그대로 둔다. */
+export function replaceInLibrary(
+  library: Library,
+  query: FindQuery,
+  replacement: string,
+  target: FindTarget = 'prompts',
+  only?: FindPlace,
+): Library {
+  if (target === 'prompts')
+    return mapPromptTexts(library, (text, place) =>
+      inPlace(place, only) ? replaceAll(text, query, replacement) : text,
+    );
+  let next = library;
+  for (const field of listNameFields(library)) {
+    if (!inPlace(field, only)) continue;
+    const name = replaceAll(field.text, targetQuery(query, target), replacement);
+    if (name !== field.text && name.trim()) next = field.rename(next, name);
+  }
+  return next;
 }
 
 export type GenerationFindHit = {

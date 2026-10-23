@@ -4,8 +4,8 @@ import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import {
   findInLibrary,
   replaceInLibrary,
+  type FindFieldHit,
   type GenerationFindHit,
-  type PromptFieldHit,
 } from '../../core/model/promptFields';
 import {
   editRange,
@@ -16,7 +16,7 @@ import {
 } from '../../core/prompts/PromptFind';
 import type { GenerationFindResult } from '../../shared/ipc';
 import { libraryApi } from '../desktop';
-import { closeFind, findQuery, useFind } from '../find';
+import { closeFind, findPlaceOf, findQuery, useFind } from '../find';
 import { SECTIONS } from '../sections';
 import {
   errorMessage,
@@ -62,7 +62,23 @@ function Snippet({ text, range }: { text: string; range: TextRange }) {
   );
 }
 
-function sectionLabel(section: PromptFieldHit['section']): string {
+/** 옮겨 간 화면이 그려진 뒤 그 이름 칸에 커서를 두고 찾은 글자를 고른다. */
+function revealName(text: string, range: TextRange, tries = 10) {
+  requestAnimationFrame(() => {
+    const input = [...document.querySelectorAll<HTMLInputElement>('.main-area input')].find(
+      (item) => item.value === text,
+    );
+    if (!input) {
+      if (tries > 1) revealName(text, range, tries - 1);
+      return;
+    }
+    input.scrollIntoView({ block: 'center' });
+    input.focus();
+    input.setSelectionRange(range.start, range.end);
+  });
+}
+
+function sectionLabel(section: FindFieldHit['section']): string {
   if (section === 'free') return '자유 생성';
   return SECTIONS.find((item) => item.id === section)?.label ?? '';
 }
@@ -74,11 +90,10 @@ export function FindPanel() {
 
 function FindPanelBody() {
   const find = useFind();
-  const { replacing, query, replacement, wholeTag, includeRecords, target, undo } = find;
+  const { replacing, query, replacement, wholeTag, includeRecords, names, target, undo } = find;
   const storedCurrent = find.current;
   const library = useStore((state) => state.library)!;
-  // 화면을 옮기면 「이 칸」의 입력칸이 남아 있는지 다시 본다.
-  useStore((state) => state.view);
+  const view = useStore((state) => state.view);
   const dialogOpen = useDialogs((state) => state.stack.length > 0);
   const settingsOpen = useStore((state) => state.settingsOpen);
   const input = useRef<HTMLInputElement>(null);
@@ -86,8 +101,13 @@ function FindPanelBody() {
   const [picked, setPicked] = useState(-1);
   const [records, setRecords] = useState<GenerationFindResult | 'loading'>();
 
-  const fieldTarget = find.scope === 'field' && target?.isConnected ? target : undefined;
+  // 화면을 옮기면 「이 칸」의 입력칸이 사라질 수 있다.
+  const fieldTarget = find.scope === 'field' && !names && target?.isConnected ? target : undefined;
   const libraryAllowed = !dialogOpen && !settingsOpen;
+  const place = useMemo(() => findPlaceOf(view, library), [view, library]);
+  const only = !fieldTarget && find.scope !== 'library' ? place : undefined;
+  const scope = fieldTarget ? 'field' : only ? 'item' : 'library';
+  const findTarget = names ? 'names' : 'prompts';
   const searching = query.trim().length > 0;
   const projectIds = library.projects.map((project) => project.id).join('\n');
 
@@ -113,16 +133,19 @@ function FindPanelBody() {
     if (storedCurrent !== current) useFind.setState({ current });
   }, [storedCurrent, current]);
   const libraryHits = useMemo(
-    () => (!fieldTarget && searching ? findInLibrary(library, { text: query, wholeTag }) : []),
-    [fieldTarget, searching, library, query, wholeTag],
+    () =>
+      !fieldTarget && searching
+        ? findInLibrary(library, { text: query, wholeTag }, findTarget, only)
+        : [],
+    [fieldTarget, searching, library, query, wholeTag, findTarget, only],
   );
   const libraryCount = libraryHits.reduce((sum, hit) => sum + hit.ranges.length, 0);
   const recordHits = records && records !== 'loading' ? records.hits : [];
 
-  useEffect(() => setPicked(-1), [query, wholeTag, fieldTarget]);
+  useEffect(() => setPicked(-1), [query, wholeTag, scope, names]);
 
   useEffect(() => {
-    if (fieldTarget || !includeRecords || !searching) {
+    if (scope !== 'library' || names || !includeRecords || !searching) {
       setRecords(undefined);
       return;
     }
@@ -145,12 +168,13 @@ function FindPanelBody() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [fieldTarget, includeRecords, searching, query, wholeTag, projectIds]);
+  }, [scope, names, includeRecords, searching, query, wholeTag, projectIds]);
 
-  const openHit = (hit: PromptFieldHit) => {
+  const openHit = (hit: FindFieldHit) => {
     if (hit.section === 'free') openFree();
     else openLibrary(hit.section, hit.itemId);
-    useFind.setState({ reveal: hit.text });
+    if (names) revealName(hit.text, hit.ranges[0]);
+    else useFind.setState({ reveal: hit.text });
   };
 
   const openRecord = (hit: GenerationFindHit) => {
@@ -227,17 +251,19 @@ function FindPanelBody() {
       return;
     }
     if (!libraryCount || !libraryAllowed) return;
-    const shown = wholeTag ? replacement.trim() : replacement;
+    const shown = wholeTag && !names ? replacement.trim() : replacement;
     const confirmed = await confirmDialog({
-      title: '라이브러리 전체 바꾸기',
-      message: `${libraryHits.length}개 칸에서 ${libraryCount}개를 ${
+      title: only ? '이 항목에서 바꾸기' : '라이브러리 전체 바꾸기',
+      message: `${libraryHits.length}개 ${names ? '이름' : '칸'}에서 ${libraryCount}개를 ${
         shown ? `「${shown}」(으)로 바꿉니다` : '지웁니다'
-      }. 생성 기록은 바꾸지 않습니다.`,
+      }. ${names ? '바꾸면 비게 되는 이름은 그대로 둡니다.' : '생성 기록은 바꾸지 않습니다.'}`,
       confirmLabel: '모두 바꾸기',
     });
     if (!confirmed) return;
     const before = useStore.getState().library!;
-    updateLibrary((current) => replaceInLibrary(current, findQuery(find), replacement));
+    updateLibrary((current) =>
+      replaceInLibrary(current, findQuery(find), replacement, findTarget, only),
+    );
     useFind.setState({
       undo: { before, after: useStore.getState().library!, count: libraryCount },
     });
@@ -312,7 +338,7 @@ function FindPanelBody() {
           <span className="find-indent" />
           <input
             value={replacement}
-            placeholder={wholeTag ? '바꿀 내용 (비우면 태그를 지웁니다)' : '바꿀 내용'}
+            placeholder={wholeTag && !names ? '바꿀 내용 (비우면 태그를 지웁니다)' : '바꿀 내용'}
             aria-label="바꿀 내용"
             onChange={(event) => useFind.setState({ replacement: event.target.value })}
             onKeyDown={onReplaceKey}
@@ -333,8 +359,8 @@ function FindPanelBody() {
       <div className="find-options">
         <span className="segmented" role="group" aria-label="찾을 범위">
           <button
-            className={fieldTarget ? 'active' : ''}
-            disabled={!target?.isConnected}
+            className={scope === 'field' ? 'active' : ''}
+            disabled={!target?.isConnected || names}
             title={
               target?.isConnected ? undefined : '프롬프트 칸에서 Ctrl+F를 누르면 고를 수 있습니다'
             }
@@ -343,7 +369,15 @@ function FindPanelBody() {
             이 칸
           </button>
           <button
-            className={fieldTarget ? '' : 'active'}
+            className={scope === 'item' ? 'active' : ''}
+            disabled={!place || !libraryAllowed}
+            title={place ? undefined : '라이브러리 항목이나 자유 생성 화면을 열면 고를 수 있습니다'}
+            onClick={() => useFind.setState({ scope: 'item' })}
+          >
+            이 항목
+          </button>
+          <button
+            className={scope === 'library' ? 'active' : ''}
             disabled={!libraryAllowed}
             title={libraryAllowed ? undefined : '열린 창을 닫으면 고를 수 있습니다'}
             onClick={() => useFind.setState({ scope: 'library' })}
@@ -355,11 +389,20 @@ function FindPanelBody() {
           <input
             type="checkbox"
             checked={wholeTag}
+            disabled={names}
             onChange={(event) => useFind.setState({ wholeTag: event.target.checked, current: 0 })}
           />
           태그 단위
         </label>
-        {!fieldTarget && (
+        <label title="프롬프트 대신 항목·프롬프트 세트·씬·조각 이름에서 찾고 바꿉니다. 이름은 글자가 들어 있으면 찾습니다">
+          <input
+            type="checkbox"
+            checked={names}
+            onChange={(event) => useFind.setState({ names: event.target.checked })}
+          />
+          이름만
+        </label>
+        {scope === 'library' && !names && (
           <label title="이미 만든 결과의 프롬프트에서도 찾습니다. 바꾸지는 않습니다">
             <input
               type="checkbox"
@@ -397,8 +440,10 @@ function FindPanelBody() {
           {libraryHits.length > SHOWN_HITS && (
             <p className="hint">외 {libraryHits.length - SHOWN_HITS}개 칸</p>
           )}
-          {!libraryHits.length && <p className="hint">라이브러리에서 찾은 곳이 없습니다.</p>}
-          {includeRecords && (
+          {!libraryHits.length && (
+            <p className="hint">{only ? '이 항목' : '라이브러리'}에서 찾은 곳이 없습니다.</p>
+          )}
+          {scope === 'library' && !names && includeRecords && (
             <>
               <div className="find-group">
                 생성 기록

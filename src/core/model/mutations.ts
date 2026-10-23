@@ -311,41 +311,64 @@ export function clonePieceSet(set: PieceSet, name: string): PieceSet {
   };
 }
 
+/** 프롬프트가 든 라이브러리 항목. 자유 생성은 `itemId`가 빈 값이다. */
+export type PromptPlace = {
+  section: 'presets' | 'characters' | 'emotionSets' | 'pieceSets' | 'free';
+  itemId: string;
+};
+
 /** 찾기의 `listPromptFields`와 같은 칸을 돈다. */
-export function mapPromptTexts(library: Library, map: (text: string) => string): Library {
+export function mapPromptTexts(
+  library: Library,
+  map: (text: string, place: PromptPlace) => string,
+): Library {
+  const free = (text: string) => map(text, { section: 'free', itemId: '' });
   return {
     ...library,
     freeGeneration: {
       ...library.freeGeneration,
-      prompt: map(library.freeGeneration.prompt),
-      negative: map(library.freeGeneration.negative),
+      prompt: free(library.freeGeneration.prompt),
+      negative: free(library.freeGeneration.negative),
     },
-    presets: library.presets.map((preset) => ({
-      ...preset,
-      commonPositive: map(preset.commonPositive),
-      commonNegative: map(preset.commonNegative),
-    })),
-    characters: library.characters.map((character) => ({
-      ...character,
-      promptSets: character.promptSets.map((set) => ({
+    presets: library.presets.map((preset) => {
+      const inPreset = (text: string) => map(text, { section: 'presets', itemId: preset.id });
+      return {
+        ...preset,
+        commonPositive: inPreset(preset.commonPositive),
+        commonNegative: inPreset(preset.commonNegative),
+      };
+    }),
+    characters: library.characters.map((character) => {
+      const inCharacter = (text: string) =>
+        map(text, { section: 'characters', itemId: character.id });
+      return {
+        ...character,
+        promptSets: character.promptSets.map((set) => ({
+          ...set,
+          positive: inCharacter(set.positive),
+          negative: inCharacter(set.negative),
+        })),
+      };
+    }),
+    emotionSets: library.emotionSets.map((set) => {
+      const inSet = (text: string) => map(text, { section: 'emotionSets', itemId: set.id });
+      return {
         ...set,
-        positive: map(set.positive),
-        negative: map(set.negative),
-      })),
-    })),
-    emotionSets: library.emotionSets.map((set) => ({
-      ...set,
-      emotions: set.emotions.map((emotion) => ({
-        ...emotion,
-        prompt: map(emotion.prompt),
-        ...(emotion.extraPrompts ? { extraPrompts: emotion.extraPrompts.map(map) } : {}),
-        ...(emotion.negative ? { negative: map(emotion.negative) } : {}),
-      })),
-    })),
-    pieceSets: library.pieceSets.map((set) => ({
-      ...set,
-      pieces: set.pieces.map((piece) => ({ ...piece, prompt: map(piece.prompt) })),
-    })),
+        emotions: set.emotions.map((emotion) => ({
+          ...emotion,
+          prompt: inSet(emotion.prompt),
+          ...(emotion.extraPrompts ? { extraPrompts: emotion.extraPrompts.map(inSet) } : {}),
+          ...(emotion.negative ? { negative: inSet(emotion.negative) } : {}),
+        })),
+      };
+    }),
+    pieceSets: library.pieceSets.map((set) => {
+      const inSet = (text: string) => map(text, { section: 'pieceSets', itemId: set.id });
+      return {
+        ...set,
+        pieces: set.pieces.map((piece) => ({ ...piece, prompt: inSet(piece.prompt) })),
+      };
+    }),
   };
 }
 

@@ -233,7 +233,9 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
   const backdrop = useRef<HTMLDivElement>(null);
   const findLayer = useRef<HTMLDivElement>(null);
   const findText = useFind((state) =>
-    state.open && (state.scope === 'library' || (state.target && state.target === area.current))
+    state.open &&
+    !state.names &&
+    (state.scope !== 'field' || (state.target && state.target === area.current))
       ? state.query
       : '',
   );
