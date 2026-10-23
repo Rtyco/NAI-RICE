@@ -24,7 +24,7 @@ const STAGES: Record<
   { key: string; order: PanelStage[]; part: FocusPart; iconsAs?: PanelStage }
 > = {
   sidebarStage: { key: 'sidebar-collapsed', order: ['open', 'icons', 'hidden'], part: 'sidebar' },
-  // 아이콘만 남은 목록은 이제 단계가 아니라 폭이다(panelWidths).
+  // 목록의 아이콘만 남은 모양은 단계가 아니라 폭이다(panelWidths).
   libraryListStage: { key: 'library-list-collapsed', order: ['open', 'hidden'], part: 'leftPanel' },
   promptPanelStage: {
     key: 'prompt-panel-collapsed',

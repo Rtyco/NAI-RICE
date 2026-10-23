@@ -6,10 +6,7 @@ const HISTORY_TILES = 5;
 const lines = (count: number) =>
   Array.from({ length: count }, (_, index) => <i key={index} className="fp-line" />);
 
-/**
- * 집중 모드를 켠 뒤의 작은 앱 화면. 숨긴 곳이 빠진 만큼 가운데 이미지 칸이 넓어진다.
- * 카드에 마우스를 올리면 숨는 곳이 파란 칸으로 되돌아와 무엇이 빠지는지 보여 준다(Windows 스냅 레이아웃처럼).
- */
+/** 집중 모드를 켠 뒤의 작은 앱 화면. 카드에 마우스를 올리면 숨는 곳이 돌아온다(CSS). */
 export function FocusPreview({ hidden }: { hidden: FocusPart[] }) {
   const off = (part: FocusPart) => (hidden.includes(part) ? 'off' : '');
   const palette = hidden.includes('sidePanel') || hidden.includes('queueBar');

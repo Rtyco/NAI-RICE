@@ -441,7 +441,7 @@ export function requestResult(request: ResultRef | undefined): void {
   set({ resultRequest: request });
 }
 
-/** 그 결과의 화면(씬 상세·자유 생성)으로 가서 보여 준다. 지금 씬 모음에 없는 씬은 열 수 없다. */
+/** 지금 씬 모음에 없는 씬의 결과는 열 수 없다. */
 export function showResult(
   record: ResultRef & Pick<GenerationSummary, 'emotionId' | 'emotionName'>,
 ): void {

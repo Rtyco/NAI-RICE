@@ -97,7 +97,7 @@ export type Emotion = {
   prompt: string;
   /** 두 번째 캐릭터부터. 씬 모음은 여러 작업이 함께 써서 캐릭터 ID가 아니라 순서로 맞춘다. */
   extraPrompts?: string[];
-  /** 공통 네거티브 뒤에 붙는다. */
+  /** 씬 프롬프트와 같은 쪽 네거티브 뒤에 붙는다. */
   negative?: string;
   /** NovelAI mood 값(예: happy). 비면 씬 이름으로 추천한다. */
   augmentMood?: string;
@@ -371,7 +371,6 @@ export type AppSettings = {
   };
   layout: {
     focusLevel: FocusLevel;
-    /** 숨긴 패널을 창 가장자리에 마우스를 대는 동안 겹쳐 보인다. */
     edgePeek: boolean;
   };
   update: {
@@ -381,7 +380,7 @@ export type AppSettings = {
   };
 };
 
-/** 집중 모드(Tab)가 숨기는 곳. panels: 사이드바·왼쪽 패널·히스토리, inputs: + 입력 패널, all: + 생성 큐 막대 */
+/** 집중 모드(Tab)가 숨기는 범위 */
 export type FocusLevel = 'panels' | 'inputs' | 'all';
 
 export type ThemeId = 'navy' | 'graphite' | 'violet' | 'forest' | 'rose';
@@ -442,7 +441,6 @@ export type Library = {
   lastProjectId?: string;
 };
 
-/** 라이브러리 화면의 목록 하나 */
 export type LibrarySection =
   | 'presets'
   | 'characters'

@@ -374,7 +374,7 @@ export type FreeJobBuildInput = {
   randomSeed?: () => number;
 };
 
-/** 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다. 씬 네거티브도 같은 쪽이다. */
+/** 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다. */
 export function scenePosition(position: EmotionPosition, characterCount: number): EmotionPosition {
   return characterCount ? position : 'common-end';
 }

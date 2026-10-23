@@ -111,7 +111,6 @@ function renderFindMarks(text: string, ranges: TextRange[], current: number): Re
   return nodes;
 }
 
-/** 입력칸 안에서 `mark`가 보이도록 스크롤한다. */
 function scrollToMark(textarea: HTMLTextAreaElement, layer: HTMLElement, mark: HTMLElement): void {
   const top = mark.offsetTop;
   if (

@@ -231,7 +231,7 @@ export function Sidebar() {
   );
   const view = useStore((state) => state.view);
   const queue = useStore((state) => state.queue);
-  // 숨김 단계에서도 펼친 모습을 그려 둔다(화면에는 CSS가 감춘다).
+  // 숨김 단계에서도 펼친 모습으로 그려 둬야 가장자리 보기가 그대로 보여 준다.
   const collapsed = useLayout((state) => sidebarStageOf(state) === 'icons');
   const sections = useStore((state) => state.sidebarSections);
   // 좁은 막대에서는 카드 접기를 무시한다.

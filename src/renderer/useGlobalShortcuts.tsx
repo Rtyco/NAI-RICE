@@ -109,7 +109,7 @@ export function useGlobalShortcuts(): void {
       // Lightroom의 위쪽 패널(F5)은 새로 고침이 쓰고 있어 비어 있는 F9에 둔다.
       if (plain && key === 'F9') action = toggleTopBarHere;
       if (ctrl && key === 'Tab') action = () => cycleProject(event.shiftKey ? -1 : 1);
-      // 그림 도구(포토샵·Lightroom·클립 스튜디오·Krita)처럼 입력 칸 밖의 Tab은 패널을 한 번에 숨긴다.
+      // 포토샵·Lightroom처럼 입력 칸 밖의 Tab은 패널을 한 번에 숨긴다.
       if (plain && key === 'Tab' && !typing) action = toggleFocusMode;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);

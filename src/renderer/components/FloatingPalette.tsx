@@ -16,14 +16,13 @@ import { Icon, type IconName } from './Icon';
 import { setPaletteSlot, setPanelPopup, useHostUser, usePaletteHost } from './paletteHost';
 import { QueueJobs } from './QueueBar';
 
-/** 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 떠 있는 창에 띄운다. */
+/** 숨긴 패널 대신 꼭 필요한 버튼(생성 등)을 띄운다. */
 export function PaletteSlot({ children }: { children: ReactNode }) {
   const node = usePaletteHost((state) => state.slot);
   useHostUser('slotUsers');
   return node ? createPortal(children, node) : null;
 }
 
-/** 글자 없이 아이콘만 둔다. 이름은 `label`로 툴팁에 나온다. */
 export function PaletteButton({
   icon,
   label,
@@ -241,7 +240,7 @@ const POPUP_WIDTH: Record<Popup, string> = {
   queue: '440px',
 };
 
-/** 떠 있는 창 아래에 연다. 아래 자리가 모자라면 위에 연다. */
+/** 아래 자리가 모자라면 위에 연다. */
 function PalettePopup(props: {
   kind: Popup;
   anchor: { left: number; top: number; width: number; height: number };

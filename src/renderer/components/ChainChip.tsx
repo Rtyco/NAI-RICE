@@ -55,7 +55,6 @@ export function ChainChip(props: {
   chipRef?: React.Ref<HTMLDivElement>;
   /** 접은 설정 줄에서 아이콘만 남을 때 설명에 보인다. */
   value?: string;
-  /** 있으면 아이콘이 버튼이 된다. */
   iconAction?: ChainIconAction;
   children: ReactNode;
 }) {

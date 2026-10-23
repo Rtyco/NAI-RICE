@@ -6,10 +6,7 @@ import { Icon } from './Icon';
 import { PanelResizer } from './PanelResizer';
 import { useHostUser, usePaletteHost } from './paletteHost';
 
-/**
- * 오른쪽 입력 패널과 그 왼쪽 내용. 숨기면 `palette`가 떠 있는 창에 뜨고, 패널은 그 창의 팝업에서 연다.
- * 팝업을 닫아 둔 동안은 제자리에 둬야 가장자리 보기가 겹쳐 보인다.
- */
+/** 숨긴 패널은 떠 있는 창의 팝업에서 열고, 팝업이 닫힌 동안은 가장자리 보기를 위해 제자리에 둔다. */
 export function SidePanelLayout(props: {
   className: string;
   panelClassName: string;

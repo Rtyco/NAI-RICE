@@ -14,7 +14,7 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** 대소문자는 가리지 않는다. 조각 참조(`<세트.조각>`) 안은 찾지 않는다. 바꾸면 참조가 끊기기 때문이다. */
+/** 대소문자를 가리지 않는다. 바꾸면 참조가 끊기는 조각 참조(`<세트.조각>`) 안은 건너뛴다. */
 export function findRanges(text: string, query: FindQuery): TextRange[] {
   const needle = query.wholeTag ? query.text.trim() : query.text;
   if (!needle || !text) return [];
@@ -31,7 +31,7 @@ export function findRanges(text: string, query: FindQuery): TextRange[] {
     .filter((range) => !refs.some((ref) => range.start < ref.end && range.end > ref.start));
 }
 
-/** 바꿀 범위. 태그를 지우면 붙어 있던 쉼표 하나도 함께 지운다. `floor` 앞은 이미 다른 찾은 곳이 고쳤다. */
+/** 태그를 지우면 붙은 쉼표 하나도 함께 지운다. `floor` 앞은 앞의 찾은 곳이 이미 고쳤다. */
 export function editRange(
   text: string,
   range: TextRange,

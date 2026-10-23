@@ -14,7 +14,6 @@ const GENERATE_MODES: Record<GenerateMode, ModeInfo> = {
 /** 디렉터 툴을 끄면 돌아갈 방식. 저장하지 않아 다시 실행한 뒤에는 일반 생성으로 돌아간다. */
 let modeBeforeDirector: GenerateMode = 'txt2img';
 
-/** 일반 생성 ⇄ i2i 버튼과, 따로 켜고 끄는 디렉터 툴 버튼 */
 export function FreeModeSwitch({ mode }: { mode: FreeGeneration['mode'] }) {
   const director = mode === 'augment';
   const current = director ? modeBeforeDirector : mode;

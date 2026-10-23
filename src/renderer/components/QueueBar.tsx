@@ -17,7 +17,7 @@ function anlasText(job: QueueJobView): string {
   return ` · Anlas ${spent}${expected}`;
 }
 
-/** 생성 큐 막대를 펼친 목록. 막대를 숨기면 떠 있는 창의 팝업에서 본다. */
+/** 막대를 숨기면 떠 있는 창의 팝업에서도 쓴다. */
 export function QueueJobs() {
   const jobs = useStore((state) => state.queue.jobs);
   return jobs.length ? (

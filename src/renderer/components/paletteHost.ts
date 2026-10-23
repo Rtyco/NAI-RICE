@@ -1,11 +1,9 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
 
-/** 떠 있는 창이 받아 주는 자리. 쓰는 곳이 없고 생성 큐 막대도 보이면 창을 그리지 않는다. */
+/** 쓰는 곳이 없고 생성 큐 막대도 보이면 떠 있는 창을 그리지 않는다. */
 type PaletteHost = {
-  /** 화면이 띄운 버튼이 들어가는 자리 */
   slot: HTMLElement | null;
-  /** 숨긴 입력 패널을 여는 팝업 */
   panelPopup: HTMLElement | null;
   slotUsers: number;
   hiddenPanels: number;

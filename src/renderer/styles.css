@@ -3848,8 +3848,7 @@ textarea.syntax-input::selection {
 .top-bar-toggle {
   margin-left: auto;
 }
-/* 머리줄 안에 접어 둔 설정 줄. 칩마다 아이콘과 ▾만 남고 값은 칩 설명에 있다.
-   칩은 줄어들지 않는다. 줄어들면 아이콘끼리 겹친다. */
+/* 머리줄 안에 접어 둔 설정 줄. 칩이 줄면 아이콘끼리 겹쳐서 줄이지 않는다. */
 .chain-bar.compact {
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -4997,7 +4996,7 @@ kbd {
   font-size: 11px;
   line-height: 1.4;
 }
-/* 작은 앱 화면. 숨긴 곳은 칸 폭·높이를 0으로 줄여 가운데가 넓어지는 모습을 보인다. */
+/* 숨긴 곳은 칸을 0으로 줄여 가운데가 넓어진다. */
 .fp-window {
   --fp-sidebar: 20px;
   --fp-left: 34px;

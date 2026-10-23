@@ -52,7 +52,6 @@ function edges(
   return { left, right };
 }
 
-/** 설정에서 켜면, 숨긴 패널이 창 가장자리에 마우스를 대는 동안 내용 위에 겹쳐 보인다. */
 export function EdgePeek() {
   const enabled = useStore((state) => state.library?.settings.layout.edgePeek ?? false);
   const kind = useStore((state) => state.view.kind);

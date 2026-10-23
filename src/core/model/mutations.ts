@@ -311,7 +311,7 @@ export type PromptField = {
   path: string[];
 };
 
-/** 프롬프트 칸을 모두 돈다. 찾기·바꾸기와 조각 이름 바꾸기가 이 순서와 칸을 함께 쓴다. */
+/** 찾기·바꾸기와 조각 이름 바꾸기가 같은 칸을 같은 순서로 돈다. */
 export function mapPromptTexts(
   library: Library,
   map: (text: string, field: PromptField) => string,
