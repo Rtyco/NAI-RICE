@@ -3,8 +3,7 @@ import type { QueueJobView } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { openEmotion, openFree, openProject, useStore } from '../store';
-import { queueApi } from '../desktop';
-import { queueAction, STATUS, summarizeQueue } from '../queueSummary';
+import { queueCommands, STATUS, summarizeQueue } from '../queueSummary';
 import { BottomSlotTarget } from './BottomSlot';
 import { StreamPreview } from './StreamPreview';
 
@@ -21,7 +20,6 @@ function anlasText(job: QueueJobView): string {
 /** 생성 큐 막대를 펼친 목록. 막대를 숨기면 떠 있는 창의 팝업에서 본다. */
 export function QueueJobs() {
   const jobs = useStore((state) => state.queue.jobs);
-  const api = queueApi();
   return jobs.length ? (
     jobs
       .slice()
@@ -47,7 +45,7 @@ export function QueueJobs() {
           {isActive(job.status) && (
             <button
               className="link-button danger"
-              onClick={() => void queueAction('작업을 취소하는 중', () => api.cancelQueue(job.id))}
+              onClick={() => void queueCommands.cancel(job.id)}
             >
               취소
             </button>
@@ -62,7 +60,6 @@ export function QueueJobs() {
 export function QueueBar() {
   const queue = useStore((state) => state.queue);
   const [open, setOpen] = useState(false);
-  const api = queueApi();
 
   const { active, current, failed, finished, status } = summarizeQueue(queue);
 
@@ -86,35 +83,22 @@ export function QueueBar() {
         <div className="header-spacer" />
         {active.length > 0 &&
           (queue.paused ? (
-            <button onClick={() => void queueAction('큐를 재개하는 중', () => api.resumeQueue())}>
-              재개
-            </button>
+            <button onClick={() => void queueCommands.resume()}>재개</button>
           ) : (
-            <button
-              className="pause-solid"
-              onClick={() => void queueAction('큐를 일시 중지하는 중', () => api.pauseQueue())}
-            >
+            <button className="pause-solid" onClick={() => void queueCommands.pause()}>
               일시 중지
             </button>
           ))}
         {active.length > 0 && (
-          <button
-            className="danger-solid"
-            onClick={() => void queueAction('모두 취소하는 중', () => api.cancelQueue())}
-          >
+          <button className="danger-solid" onClick={() => void queueCommands.cancelAll()}>
             모두 취소
           </button>
         )}
         {failed > 0 && (
-          <button onClick={() => void queueAction('재시도를 등록하는 중', () => api.retryFailed())}>
-            실패 재시도
-          </button>
+          <button onClick={() => void queueCommands.retryFailed()}>실패 재시도</button>
         )}
         {finished > 0 && !active.length && (
-          <button
-            className="link-button"
-            onClick={() => void queueAction('정리하는 중', () => api.clearFinished())}
-          >
+          <button className="link-button" onClick={() => void queueCommands.clearFinished()}>
             기록 정리
           </button>
         )}

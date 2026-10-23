@@ -15,7 +15,8 @@ export const FOCUS_PARTS: Record<FocusLevel, FocusPart[]> = {
 };
 
 type StagePanel = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
-type FoldPanel = 'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed' | 'topBarCollapsed';
+type FoldPanel =
+  'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed' | 'topBarCollapsed';
 
 /** 저장 키는 예전 접기 키 그대로다. 예전 '1'(접힘)은 지금의 아이콘만이다. */
 const STAGES: Record<

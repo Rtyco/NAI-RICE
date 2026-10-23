@@ -1,5 +1,6 @@
 import type { QueueView } from '../core/domain/types';
 import { isActive, isFinished } from '../core/jobs/JobLifecycle';
+import { queueApi } from './desktop';
 import { run, useStore } from './store';
 
 export const STATUS: Record<string, string> = {
@@ -12,11 +13,19 @@ export const STATUS: Record<string, string> = {
   interrupted: '중단',
 };
 
-export function queueAction(label: string, action: () => Promise<QueueView>) {
-  return run(label, async () => useStore.setState({ queue: await action() }));
-}
+const update = (label: string, action: () => Promise<QueueView>) =>
+  run(label, async () => useStore.setState({ queue: await action() }));
 
 /** 생성 큐 막대와 떠 있는 창이 함께 쓴다. */
+export const queueCommands = {
+  resume: () => update('큐를 재개하는 중', () => queueApi().resumeQueue()),
+  pause: () => update('큐를 일시 중지하는 중', () => queueApi().pauseQueue()),
+  retryFailed: () => update('재시도를 등록하는 중', () => queueApi().retryFailed()),
+  cancel: (jobId: string) => update('작업을 취소하는 중', () => queueApi().cancelQueue(jobId)),
+  cancelAll: () => update('모두 취소하는 중', () => queueApi().cancelQueue()),
+  clearFinished: () => update('정리하는 중', () => queueApi().clearFinished()),
+};
+
 export function summarizeQueue(queue: QueueView) {
   const active = queue.jobs.filter((job) => isActive(job.status));
   const current = queue.jobs.find(

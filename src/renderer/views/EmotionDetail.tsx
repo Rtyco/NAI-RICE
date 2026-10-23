@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
+import { scenePosition } from '../../core/jobs/JobBuilder';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { usesMedium } from '../../core/providers/NaiModels';
@@ -41,13 +42,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     (state) => state.library!.projects.filter((item) => item.emotionSetId === set.id).length,
   );
   const allRecords = useStore((state) => state.generations[project.id]);
-  // JobBuilder와 같이 캐릭터가 없으면 공통 쪽에 붙는다.
-  const sceneSide =
-    resolved.preset?.generation.emotionPosition === 'common-end' || !resolved.characters.length
-      ? undefined
-      : resolved.characters.length > 1
-        ? '첫 캐릭터'
-        : '캐릭터';
+  const onCharacter =
+    resolved.preset &&
+    scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
+      'character-end';
+  const sceneSide = !onCharacter ? undefined : resolved.characters.length > 1 ? '첫 캐릭터' : '캐릭터';
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);

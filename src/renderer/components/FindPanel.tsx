@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Library } from '../../core/domain/types';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
-import {
-  findInLibrary,
-  replaceInLibrary,
-  type FindFieldHit,
-} from '../../core/model/promptFields';
+import { findInLibrary, replaceInLibrary, type FindFieldHit } from '../../core/model/promptFields';
 import {
   editRange,
   findRanges,

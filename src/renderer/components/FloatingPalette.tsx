@@ -9,9 +9,8 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { queueApi } from '../desktop';
 import { focusingOf, queueBarShownOf, toggleFocusMode, useLayout } from '../layout';
-import { queueAction, summarizeQueue } from '../queueSummary';
+import { queueCommands, summarizeQueue } from '../queueSummary';
 import { readUiState, saveUiState, useStore } from '../store';
 import { Icon, type IconName } from './Icon';
 import { setPaletteSlot, setPanelPopup, useHostUser, usePaletteHost } from './paletteHost';
@@ -39,12 +38,7 @@ export function PaletteButton({
   danger?: boolean;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      className={`palette-button ${className}`}
-      title={label}
-      aria-label={label}
-      {...rest}
-    >
+    <button className={`palette-button ${className}`} title={label} aria-label={label} {...rest}>
       <Icon name={icon} size={16} />
       {badge !== undefined && (
         <span className={`palette-badge ${danger ? 'danger' : ''}`}>{badge}</span>
@@ -100,7 +94,6 @@ type Popup = 'side' | 'queue';
 function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   const queue = useStore((state) => state.queue);
   const { active, current, failed, status } = summarizeQueue(queue);
-  const api = queueApi();
   const phase = current ? 'busy' : queue.paused && active.length ? 'paused' : '';
   return (
     <>
@@ -115,16 +108,12 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
       />
       {active.length > 0 &&
         (queue.paused ? (
-          <PaletteButton
-            icon="play"
-            label="큐 재개"
-            onClick={() => void queueAction('큐를 재개하는 중', () => api.resumeQueue())}
-          />
+          <PaletteButton icon="play" label="큐 재개" onClick={() => void queueCommands.resume()} />
         ) : (
           <PaletteButton
             icon="pause"
             label="큐 일시 중지"
-            onClick={() => void queueAction('큐를 일시 중지하는 중', () => api.pauseQueue())}
+            onClick={() => void queueCommands.pause()}
           />
         ))}
       {failed > 0 && (
@@ -134,7 +123,7 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
           title={`실패한 작업 ${failed}개 다시 시도`}
           badge={failed}
           danger
-          onClick={() => void queueAction('재시도를 등록하는 중', () => api.retryFailed())}
+          onClick={() => void queueCommands.retryFailed()}
         />
       )}
     </>

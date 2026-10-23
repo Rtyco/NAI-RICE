@@ -131,8 +131,7 @@ export function composeRequestPrompts(
   // NovelAI 웹은 medium이면 직접 쓴 네거티브와 캐릭터 네거티브를 비우고 UC 프리셋만 보낸다(2026-10).
   const medium = usesMedium(settings);
   const commonPositive = expand(rawPreset.commonPositive);
-  // 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다.
-  const emotionPosition = rawCharacters.length ? settings.emotionPosition : 'common-end';
+  const emotionPosition = scenePosition(settings.emotionPosition, rawCharacters.length);
   // 씬 네거티브는 씬 프롬프트와 같은 쪽(공통 또는 첫 캐릭터)에 붙는다.
   const sceneNegative = typeof scene === 'object' && !medium ? expand(scene.negative ?? '') : '';
   const sceneOnCommon = emotionPosition === 'common-end';
@@ -375,17 +374,28 @@ export type FreeJobBuildInput = {
   randomSeed?: () => number;
 };
 
+/** 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다. 씬 네거티브도 같은 쪽이다. */
+export function scenePosition(position: EmotionPosition, characterCount: number): EmotionPosition {
+  return characterCount ? position : 'common-end';
+}
+
+/** 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다. */
+export function freePromptPosition(
+  position: EmotionPosition | undefined,
+  firstCharacterPositive: string | undefined,
+): EmotionPosition {
+  return position === 'character-end' && firstCharacterPositive?.trim()
+    ? 'character-end'
+    : 'common-end';
+}
+
 /** 자유 생성의 입력 프롬프트 자리를 생성 설정의 씬 자리로 바꾼다. */
 export function freePromptPreset(
   preset: Preset,
   promptSets: Array<Pick<CharacterPromptSet, 'positive'>>,
   promptPosition: EmotionPosition | undefined,
 ): Preset {
-  // 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다.
-  const emotionPosition =
-    promptPosition === 'character-end' && promptSets[0]?.positive.trim()
-      ? 'character-end'
-      : 'common-end';
+  const emotionPosition = freePromptPosition(promptPosition, promptSets[0]?.positive);
   return { ...preset, generation: { ...preset.generation, emotionPosition } };
 }
 

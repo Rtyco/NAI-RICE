@@ -77,20 +77,27 @@ export function NumberField(props: {
 export function PromptField(props: {
   label: string;
   hint?: string;
+  title?: string;
+  /** 크게 편집 창의 제목. 없으면 `label` */
+  dialogTitle?: string;
   tone?: 'default' | 'negative';
   value: string;
   rows: number;
   placeholder?: string;
+  counter?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className={`prompt-field ${props.tone === 'negative' ? 'negative-field' : ''}`}>
+    <label
+      className={`prompt-field ${props.tone === 'negative' ? 'negative-field' : ''}`}
+      title={props.title}
+    >
       <span>
         {props.label}
         <span className="prompt-field-tools">
           {props.hint && <em>{props.hint}</em>}
           <ExpandTextButton
-            title={props.label}
+            title={props.dialogTitle ?? props.label}
             value={props.value}
             placeholder={props.placeholder}
             tone={props.tone}
@@ -104,7 +111,11 @@ export function PromptField(props: {
         placeholder={props.placeholder}
         onChange={props.onChange}
       />
-      <small>{props.value.trim() ? `${props.value.length.toLocaleString()}자` : '비어 있음'}</small>
+      {props.counter !== false && (
+        <small>
+          {props.value.trim() ? `${props.value.length.toLocaleString()}자` : '비어 있음'}
+        </small>
+      )}
     </label>
   );
 }

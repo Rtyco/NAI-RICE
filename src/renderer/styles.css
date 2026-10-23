@@ -643,10 +643,12 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--side-panel-width, 360px);
 }
-.detail-body.side-hidden {
+.detail-body.side-hidden,
+.canvas-view.side-hidden {
   grid-template-columns: minmax(0, 1fr) 0;
 }
-.detail-body.side-hidden > .detail-side {
+.detail-body.side-hidden > .detail-side,
+.canvas-view.side-hidden > .canvas-settings {
   display: none;
 }
 .detail-stage {
@@ -1291,12 +1293,6 @@ textarea.syntax-input::selection {
   height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--side-panel-width, 360px);
-}
-.canvas-view.side-hidden {
-  grid-template-columns: minmax(0, 1fr) 0;
-}
-.canvas-view.side-hidden > .canvas-settings {
-  display: none;
 }
 .canvas-settings {
   display: flex;
@@ -2812,15 +2808,18 @@ textarea.syntax-input::selection {
   align-items: center;
   gap: 6px;
 }
-.mode-toggle {
+.mode-toggle,
+.tool-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 5px 9px;
-  border-color: var(--accent-strong);
-  color: var(--accent-text);
   font-size: 12px;
   font-weight: 650;
+}
+.mode-toggle {
+  border-color: var(--accent-strong);
+  color: var(--accent-text);
 }
 .mode-toggle-swap {
   color: var(--muted);
@@ -2833,14 +2832,6 @@ textarea.syntax-input::selection {
 .mode-toggle.dimmed {
   border-color: var(--line);
   color: var(--muted);
-}
-.tool-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  font-size: 12px;
-  font-weight: 650;
 }
 .tool-toggle.active {
   border-color: var(--accent-strong);
@@ -5028,31 +5019,23 @@ kbd {
     grid-template-columns 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
     grid-template-rows 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.fp-window.hide-sidebar {
+.focus-level-card:not(:hover) .fp-window.hide-sidebar {
   --fp-sidebar: 0px;
 }
-.fp-window.hide-leftPanel {
+.focus-level-card:not(:hover) .fp-window.hide-leftPanel {
   --fp-left: 0px;
 }
-.fp-window.hide-sidePanel {
+.focus-level-card:not(:hover) .fp-window.hide-sidePanel {
   --fp-side: 0px;
 }
-.fp-window.hide-history {
+.focus-level-card:not(:hover) .fp-window.hide-history {
   --fp-history: 0px;
 }
-.fp-window.hide-topBar {
+.focus-level-card:not(:hover) .fp-window.hide-topBar {
   --fp-top: 0px;
 }
-.fp-window.hide-queueBar {
+.focus-level-card:not(:hover) .fp-window.hide-queueBar {
   --fp-queue: 0px;
-}
-.focus-level-card:hover .fp-window {
-  --fp-sidebar: 20px;
-  --fp-left: 34px;
-  --fp-side: 38px;
-  --fp-history: 18px;
-  --fp-top: 9px;
-  --fp-queue: 8px;
 }
 .fp-window i {
   display: block;

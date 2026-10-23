@@ -1,7 +1,6 @@
 import type { Emotion } from '../../core/domain/types';
 import { withExtraPrompt } from '../../core/model/mutations';
-import { PromptTextarea } from './PromptTextarea';
-import { ExpandTextButton } from './TextEditorDialog';
+import { PromptField } from './ui';
 
 /** 씬 모음은 여러 작업이 함께 써서 칸은 캐릭터 이름이 아니라 순서로 저장된다. */
 export function ScenePromptFields(props: {
@@ -19,63 +18,41 @@ export function ScenePromptFields(props: {
   return (
     <>
       {Array.from({ length: slots }, (_, index) => {
-        const value = index === 0 ? emotion.prompt : (emotion.extraPrompts?.[index - 1] ?? '');
-        const change = (next: string) =>
-          props.onChange(
-            index === 0 ? { prompt: next } : withExtraPrompt(emotion, index - 1, next),
-          );
-        const title = slots > 1 ? `씬 프롬프트 · ${index + 1}. ${names[index]}` : '씬 프롬프트';
+        const label = slots > 1 ? `씬 프롬프트 · ${index + 1}. ${names[index]}` : '씬 프롬프트';
         return (
-          <label
-            className="prompt-field"
+          <PromptField
             key={index}
+            label={label}
             title={index === 0 ? props.firstPlacement : '이 캐릭터 프롬프트 뒤에 붙습니다'}
-          >
-            <span>
-              {title}
-              <span className="prompt-field-tools">
-                <ExpandTextButton
-                  title={`${emotion.name} ${title}`}
-                  value={value}
-                  placeholder="예: smile, happy, open mouth"
-                  onApply={change}
-                />
-              </span>
-            </span>
-            <PromptTextarea
-              rows={slots > 1 ? 3 : 5}
-              value={value}
-              placeholder={
-                index === 0
-                  ? '예: smile, happy, open mouth'
-                  : '비워 두면 이 캐릭터에는 붙이지 않습니다'
-              }
-              onChange={change}
-            />
-          </label>
+            dialogTitle={`${emotion.name} ${label}`}
+            rows={slots > 1 ? 3 : 5}
+            value={index === 0 ? emotion.prompt : (emotion.extraPrompts?.[index - 1] ?? '')}
+            placeholder={
+              index === 0
+                ? '예: smile, happy, open mouth'
+                : '비워 두면 이 캐릭터에는 붙이지 않습니다'
+            }
+            counter={false}
+            onChange={(next) =>
+              props.onChange(
+                index === 0 ? { prompt: next } : withExtraPrompt(emotion, index - 1, next),
+              )
+            }
+          />
         );
       })}
-      <label className="prompt-field negative-field" title={props.negativePlacement}>
-        <span>
-          씬 네거티브
-          <span className="prompt-field-tools">
-            {props.negativeHint && <em>{props.negativeHint}</em>}
-            <ExpandTextButton
-              title={`${emotion.name} 씬 네거티브`}
-              value={emotion.negative ?? ''}
-              placeholder="이 씬에서만 뺄 태그"
-              tone="negative"
-              onApply={(negative) => props.onChange({ negative: negative || undefined })}
-            />
-          </span>
-        </span>
-        <PromptTextarea
-          rows={2}
-          value={emotion.negative ?? ''}
-          placeholder="이 씬에서만 뺄 태그"
-          onChange={(negative) => props.onChange({ negative: negative || undefined })}
-        />
-      </label>
+      <PromptField
+        label="씬 네거티브"
+        hint={props.negativeHint}
+        title={props.negativePlacement}
+        dialogTitle={`${emotion.name} 씬 네거티브`}
+        tone="negative"
+        rows={2}
+        value={emotion.negative ?? ''}
+        placeholder="이 씬에서만 뺄 태그"
+        counter={false}
+        onChange={(negative) => props.onChange({ negative: negative || undefined })}
+      />
       {hidden.length > 0 && (
         <p className="hint">
           {slots + 1}번째 이후 캐릭터 칸에 프롬프트 {hidden.length}개가 더 있습니다.

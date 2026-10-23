@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -14,10 +14,8 @@ import {
   modelLabel,
   noInpaintReason,
   supportsInpaint,
-  usesMedium,
 } from '../../core/providers/NaiModels';
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
-import { PROMPT_POSITIONS } from '../promptPositions';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { CharacterChip } from '../components/CharacterChip';
@@ -29,15 +27,12 @@ import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteButton } from '../components/FloatingPalette';
 import { SidePanelLayout, SidePanelToggle } from '../components/SidePanel';
 import { TopBarToggle } from '../components/TopBarToggle';
-import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
 import { ImageStage } from '../components/ImageStage';
-import { PromptTextarea } from '../components/PromptTextarea';
-import { ExpandTextButton } from '../components/TextEditorDialog';
 import { NumberField, Toggle } from '../components/ui';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
@@ -63,34 +58,16 @@ import { topBarShownOf, useLayout } from '../layout';
 import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeMaskCanvas } from './free/FreeMaskCanvas';
+import { FreeModeSwitch } from './free/FreeModeSwitch';
+import { FreePromptFields } from './free/FreePromptFields';
 
 const NO_RECORDS: GenerationSummary[] = [];
-
-type GenerateMode = 'txt2img' | 'img2img';
-
-const GENERATE_MODES: Record<GenerateMode, ModeInfo> = {
-  txt2img: { label: '일반 생성', icon: 'sparkle', title: '프롬프트로만 그립니다' },
-  img2img: {
-    label: 'i2i',
-    icon: 'reference',
-    title: '고른 이미지를 다시 그리거나, 칠한 곳만 다시 그립니다',
-  },
-};
-
-/** 디렉터 툴을 끄면 돌아갈 방식. 저장하지 않아 다시 실행한 뒤에는 일반 생성으로 돌아간다. */
-let modeBeforeDirector: GenerateMode = 'txt2img';
 
 /** 결과는 `projects/free/`에 쌓인다. */
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, promptSet } = resolveFreeGeneration(library);
   const director = free.mode === 'augment';
-  const generateMode = free.mode === 'augment' ? modeBeforeDirector : free.mode;
-  const otherMode = generateMode === 'txt2img' ? 'img2img' : 'txt2img';
-  useEffect(() => {
-    if (free.mode !== 'augment') modeBeforeDirector = free.mode;
-  }, [free.mode]);
-  const toggleDirector = () => updateFreeGeneration({ mode: director ? generateMode : 'augment' });
   const augment = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
   const image = free.mode === 'txt2img' ? undefined : free.image;
   const [shrink, setShrink] = useState(true);
@@ -132,10 +109,6 @@ export function FreeView() {
     .map((job) => job.id);
 
   const inpainting = free.mode === 'img2img' && free.inpaint;
-  // buildFreeJobs와 같은 규칙
-  const hasCharacterPrompt = Boolean(promptSet?.positive.trim());
-  const promptPosition =
-    free.promptPosition === 'character-end' && hasCharacterPrompt ? 'character-end' : 'common-end';
   const generation = preset && effectiveGenerationSettings(preset.generation);
   const directorSize = image && directorToolSize(image.outputRect, shrink);
   const oversized = Boolean(
@@ -303,81 +276,7 @@ export function FreeView() {
           )}
         </section>
       ) : (
-        <>
-          <label className="prompt-field">
-            <span>
-              프롬프트
-              <span className="prompt-field-tools">
-                <ExpandTextButton
-                  title="자유 생성 프롬프트"
-                  value={free.prompt}
-                  placeholder="예: sitting, cafe, window, warm lighting"
-                  onApply={(prompt) => updateFreeGeneration({ prompt })}
-                />
-              </span>
-            </span>
-            <PromptTextarea
-              rows={8}
-              value={free.prompt}
-              placeholder="예: sitting, cafe, window, warm lighting"
-              onChange={(prompt) => updateFreeGeneration({ prompt })}
-            />
-          </label>
-          <label
-            className="prompt-field negative-field"
-            title={
-              promptPosition === 'character-end'
-                ? '첫 캐릭터 네거티브 뒤에 붙습니다'
-                : '공통 네거티브 뒤에 붙습니다'
-            }
-          >
-            <span>
-              네거티브
-              <span className="prompt-field-tools">
-                {generation && usesMedium(generation) && <em>Medium에서는 쓰이지 않음</em>}
-                <ExpandTextButton
-                  title="자유 생성 네거티브"
-                  value={free.negative}
-                  placeholder="이번 생성에서만 뺄 태그"
-                  tone="negative"
-                  onApply={(negative) => updateFreeGeneration({ negative })}
-                />
-              </span>
-            </span>
-            <PromptTextarea
-              rows={3}
-              value={free.negative}
-              placeholder="이번 생성에서만 뺄 태그"
-              onChange={(negative) => updateFreeGeneration({ negative })}
-            />
-          </label>
-          <div className="prompt-position">
-            <span>붙일 위치</span>
-            <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
-              {(['common-end', 'character-end'] as const).map((value) => {
-                const blocked = value === 'character-end' && !hasCharacterPrompt;
-                return (
-                  <button
-                    key={value}
-                    className={promptPosition === value ? 'active' : ''}
-                    aria-pressed={promptPosition === value}
-                    disabled={blocked}
-                    title={
-                      blocked
-                        ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
-                        : value === 'character-end'
-                          ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
-                          : undefined
-                    }
-                    onClick={() => updateFreeGeneration({ promptPosition: value })}
-                  >
-                    {PROMPT_POSITIONS[value]}
-                  </button>
-                );
-              })}
-            </span>
-          </div>
-        </>
+        <FreePromptFields free={free} preset={preset} firstCharacterPositive={promptSet?.positive} />
       )}
 
       <div className="generate-dock">
@@ -448,29 +347,7 @@ export function FreeView() {
       <header className="project-header">
         <PromptPanelToggle />
         <h1 className="free-title">자유 생성</h1>
-        <ModeToggle
-          current={GENERATE_MODES[generateMode]}
-          next={GENERATE_MODES[otherMode]}
-          dimmed={
-            director
-              ? `디렉터 툴을 끄고 「${GENERATE_MODES[generateMode].label}」로 돌아갑니다`
-              : undefined
-          }
-          onToggle={() => updateFreeGeneration({ mode: director ? generateMode : otherMode })}
-        />
-        <button
-          className={`tool-toggle ${director ? 'active' : ''}`}
-          aria-pressed={director}
-          title={
-            director
-              ? `디렉터 툴 끄기 · 「${GENERATE_MODES[generateMode].label}」로 돌아갑니다`
-              : '고른 이미지에 Emotion·배경 제거 같은 NovelAI 디렉터 툴을 적용합니다'
-          }
-          onClick={toggleDirector}
-        >
-          <Icon name="wand" size={14} />
-          <span className="header-label">디렉터 툴</span>
-        </button>
+        <FreeModeSwitch mode={free.mode} />
         {!director && !topShown && chainBar}
         <div className="header-spacer" />
         <AccountMeter />

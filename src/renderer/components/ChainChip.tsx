@@ -334,7 +334,7 @@ export function ChecklistChip(props: {
         <ChecklistPopover
           anchor={anchor}
           close={close}
-          title={props.pickTitle ?? (props.multi ? `${title} 선택` : `${title} 선택`)}
+          title={props.pickTitle ?? `${title} 선택`}
           query={props.items.length >= SEARCH_FROM ? { value: query, change: setQuery } : undefined}
           options={props.options}
           footer={
