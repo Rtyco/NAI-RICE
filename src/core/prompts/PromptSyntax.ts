@@ -8,13 +8,7 @@
  */
 
 export type SyntaxKind =
-  | 'brace'
-  | 'bracket'
-  | 'weight'
-  | 'close-all'
-  | 'piece'
-  | 'pipe'
-  | 'interaction';
+  'brace' | 'bracket' | 'weight' | 'close-all' | 'piece' | 'pipe' | 'interaction';
 
 export type SyntaxToken = {
   kind: SyntaxKind;
@@ -54,11 +48,10 @@ export function analyzePrompt(
   const tokens: SyntaxToken[] = [];
   const issues: SyntaxIssue[] = [];
   const stack: number[] = [];
-  const depthOf = (kind: SyntaxKind) =>
-    stack.filter((index) => tokens[index].kind === kind).length;
+  const depthOf = (kind: SyntaxKind) => stack.filter((index) => tokens[index].kind === kind).length;
   const push = (token: SyntaxToken) => tokens.push(token) - 1;
 
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     const char = text[i];
     const rest = text.slice(i, i + 200);
     const wordStart = i === 0 || !/[\w.]/.test(text[i - 1]);
@@ -66,7 +59,12 @@ export function analyzePrompt(
     const piece = char === '<' ? PIECE.exec(rest) : null;
     if (piece) {
       const missing = pieceExists ? !pieceExists(piece[1].trim(), piece[2].trim()) : false;
-      push({ kind: 'piece', start: i, end: i + piece[0].length, problem: missing ? 'error' : undefined });
+      push({
+        kind: 'piece',
+        start: i,
+        end: i + piece[0].length,
+        problem: missing ? 'error' : undefined,
+      });
       if (missing) issues.push({ level: 'error', start: i, message: `없는 조각 ${piece[0]}` });
       i += piece[0].length;
       continue;
@@ -75,7 +73,15 @@ export function analyzePrompt(
     const weight = wordStart && /[-.\d]/.test(char) ? WEIGHT.exec(rest) : null;
     if (weight) {
       const value = Number(weight[0].slice(0, -2));
-      stack.push(push({ kind: 'weight', start: i, end: i + weight[0].length, value, depth: depthOf('weight') }));
+      stack.push(
+        push({
+          kind: 'weight',
+          start: i,
+          end: i + weight[0].length,
+          value,
+          depth: depthOf('weight'),
+        }),
+      );
       i += weight[0].length;
       continue;
     }

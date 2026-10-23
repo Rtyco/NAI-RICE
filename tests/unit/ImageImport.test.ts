@@ -107,7 +107,12 @@ describe('applyImageImport', () => {
       { stem: 'image', data, tags },
       {
         name: '수영복',
-        character: { index: 0, target: 'add-set', character: existing, promptSet: existing.promptSets[0] },
+        character: {
+          index: 0,
+          target: 'add-set',
+          character: existing,
+          promptSet: existing.promptSets[0],
+        },
         reference: false,
         newProject: false,
       },

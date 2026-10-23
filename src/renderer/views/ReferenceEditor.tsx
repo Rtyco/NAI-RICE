@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CanvasLayout, DividerLine, FreePlacement, Rect, Reference } from '../../core/domain/types';
+import type {
+  CanvasLayout,
+  DividerLine,
+  FreePlacement,
+  Rect,
+  Reference,
+} from '../../core/domain/types';
 import {
   computeLayout,
   freePlacementOf,
@@ -50,7 +56,12 @@ import {
 } from './reference/referenceStorage';
 
 /** 영역이 그대로인 값. 다시 구성하면 붓으로 고친 마스크와 결과 영역이 초기화된다. */
-const REPAINT_KEYS: ReadonlySet<string> = new Set<keyof CanvasLayout>(['background', 'fit', 'anchor', 'free']);
+const REPAINT_KEYS: ReadonlySet<string> = new Set<keyof CanvasLayout>([
+  'background',
+  'fit',
+  'anchor',
+  'free',
+]);
 
 type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayout };
 
@@ -62,8 +73,12 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const [layout, setLayout] = useState<CanvasLayout>(reference.layout);
   const [working, setWorking] = useState<Working | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
-  const [referenceRect, setReferenceRect] = useState<Rect>(reference.image?.referenceRect ?? { x: 0, y: 0, width: 1, height: 1 });
-  const [outputRect, setOutputRect] = useState<Rect>(reference.image?.outputRect ?? { x: 0, y: 0, width: 1, height: 1 });
+  const [referenceRect, setReferenceRect] = useState<Rect>(
+    reference.image?.referenceRect ?? { x: 0, y: 0, width: 1, height: 1 },
+  );
+  const [outputRect, setOutputRect] = useState<Rect>(
+    reference.image?.outputRect ?? { x: 0, y: 0, width: 1, height: 1 },
+  );
   const [expansionPx, setExpansionPx] = useState(reference.maskExpansionPx);
   // 재구성은 비동기로 끝나 그때의 값을 ref로 읽는다.
   const expansionRef = useRef(expansionPx);
@@ -109,52 +124,64 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     };
   }, [mounted]);
 
-  const rebuild = useCallback(async (nextSource: Source, nextLayout: CanvasLayout, nextThreshold: number) => {
-    const sequence = (rebuildSeq.current += 1);
-    setRebuilding(true);
-    try {
-      if (nextLayout.mode === 'auto') {
-        const composed = await composeCanvas(nextSource.dataUrl, nextLayout);
-        if (sequence !== rebuildSeq.current) return;
-        setWorking({
-          canvas: composed.canvas,
-          width: composed.width,
-          height: composed.height,
-          backgroundMask: composed.backgroundMask,
-          detectionLabel: '자동 구성',
-        });
-        setReferenceRect(composed.referenceRect);
-        const blocked = expandRect(composed.referenceRect, expansionRef.current, composed.width, composed.height);
-        setOutputRect(cropOutside(composed.outputRect, blocked));
-      } else {
-        const prepared = await prepareImage(nextSource.dataUrl, nextThreshold);
-        if (sequence !== rebuildSeq.current) return;
-        const rect = prepared.detection.referenceRect;
-        setWorking({
-          canvas: prepared.canvas,
-          width: prepared.width,
-          height: prepared.height,
-          backgroundMask: prepared.backgroundMask,
-          detectionLabel: detectionText(prepared.detection.mode, prepared.detection.confidence),
-        });
-        setReferenceRect(rect);
-        const blocked = expandRect(rect, expansionRef.current, prepared.width, prepared.height);
-        setOutputRect(suggestOutputRect(blocked, prepared.width, prepared.height, 1));
+  const rebuild = useCallback(
+    async (nextSource: Source, nextLayout: CanvasLayout, nextThreshold: number) => {
+      const sequence = (rebuildSeq.current += 1);
+      setRebuilding(true);
+      try {
+        if (nextLayout.mode === 'auto') {
+          const composed = await composeCanvas(nextSource.dataUrl, nextLayout);
+          if (sequence !== rebuildSeq.current) return;
+          setWorking({
+            canvas: composed.canvas,
+            width: composed.width,
+            height: composed.height,
+            backgroundMask: composed.backgroundMask,
+            detectionLabel: '자동 구성',
+          });
+          setReferenceRect(composed.referenceRect);
+          const blocked = expandRect(
+            composed.referenceRect,
+            expansionRef.current,
+            composed.width,
+            composed.height,
+          );
+          setOutputRect(cropOutside(composed.outputRect, blocked));
+        } else {
+          const prepared = await prepareImage(nextSource.dataUrl, nextThreshold);
+          if (sequence !== rebuildSeq.current) return;
+          const rect = prepared.detection.referenceRect;
+          setWorking({
+            canvas: prepared.canvas,
+            width: prepared.width,
+            height: prepared.height,
+            backgroundMask: prepared.backgroundMask,
+            detectionLabel: detectionText(prepared.detection.mode, prepared.detection.confidence),
+          });
+          setReferenceRect(rect);
+          const blocked = expandRect(rect, expansionRef.current, prepared.width, prepared.height);
+          setOutputRect(suggestOutputRect(blocked, prepared.width, prepared.height, 1));
+        }
+        setInitialMask(undefined);
+        dirty.current = true;
+      } catch (error) {
+        toast(`캔버스를 만들 수 없습니다: ${errorMessage(error)}`, 'error');
+      } finally {
+        if (sequence === rebuildSeq.current) setRebuilding(false);
       }
-      setInitialMask(undefined);
-      dirty.current = true;
-    } catch (error) {
-      toast(`캔버스를 만들 수 없습니다: ${errorMessage(error)}`, 'error');
-    } finally {
-      if (sequence === rebuildSeq.current) setRebuilding(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const [rebuilds] = useState(
     () => new LatestOnly<[Source, CanvasLayout, number]>((args) => rebuild(...args)),
   );
   useEffect(() => () => rebuilds.clear(), [rebuilds]);
-  const scheduleRebuild = (nextSource: Source | null, nextLayout: CanvasLayout, nextThreshold: number) => {
+  const scheduleRebuild = (
+    nextSource: Source | null,
+    nextLayout: CanvasLayout,
+    nextThreshold: number,
+  ) => {
     if (nextSource) rebuilds.push([nextSource, nextLayout, nextThreshold]);
   };
 
@@ -317,13 +344,37 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     if (working) {
       // 자동 구성은 생성 영역 전체에서 다시 자르고, 직접 준비한 캔버스는 지금 크롭에서 겹치는 부분만 뺀다.
       const base = layout.mode === 'auto' ? computeLayout(layout, 1, 1).generationArea : outputRect;
-      setOutputRect(cropOutside(base, expandRect(referenceRect, value, working.width, working.height)));
+      setOutputRect(
+        cropOutside(base, expandRect(referenceRect, value, working.width, working.height)),
+      );
     }
     dirty.current = true;
   };
 
-  const latest = useRef({ source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint });
-  latest.current = { source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint };
+  const latest = useRef({
+    source,
+    layout,
+    working,
+    referenceRect,
+    outputRect,
+    expansionPx,
+    threshold,
+    mask,
+    divider,
+    paint,
+  });
+  latest.current = {
+    source,
+    layout,
+    working,
+    referenceRect,
+    outputRect,
+    expansionPx,
+    threshold,
+    mask,
+    divider,
+    paint,
+  };
 
   useEffect(() => {
     if (!dirty.current || rebuilding) return;
@@ -344,7 +395,20 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       },
       800,
     );
-  }, [reference.id, rebuilding, source, layout, working, referenceRect, outputRect, expansionPx, threshold, mask, divider, paint]);
+  }, [
+    reference.id,
+    rebuilding,
+    source,
+    layout,
+    working,
+    referenceRect,
+    outputRect,
+    expansionPx,
+    threshold,
+    mask,
+    divider,
+    paint,
+  ]);
 
   const pickImage = () =>
     void run('이미지를 여는 중', () => fileApi().openImageFile()).then(
@@ -354,7 +418,16 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   if (loading) return <p className="hint pad">인페인트를 불러오는 중…</p>;
 
   const free = working
-    ? checkFreeGeneration({ steps: Math.min(...presets.map((preset) => effectiveGenerationSettings(preset.generation).steps), 28) }, working.width, working.height)
+    ? checkFreeGeneration(
+        {
+          steps: Math.min(
+            ...presets.map((preset) => effectiveGenerationSettings(preset.generation).steps),
+            28,
+          ),
+        },
+        working.width,
+        working.height,
+      )
     : undefined;
   const maskOk = mask ? maskHasGeneratePixels(mask) : false;
 
@@ -368,7 +441,11 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           <span className="file-icon image">IMG</span>
           <span>
             <b>{source ? source.name : '이미지 선택'}</b>
-            <small>{source ? '클릭해서 교체 · 창에 드롭해도 됩니다' : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}</small>
+            <small>
+              {source
+                ? '클릭해서 교체 · 창에 드롭해도 됩니다'
+                : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}
+            </small>
           </span>
         </button>
       </section>
@@ -509,7 +586,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               onReferenceRectChange={(rect) => {
                 setReferenceRect(rect);
                 setOutputRect((current) =>
-                  cropOutside(current, expandRect(rect, expansionPx, working.width, working.height)),
+                  cropOutside(
+                    current,
+                    expandRect(rect, expansionPx, working.width, working.height),
+                  ),
                 );
                 setInitialMask(undefined);
                 dirty.current = true;
@@ -522,7 +602,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             />
           ) : (
             <EmptyState title="참고 이미지가 필요합니다">
-              <p>캐릭터 이미지 한 장을 선택하면 NovelAI 무료 해상도에 맞춰 참고 이미지와 생성 영역을 자동으로 배치합니다.</p>
+              <p>
+                캐릭터 이미지 한 장을 선택하면 NovelAI 무료 해상도에 맞춰 참고 이미지와 생성 영역을
+                자동으로 배치합니다.
+              </p>
               <button className="accent" onClick={pickImage}>
                 이미지 선택
               </button>

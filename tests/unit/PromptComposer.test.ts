@@ -57,7 +57,10 @@ describe('composeSeparatedPrompts', () => {
       characterPositive: 'girl, reference inset',
       referenceInset: { enabled: false, position: 'common-start' },
     });
-    expect(prompts).toEqual({ commonPositive: 'masterpiece', characterPositive: 'girl, reference inset' });
+    expect(prompts).toEqual({
+      commonPositive: 'masterpiece',
+      characterPositive: 'girl, reference inset',
+    });
     expect(
       composeSeparatedPrompts({
         commonPositive: 'masterpiece',

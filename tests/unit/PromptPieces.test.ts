@@ -215,7 +215,10 @@ describe('SDStudio 프롬프트 조각 파일', () => {
     const picked = new Set<string>();
     for (let seed = 0; seed < 20; seed += 1)
       picked.add(expandPieces(prompt, bundle.pieceSets, seed).text);
-    expect([...picked].sort()).toEqual(['closed eyes, blush, hands up', 'red eyes, blush, hands up']);
+    expect([...picked].sort()).toEqual([
+      'closed eyes, blush, hands up',
+      'red eyes, blush, hands up',
+    ]);
   });
 
   it('SDStudio 옛 조각 형식도 읽어', () => {

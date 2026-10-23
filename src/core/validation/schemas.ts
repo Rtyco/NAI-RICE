@@ -109,7 +109,12 @@ export const pieceSetSchema = z.object({
 /** SDStudio 옛 형식 `{description, pieces: {이름: 내용}, multi: {이름: 참}}`(SDStudio migratePieceLibrary와 같다). */
 function migrateLegacyPieceSet(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return value;
-  const legacy = value as { name?: unknown; description?: unknown; pieces?: unknown; multi?: unknown };
+  const legacy = value as {
+    name?: unknown;
+    description?: unknown;
+    pieces?: unknown;
+    multi?: unknown;
+  };
   if (typeof legacy.pieces !== 'object' || legacy.pieces === null || Array.isArray(legacy.pieces))
     return value;
   const multi = (typeof legacy.multi === 'object' && legacy.multi) || {};

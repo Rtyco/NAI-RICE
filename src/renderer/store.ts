@@ -397,8 +397,7 @@ export function updateFreeGeneration(patch: Partial<FreeGeneration>): void {
 /** 지워진 항목은 첫 생성 설정·캐릭터 없음으로 본다. */
 export function resolveFreeGeneration(library: Library) {
   const free = library.freeGeneration;
-  const preset =
-    library.presets.find((item) => item.id === free.presetId) ?? library.presets[0];
+  const preset = library.presets.find((item) => item.id === free.presetId) ?? library.presets[0];
   const characters = resolveCharacters(library, free.characters);
   return {
     free,

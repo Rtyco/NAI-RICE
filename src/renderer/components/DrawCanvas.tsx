@@ -474,7 +474,10 @@ export function DrawCanvas(props: {
           ))}
         </div>
         <span className="zone-divider" />
-        <div className="draw-colors" title="X: 전경색·배경색 바꾸기 · D: 검정·흰색 · Alt+클릭: 그림에서 색 고르기">
+        <div
+          className="draw-colors"
+          title="X: 전경색·배경색 바꾸기 · D: 검정·흰색 · Alt+클릭: 그림에서 색 고르기"
+        >
           <input
             type="color"
             className="back"
@@ -515,7 +518,10 @@ export function DrawCanvas(props: {
               </button>
             ))}
           </div>
-          <label className="range-field" title="[ / ]로 줄이고 키웁니다. Shift+[ / ]는 부드러운·둥근 끝">
+          <label
+            className="range-field"
+            title="[ / ]로 줄이고 키웁니다. Shift+[ / ]는 부드러운·둥근 끝"
+          >
             크기
             <input
               type="range"
@@ -527,7 +533,10 @@ export function DrawCanvas(props: {
             <b>{size}px</b>
           </label>
         </div>
-        <label className="range-field" title="펜과 채우기의 불투명도. 숫자 키 1~0(10~100%), 두 번 빠르게 누르면 두 자리">
+        <label
+          className="range-field"
+          title="펜과 채우기의 불투명도. 숫자 키 1~0(10~100%), 두 번 빠르게 누르면 두 자리"
+        >
           불투명도
           <input
             type="range"

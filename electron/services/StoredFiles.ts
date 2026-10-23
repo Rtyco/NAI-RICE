@@ -46,8 +46,7 @@ export class StoredFiles {
     const paintPath = path.join(directory, 'paint.png');
     if (payload.paintDataUrl)
       writes.push(atomicWrite(paintPath, decodeDataUrl(payload.paintDataUrl).buffer));
-    else if (payload.paintDataUrl === null)
-      writes.push(fs.rm(paintPath, { force: true }));
+    else if (payload.paintDataUrl === null) writes.push(fs.rm(paintPath, { force: true }));
     let originalFile: string | undefined;
     if (payload.originalDataUrl) {
       const original = decodeDataUrl(payload.originalDataUrl);

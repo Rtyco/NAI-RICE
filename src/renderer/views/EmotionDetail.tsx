@@ -15,11 +15,7 @@ import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { Menu, NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
-import {
-  deleteShownResult,
-  openDirectorToolDialog,
-  openImg2ImgDialog,
-} from '../generationOps';
+import { deleteShownResult, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
 import {
   emotionRecords,
@@ -34,7 +30,13 @@ import { topBarShownOf, useLayout } from '../layout';
 import { fileApi, libraryApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
 
-export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject; emotion: Emotion }) {
+export function EmotionDetail({
+  resolved,
+  emotion,
+}: {
+  resolved: ResolvedProject;
+  emotion: Emotion;
+}) {
   const { project } = resolved;
   const set = resolved.emotionSet!;
   const exportQuality = useStore((state) => state.library!.settings.export.quality);
@@ -46,7 +48,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     resolved.preset &&
     scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
       'character-end';
-  const sceneSide = !onCharacter ? undefined : resolved.characters.length > 1 ? '첫 캐릭터' : '캐릭터';
+  const sceneSide = !onCharacter
+    ? undefined
+    : resolved.characters.length > 1
+      ? '첫 캐릭터'
+      : '캐릭터';
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
@@ -149,7 +155,8 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       label: '자유 생성으로 보내기',
       icon: 'sparkle',
       group: 'send',
-      title: '자유 생성의 i2i 이미지로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
+      title:
+        '자유 생성의 i2i 이미지로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
       onSelect: () => void sendToFreeImg2Img(project.id, record),
     },
     {
@@ -189,7 +196,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     <>
       <label className="stack-field">
         씬 이름
-        <input value={emotion.name} onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })} />
+        <input
+          value={emotion.name}
+          onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })}
+        />
       </label>
       <ScenePromptFields
         emotion={emotion}
@@ -226,7 +236,14 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
       </label>
 
       <div className="generate-dock">
-        <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
+        <NumberField
+          label="생성 수"
+          value={variants}
+          min={1}
+          max={20}
+          integer
+          onChange={setVariants}
+        />
         <button className="generate-button" disabled={!canGenerate} onClick={generate}>
           ▶ {variants}장 생성
         </button>
@@ -259,7 +276,11 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
           ]}
         />
         <div className="header-spacer" />
-        <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="PageUp">
+        <button
+          disabled={!previous}
+          onClick={() => previous && openEmotion(previous.id)}
+          title="PageUp"
+        >
           ‹ {previous?.name ?? '이전'}
         </button>
         <span className="detail-position">
@@ -321,7 +342,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
                   className="link-button"
                   onClick={() =>
                     picking.selectAll(
-                      records.filter((record) => record.id !== favoriteId).map((record) => record.id),
+                      records
+                        .filter((record) => record.id !== favoriteId)
+                        .map((record) => record.id),
                     )
                   }
                 >

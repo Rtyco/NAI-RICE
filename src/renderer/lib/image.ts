@@ -171,7 +171,10 @@ export function drawImageBox(
   context.restore();
 }
 
-export async function composeCanvas(originalDataUrl: string, layout: CanvasLayout): Promise<ComposedCanvas> {
+export async function composeCanvas(
+  originalDataUrl: string,
+  layout: CanvasLayout,
+): Promise<ComposedCanvas> {
   const image = await loadOriginal(originalDataUrl);
   const composed = computeLayout(layout, image.naturalWidth, image.naturalHeight);
   const { canvas, context } = canvas2d(composed.width, composed.height, false);
@@ -261,12 +264,20 @@ export function layoutMaskFor(layout: CanvasLayout): Uint8Array {
 }
 
 export function imageSizeOf(dataUrl: string): Promise<{ width: number; height: number }> {
-  return loadHtmlImage(dataUrl).then((image) => ({ width: image.naturalWidth, height: image.naturalHeight }));
+  return loadHtmlImage(dataUrl).then((image) => ({
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  }));
 }
 
 /** stealth 메타데이터용 */
-export async function decodePixels(blob: Blob): Promise<{ data: Uint8ClampedArray; width: number; height: number }> {
-  const bitmap = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+export async function decodePixels(
+  blob: Blob,
+): Promise<{ data: Uint8ClampedArray; width: number; height: number }> {
+  const bitmap = await createImageBitmap(blob, {
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none',
+  });
   const { context } = canvas2d(bitmap.width, bitmap.height);
   context.drawImage(bitmap, 0, 0);
   const data = context.getImageData(0, 0, bitmap.width, bitmap.height).data;

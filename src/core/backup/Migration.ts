@@ -25,8 +25,16 @@ export function splitV1Character(
   v1: V1Character,
   presetId: string,
   projectId: string = v1.id,
-): { library: Pick<Library, 'characters' | 'emotionSets' | 'references' | 'projects'>; referenceId?: string } {
-  const character = { id: newId(), name: v1.name, promptSets: v1.promptSets, createdAt: v1.createdAt };
+): {
+  library: Pick<Library, 'characters' | 'emotionSets' | 'references' | 'projects'>;
+  referenceId?: string;
+} {
+  const character = {
+    id: newId(),
+    name: v1.name,
+    promptSets: v1.promptSets,
+    createdAt: v1.createdAt,
+  };
   const emotionSet: EmotionSet = {
     id: newId(),
     name: `${v1.name} 씬`,
@@ -70,7 +78,9 @@ export function splitV1Character(
     characters: [
       {
         characterId: character.id,
-        promptSetId: v1.promptSets.some((set) => set.id === v1.activePromptSetId) ? v1.activePromptSetId : v1.promptSets[0].id,
+        promptSetId: v1.promptSets.some((set) => set.id === v1.activePromptSetId)
+          ? v1.activePromptSetId
+          : v1.promptSets[0].id,
       },
     ],
     positionMode: 'ai',
@@ -78,18 +88,28 @@ export function splitV1Character(
     referenceId: reference.id,
     characterReferenceIds: [],
     vibeIds: [],
-    excludedEmotionIds: v1.emotions.filter((emotion) => !emotion.enabled).map((emotion) => emotion.id),
+    excludedEmotionIds: v1.emotions
+      .filter((emotion) => !emotion.enabled)
+      .map((emotion) => emotion.id),
     favorites,
     createdAt: v1.createdAt,
     updatedAt: v1.updatedAt,
   };
   return {
-    library: { characters: [character], emotionSets: [emotionSet], references: [reference], projects: [project] },
+    library: {
+      characters: [character],
+      emotionSets: [emotionSet],
+      references: [reference],
+      projects: [project],
+    },
     referenceId: v1.reference ? reference.id : undefined,
   };
 }
 
-export function migrateV1(workspace: V1Workspace, characters: V1Character[]): { library: Library; moves: V1CharacterMove[] } {
+export function migrateV1(
+  workspace: V1Workspace,
+  characters: V1Character[],
+): { library: Library; moves: V1CharacterMove[] } {
   const library: Library = {
     schemaVersion: 2,
     settings: {

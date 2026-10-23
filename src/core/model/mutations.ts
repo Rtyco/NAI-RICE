@@ -276,7 +276,10 @@ export function cloneEmotionSet(set: EmotionSet, name: string): EmotionSet {
 
 export function addPiece(set: PieceSet, name?: string): { set: PieceSet; piece: PromptPiece } {
   const piece = createPiece(
-    uniqueName(name ?? '새 조각', set.pieces.map((item) => item.name)),
+    uniqueName(
+      name ?? '새 조각',
+      set.pieces.map((item) => item.name),
+    ),
   );
   return { set: { ...set, pieces: [...set.pieces, piece] }, piece };
 }

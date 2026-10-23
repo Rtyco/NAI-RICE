@@ -152,8 +152,16 @@ describe('removeItemReassigning', () => {
     const library = createDefaultLibrary();
     const [a, b, c] = ['A', 'B', 'C'].map((name) => createCharacter(name));
     const full = { ...library, characters: [a, b, c] };
-    expect(moveItem(full, 'characters', a.id, 2).characters.map((x) => x.name)).toEqual(['B', 'C', 'A']);
-    expect(moveItem(full, 'characters', c.id, 0).characters.map((x) => x.name)).toEqual(['C', 'A', 'B']);
+    expect(moveItem(full, 'characters', a.id, 2).characters.map((x) => x.name)).toEqual([
+      'B',
+      'C',
+      'A',
+    ]);
+    expect(moveItem(full, 'characters', c.id, 0).characters.map((x) => x.name)).toEqual([
+      'C',
+      'A',
+      'B',
+    ]);
     expect(moveItem(full, 'characters', 'nope', 0)).toBe(full);
   });
 

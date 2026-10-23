@@ -8,8 +8,7 @@ export const KIND_FOLDERS: Record<GenerationKind, string> = {
   augment: '디렉터 툴',
 };
 
-export const DEFAULT_OUTPUT_FILENAME_TEMPLATE =
-  '{character}__{emotion}__v{variant}__{seed}';
+export const DEFAULT_OUTPUT_FILENAME_TEMPLATE = '{character}__{emotion}__v{variant}__{seed}';
 
 export const OUTPUT_FILENAME_TOKENS = [
   '{character}',
@@ -84,10 +83,7 @@ export function validateOutputFilenameTemplate(
   return null;
 }
 
-export function renderOutputFilename(
-  template: string,
-  context: OutputFilenameContext,
-): string {
+export function renderOutputFilename(template: string, context: OutputFilenameContext): string {
   const { date, time } = timestampParts(context.createdAt);
   const values: Record<(typeof OUTPUT_FILENAME_TOKENS)[number], string> = {
     '{character}': context.character,

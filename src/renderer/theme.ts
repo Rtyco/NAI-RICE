@@ -156,7 +156,9 @@ function cssColorToHex(variable: string): string {
   probe.style.color = `var(${variable})`;
   probe.style.display = 'none';
   document.body.appendChild(probe);
-  const rgb = getComputedStyle(probe).color.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0];
+  const rgb = getComputedStyle(probe)
+    .color.match(/[\d.]+/g)
+    ?.map(Number) ?? [0, 0, 0];
   probe.remove();
   return `#${rgb
     .slice(0, 3)

@@ -12,7 +12,10 @@ function devServerCsp(): Plugin {
     name: 'dev-server-csp',
     apply: 'serve',
     transformIndexHtml: (html) =>
-      html.replace("connect-src 'self'", `connect-src 'self' ws://${DEV_SERVER} http://${DEV_SERVER}`),
+      html.replace(
+        "connect-src 'self'",
+        `connect-src 'self' ws://${DEV_SERVER} http://${DEV_SERVER}`,
+      ),
   };
 }
 

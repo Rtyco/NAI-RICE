@@ -53,7 +53,10 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, large]);
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
       <section
         ref={ref}
         tabIndex={-1}

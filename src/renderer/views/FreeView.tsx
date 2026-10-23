@@ -259,9 +259,7 @@ export function FreeView() {
           </div>
           <DirectorToolFields
             value={augment}
-            onChange={(patch) =>
-              updateFreeGeneration({ augment: { ...augment, ...patch } })
-            }
+            onChange={(patch) => updateFreeGeneration({ augment: { ...augment, ...patch } })}
           />
           {oversized && (
             <Toggle
@@ -270,12 +268,14 @@ export function FreeView() {
               onChange={setShrink}
             />
           )}
-          {augment.tool === 'bg-removal' && (
-            <BgRemovalWarning results={augment.count * 3} />
-          )}
+          {augment.tool === 'bg-removal' && <BgRemovalWarning results={augment.count * 3} />}
         </section>
       ) : (
-        <FreePromptFields free={free} preset={preset} firstCharacterPositive={promptSet?.positive} />
+        <FreePromptFields
+          free={free}
+          preset={preset}
+          firstCharacterPositive={promptSet?.positive}
+        />
       )}
 
       <div className="generate-dock">
@@ -299,9 +299,7 @@ export function FreeView() {
         {estimate !== undefined && (
           <p
             className="hint"
-            title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join(
-              '\n',
-            )}
+            title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
           >
             {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
           </p>

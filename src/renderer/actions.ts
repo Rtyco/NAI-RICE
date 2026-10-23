@@ -85,7 +85,11 @@ export type GenerateOptions = {
   variants?: number;
 };
 
-export function generateEmotions(projectId: string, emotionIds: string[], options: GenerateOptions = {}): Promise<void> {
+export function generateEmotions(
+  projectId: string,
+  emotionIds: string[],
+  options: GenerateOptions = {},
+): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
     await flushSaves();
     const state = useStore.getState();
@@ -94,7 +98,9 @@ export function generateEmotions(projectId: string, emotionIds: string[], option
     if (!library || !project) throw new Error('작업을 찾을 수 없습니다.');
     const resolved = resolveProject(library, project);
     if (resolved.missing.length) {
-      throw new Error(`이 작업에 ${resolved.missing.join(', ')}이(가) 없습니다. 상단에서 선택하거나 만들어 주십시오.`);
+      throw new Error(
+        `이 작업에 ${resolved.missing.join(', ')}이(가) 없습니다. 상단에서 선택하거나 만들어 주십시오.`,
+      );
     }
     if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
     const templateError = validateOutputFilenameTemplate(library.settings.outputFilenameTemplate);
@@ -349,5 +355,7 @@ export function batchEmotionIds(projectId: string): string[] {
   if (!library || !project) return [];
   const set = library.emotionSets.find((item) => item.id === project.emotionSetId);
   const excluded = new Set(project.excludedEmotionIds);
-  return (set?.emotions ?? []).filter((emotion) => !excluded.has(emotion.id) && hasScenePrompt(emotion)).map((e) => e.id);
+  return (set?.emotions ?? [])
+    .filter((emotion) => !excluded.has(emotion.id) && hasScenePrompt(emotion))
+    .map((e) => e.id);
 }

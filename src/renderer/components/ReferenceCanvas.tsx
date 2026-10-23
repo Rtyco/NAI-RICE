@@ -74,7 +74,10 @@ const readMaskOpacity = () =>
     },
     42,
   );
-type OverrideBase = Pick<Props, 'width' | 'height' | 'backgroundMask' | 'referenceRect' | 'expansionPx'>;
+type OverrideBase = Pick<
+  Props,
+  'width' | 'height' | 'backgroundMask' | 'referenceRect' | 'expansionPx'
+>;
 
 /** 붓으로 고친 픽셀만 남겨 나머지는 여백 값 변경을 따른다. 예전 두 배 확장 마스크도 알아본다. */
 function createOverrides(base: OverrideBase, initialMask?: Uint8Array): Int8Array {
@@ -235,7 +238,11 @@ export function ReferenceCanvas(props: Props) {
     // 이미지 변형 중에는 프레임마다 다시 그리므로 마스크 층은 바뀔 때만 만든다.
     const overlayInputs = [mask, dividerMask, dividerColor, opacity];
     let overlayCanvas = overlayRef.current;
-    if (!overlayCanvas || overlayCanvas.width !== props.width || overlayCanvas.height !== props.height) {
+    if (
+      !overlayCanvas ||
+      overlayCanvas.width !== props.width ||
+      overlayCanvas.height !== props.height
+    ) {
       overlayCanvas = document.createElement('canvas');
       overlayCanvas.width = props.width;
       overlayCanvas.height = props.height;
@@ -591,7 +598,10 @@ export function ReferenceCanvas(props: Props) {
               <Icon name="square" size={14} />
             </button>
           </div>
-          <label className="range-field" title="NovelAI 웹처럼 8px 칸 단위로 칠합니다. [ / ]로 줄이고 키웁니다.">
+          <label
+            className="range-field"
+            title="NovelAI 웹처럼 8px 칸 단위로 칠합니다. [ / ]로 줄이고 키웁니다."
+          >
             크기
             <input
               type="range"

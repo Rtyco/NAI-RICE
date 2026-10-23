@@ -17,7 +17,11 @@ import {
   createCharacterReference,
   createVibe,
 } from '../../src/core/model/defaults';
-import { librarySchema, v1CharacterSchema, v1WorkspaceSchema } from '../../src/core/validation/schemas';
+import {
+  librarySchema,
+  v1CharacterSchema,
+  v1WorkspaceSchema,
+} from '../../src/core/validation/schemas';
 
 const PRESET_ID = 'fallback-preset';
 
@@ -63,11 +67,22 @@ function v1Character() {
 describe('import files', () => {
   it('개별 항목은 새 ID로 들어와', () => {
     const library = createDefaultLibrary();
-    const preset = parseImportFile(JSON.stringify(exportPreset(library.presets[0])), 'p.json', PRESET_ID);
+    const preset = parseImportFile(
+      JSON.stringify(exportPreset(library.presets[0])),
+      'p.json',
+      PRESET_ID,
+    );
     expect(preset.presets[0].id).not.toBe(library.presets[0].id);
     const character = createCharacter('아리아');
-    expect(parseImportFile(JSON.stringify(exportCharacter(character)), 'c.json', PRESET_ID).characters[0].name).toBe('아리아');
-    const set = parseImportFile(JSON.stringify(exportEmotionSet(library.emotionSets[0])), 'e.json', PRESET_ID);
+    expect(
+      parseImportFile(JSON.stringify(exportCharacter(character)), 'c.json', PRESET_ID).characters[0]
+        .name,
+    ).toBe('아리아');
+    const set = parseImportFile(
+      JSON.stringify(exportEmotionSet(library.emotionSets[0])),
+      'e.json',
+      PRESET_ID,
+    );
     expect(set.emotionSets[0].emotions).toHaveLength(library.emotionSets[0].emotions.length);
   });
 
@@ -81,7 +96,12 @@ describe('import files', () => {
       emotionSetId: library.emotionSets[0].id,
       referenceId: reference.id,
     });
-    const full = { ...library, characters: [character], references: [reference], projects: [project] };
+    const full = {
+      ...library,
+      characters: [character],
+      references: [reference],
+      projects: [project],
+    };
     const bundle = parseImportFile(JSON.stringify(exportLibrary(full, {})), 'all.json', PRESET_ID);
     const restored = bundle.projects[0];
     expect(restored.characters[0].characterId).toBe(bundle.characters[0].id);
@@ -99,7 +119,10 @@ describe('import files', () => {
       ...createCharacterReference('얼굴'),
       image: { file, width: 4, height: 4, name: 'face.png' },
     };
-    const mood = { ...createVibe('노을'), image: { file: `${'f'.repeat(24)}.png`, width: 4, height: 4, name: 'x.png' } };
+    const mood = {
+      ...createVibe('노을'),
+      image: { file: `${'f'.repeat(24)}.png`, width: 4, height: 4, name: 'x.png' },
+    };
     const project = {
       ...createProject('P', {
         presetId: library.presets[0].id,
@@ -134,18 +157,31 @@ describe('import files', () => {
 
   it('이전 형식 캐릭터 백업을 네 가지 항목과 작업으로 나눠', () => {
     const bundle = parseImportFile(
-      JSON.stringify({ kind: 'reference-inpaint-character', schemaVersion: 1, exportedAt: 'x', character: v1Character() }),
+      JSON.stringify({
+        kind: 'reference-inpaint-character',
+        schemaVersion: 1,
+        exportedAt: 'x',
+        character: v1Character(),
+      }),
       'old.json',
       PRESET_ID,
     );
     expect(bundle.characters[0].promptSets[0].positive).toBe('silver hair');
     expect(bundle.emotionSets[0].emotions.map((emotion) => emotion.name)).toEqual(['기쁨', '슬픔']);
     expect(bundle.references[0].image).toBeUndefined();
-    expect(bundle.projects[0]).toMatchObject({ presetId: PRESET_ID, excludedEmotionIds: ['e2'], favorites: {} });
+    expect(bundle.projects[0]).toMatchObject({
+      presetId: PRESET_ID,
+      excludedEmotionIds: ['e2'],
+      favorites: {},
+    });
   });
 
   it('SDStudio 파일을 인식하고 모르는 형식은 거부해', () => {
-    const sd = { name: 'x', presets: { SDImageGen: [{ frontPrompt: 'a' }] }, scenes: { 기쁨: { slots: [[{ prompt: 'smile' }]] } } };
+    const sd = {
+      name: 'x',
+      presets: { SDImageGen: [{ frontPrompt: 'a' }] },
+      scenes: { 기쁨: { slots: [[{ prompt: 'smile' }]] } },
+    };
     const bundle = parseImportFile(JSON.stringify(sd), 'sd.json', PRESET_ID);
     expect(bundle.characters).toHaveLength(1);
     expect(bundle.emotionSets[0].emotions[0].prompt).toBe('smile');
@@ -161,11 +197,15 @@ describe('migrateV1', () => {
       schemaVersion: 1,
       presets: createDefaultLibrary().presets,
       activePresetId: 'missing',
-      emotionTemplates: [{ id: 't', name: '템플릿', emotions: [{ name: '중립', prompt: 'neutral' }] }],
+      emotionTemplates: [
+        { id: 't', name: '템플릿', emotions: [{ name: '중립', prompt: 'neutral' }] },
+      ],
     });
     const { library, moves } = migrateV1(workspace, [v1Character()]);
     expect(librarySchema.safeParse(library).success).toBe(true);
-    expect(moves).toEqual([{ projectId: '아리아-12345678', referenceId: library.references[0].id }]);
+    expect(moves).toEqual([
+      { projectId: '아리아-12345678', referenceId: library.references[0].id },
+    ]);
     const project = library.projects[0];
     expect(project).toMatchObject({
       id: '아리아-12345678',
@@ -192,10 +232,19 @@ describe('mergeBundle 덮어쓰기', () => {
       emotionSetId: emotionSet.id,
       referenceId: reference.id,
     });
-    const full = { ...library, characters: [character], references: [reference], projects: [project] };
+    const full = {
+      ...library,
+      characters: [character],
+      references: [reference],
+      projects: [project],
+    };
 
     const incomingCharacter = createCharacter('가져온 캐릭터');
-    incomingCharacter.promptSets[0] = { ...incomingCharacter.promptSets[0], name: '기본', positive: 'new' };
+    incomingCharacter.promptSets[0] = {
+      ...incomingCharacter.promptSets[0],
+      name: '기본',
+      positive: 'new',
+    };
     const firstEmotion = emotionSet.emotions[0];
     const incomingSet = {
       id: 'incoming-set',
@@ -205,7 +254,12 @@ describe('mergeBundle 덮어쓰기', () => {
         { id: 'incoming-e2', name: '새 감정', prompt: 'added' },
       ],
     };
-    const incomingPreset = { ...library.presets[0], id: 'incoming-preset', name: '가져온 설정', commonPositive: 'imported' };
+    const incomingPreset = {
+      ...library.presets[0],
+      id: 'incoming-preset',
+      name: '가져온 설정',
+      commonPositive: 'imported',
+    };
     const bundle = {
       label: 't',
       presets: [incomingPreset],
@@ -227,10 +281,17 @@ describe('mergeBundle 덮어쓰기', () => {
     });
 
     expect(merged.presets).toHaveLength(library.presets.length);
-    expect(merged.presets[0]).toMatchObject({ id: library.presets[0].id, name: library.presets[0].name, commonPositive: 'imported' });
+    expect(merged.presets[0]).toMatchObject({
+      id: library.presets[0].id,
+      name: library.presets[0].name,
+      commonPositive: 'imported',
+    });
     expect(merged.characters).toHaveLength(1);
     expect(merged.characters[0]).toMatchObject({ id: character.id, name: '기존 캐릭터' });
-    expect(merged.characters[0].promptSets[0]).toMatchObject({ id: character.promptSets[0].id, positive: 'new' });
+    expect(merged.characters[0].promptSets[0]).toMatchObject({
+      id: character.promptSets[0].id,
+      positive: 'new',
+    });
     const set = merged.emotionSets.find((item) => item.id === emotionSet.id)!;
     expect(set.name).toBe(emotionSet.name);
     expect(set.emotions[0]).toMatchObject({ id: firstEmotion.id, prompt: 'changed' });
@@ -252,12 +313,30 @@ describe('mergeBundle 덮어쓰기', () => {
       emotionSetId: library.emotionSets[0].id,
       referenceId: reference.id,
     });
-    const full = { ...library, characters: [character], references: [reference], projects: [project] };
+    const full = {
+      ...library,
+      characters: [character],
+      references: [reference],
+      projects: [project],
+    };
     const incoming = createCharacter('X');
     incoming.promptSets[0] = { ...incoming.promptSets[0], name: '다른 이름' };
     const merged = mergeBundle(
       full,
-      { label: 't', presets: [], characters: [incoming], emotionSets: [], references: [], characterReferences: [], vibes: [], projects: [], pieceSets: [], images: {}, pictures: {}, warnings: [] },
+      {
+        label: 't',
+        presets: [],
+        characters: [incoming],
+        emotionSets: [],
+        references: [],
+        characterReferences: [],
+        vibes: [],
+        projects: [],
+        pieceSets: [],
+        images: {},
+        pictures: {},
+        warnings: [],
+      },
       { [incoming.id]: character.id },
     );
     expect(merged.projects[0].characters[0].promptSetId).toBe(incoming.promptSets[0].id);

@@ -17,7 +17,7 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm test",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
     "package:win": "npm run build && electron-builder --win nsis portable && npm run checksums",
     "package:portable": "npm run build && electron-builder --win portable && npm run checksums",
     "package:test": "npm run build && electron-builder --win nsis portable -c.directories.output=release-test && node scripts/checksums.mjs release-test",

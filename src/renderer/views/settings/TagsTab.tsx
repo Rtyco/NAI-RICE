@@ -58,12 +58,7 @@ export function TagsTab() {
         {(Object.keys(UC_PRESET_LABELS) as UcPresetId[])
           .filter((id) => id !== 'none')
           .map((id) => (
-            <TagLine
-              key={id}
-              label={UC_PRESET_LABELS[id]}
-              text={entry.uc[id]}
-              negative
-            />
+            <TagLine key={id} label={UC_PRESET_LABELS[id]} text={entry.uc[id]} negative />
           ))}
       </Card>
     </>

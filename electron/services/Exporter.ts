@@ -2,7 +2,11 @@ import { zipSync } from 'fflate';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { Library as LibraryData, Reference } from '../../src/core/domain/types';
-import { exportLibrary, exportReference, type ReferenceImagesData } from '../../src/core/backup/Backups';
+import {
+  exportLibrary,
+  exportReference,
+  type ReferenceImagesData,
+} from '../../src/core/backup/Backups';
 import { exportFileNames, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
 import type { ExportRequest, ExportResult } from '../../src/shared/ipc';
 import { atomicWrite, exists } from './fsUtils';
@@ -43,7 +47,12 @@ export class Exporter {
     return result.filePath;
   }
 
-  async saveImageAs(projectId: string, generationId: string, suggestedName: string, quality: number): Promise<string | null> {
+  async saveImageAs(
+    projectId: string,
+    generationId: string,
+    suggestedName: string,
+    quality: number,
+  ): Promise<string | null> {
     const record = await this.library.findGeneration(projectId, generationId);
     await fs.mkdir(this.exportsDir(), { recursive: true });
     const result = await this.dialog.showSaveDialog({
@@ -53,7 +62,10 @@ export class Exporter {
     });
     if (result.canceled || !result.filePath) return null;
     const source = await fs.readFile(await this.library.resolveProjectReal(projectId, record.file));
-    await atomicWrite(result.filePath, await convertImage(source, formatFromExtension(result.filePath), quality));
+    await atomicWrite(
+      result.filePath,
+      await convertImage(source, formatFromExtension(result.filePath), quality),
+    );
     return result.filePath;
   }
 
@@ -87,7 +99,8 @@ export class Exporter {
       });
       if (result.canceled || !result.filePath) return null;
       const files: Record<string, [Uint8Array, { level: 0 }]> = {};
-      for (let index = 0; index < items.length; index += 1) files[names[index]] = [await convert(index), { level: 0 }];
+      for (let index = 0; index < items.length; index += 1)
+        files[names[index]] = [await convert(index), { level: 0 }];
       await atomicWrite(result.filePath, zipSync(files));
       return { path: result.filePath, count: items.length };
     }

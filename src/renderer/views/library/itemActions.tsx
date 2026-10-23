@@ -138,7 +138,8 @@ export async function deleteItems(section: LibrarySection, items: Item[]): Promi
   const kind = sectionInfo(section).kind;
   const users = new Map<string, string>();
   for (const item of items)
-    for (const project of projectsUsing(library, kind, item.id)) users.set(project.id, project.name);
+    for (const project of projectsUsing(library, kind, item.id))
+      users.set(project.id, project.name);
   const ok = await confirmDialog({
     title: `${sectionInfo(section).label} ${items.length}개 삭제`,
     message: (
@@ -165,8 +166,7 @@ export async function deleteItems(section: LibrarySection, items: Item[]): Promi
   if (!ok) return false;
   await run('삭제하는 중', async () => {
     const ids = items.map((item) => item.id);
-    if (section === 'references')
-      for (const id of ids) await libraryApi().deleteReferenceFiles(id);
+    if (section === 'references') for (const id of ids) await libraryApi().deleteReferenceFiles(id);
     updateLibrary((current) =>
       ids.reduce(
         (next, id) =>
@@ -234,10 +234,7 @@ export function exportItem(section: LibrarySection, item: Item) {
             ? exportCharacter(item as Character)
             : section === 'pieceSets'
               ? exportPieceSet(item as PieceSet)
-              : exportEmotionSet(
-                  item as EmotionSet,
-                  useStore.getState().library?.pieceSets ?? [],
-                );
+              : exportEmotionSet(item as EmotionSet, useStore.getState().library?.pieceSets ?? []);
       saved = await fileApi().saveJsonFile(
         data,
         `${item.name}.json`,

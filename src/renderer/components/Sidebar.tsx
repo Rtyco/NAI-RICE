@@ -512,7 +512,6 @@ export function Sidebar() {
           </nav>
         </div>
       </section>
-
     </aside>
   );
 }

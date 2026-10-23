@@ -65,7 +65,10 @@ const MAX_COMBOS = 200;
 
 /** 조각 참조에 못 쓰는 점·꺾쇠·줄바꿈을 뺀다. */
 function refName(value: string): string {
-  return value.replace(/[.<>\n]/g, ' ').replace(/\s+/g, ' ').trim();
+  return value
+    .replace(/[.<>\n]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function uniqueName(name: string, taken: Array<{ name: string }>): string {
@@ -85,7 +88,9 @@ function joinCombo(head: SceneCombo, option: SceneCombo): SceneCombo {
   const length = Math.max(head.chars.length, option.chars.length);
   return {
     common: joinPrompts(head.common, option.common),
-    chars: Array.from({ length }, (_, index) => joinPrompts(head.chars[index], option.chars[index])),
+    chars: Array.from({ length }, (_, index) =>
+      joinPrompts(head.chars[index], option.chars[index]),
+    ),
   };
 }
 
@@ -210,7 +215,8 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   const keyOf = (item: CharacterPromptPiece) =>
     `${cleanPrompt(item.prompt)}\u0000${cleanPrompt(item.uc)}`;
   const uniqueCharacterPrompts = candidateCharacterPrompts.filter(
-    (candidate, index, items) => items.findIndex((item) => keyOf(item) === keyOf(candidate)) === index,
+    (candidate, index, items) =>
+      items.findIndex((item) => keyOf(item) === keyOf(candidate)) === index,
   );
   const promptSets = uniqueCharacterPrompts.map((item, index) =>
     createPromptSet(cleanPrompt(item.name) || (index === 0 ? '기본' : `프롬프트 ${index + 1}`), {
@@ -251,13 +257,21 @@ export function importSDStudioProject(raw: string): SDStudioImport {
           commonNegative: cleanPrompt(source.uc),
           generation: {
             ...base.generation,
-            sampler: typeof source.sampling === 'string' ? source.sampling : base.generation.sampler,
+            sampler:
+              typeof source.sampling === 'string' ? source.sampling : base.generation.sampler,
             steps: typeof source.steps === 'number' ? source.steps : base.generation.steps,
             promptGuidance:
-              typeof source.promptGuidance === 'number' ? source.promptGuidance : base.generation.promptGuidance,
-            cfgRescale: typeof source.cfgRescale === 'number' ? source.cfgRescale : base.generation.cfgRescale,
+              typeof source.promptGuidance === 'number'
+                ? source.promptGuidance
+                : base.generation.promptGuidance,
+            cfgRescale:
+              typeof source.cfgRescale === 'number'
+                ? source.cfgRescale
+                : base.generation.cfgRescale,
             noiseSchedule:
-              typeof source.noiseSchedule === 'string' ? source.noiseSchedule : base.generation.noiseSchedule,
+              typeof source.noiseSchedule === 'string'
+                ? source.noiseSchedule
+                : base.generation.noiseSchedule,
           },
         }
       : undefined;

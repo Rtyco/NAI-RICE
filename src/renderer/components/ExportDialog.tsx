@@ -7,13 +7,28 @@ import {
   renderExportFilename,
   validateOutputFilenameTemplate,
 } from '../../core/output/OutputFilename';
-import { coverRecord, emotionRecords, projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
+import {
+  coverRecord,
+  emotionRecords,
+  projectMedia,
+  run,
+  toast,
+  updateLibrary,
+  useLibrary,
+  useStore,
+} from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
 import { fileApi } from '../desktop';
 
 /** RisuAI 감정 이미지 업로드용. 감정마다 대표(또는 최신) 이미지 하나. */
-export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
+export function ExportDialog({
+  resolved,
+  close,
+}: {
+  resolved: ResolvedProject;
+  close: () => void;
+}) {
   const { project } = resolved;
   const emotions = useMemo(() => resolved.emotionSet?.emotions ?? [], [resolved.emotionSet]);
   const settings = useLibrary().settings;
@@ -34,7 +49,11 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
         .map((emotion, index) => ({
           emotion,
           number: index + 1,
-          record: coverRecord(emotionRecords(records, emotion.id), project.favorites[emotion.id], target),
+          record: coverRecord(
+            emotionRecords(records, emotion.id),
+            project.favorites[emotion.id],
+            target,
+          ),
         }))
         .filter((item) => item.record),
     [emotions, project.favorites, records, target],
@@ -103,14 +122,7 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
           ]}
           onChange={setFormat}
         />
-        <NumberField
-          label="품질"
-          value={quality}
-          min={1}
-          max={100}
-          integer
-          onChange={setQuality}
-        />
+        <NumberField label="품질" value={quality} min={1} max={100} integer onChange={setQuality} />
         <SelectField
           label="사용할 이미지"
           value={target}
@@ -164,7 +176,10 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
       ) : (
         selected[0] && (
           <p className="hint">
-            미리보기: <code>{fileName(selected[0])}.{format}</code>
+            미리보기:{' '}
+            <code>
+              {fileName(selected[0])}.{format}
+            </code>
             {selected.length > 1 && ` 외 ${selected.length - 1}개`}
           </p>
         )
@@ -172,7 +187,10 @@ export function ExportDialog({ resolved, close }: { resolved: ResolvedProject; c
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">
         {candidates.map(({ emotion, record }) => (
-          <label key={emotion.id} className={`export-item ${excluded.has(emotion.id) ? 'off' : ''}`}>
+          <label
+            key={emotion.id}
+            className={`export-item ${excluded.has(emotion.id) ? 'off' : ''}`}
+          >
             <input
               type="checkbox"
               checked={!excluded.has(emotion.id)}

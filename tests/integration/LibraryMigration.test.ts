@@ -17,7 +17,12 @@ async function writeV1(root: string, id = '아리아-abcdef12', name = '아리�
   const preset = createDefaultLibrary().presets[0];
   await writeFile(
     path.join(root, 'workspace.json'),
-    JSON.stringify({ schemaVersion: 1, presets: [preset], activePresetId: preset.id, emotionTemplates: [] }),
+    JSON.stringify({
+      schemaVersion: 1,
+      presets: [preset],
+      activePresetId: preset.id,
+      emotionTemplates: [],
+    }),
   );
   const dir = path.join(root, 'characters', id);
   await mkdir(path.join(dir, 'reference'), { recursive: true });
@@ -105,11 +110,15 @@ describe('Library migration', () => {
     expect(data.projects.map((project) => project.id)).toEqual(['아리아-abcdef12']);
     const reference = data.references[0];
     expect(reference.image?.canvasFile).toBe('canvas.png');
-    expect(await readFile(library.resolveReference(reference.id, 'canvas.png'), 'utf8')).toBe('CANVAS');
+    expect(await readFile(library.resolveReference(reference.id, 'canvas.png'), 'utf8')).toBe(
+      'CANVAS',
+    );
 
     const records = await library.listGenerations('아리아-abcdef12');
     expect(records[0]).toMatchObject({ projectId: '아리아-abcdef12', emotionId: 'e1' });
-    expect(await readFile(library.resolveProject('아리아-abcdef12', records[0].file), 'utf8')).toBe('RESULT');
+    expect(await readFile(library.resolveProject('아리아-abcdef12', records[0].file), 'utf8')).toBe(
+      'RESULT',
+    );
 
     const entries = await readdir(root);
     expect(entries).toContain('library.json');
@@ -121,7 +130,9 @@ describe('Library migration', () => {
     // 다시 열면 library.json을 그대로 읽고 자동 백업을 남긴다.
     const again = await new Library(root).load();
     expect(again.library.projects).toHaveLength(1);
-    expect((await readdir(path.join(root, 'backups'))).some((name) => name.startsWith('library-'))).toBe(true);
+    expect(
+      (await readdir(path.join(root, 'backups'))).some((name) => name.startsWith('library-')),
+    ).toBe(true);
   });
 
   it('중간에 멈춘 이전 이동을 이어서 끝내고 처음 백업을 그대로 둬', async () => {
@@ -132,15 +143,25 @@ describe('Library migration', () => {
     // 첫 시도: 백업을 만들고 A만 projects로 옮긴 뒤 멈춘 상태
     const firstBackup = path.join(root, 'backups', 'v1-before-migration-1');
     await mkdir(firstBackup, { recursive: true });
-    await cp(path.join(root, 'characters'), path.join(firstBackup, 'characters'), { recursive: true });
+    await cp(path.join(root, 'characters'), path.join(firstBackup, 'characters'), {
+      recursive: true,
+    });
     await mkdir(path.join(root, 'projects'), { recursive: true });
-    await rename(path.join(root, 'characters', 'a-11111111'), path.join(root, 'projects', 'a-11111111'));
+    await rename(
+      path.join(root, 'characters', 'a-11111111'),
+      path.join(root, 'projects', 'a-11111111'),
+    );
 
     const loaded = await new Library(root).load();
     expect(loaded.library.projects.map((project) => project.name).sort()).toEqual(['A', 'B']);
-    expect((await readdir(path.join(root, 'projects'))).sort()).toEqual(['a-11111111', 'b-22222222']);
+    expect((await readdir(path.join(root, 'projects'))).sort()).toEqual([
+      'a-11111111',
+      'b-22222222',
+    ]);
     expect(loaded.library.references.every((reference) => reference.image)).toBe(true);
-    const backups = (await readdir(path.join(root, 'backups'))).filter((name) => name.startsWith('v1-'));
+    const backups = (await readdir(path.join(root, 'backups'))).filter((name) =>
+      name.startsWith('v1-'),
+    );
     expect(backups).toEqual(['v1-before-migration-1']);
   });
 
@@ -159,7 +180,9 @@ describe('Library migration', () => {
     const loaded = await library.load();
     expect(loaded.library.projects).toHaveLength(1);
     const records = await library.listGenerations('아리아-abcdef12');
-    expect(await readFile(library.resolveProject('아리아-abcdef12', records[0].file), 'utf8')).toBe('RESULT');
+    expect(await readFile(library.resolveProject('아리아-abcdef12', records[0].file), 'utf8')).toBe(
+      'RESULT',
+    );
     expect(await readdir(root)).not.toContain('characters');
   }, 20_000);
 });

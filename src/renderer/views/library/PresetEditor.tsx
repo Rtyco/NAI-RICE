@@ -47,7 +47,6 @@ const INSET_POSITIONS: Record<ReferenceInsetPosition, string> = {
   'character-end': '캐릭터 프롬프트 맨 끝',
 };
 
-
 const SAMPLERS = [
   'k_euler_ancestral',
   'k_euler',
