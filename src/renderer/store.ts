@@ -41,12 +41,12 @@ export type SidebarSection = 'projects' | 'library';
 
 export type ResultRef = { projectId: string; id: string };
 
-type CollapsedFlag =
-  | 'sidebarCollapsed'
-  | 'filmstripCollapsed'
-  | 'libraryListCollapsed'
-  | 'promptPanelCollapsed'
-  | 'historyCollapsed';
+type CollapsedFlag = 'filmstripCollapsed' | 'historyCollapsed';
+
+/** 왼쪽 패널은 누를 때마다 펼침 → 아이콘만 → 숨김 순으로 바뀐다. */
+export type PanelStage = 'open' | 'icons' | 'hidden';
+
+type StageFlag = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
 
 export type StoreState = {
   ready: boolean;
@@ -57,15 +57,15 @@ export type StoreState = {
   detailEmotionId?: string;
   settingsOpen: boolean;
   settingsTab?: string;
-  sidebarCollapsed: boolean;
+  sidebarStage: PanelStage;
   /** 사이드바 전체 접기(Ctrl+B)와 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
   galleryAspect: GalleryAspect;
   filmstripCollapsed: boolean;
-  libraryListCollapsed: boolean;
+  libraryListStage: PanelStage;
   /** 작업·자유 생성 화면이 함께 쓴다. */
-  promptPanelCollapsed: boolean;
+  promptPanelStage: PanelStage;
   historyCollapsed: boolean;
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
@@ -147,6 +147,14 @@ const readStringList = (key: string) =>
 
 const readCollapsed = (key: string) => readUiState(key, (raw) => raw === '1', false);
 
+/** 예전에는 접힘을 '1'로 저장했다(지금의 아이콘만). */
+const readStage = (key: string) =>
+  readUiState<PanelStage>(
+    key,
+    (raw) => (raw === '1' ? 'icons' : raw === 'icons' || raw === 'hidden' ? raw : 'open'),
+    'open',
+  );
+
 const readSidebarSections = (): Record<SidebarSection, boolean> =>
   readUiState(
     SIDEBAR_SECTIONS_KEY,
@@ -164,7 +172,7 @@ export const useStore = create<StoreState>(() => ({
   library: null,
   view: { kind: 'home' },
   settingsOpen: false,
-  sidebarCollapsed: readCollapsed(SIDEBAR_KEY),
+  sidebarStage: readStage(SIDEBAR_KEY),
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
   galleryAspect: readUiState(
@@ -173,8 +181,8 @@ export const useStore = create<StoreState>(() => ({
     'portrait' as GalleryAspect,
   ),
   filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
-  libraryListCollapsed: readCollapsed(LIBRARY_LIST_KEY),
-  promptPanelCollapsed: readCollapsed(PROMPT_PANEL_KEY),
+  libraryListStage: readStage(LIBRARY_LIST_KEY),
+  promptPanelStage: readStage(PROMPT_PANEL_KEY),
   historyCollapsed: readCollapsed(HISTORY_KEY),
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
@@ -458,8 +466,25 @@ function toggleCollapsed(flag: CollapsedFlag, key: string): void {
   saveUiState(key, collapsed ? '1' : '0');
 }
 
-export function toggleSidebar(): void {
-  toggleCollapsed('sidebarCollapsed', SIDEBAR_KEY);
+const NEXT_STAGE: Record<PanelStage, PanelStage> = {
+  open: 'icons',
+  icons: 'hidden',
+  hidden: 'open',
+};
+
+function setStage(flag: StageFlag, key: string, stage: PanelStage): void {
+  set({ [flag]: stage });
+  saveUiState(key, stage);
+}
+
+/** 버튼 설명은 누르면 바뀔 단계를 말한다. 예: 사이드바 숨기기 (Ctrl+B) */
+export function stageTitle(name: string, stage: PanelStage, shortcut?: string): string {
+  const action = { open: '아이콘만 남기기', icons: '숨기기', hidden: '펼치기' }[stage];
+  return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
+}
+
+export function cycleSidebar(): void {
+  setStage('sidebarStage', SIDEBAR_KEY, NEXT_STAGE[get().sidebarStage]);
 }
 
 export function toggleSidebarSection(section: SidebarSection): void {
@@ -482,12 +507,16 @@ export function toggleFilmstrip(): void {
   toggleCollapsed('filmstripCollapsed', FILMSTRIP_KEY);
 }
 
-export function toggleLibraryList(): void {
-  toggleCollapsed('libraryListCollapsed', LIBRARY_LIST_KEY);
+export function cycleLibraryList(): void {
+  setStage('libraryListStage', LIBRARY_LIST_KEY, NEXT_STAGE[get().libraryListStage]);
 }
 
-export function togglePromptPanel(): void {
-  toggleCollapsed('promptPanelCollapsed', PROMPT_PANEL_KEY);
+export function cyclePromptPanel(): void {
+  setStage('promptPanelStage', PROMPT_PANEL_KEY, NEXT_STAGE[get().promptPanelStage]);
+}
+
+export function openPromptPanel(): void {
+  setStage('promptPanelStage', PROMPT_PANEL_KEY, 'open');
 }
 
 export function toggleHistory(): void {

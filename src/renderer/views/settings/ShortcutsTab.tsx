@@ -32,7 +32,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Ctrl+O', 'JSON 가져오기'],
       ['Ctrl+S', '지금 저장 (평소에도 자동 저장)'],
       ['Ctrl+,', '프로그램 설정'],
-      ['Ctrl+B', '사이드바 접기·펴기'],
+      ['Ctrl+B', '사이드바 펼침 → 아이콘만 → 숨김'],
       ['Ctrl+G', '고른 작업·라이브러리 항목을 새 폴더로 묶기'],
       ['Ctrl+V', '이미지 붙여 넣기 (끌어 놓기와 같음)'],
       ['Ctrl+W', '창 닫기'],

@@ -9,6 +9,7 @@ import { openFind } from './find';
 import { requestRename } from './renameRequest';
 import { SECTIONS } from './sections';
 import {
+  cycleSidebar,
   flushSaves,
   loadGenerations,
   openLibrary,
@@ -17,7 +18,6 @@ import {
   setSettingsOpen,
   toast,
   toggleHistory,
-  toggleSidebar,
   useStore,
 } from './store';
 
@@ -91,7 +91,7 @@ export function useGlobalShortcuts(): void {
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'o')
         action = () => void importJsonFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
-      if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = toggleSidebar;
+      if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = cycleSidebar;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;

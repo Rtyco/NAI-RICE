@@ -22,11 +22,12 @@ import { ListFolder } from '../components/ListFolder';
 import { ListRow } from '../components/ListRow';
 import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
 import {
+  cycleLibraryList,
   openLibrary,
   pictureMedia,
   referenceMedia,
+  stageTitle,
   toggleFolder,
-  toggleLibraryList,
   updateLibrary,
   useLibrary,
   useStore,
@@ -74,7 +75,19 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const selected = items.find((item) => item.id === itemId) ?? items[0];
   const info = sectionInfo(section);
   const [dragging, setDragging] = useState<string[]>([]);
-  const collapsed = useStore((state) => state.libraryListCollapsed);
+  const stage = useStore((state) => state.libraryListStage);
+  const collapsed = stage === 'icons';
+  const listTitle = stageTitle(`${info.label} 목록`, stage);
+  const reopenList = stage === 'hidden' && (
+    <button
+      className="icon-button"
+      title={listTitle}
+      aria-label={listTitle}
+      onClick={cycleLibraryList}
+    >
+      <Icon name="sidebar" size={18} />
+    </button>
+  );
   const removeMany = (ids: string[]) =>
     void deleteItems(
       section,
@@ -200,14 +213,16 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   };
 
   return (
-    <div className={`library-view ${collapsed ? 'list-collapsed' : ''}`}>
-      <aside className={`library-list ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`library-view list-${stage}`}>
+      <aside
+        className={`library-list ${collapsed ? 'collapsed' : ''} ${stage === 'hidden' ? 'stage-hidden' : ''}`}
+      >
         <div className="library-list-head">
           <button
             className="icon-button library-list-toggle"
-            title={`${info.label} 목록 ${collapsed ? '펼치기' : '접기'}`}
-            aria-label={`${info.label} 목록 ${collapsed ? '펼치기' : '접기'}`}
-            onClick={toggleLibraryList}
+            title={listTitle}
+            aria-label={listTitle}
+            onClick={cycleLibraryList}
           >
             <Icon name="sidebar" size={18} />
           </button>
@@ -342,11 +357,12 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           </button>
         )}
       </aside>
-      {!collapsed && <PanelResizer panel="library-list" />}
+      {stage === 'open' && <PanelResizer panel="library-list" />}
       <section className="library-editor animate-in" key={selected?.id ?? 'empty'}>
         {selected ? (
           <>
             <header className="library-editor-head">
+              {reopenList}
               <input
                 className="project-name-input"
                 value={selected.name}
@@ -403,6 +419,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           </>
         ) : (
           <div className="empty-state">
+            {reopenList}
             <h2>{info.label}이(가) 없습니다</h2>
             <button className="accent" onClick={add}>
               ＋ 추가

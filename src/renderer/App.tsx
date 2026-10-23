@@ -89,7 +89,7 @@ export default function App() {
   const view = useStore((state) => state.view);
   const hasLibrary = useStore((state) => Boolean(state.library));
   const settingsOpen = useStore((state) => state.settingsOpen);
-  const collapsed = useStore((state) => state.sidebarCollapsed);
+  const sidebar = useStore((state) => state.sidebarStage);
   const appearance = useStore((state) => state.library?.settings.appearance);
   const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
   const projectExists = useStore(
@@ -127,9 +127,9 @@ export default function App() {
   return (
     <>
       <TitleBar />
-      <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <main className={`app-shell sidebar-${sidebar}`}>
         {hasLibrary ? <Sidebar /> : <aside className="sidebar" />}
-        {!collapsed && <PanelResizer panel="sidebar" />}
+        {sidebar === 'open' && <PanelResizer panel="sidebar" />}
         <div className="main-area">
           <ErrorBoundary resetKey={viewKey}>
             <div className="view-transition" key={transitionKey}>

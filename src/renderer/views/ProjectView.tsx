@@ -26,6 +26,7 @@ import { openDialog } from '../components/dialogStack';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';
+import { PromptPanelToggle } from '../components/PromptPanel';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
@@ -302,6 +303,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   return (
     <section className="project-view">
       <header className="project-header">
+        <PromptPanelToggle />
         <input
           className="project-name-input"
           value={project.name}

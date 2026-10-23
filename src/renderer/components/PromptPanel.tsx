@@ -9,10 +9,12 @@ import {
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
+  cyclePromptPanel,
+  openPromptPanel,
   resolveFreeGeneration,
   sameCharacters,
+  stageTitle,
   togglePromptGroup,
-  togglePromptPanel,
   updateLibrary,
   useResolvedProject,
   useStore,
@@ -106,7 +108,7 @@ export function PromptPanel(props: {
       ),
     ),
   );
-  const collapsed = useStore((state) => state.promptPanelCollapsed);
+  const stage = useStore((state) => state.promptPanelStage);
   const foldedGroups = useStore((state) => state.foldedPromptGroups);
   const own = props.projectId ? 1 : 0;
   const presetShared = preset && sharedHint(presetUses, own);
@@ -129,15 +131,15 @@ export function PromptPanel(props: {
       ),
     );
 
-  if (collapsed) {
+  if (stage === 'icons') {
     return (
       <aside className="library-list prompt-panel collapsed" aria-label="프롬프트">
         <div className="library-list-head">
           <button
             className="icon-button library-list-toggle"
-            title="프롬프트 패널 펼치기"
-            aria-label="프롬프트 패널 펼치기"
-            onClick={togglePromptPanel}
+            title={stageTitle('프롬프트 패널', stage)}
+            aria-label={stageTitle('프롬프트 패널', stage)}
+            onClick={cyclePromptPanel}
           >
             <Icon name="sidebar" size={18} />
           </button>
@@ -146,7 +148,7 @@ export function PromptPanel(props: {
           <button
             className="icon-button"
             title={preset ? `공통 프롬프트 · ${preset.name}` : '생성 설정 없음'}
-            onClick={togglePromptPanel}
+            onClick={openPromptPanel}
           >
             <Icon name="preset" size={18} />
           </button>
@@ -157,7 +159,7 @@ export function PromptPanel(props: {
                 ? `캐릭터 프롬프트 · ${characters.map((item) => item.character.name).join(', ')}`
                 : props.noCharacter
             }
-            onClick={togglePromptPanel}
+            onClick={openPromptPanel}
           >
             <Icon name="character" size={18} />
           </button>
@@ -167,13 +169,16 @@ export function PromptPanel(props: {
   }
 
   return (
-    <aside className="library-list prompt-panel" aria-label="프롬프트">
+    <aside
+      className={`library-list prompt-panel ${stage === 'hidden' ? 'stage-hidden' : ''}`}
+      aria-label="프롬프트"
+    >
       <div className="library-list-head">
         <button
           className="icon-button library-list-toggle"
-          title="프롬프트 패널 접기"
-          aria-label="프롬프트 패널 접기"
-          onClick={togglePromptPanel}
+          title={stageTitle('프롬프트 패널', stage)}
+          aria-label={stageTitle('프롬프트 패널', stage)}
+          onClick={cyclePromptPanel}
         >
           <Icon name="sidebar" size={18} />
         </button>
@@ -292,18 +297,34 @@ export function PromptPanelLayout(props: {
   children: ReactNode;
   history: ReactNode;
 }) {
-  const collapsed = useStore((state) => state.promptPanelCollapsed);
+  const stage = useStore((state) => state.promptPanelStage);
   const historyCollapsed = useStore((state) => state.historyCollapsed);
   return (
     <div
-      className={`prompt-panel-view ${collapsed ? 'panel-collapsed' : ''} ${historyCollapsed ? 'history-collapsed' : ''}`}
+      className={`prompt-panel-view panel-${stage} ${historyCollapsed ? 'history-collapsed' : ''}`}
     >
       {props.panel}
-      {!collapsed && <PanelResizer panel="prompt-panel" />}
+      {stage === 'open' && <PanelResizer panel="prompt-panel" />}
       {props.children}
       {props.history}
       {!historyCollapsed && <PanelResizer panel="history-panel" />}
     </div>
+  );
+}
+
+/** 숨긴 패널은 자리가 없어 화면 머리줄 왼쪽 끝에서 다시 연다. */
+export function PromptPanelToggle() {
+  const hidden = useStore((state) => state.promptPanelStage === 'hidden');
+  if (!hidden) return null;
+  return (
+    <button
+      className="icon-button"
+      title={stageTitle('프롬프트 패널', 'hidden')}
+      aria-label={stageTitle('프롬프트 패널', 'hidden')}
+      onClick={cyclePromptPanel}
+    >
+      <Icon name="sidebar" size={18} />
+    </button>
   );
 }
 

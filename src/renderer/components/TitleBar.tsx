@@ -1,6 +1,13 @@
 import { libraryApi } from '../desktop';
 import { sectionInfo } from '../sections';
-import { run, setSettingsOpen, toggleSidebar, useStore, type StoreState } from '../store';
+import {
+  cycleSidebar,
+  run,
+  setSettingsOpen,
+  stageTitle,
+  useStore,
+  type StoreState,
+} from '../store';
 import { Icon } from './Icon';
 
 /** 예: 작업 › 리나 › 기쁨 */
@@ -27,7 +34,7 @@ function locationOf({ library, view, detailEmotionId }: StoreState): string {
 
 /** 오른쪽 끝에는 Windows 창 버튼이 겹친다(`titleBarOverlay`). */
 export function TitleBar() {
-  const collapsed = useStore((state) => state.sidebarCollapsed);
+  const sidebar = useStore((state) => state.sidebarStage);
   const saveState = useStore((state) => state.saveState);
   const location = useStore(locationOf);
   const version = useStore((state) => state.version);
@@ -36,9 +43,9 @@ export function TitleBar() {
     <div className="titlebar">
       <button
         className="icon-button titlebar-toggle"
-        title={collapsed ? '사이드바 펼치기 (Ctrl+B)' : '사이드바 접기 (Ctrl+B)'}
-        aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
-        onClick={toggleSidebar}
+        title={stageTitle('사이드바', sidebar, 'Ctrl+B')}
+        aria-label={stageTitle('사이드바', sidebar)}
+        onClick={cycleSidebar}
       >
         <Icon name="sidebar" size={16} />
       </button>

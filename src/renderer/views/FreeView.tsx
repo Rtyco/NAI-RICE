@@ -26,6 +26,7 @@ import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
+import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
@@ -253,6 +254,7 @@ export function FreeView() {
   return (
     <section className="project-view">
       <header className="project-header">
+        <PromptPanelToggle />
         <h1 className="free-title">자유 생성</h1>
         <div className="segmented" role="group" aria-label="생성 방식">
           {(

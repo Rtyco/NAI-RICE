@@ -342,6 +342,7 @@ textarea {
   grid-template-rows: minmax(0, 1fr) auto;
 }
 .main-area {
+  grid-column: 2;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -2623,8 +2624,21 @@ textarea.syntax-input::selection {
   display: grid;
   grid-template-columns: var(--library-list-width, 260px) minmax(0, 1fr);
 }
-.library-view.list-collapsed {
+.library-view.list-icons {
   grid-template-columns: 60px minmax(0, 1fr);
+}
+.library-view.list-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+/* 숨긴 목록이 빠져도 편집기가 첫 칸으로 당겨지지 않게 칸을 정해 둔다. */
+.library-view > .library-list {
+  grid-column: 1;
+}
+.library-view > .library-editor {
+  grid-column: 2;
+}
+.library-list.stage-hidden {
+  display: none;
 }
 .library-list-toggle {
   margin-left: -4px;
@@ -2824,8 +2838,14 @@ textarea.syntax-input::selection {
   margin-bottom: 0;
 }
 /* ── 사이드바 ────────────────────────────────── */
-.app-shell.sidebar-collapsed {
+.app-shell.sidebar-icons {
   grid-template-columns: 60px minmax(0, 1fr);
+}
+.app-shell.sidebar-hidden {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.app-shell.sidebar-hidden > .sidebar {
+  display: none;
 }
 .sidebar {
   gap: 8px;
@@ -3038,13 +3058,26 @@ textarea.syntax-input::selection {
   grid-template-columns: var(--prompt-column) minmax(0, 1fr) var(--history-column);
   transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.prompt-panel-view.panel-collapsed {
+.prompt-panel-view.panel-icons {
   --prompt-column: 60px;
+}
+.prompt-panel-view.panel-hidden {
+  --prompt-column: 0px;
+}
+.prompt-panel-view > .prompt-panel {
+  grid-column: 1;
+}
+.prompt-panel-view > .history-panel {
+  grid-column: 3;
+}
+.prompt-panel.stage-hidden {
+  display: none;
 }
 .prompt-panel-view.history-collapsed {
   --history-column: 0px;
 }
 .prompt-panel-view > .project-view {
+  grid-column: 2;
   min-width: 0;
 }
 .prompt-panel-body {
