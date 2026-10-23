@@ -320,12 +320,13 @@ export function PromptPanelToggle() {
   if (!hidden) return null;
   return (
     <button
-      className="icon-button"
+      className="icon-button panel-reopen"
       title={stageTitle('프롬프트 패널', 'hidden', 'F7')}
       aria-label={stageTitle('프롬프트 패널', 'hidden')}
       onClick={cyclePromptPanel}
     >
-      <Icon name="chevron" size={18} />
+      <Icon name="prompt" size={18} />
+      <Icon name="chevron" size={12} />
     </button>
   );
 }
