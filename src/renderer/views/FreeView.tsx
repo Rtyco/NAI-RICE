@@ -9,24 +9,14 @@ import {
 } from '../../core/model/defaults';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
-import {
-  maxCharactersFor,
-  modelLabel,
-  noInpaintReason,
-  supportsInpaint,
-} from '../../core/providers/NaiModels';
+import { modelLabel, noInpaintReason, supportsInpaint } from '../../core/providers/NaiModels';
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
-import { AidChip } from '../components/AidChip';
-import { CharacterChip } from '../components/CharacterChip';
-import { PositionChip } from '../components/CharacterPositions';
-import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteButton } from '../components/FloatingPalette';
 import { SidePanelLayout, SidePanelToggle } from '../components/SidePanel';
-import { TopBarToggle } from '../components/TopBarToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -54,11 +44,13 @@ import {
 } from '../store';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
+import { FreeChainBar } from './free/FreeChainBar';
 import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeMaskCanvas } from './free/FreeMaskCanvas';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
 import { FreePromptFields } from './free/FreePromptFields';
+import { FreeStageTabs, type FreeStage } from './free/FreeStageTabs';
 
 const NO_RECORDS: GenerationSummary[] = [];
 
@@ -79,7 +71,7 @@ export function FreeView() {
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],
   );
-  const [stage, setStage] = useState<'source' | 'draw' | 'result'>('source');
+  const [stage, setStage] = useState<FreeStage>('source');
   const drawing = free.mode === 'img2img' && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
   const saveAs = (record: GenerationSummary) =>
@@ -276,35 +268,8 @@ export function FreeView() {
     </>
   );
 
-  // 접으면 같은 칩들을 화면 머리줄 안에 작게 둔다.
   const chainBar = (
-    <div className={`chain-bar ${topShown ? '' : 'compact'}`}>
-      <ChecklistChip
-        section="presets"
-        itemId={preset?.id}
-        missing={!preset}
-        value={preset?.name ?? '(없음)'}
-        items={library.presets}
-        checked={preset ? [preset.id] : []}
-        onPick={(presetId) => updateFreeGeneration({ presetId })}
-        editSection="presets"
-      />
-      <CharacterChip
-        slots={free.characters}
-        optional
-        max={maxCharactersFor(preset?.generation.model)}
-        onChange={(characters) => updateFreeGeneration({ characters })}
-      />
-      <PositionChip target="free" />
-      {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
-      <AidChip
-        value={free}
-        onChange={updateFreeGeneration}
-        model={preset?.generation.model}
-        inpaint={free.mode === 'img2img' && free.inpaint}
-      />
-      <TopBarToggle collapsed={!topShown} />
-    </div>
+    <FreeChainBar free={free} preset={preset} presets={library.presets} compact={!topShown} />
   );
 
   return (
@@ -363,37 +328,16 @@ export function FreeView() {
           >
             <section className="detail-stage">
               {(image || free.mode === 'img2img') && (
-                <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
-                  {image && (
-                    <button
-                      className={stage === 'source' ? 'active' : ''}
-                      aria-pressed={stage === 'source'}
-                      onClick={() => setStage('source')}
-                    >
-                      <Icon
-                        name={inpainting ? 'brush' : director ? 'wand' : 'reference'}
-                        size={14}
-                      />
-                      {inpainting ? '마스크 칠하기' : sourceLabel}
-                    </button>
-                  )}
-                  {free.mode === 'img2img' && (
-                    <button
-                      className={stage === 'draw' ? 'active' : ''}
-                      aria-pressed={stage === 'draw'}
-                      onClick={() => setStage('draw')}
-                    >
-                      <Icon name="pen" size={14} /> 그리기
-                    </button>
-                  )}
-                  <button
-                    className={stage === 'result' || (!image && stage === 'source') ? 'active' : ''}
-                    aria-pressed={stage === 'result'}
-                    onClick={() => setStage('result')}
-                  >
-                    <Icon name="images" size={14} /> {image ? '원본과 결과' : '결과'}
-                  </button>
-                </div>
+                <FreeStageTabs
+                  stage={stage}
+                  onStage={setStage}
+                  hasImage={Boolean(image)}
+                  source={{
+                    label: inpainting ? '마스크 칠하기' : sourceLabel,
+                    icon: inpainting ? 'brush' : director ? 'wand' : 'reference',
+                  }}
+                  drawable={free.mode === 'img2img'}
+                />
               )}
               {drawing ? (
                 <div className="free-mask-stage">
