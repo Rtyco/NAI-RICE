@@ -42,16 +42,9 @@ function FocusCard() {
           </button>
         ))}
       </div>
-      <p className="hint focus-legend">
-        <span>
-          <i className="hidden-swatch" />
-          숨는 곳
-        </span>
-        <span>
-          <i className="palette-swatch" />
-          대신 뜨는 버튼 창
-        </span>
-        <span>그림의 칸에 마우스를 올리면 이름이 나옵니다.</span>
+      <p className="hint">
+        그림은 집중 모드를 켠 뒤의 화면입니다. 카드에 마우스를 올리면 숨는 곳이 파란 칸으로 돌아와
+        보입니다.
       </p>
     </Card>
   );
