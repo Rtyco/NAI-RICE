@@ -200,7 +200,7 @@ export function parseImportFile(
 
   if (kind === 'reference-inpaint-library') {
     const data = parse(formats.library, value, '전체 백업');
-    return remapLibrary(data.library as Library, data.images, data.pictures);
+    return remapLibrary(data.library, data.images, data.pictures);
   }
   if (kind === 'reference-inpaint-preset') {
     const data = parse(formats.preset, value, '생성 설정');

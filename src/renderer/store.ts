@@ -210,7 +210,7 @@ export const useStore = create<StoreState>(() => ({
   galleryAspect: readUiState(
     GALLERY_ASPECT_KEY,
     (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
-    'portrait' as GalleryAspect,
+    'portrait',
   ),
   filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
   libraryListStage: readStage(LIBRARY_LIST_KEY) === 'hidden' ? 'hidden' : 'open',

@@ -146,7 +146,7 @@ export function Img2ImgDialog(props: {
           value={size}
           options={[
             ...RESOLUTION_PRESETS.map((item) => ({
-              value: item.id as string,
+              value: item.id,
               label: item.label,
             })),
             { value: 'exact-ratio', label: ratioLabel('원본 비율 유지', exact) },

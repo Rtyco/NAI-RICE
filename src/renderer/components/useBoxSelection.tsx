@@ -47,11 +47,11 @@ export function useBoxSelection<T extends HTMLElement>(
   const key = ids.join('\n');
 
   useEffect(() => {
+    const current = new Set(key.split('\n'));
     setSelected((previous) => {
-      const next = new Set([...previous].filter((id) => ids.includes(id)));
+      const next = new Set([...previous].filter((id) => current.has(id)));
       return next.size === previous.size ? previous : next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const onDeleteRef = useRef(onDelete);

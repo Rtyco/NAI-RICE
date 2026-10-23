@@ -63,7 +63,7 @@ export class Library
     if (await exists(this.libraryFile)) {
       const raw = await fs.readFile(this.libraryFile, 'utf8');
       try {
-        library = librarySchema.parse(JSON.parse(raw)) as LibraryData;
+        library = librarySchema.parse(JSON.parse(raw));
       } catch (error) {
         const broken = `${this.libraryFile}.broken-${Date.now()}`;
         await fs.copyFile(this.libraryFile, broken);
@@ -83,7 +83,7 @@ export class Library
   }
 
   async save(library: LibraryData): Promise<void> {
-    const validated = librarySchema.parse(library) as LibraryData;
+    const validated = librarySchema.parse(library);
     this.latest = validated;
     await this.mutex.run('library', () =>
       atomicWrite(this.libraryFile, `${JSON.stringify(validated, null, 2)}\n`),

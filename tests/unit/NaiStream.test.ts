@@ -32,7 +32,7 @@ function frame(message: Uint8Array): Uint8Array {
 }
 
 /** Response 본문으로 넘길 ArrayBuffer. */
-const bytes = (data: Uint8Array) => data.slice().buffer as ArrayBuffer;
+const bytes = (data: Uint8Array) => data.slice().buffer;
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2]);
 const JPEG = new Uint8Array([0xff, 0xd8, 9]);
@@ -125,7 +125,7 @@ describe('NovelAI 스트리밍 응답', () => {
     const v3 = {
       ...job,
       settings: { ...job.settings, model: 'nai-diffusion-3-inpainting' },
-    } as GenerationJobSnapshot;
+    };
     await new NovelAIProvider()
       .generate({ token: 'T', job: v3, onPreview: () => undefined })
       .catch(() => undefined);

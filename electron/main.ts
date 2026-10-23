@@ -109,21 +109,31 @@ function allowOnlyClipboardWrite(): void {
   );
 }
 
-app.whenReady().then(async () => {
-  disableSpellChecker();
-  allowOnlyClipboardWrite();
-  const services = await createServices();
-  handleMediaProtocol(services.library);
-  registerIpc(services);
-  // 입력란의 복사·붙여넣기 단축키는 메뉴 없이도 동작한다.
-  Menu.setApplicationMenu(null);
-  createWindow(APP_NAME, moduleDirectory);
-  services.account.startAutoRefresh(anyWindowVisible);
-  void cleanUpLeftovers(services);
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(APP_NAME, moduleDirectory);
+app
+  .whenReady()
+  .then(async () => {
+    disableSpellChecker();
+    allowOnlyClipboardWrite();
+    const services = await createServices();
+    handleMediaProtocol(services.library);
+    registerIpc(services);
+    // 입력란의 복사·붙여넣기 단축키는 메뉴 없이도 동작한다.
+    Menu.setApplicationMenu(null);
+    createWindow(APP_NAME, moduleDirectory);
+    services.account.startAutoRefresh(anyWindowVisible);
+    void cleanUpLeftovers(services);
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow(APP_NAME, moduleDirectory);
+    });
+  })
+  // 창을 열기 전에 실패하면 보이지 않는 프로세스만 남는다.
+  .catch((error: unknown) => {
+    dialog.showErrorBox(
+      `${APP_NAME}를 시작할 수 없습니다`,
+      error instanceof Error ? error.message : String(error),
+    );
+    app.quit();
   });
-});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

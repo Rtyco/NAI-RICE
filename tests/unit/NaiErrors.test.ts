@@ -12,8 +12,8 @@ describe('NovelAI error classification', () => {
     [400, 'insufficient Anlas balance', 'quota', false],
     [422, 'bad request', 'unsupported-request', false],
   ])('classifies HTTP %s as %s', (status, detail, kind, retryable) => {
-    const error = naiHttpError(status as number, JSON.stringify({ message: detail }));
-    expect(classifyNaiError(status as number, detail as string)).toBe(kind);
+    const error = naiHttpError(status, JSON.stringify({ message: detail }));
+    expect(classifyNaiError(status, detail)).toBe(kind);
     expect(error.retryable).toBe(retryable);
   });
 });

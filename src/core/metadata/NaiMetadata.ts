@@ -272,8 +272,8 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
     if (strength !== undefined) settings.inpaintStrength = Math.max(0, Math.min(1, strength));
     const sampler = asString(comment.sampler);
     const noiseSchedule = asString(comment.noise_schedule);
-    if (sampler) settings.sampler = sampler as GenerationSettings['sampler'];
-    if (noiseSchedule) settings.noiseSchedule = noiseSchedule as GenerationSettings['noiseSchedule'];
+    if (sampler) settings.sampler = sampler;
+    if (noiseSchedule) settings.noiseSchedule = noiseSchedule;
     if (typeof comment.skip_cfg_above_sigma === 'number') settings.variety = true;
     if (comment.sm === true) settings.smea = comment.sm_dyn === true ? 'dyn' : 'smea';
     if (comment.dynamic_thresholding === true) settings.decrisp = true;

@@ -111,7 +111,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   });
   const [renamingFolder, setRenamingFolder] = useState<string>();
   const group = (ids: string[]) => {
-    const name = newFolderName(useStore.getState().library![section] as Item[]);
+    const name = newFolderName(useStore.getState().library![section]);
     updateLibrary((current) => groupIntoFolder(current, section, ids, name));
     toggleFolder(folderKey(section, name), false);
     selection.clear();

@@ -80,7 +80,7 @@ describe('importSDStudioProject', () => {
 
   it('빈 프롬프트만 끄고 전체 import는 유지해', () => {
     const fixture = makeProject();
-    (fixture.scenes.Emotion3 as any).slots[0][0].prompt = '';
+    fixture.scenes.Emotion3.slots[0][0].prompt = '';
     const imported = importSDStudioProject(JSON.stringify(fixture));
     expect(imported.emotionSet.emotions[2].prompt).toBe('');
     expect(imported.warnings.some((warning) => warning.code === 'empty-prompt')).toBe(true);
@@ -88,7 +88,7 @@ describe('importSDStudioProject', () => {
 
   it('꺼진 프롬프트는 건너뛰어', () => {
     const fixture = makeProject();
-    (fixture.scenes.Emotion1 as any).slots = [
+    fixture.scenes.Emotion1.slots = [
       [{ prompt: 'disabled', enabled: false }],
       [{ prompt: 'chosen', enabled: true }],
     ];

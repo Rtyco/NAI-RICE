@@ -94,10 +94,12 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const paintChanged = useRef(false);
   const transformStart = useRef<CanvasLayout | null>(null);
 
+  // key로 레퍼런스마다 새로 마운트되니 처음 받은 것만 불러온다.
+  const [mounted] = useState(reference);
   useEffect(() => {
-    if (!reference.image) return;
+    if (!mounted.image) return;
     let active = true;
-    loadReference(reference)
+    loadReference(mounted)
       .then((loaded) => {
         if (!loaded || !active) return;
         savedMask.current = loaded.mask;
@@ -115,9 +117,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     return () => {
       active = false;
     };
-    // key로 레퍼런스마다 새로 마운트된다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mounted]);
 
   const rebuild = useCallback(async (nextSource: Source, nextLayout: CanvasLayout, nextThreshold: number) => {
     const sequence = (rebuildSeq.current += 1);

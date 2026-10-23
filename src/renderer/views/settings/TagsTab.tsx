@@ -61,7 +61,7 @@ export function TagsTab() {
             <TagLine
               key={id}
               label={UC_PRESET_LABELS[id]}
-              text={entry.uc[id as Exclude<UcPresetId, 'none'>]}
+              text={entry.uc[id]}
               negative
             />
           ))}

@@ -45,7 +45,7 @@ export function newFolderName(items: Foldered[]): string {
 }
 
 function list(library: Library, key: FolderCollection): Foldered[] {
-  return library[key] as Foldered[];
+  return library[key];
 }
 
 /** `folder`가 없으면 폴더에서 뺀다. */

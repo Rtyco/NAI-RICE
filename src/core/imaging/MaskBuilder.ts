@@ -26,7 +26,7 @@ export function buildGenerationMask(input: MaskBuildInput): Uint8Array {
   }
   if (overrides) {
     for (let pixel = 0; pixel < mask.length; pixel += 1) {
-      if (overrides[pixel] >= 0) mask[pixel] = overrides[pixel] as 0 | 1;
+      if (overrides[pixel] >= 0) mask[pixel] = overrides[pixel];
     }
   }
   return mask;

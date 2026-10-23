@@ -83,7 +83,7 @@ function CleanupDialog({
                 id,
                 list.map((record) => record.id),
               )
-            : { count: 0, bytes: 0 },
+            : Promise.resolve({ count: 0, bytes: 0 }),
         ),
       ).then((parts) => {
         if (!alive) return;

@@ -1,4 +1,4 @@
-import type { BackgroundDetection, PixelBuffer } from '../../core/imaging/BackgroundDetector';
+import type { BackgroundDetection } from '../../core/imaging/BackgroundDetector';
 import { detectBackground } from '../../core/imaging/BackgroundDetector';
 import { normalizeCanvasSize } from '../../core/imaging/CanvasNormalizer';
 import { computeLayout, imageBoxOf, layoutBackgroundMask } from '../../core/imaging/CanvasLayout';
@@ -57,7 +57,7 @@ export async function prepareImage(dataUrl: string, threshold = 16): Promise<Pre
     image.naturalWidth,
     image.naturalHeight,
   );
-  const detection = detectBackground(originalPixels as PixelBuffer, threshold);
+  const detection = detectBackground(originalPixels, threshold);
   const normalized = normalizeCanvasSize(image.naturalWidth, image.naturalHeight, 64);
   const work = canvas2d(normalized.width, normalized.height, false);
   work.context.fillStyle = '#ffffff';
