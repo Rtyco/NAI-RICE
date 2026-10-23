@@ -64,10 +64,7 @@ export function TitleBar() {
         version && <small className="titlebar-version">v{version}</small>
       )}
       {saveState === 'error' && (
-        <span
-          className="save-indicator error"
-          title="작업 폴더에 저장하지 못했습니다. 알림을 확인하십시오."
-        >
+        <span className="save-indicator error" title="작업 폴더에 저장하지 못했습니다">
           저장 실패
         </span>
       )}
@@ -98,7 +95,7 @@ export function TitleBar() {
         </button>
         <button
           className="titlebar-action"
-          title="프로그램 설정 (NovelAI 토큰·요청 간격·결과 파일·백업) · Ctrl+,"
+          title="프로그램 설정 (Ctrl+,)"
           aria-label="프로그램 설정"
           onClick={() => setSettingsOpen(true)}
         >

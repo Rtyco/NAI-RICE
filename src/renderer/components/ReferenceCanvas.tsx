@@ -534,7 +534,6 @@ export function ReferenceCanvas(props: Props) {
               <button
                 className={tool === 'reference' ? 'active green' : ''}
                 aria-pressed={tool === 'reference'}
-                title="참고 그림이 있는 곳입니다. 이 안은 다시 그리지 않습니다. 끌어서 옮기고 모서리로 크기를 바꿉니다."
                 onClick={() => setTool('reference')}
               >
                 <i className="green-dot" /> 참고 영역
@@ -542,7 +541,6 @@ export function ReferenceCanvas(props: Props) {
               <button
                 className={tool === 'output' ? 'active blue' : ''}
                 aria-pressed={tool === 'output'}
-                title="생성한 뒤 잘라서 저장할 곳입니다. 끌어서 옮기고 모서리로 크기를 바꿉니다."
                 onClick={() => setTool('output')}
               >
                 <i className="blue-dot" /> 결과 영역
@@ -552,7 +550,7 @@ export function ReferenceCanvas(props: Props) {
               <button
                 className={`with-icon ${transforming ? 'active' : ''}`}
                 aria-pressed={transforming}
-                title="Ctrl+T · 안쪽: 이동 · 모서리: 크기(Shift: 비율 무시, Alt: 가운데 기준) · 변: 늘리기 · 바깥: 회전(Shift: 15°) · 방향키: 1px(Shift: 10px)"
+                title="이미지 변형 (Ctrl+T)"
                 onClick={transforming ? transform.commit : transform.begin}
               >
                 <Icon name="transform" size={14} /> 이미지 변형
@@ -565,7 +563,7 @@ export function ReferenceCanvas(props: Props) {
           <button
             className={tool === 'generate' ? 'active teal' : ''}
             aria-pressed={tool === 'generate'}
-            title="생성 영역(청록색)을 칠합니다. NovelAI가 이곳을 새로 그립니다. (B, X: 칠하기·지우기 바꾸기)"
+            title="칠하기 (B)"
             onClick={() => setTool('generate')}
           >
             <i className="teal-dot" /> 칠하기
@@ -573,7 +571,7 @@ export function ReferenceCanvas(props: Props) {
           <button
             className={tool === 'keep' ? 'active' : ''}
             aria-pressed={tool === 'keep'}
-            title="생성 영역을 지웁니다. 지운 곳은 그대로 남습니다. (E)"
+            title="지우기 (E)"
             onClick={() => setTool('keep')}
           >
             <Icon name="eraser" size={14} /> 지우기
@@ -598,10 +596,7 @@ export function ReferenceCanvas(props: Props) {
               <Icon name="square" size={14} />
             </button>
           </div>
-          <label
-            className="range-field"
-            title="NovelAI 웹처럼 8px 칸 단위로 칠합니다. [ / ]로 줄이고 키웁니다."
-          >
+          <label className="range-field" title="크기 ([ / ])">
             크기
             <input
               type="range"
@@ -614,14 +609,8 @@ export function ReferenceCanvas(props: Props) {
           </label>
         </div>
         <span className="zone-divider" />
-        <button onClick={invert} title="생성 영역과 나머지를 맞바꿉니다">
-          반전
-        </button>
-        <button
-          onClick={clearMask}
-          disabled={!hasGeneratePixels}
-          title="생성 영역(청록색)을 모두 지웁니다. Ctrl+Z로 되돌릴 수 있습니다."
-        >
+        <button onClick={invert}>반전</button>
+        <button onClick={clearMask} disabled={!hasGeneratePixels}>
           모두 지우기
         </button>
         <button
@@ -643,10 +632,7 @@ export function ReferenceCanvas(props: Props) {
           <Icon name="undo" size={15} />
         </button>
         <div className="toolbar-zone view-zone">
-          <label
-            className="range-field"
-            title="생성 영역(청록색)을 화면에 얼마나 진하게 보일지 정합니다"
-          >
+          <label className="range-field" title="생성 영역 표시 불투명도">
             불투명도
             <input
               type="range"
@@ -660,10 +646,7 @@ export function ReferenceCanvas(props: Props) {
             />
             <b>{opacity}%</b>
           </label>
-          <span
-            className="canvas-zoom"
-            title="휠: 확대·축소 · 가운데 버튼(휠)이나 Space를 누른 채 끌기: 화면 이동"
-          >
+          <span className="canvas-zoom">
             <button
               className="icon-button"
               aria-label="축소"

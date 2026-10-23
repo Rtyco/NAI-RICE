@@ -112,11 +112,7 @@ const EmotionCard = memo(function EmotionCard(props: {
         props.dropOn(payload, emotion.id);
       }}
     >
-      <button
-        className="emotion-thumb"
-        onClick={open}
-        title="클릭: 결과와 프롬프트 편집 · 우클릭: 메뉴 · Ctrl·Shift 클릭: 여러 개 선택"
-      >
+      <button className="emotion-thumb" onClick={open}>
         {cover ? (
           <img
             src={projectMedia(projectId, cover.thumbFile ?? cover.file)}
@@ -144,9 +140,7 @@ const EmotionCard = memo(function EmotionCard(props: {
           type="checkbox"
           checked={included}
           disabled={!hasScenePrompt(emotion)}
-          title={
-            hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트를 입력하면 선택할 수 있습니다.'
-          }
+          title={hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트가 없습니다'}
           onChange={(event) =>
             updateProject(projectId, (current) => ({
               ...current,
@@ -259,7 +253,6 @@ export function GalleryView({
   if (!emotionSet) {
     return (
       <EmptyState title="씬 모음이 없습니다">
-        <p>위쪽 씬 모음에서 사용할 모음을 고르거나 라이브러리에서 새로 만드십시오.</p>
         <button className="accent" onClick={() => openLibrary('emotionSets')}>
           씬 모음 관리
         </button>
@@ -294,21 +287,21 @@ export function GalleryView({
             <span className="zone-divider" />
             <button
               className="with-icon"
-              title="고른 씬마다 대표 이미지(없으면 최신)를 크기·강도를 정해 다시 그려 다듬습니다"
+              title="고른 씬의 대표 이미지 다듬기 (i2i)"
               onClick={() => openImg2ImgDialog(project.id, pickedCovers())}
             >
               <Icon name="upscale" size={14} /> 다듬기
             </button>
             <button
               className="with-icon"
-              title="고른 씬마다 대표 이미지(없으면 최신)에 Emotion·배경 제거 같은 디렉터 툴을 적용합니다"
+              title="고른 씬의 대표 이미지에 디렉터 툴 적용"
               onClick={() => openDirectorToolDialog(project.id, pickedCovers())}
             >
               <Icon name="wand" size={14} /> 디렉터 툴
             </button>
             <button
               className="with-icon"
-              title="씬은 두고 생성 결과만 휴지통으로 보냅니다. 대표 이미지는 남깁니다."
+              title="생성 결과를 휴지통으로 (씬·대표 이미지는 남김)"
               onClick={() =>
                 void clearEmotionResults(
                   project.id,
@@ -345,7 +338,7 @@ export function GalleryView({
           <button
             className="with-icon"
             disabled={!withResults}
-            title={`결과가 있는 씬 ${withResults}개의 대표 이미지(없으면 최신)를 내보냅니다 (Ctrl+E)`}
+            title={`대표 이미지 ${withResults}장 내보내기 (Ctrl+E)`}
             onClick={openExport}
           >
             <Icon name="export" size={14} /> 내보내기
@@ -357,7 +350,7 @@ export function GalleryView({
                 key={choice.id}
                 className={choice.id === aspect ? 'active' : ''}
                 aria-pressed={choice.id === aspect}
-                title={`카드 이미지를 ${choice.title} 비율로 봅니다`}
+                title={`카드 비율 ${choice.title}`}
                 aria-label={choice.title}
                 onClick={() => setGalleryAspect(choice.id)}
               >
@@ -381,7 +374,7 @@ export function GalleryView({
         </section>
       </div>
       <BottomSlot>
-        <span className="zone-field" title="카드 아래 체크박스로 고른 씬만 일괄 생성합니다">
+        <span className="zone-field">
           <span>
             생성할 씬 <b>{included}</b>/{emotionSet.emotions.length}
           </span>

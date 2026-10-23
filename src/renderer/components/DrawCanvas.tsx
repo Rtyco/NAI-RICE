@@ -476,7 +476,7 @@ export function DrawCanvas(props: {
         <span className="zone-divider" />
         <div
           className="draw-colors"
-          title="X: 전경색·배경색 바꾸기 · D: 검정·흰색 · Alt+클릭: 그림에서 색 고르기"
+          title="전경색·배경색 (X: 바꾸기 · D: 검정·흰색 · Alt+클릭: 스포이트)"
         >
           <input
             type="color"
@@ -518,10 +518,7 @@ export function DrawCanvas(props: {
               </button>
             ))}
           </div>
-          <label
-            className="range-field"
-            title="[ / ]로 줄이고 키웁니다. Shift+[ / ]는 부드러운·둥근 끝"
-          >
+          <label className="range-field" title="크기 ([ / ]) · 끝 모양 (Shift+[ / ])">
             크기
             <input
               type="range"
@@ -533,10 +530,7 @@ export function DrawCanvas(props: {
             <b>{size}px</b>
           </label>
         </div>
-        <label
-          className="range-field"
-          title="펜과 채우기의 불투명도. 숫자 키 1~0(10~100%), 두 번 빠르게 누르면 두 자리"
-        >
+        <label className="range-field" title="불투명도 (1~0)">
           불투명도
           <input
             type="range"
@@ -548,7 +542,7 @@ export function DrawCanvas(props: {
           <b>{opacity}%</b>
         </label>
         {tool === 'fill' && (
-          <label className="range-field" title="이 차이 안의 색까지 함께 채웁니다">
+          <label className="range-field">
             허용 오차
             <input
               type="range"
@@ -583,10 +577,7 @@ export function DrawCanvas(props: {
           그린 것 지우기
         </button>
         <div className="toolbar-zone view-zone">
-          <span
-            className="canvas-zoom"
-            title="휠: 확대·축소 · 가운데 버튼(휠)이나 Space를 누른 채 끌기: 화면 이동"
-          >
+          <span className="canvas-zoom">
             <button
               className="icon-button"
               aria-label="축소"
@@ -609,12 +600,7 @@ export function DrawCanvas(props: {
             </button>
           </span>
           {props.onApply && (
-            <button
-              className="accent"
-              disabled={!dirty}
-              title="그린 것을 이미지에 합쳐 i2i 이미지로 씁니다. 생성하거나 다른 탭으로 가면 자동으로 합칩니다."
-              onClick={() => void apply()}
-            >
+            <button className="accent" disabled={!dirty} onClick={() => void apply()}>
               이미지에 합치기
             </button>
           )}

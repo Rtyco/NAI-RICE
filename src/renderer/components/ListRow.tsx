@@ -107,11 +107,7 @@ export function ListRow(props: {
       ) : (
         <button
           className={mainClass}
-          title={
-            collapsed
-              ? props.name
-              : '두 번 클릭: 이름 변경 · 끌어서 순서 변경 · Ctrl·Shift 클릭: 여러 개 선택'
-          }
+          title={collapsed ? props.name : undefined}
           onClick={(event) => {
             if (collapsed || !props.onPick(event)) props.open();
           }}

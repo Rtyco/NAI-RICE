@@ -45,7 +45,7 @@ export function Filmstrip(props: {
               browser.setSelectedId(record.id);
               showResultMenu(event, props.menu(record));
             }}
-            title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()} · Ctrl·Shift 클릭: 여러 장 선택`}
+            title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
           >
             <img
               src={projectMedia(props.projectId, record.thumbFile ?? record.file)}

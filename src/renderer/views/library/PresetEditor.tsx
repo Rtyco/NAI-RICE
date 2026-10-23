@@ -302,12 +302,6 @@ export function PresetEditor({ preset }: { preset: Preset }) {
                 <code>{autoNsfw ? `nsfw, ${tagText.uc}` : tagText.uc}</code>
               </p>
             )}
-            {autoNsfw && (
-              <p>
-                <span />
-                <small>포지티브에 nsfw가 없을 때만 nsfw를 붙입니다. NovelAI 웹과 같습니다.</small>
-              </p>
-            )}
           </div>
         )}
       </Card>

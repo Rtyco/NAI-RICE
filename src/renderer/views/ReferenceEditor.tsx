@@ -513,7 +513,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             <button
               className={stage === 'draw' ? 'active' : ''}
               aria-pressed={stage === 'draw'}
-              title="i2i 그리기처럼 캔버스에 덧칠합니다. 그린 것은 NovelAI에 보내는 캔버스에 합쳐집니다."
               onClick={() => showStage('draw')}
             >
               <Icon name="pen" size={14} /> 그리기
@@ -563,14 +562,11 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
               detectionLabel={rebuilding ? '다시 구성하는 중…' : working.detectionLabel}
               status={
                 <>
-                  <span title="NovelAI에는 캔버스 전체를 보내고, 결과 영역만 잘라 저장합니다">
+                  <span>
                     저장 {Math.round(outputRect.width)}×{Math.round(outputRect.height)}
                   </span>
                   {free?.free ? (
-                    <span
-                      className="ok"
-                      title="Opus 무료 크기 기준(1024×1024 이하 면적)을 충족합니다"
-                    >
+                    <span className="ok" title="Opus 무료 크기 (1024×1024 이하)">
                       무료 크기
                     </span>
                   ) : (
@@ -602,10 +598,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
             />
           ) : (
             <EmptyState title="참고 이미지가 필요합니다">
-              <p>
-                캐릭터 이미지 한 장을 선택하면 NovelAI 무료 해상도에 맞춰 참고 이미지와 생성 영역을
-                자동으로 배치합니다.
-              </p>
               <button className="accent" onClick={pickImage}>
                 이미지 선택
               </button>

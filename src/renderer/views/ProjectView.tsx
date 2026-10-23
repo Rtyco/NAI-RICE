@@ -68,10 +68,7 @@ function VariantsStepper({ preset }: { preset: Preset }) {
       })),
     );
   return (
-    <span
-      className="zone-field"
-      title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장됩니다`}
-    >
+    <span className="zone-field" title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장`}>
       ×
       <Stepper
         value={value}

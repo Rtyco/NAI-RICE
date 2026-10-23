@@ -202,12 +202,11 @@ export function Img2ImgDialog(props: {
       )}
       {ratioMode === 'exact-ratio' && exactLoss > 0 && (
         <p className="hint caution">
-          64px 단위로 원본과 동일한 비율을 찾습니다. 「비슷한 비율 · 최대 크기」보다 픽셀 수가 약{' '}
-          {exactLoss}% 적습니다.
+          「비슷한 비율 · 최대 크기」보다 픽셀 수가 약 {exactLoss}% 적습니다.
         </p>
       )}
       {ratioMode === 'closest-ratio' && closestOff && (
-        <p className="hint caution">64px 단위로 원본과 가장 비슷한 비율을 찾습니다.</p>
+        <p className="hint caution">원본과 비율이 조금 다릅니다.</p>
       )}
       {fixed && fixed.width * fixed.height > FREE_MAX_PIXELS && (
         <p className="field-error">

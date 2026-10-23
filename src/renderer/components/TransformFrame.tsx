@@ -46,10 +46,10 @@ export function TransformFrame(props: {
 export function TransformActions(props: { onCommit: () => void; onCancel: () => void }) {
   return (
     <div className="transform-actions" onPointerDown={(event) => event.stopPropagation()}>
-      <button className="accent" title="Enter · 상자 안 더블클릭" onClick={props.onCommit}>
+      <button className="accent" title="확정 (Enter)" onClick={props.onCommit}>
         확정
       </button>
-      <button title="Esc · 변형을 시작하기 전으로 되돌립니다" onClick={props.onCancel}>
+      <button title="취소 (Esc)" onClick={props.onCancel}>
         취소
       </button>
     </div>

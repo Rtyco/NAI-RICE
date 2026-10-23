@@ -231,7 +231,6 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             <>
               <div className="library-list-title">
                 <b>{info.label}</b>
-                {info.usage && <small>{info.usage}</small>}
               </div>
               <button className="accent" onClick={add}>
                 ＋ 추가
@@ -313,7 +312,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             </span>
             <button
               className="with-icon"
-              title="고른 항목을 새 폴더로 묶습니다 (Ctrl+G)"
+              title="새 폴더로 묶기 (Ctrl+G)"
               onClick={() => group([...selection.selected])}
             >
               <Icon name="folder" size={14} />
@@ -322,7 +321,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             {section === 'vibes' && (
               <button
                 className="with-icon"
-                title="고른 바이브를 NovelAI 바이브 묶음(.naiv4vibeBundle)으로 저장합니다"
+                title="바이브 묶음으로 내보내기 (.naiv4vibeBundle)"
                 onClick={() => exportVibeItems([...selection.selected])}
               >
                 <Icon name="export" size={14} />
@@ -331,7 +330,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
             )}
             <button
               className="with-icon danger-quiet"
-              title="고른 항목을 삭제합니다"
+              title="고른 항목 삭제"
               onClick={() => removeMany([...selection.selected])}
             >
               <Icon name="trash" size={14} />
@@ -394,7 +393,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                 <>
                   <button
                     className="with-icon"
-                    title="NovelAI 웹에서 가져올 수 있는 .naiv4vibe 파일로 저장합니다"
+                    title=".naiv4vibe로 내보내기"
                     onClick={() => exportVibeItems([selected.id])}
                   >
                     <Icon name="export" /> 바이브 파일로 내보내기

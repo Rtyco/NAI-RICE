@@ -17,7 +17,6 @@ export const SECTIONS: Array<{
   label: string;
   icon: IconName;
   role: string;
-  usage: string;
   /** 1은 작업 화면 */
   shortcut: string;
 }> = [
@@ -30,7 +29,6 @@ export const SECTIONS: Array<{
     label: '생성 설정',
     icon: 'preset',
     role: '모델 · 공통 프롬프트 · Steps',
-    usage: '',
   },
   {
     id: 'characters',
@@ -41,7 +39,6 @@ export const SECTIONS: Array<{
     label: '캐릭터',
     icon: 'character',
     role: '외형 · 의상 프롬프트',
-    usage: '',
   },
   {
     id: 'emotionSets',
@@ -52,7 +49,6 @@ export const SECTIONS: Array<{
     label: '씬 모음',
     icon: 'emotion',
     role: '씬 프롬프트',
-    usage: '',
   },
   {
     id: 'references',
@@ -63,7 +59,6 @@ export const SECTIONS: Array<{
     label: '인페인트',
     icon: 'reference',
     role: '참고 이미지 · 캔버스',
-    usage: '',
   },
   {
     id: 'characterReferences',
@@ -74,7 +69,6 @@ export const SECTIONS: Array<{
     label: '캐릭터 레퍼런스',
     icon: 'portrait',
     role: '그림의 캐릭터 따라 그리기',
-    usage: '',
   },
   {
     id: 'vibes',
@@ -85,7 +79,6 @@ export const SECTIONS: Array<{
     label: '바이브',
     icon: 'vibe',
     role: '그림의 분위기·그림체',
-    usage: '',
   },
   {
     id: 'pieceSets',
@@ -96,7 +89,6 @@ export const SECTIONS: Array<{
     label: '프롬프트 조각',
     icon: 'tag',
     role: '',
-    usage: '',
   },
 ];
 

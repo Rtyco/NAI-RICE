@@ -363,7 +363,7 @@ export function Sidebar() {
           section="projects"
           icon="project"
           label="작업"
-          title="생성 결과가 쌓이는 곳 · 단축키 1 · Ctrl+Tab으로 다음 작업"
+          title="작업 (1) · 다음 작업 (Ctrl+Tab)"
           narrow={collapsed}
           folded={projectsFolded}
         >
@@ -448,7 +448,7 @@ export function Sidebar() {
               </span>
               <button
                 className="with-icon"
-                title="고른 작업을 새 폴더로 묶습니다 (Ctrl+G)"
+                title="새 폴더로 묶기 (Ctrl+G)"
                 onClick={() => group([...selection.selected])}
               >
                 <Icon name="folder" size={14} />
@@ -456,7 +456,7 @@ export function Sidebar() {
               </button>
               <button
                 className="with-icon danger-quiet"
-                title="고른 작업을 삭제합니다"
+                title="고른 작업 삭제"
                 onClick={() => removeMany([...selection.selected])}
               >
                 <Icon name="trash" size={14} />
@@ -491,7 +491,7 @@ export function Sidebar() {
                 key={section.id}
                 title={(collapsed
                   ? [section.label, section.role, `단축키 ${section.shortcut}`]
-                  : [section.usage, `단축키 ${section.shortcut}`]
+                  : [`단축키 ${section.shortcut}`]
                 )
                   .filter(Boolean)
                   .join(' · ')}

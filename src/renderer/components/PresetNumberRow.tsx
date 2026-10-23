@@ -10,19 +10,19 @@ export type PresetNumberField = 'img2imgStrength' | 'img2imgNoise' | 'inpaintStr
 // 범위는 생성 설정 화면과 같다.
 const FIELDS: Record<
   PresetNumberField,
-  { text: string; icon: IconName; usage: string; min: number; max: number }
+  { text: string; icon: IconName; name: string; min: number; max: number }
 > = {
   img2imgStrength: {
     text: '강도',
     icon: 'refresh',
-    usage: 'i2i 강도(Strength) · 낮을수록 원본을 많이 남깁니다',
+    name: 'i2i 강도 (Strength)',
     min: 0.01,
     max: 0.99,
   },
   img2imgNoise: {
     text: '노이즈',
     icon: 'sparkle',
-    usage: 'i2i 노이즈(Noise) · 높을수록 원본에 없던 세부를 더 그려 넣습니다',
+    name: 'i2i 노이즈 (Noise)',
     min: 0,
     max: 0.99,
   },
@@ -30,7 +30,7 @@ const FIELDS: Record<
   inpaintStrength: {
     text: '강도',
     icon: 'brush',
-    usage: '인페인팅 강도(Strength) · 낮을수록 칠한 곳의 원래 모습을 많이 남깁니다',
+    name: '인페인팅 강도 (Strength)',
     min: 0,
     max: 1,
   },
@@ -48,10 +48,7 @@ function patchGeneration(preset: Preset, value: Partial<Preset['generation']>) {
 export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
   const info = FIELDS[field];
   return (
-    <div
-      className="preset-number-row"
-      title={`${info.usage} · 생성 설정 「${preset.name}」에 저장됩니다`}
-    >
+    <div className="preset-number-row" title={`${info.name} · 생성 설정 「${preset.name}」에 저장`}>
       <span>
         <Icon name={info.icon} size={14} /> {info.text}
       </span>

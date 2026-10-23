@@ -38,7 +38,7 @@ function editItem(section: LibrarySection, itemId: string | undefined): void {
   ));
 }
 
-type ChainLabel = { text: string; icon: IconName; usage: string };
+type ChainLabel = { text: string; icon: IconName; usage?: string };
 
 /** null이면 버튼이 없다. */
 type ChainEdit = { title: string; open: () => void } | null;
@@ -59,7 +59,7 @@ export function ChainChip(props: {
   children: ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
-  const label = props.label ?? { text: info!.label, icon: info!.icon, usage: info!.usage };
+  const label = props.label ?? { text: info!.label, icon: info!.icon };
   const edit =
     props.edit === undefined && props.section
       ? {
@@ -399,7 +399,7 @@ export function SizeChip({ preset }: { preset: Preset }) {
       label={{
         text: '해상도',
         icon: 'expand',
-        usage: `생성 설정 「${preset.name}」의 일반 생성 해상도를 바꿉니다`,
+        usage: `생성 설정 「${preset.name}」에 저장`,
       }}
       value={current?.label ?? custom}
       items={[

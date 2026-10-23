@@ -38,7 +38,6 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
           <button
             className={free.inpaint ? '' : 'active'}
             aria-pressed={!free.inpaint}
-            title="이미지 전체를 강도만큼 다시 그립니다"
             onClick={() => updateFreeGeneration({ inpaint: false })}
           >
             <Icon name="refresh" size={14} /> 전체 다시 그리기
@@ -46,7 +45,6 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
           <button
             className={free.inpaint ? 'active' : ''}
             aria-pressed={free.inpaint}
-            title="가운데 이미지에 마스크로 칠한 곳만 다시 그립니다"
             onClick={() => updateFreeGeneration({ inpaint: true })}
           >
             <Icon name="brush" size={14} /> 인페인팅

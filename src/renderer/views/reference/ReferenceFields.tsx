@@ -37,7 +37,7 @@ export function FreePlacementFields(props: {
   return (
     <>
       <div>
-        <SettingRow label="가로 위치" unit="%" title="참고 영역 안에서 이미지 중심의 위치입니다">
+        <SettingRow label="가로 위치" unit="%">
           <Stepper
             label="가로 위치"
             value={Math.round(free.x * 100)}
@@ -57,7 +57,7 @@ export function FreePlacementFields(props: {
             onChange={(percent) => onChange({ y: percent / 100 })}
           />
         </SettingRow>
-        <SettingRow label="가로 크기" unit="%" title="100%가 전체 보이기 크기입니다">
+        <SettingRow label="가로 크기" unit="%" title="100% = 전체 보이기">
           <Stepper
             label="가로 크기"
             value={Math.round(free.scaleX * 100)}
@@ -121,7 +121,7 @@ export function DividerFields(props: {
               onChange={(event) => onChange({ color: event.target.value })}
             />
           </SettingRow>
-          <SettingRow label="선 두께" unit="px" title="NovelAI 마스크 한 칸(8px) 단위입니다">
+          <SettingRow label="선 두께" unit="px" title="NovelAI 마스크 한 칸 = 8px">
             <Stepper
               label="선 두께"
               value={divider.widthPx}
@@ -142,11 +142,7 @@ export function DividerFields(props: {
             onChange={(placement) => onChange({ placement })}
           />
           {divider.placement !== 'center' && (
-            <SettingRow
-              label="경계와 간격"
-              unit="px"
-              title="생성 영역 경계에서 선을 이만큼 띄웁니다"
-            >
+            <SettingRow label="경계와 간격" unit="px">
               <Stepper
                 label="경계와 간격"
                 value={divider.gapPx}

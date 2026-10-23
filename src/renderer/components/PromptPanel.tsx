@@ -313,7 +313,6 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
       footer={
         <button
           className="with-icon prompt-panel-preview"
-          title="씬 프롬프트까지 합친 최종 요청을 봅니다"
           onClick={() =>
             void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />)
           }

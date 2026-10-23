@@ -517,11 +517,9 @@ export function ImageImportDialog({
               onChange={(on) => toggleAid('characterReferences', on)}
             >
               <b>새 캐릭터 레퍼런스로 추가</b>
-              <small>그림의 캐릭터나 그림체를 따라 그립니다</small>
             </Check>
             <Check checked={aidTargets.includes('vibes')} onChange={(on) => toggleAid('vibes', on)}>
               <b>새 바이브로 추가</b>
-              <small>그림의 분위기·그림체를 따라갑니다</small>
             </Check>
             {embeddedVibes > 0 && (
               <Check checked={useVibes} onChange={setUseVibes}>

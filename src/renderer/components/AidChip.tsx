@@ -51,7 +51,7 @@ export function AidChip(props: {
       label={{
         text: '참고',
         icon: character ? 'portrait' : 'vibe',
-        usage: '캐릭터 레퍼런스나 바이브를 씁니다(V4.5 전용)',
+        usage: 'V4.5 전용',
       }}
       iconAction={switchMode}
       missing={Boolean(aid) && missing}

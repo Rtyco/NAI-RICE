@@ -99,11 +99,7 @@ export function CanvasLayoutCard(props: {
             options={SIDES}
             onChange={(referenceSide) => props.onLayout({ referenceSide })}
           />
-          <SettingRow
-            label="참고 영역 비율"
-            unit="%"
-            title="캔버스에서 참고 이미지가 차지하는 몫입니다. 나머지가 결과 쪽 크기입니다."
-          >
+          <SettingRow label="참고 영역 비율" unit="%">
             <Stepper
               label="참고 영역 비율"
               value={Math.round(layout.referenceRatio * 100)}
@@ -166,12 +162,7 @@ export function CanvasLayoutCard(props: {
           />
         </SettingRow>
       )}
-      <button
-        className="with-icon full-width"
-        disabled={!props.canReset}
-        title="참고 영역·결과 영역·생성 영역을 처음 상태로 다시 만듭니다"
-        onClick={props.onReset}
-      >
+      <button className="with-icon full-width" disabled={!props.canReset} onClick={props.onReset}>
         <Icon name="refresh" size={14} /> {auto ? '자동 배치로 되돌리기' : '배경 다시 감지'}
       </button>
     </section>

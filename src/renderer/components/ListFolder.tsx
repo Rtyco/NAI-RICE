@@ -93,7 +93,6 @@ export function ListFolder(props: {
           <button
             className="list-folder-toggle"
             aria-expanded={!folded}
-            title="누르면 접고 폅니다 · 두 번 클릭: 이름 변경 · 끌어서 폴더째 옮기기"
             onClick={toggle}
             onDoubleClick={() => props.setRenaming(true)}
           >

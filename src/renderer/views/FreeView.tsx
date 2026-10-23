@@ -413,7 +413,6 @@ export function FreeView() {
                     <button
                       className={stage === 'draw' ? 'active' : ''}
                       aria-pressed={stage === 'draw'}
-                      title="NovelAI 웹의 캔버스처럼 i2i 이미지에 펜·채우기로 덧칠합니다"
                       onClick={() => setStage('draw')}
                     >
                       <Icon name="pen" size={14} /> 그리기

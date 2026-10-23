@@ -86,9 +86,8 @@ export function DirectorToolFields(props: {
 export function BgRemovalWarning({ results }: { results: number }) {
   return (
     <p className="warning-box">
-      배경 제거는 Opus여도 Anlas가 듭니다(832×1216 한 번에 65, 608×832 한 번에 35). 한 번에 배경이
-      투명한 이미지 세 장(원본 그대로 오린 것, 다시 그린 것, 거의 원본과 같은 것)이 와서 모두{' '}
-      {results}장이 쌓입니다.
+      배경 제거는 Opus여도 Anlas가 듭니다(832×1216 한 번에 65, 608×832 한 번에 35). 한 번에 세 장씩,
+      모두 {results}장이 쌓입니다.
     </p>
   );
 }

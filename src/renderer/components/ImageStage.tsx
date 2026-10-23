@@ -153,11 +153,7 @@ function ZoomView(props: {
         >
           <Icon name="zoom-out" size={16} />
         </button>
-        <button
-          className="zoom-level"
-          title="화면에 맞추고 가운데로 (더블클릭으로 맞춤과 원본 크기 전환)"
-          onClick={() => reset('fit')}
-        >
+        <button className="zoom-level" title="화면에 맞추기" onClick={() => reset('fit')}>
           {Math.round(scale * 100)}%
         </button>
         <button
@@ -173,7 +169,7 @@ function ZoomView(props: {
         </button>
         <button
           className="icon-button"
-          title="가운데로 (끌어서 옮긴 자리를 되돌립니다)"
+          title="가운데로"
           aria-label="가운데로"
           disabled={!moved}
           onClick={() => setOffset(CENTER)}

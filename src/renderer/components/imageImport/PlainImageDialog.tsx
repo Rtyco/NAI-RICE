@@ -53,7 +53,7 @@ export function PlainImageDialog({ image, close }: { image: DroppedImage; close:
       <div className="image-import">
         <img src={image.dataUrl} alt="" className="import-preview" />
         <div className="import-options">
-          <p>이 이미지에는 NovelAI 생성 정보가 없습니다. 어디에 쓸지 고르십시오.</p>
+          <p>이 이미지에는 NovelAI 생성 정보가 없습니다.</p>
           {reference && (
             <button className="accent" onClick={() => assign('current')}>
               현재 인페인트 "{reference.name}"의 참고 이미지 교체

@@ -59,11 +59,7 @@ function Welcome() {
     <EmptyState title="작업을 만들어 시작하십시오">
       <div className="welcome-chain">
         {PROJECT_SECTIONS.map((section, index) => (
-          <button
-            key={section.id}
-            onClick={() => openLibrary(section.id)}
-            title={section.usage || undefined}
-          >
+          <button key={section.id} onClick={() => openLibrary(section.id)}>
             <Icon name={section.icon} size={20} />
             <b>
               {index + 1}. {section.label}

@@ -102,7 +102,7 @@ export function RecordInfo({
               className="record-input"
               src={projectMedia(projectId, record.inputFile)}
               alt=""
-              title="NovelAI에 실제로 보낸 입력(목표 크기로 맞춘 것)"
+              title="NovelAI에 보낸 입력 (목표 크기)"
             />
           </dd>
         </>
