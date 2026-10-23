@@ -18,12 +18,11 @@ import {
   dismissToast,
   initialize,
   openLibrary,
-  queueBarShownOf,
   setSettingsOpen,
-  sidebarStageOf,
   subscribeToMain,
   useStore,
 } from './store';
+import { queueBarShownOf, sidebarStageOf, useLayout } from './layout';
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
@@ -94,9 +93,9 @@ export default function App() {
   const view = useStore((state) => state.view);
   const hasLibrary = useStore((state) => Boolean(state.library));
   const settingsOpen = useStore((state) => state.settingsOpen);
-  const sidebar = useStore(sidebarStageOf);
-  const queueShown = useStore(queueBarShownOf);
-  const peek = useStore((state) => state.peek);
+  const sidebar = useLayout(sidebarStageOf);
+  const queueShown = useLayout(queueBarShownOf);
+  const peek = useLayout((state) => state.peek);
   const appearance = useStore((state) => state.library?.settings.appearance);
   const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
   const projectExists = useStore(

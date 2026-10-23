@@ -37,11 +37,10 @@ import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
+import { queueBarShownOf, topBarShownOf, useLayout } from '../layout';
 import {
   openEmotion,
-  queueBarShownOf,
   referenceMedia,
-  topBarShownOf,
   updateLibrary,
   updateProject,
   useLibrary,
@@ -302,8 +301,8 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
-  const queueShown = useStore(queueBarShownOf);
-  const topShown = useStore(topBarShownOf);
+  const queueShown = useLayout(queueBarShownOf);
+  const topShown = useLayout(topBarShownOf);
   const aidSources = useStore(
     useShallow((state) => ({
       characterReferences: state.library!.characterReferences,

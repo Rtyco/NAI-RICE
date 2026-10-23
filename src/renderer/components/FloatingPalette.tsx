@@ -11,13 +11,13 @@ import {
 import { createPortal } from 'react-dom';
 import { queueApi } from '../desktop';
 import {
+  focusingOf,
   queueBarShownOf,
-  readUiState,
-  saveUiState,
   sidePanelShownOf,
   toggleFocusMode,
-  useStore,
-} from '../store';
+  useLayout,
+} from '../layout';
+import { readUiState, saveUiState, useStore } from '../store';
 import { Icon } from './Icon';
 import { QueueJobs } from './QueueBar';
 import { queueAction, summarizeQueue } from '../queueSummary';
@@ -66,7 +66,7 @@ export function PaletteSlot({ children }: { children: ReactNode }) {
  * 겹쳐 보인다.
  */
 export function SidePanel({ className, children }: { className: string; children: ReactNode }) {
-  const hidden = useStore((state) => !sidePanelShownOf(state));
+  const hidden = useLayout((state) => !sidePanelShownOf(state));
   const node = useSyncExternalStore(subscribe, () => panelTarget);
   useEffect(() => {
     if (!hidden) return;
@@ -120,7 +120,7 @@ function useWindowSize() {
 /** 글자 없이 아이콘만 둔다. 무슨 버튼인지는 마우스를 올리면 나온다. */
 export function FloatingPalette() {
   const count = useSyncExternalStore(subscribe, () => slots + panels);
-  const queueShown = useStore(queueBarShownOf);
+  const queueShown = useLayout(queueBarShownOf);
   return count || !queueShown ? <Palette queueShown={queueShown} /> : null;
 }
 
@@ -180,7 +180,7 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
 
 function Palette({ queueShown }: { queueShown: boolean }) {
   const hasPanel = useSyncExternalStore(subscribe, () => panels > 0);
-  const focusing = useStore((state) => state.focusHidden.length > 0);
+  const focusing = useLayout(focusingOf);
   const [position, setPosition] = useState(readPosition);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
   const [popup, setPopup] = useState<Popup>();

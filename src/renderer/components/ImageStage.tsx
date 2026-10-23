@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { toggleFilmstrip, useStore } from '../store';
+import { toggleFilmstrip, useLayout } from '../layout';
 import { Icon } from './Icon';
 import { clampZoom, useWheel, ZOOM_STEP } from './zoom';
 
@@ -223,7 +223,7 @@ export function ImageStage(props: {
   onContextMenu?: (event: MouseEvent) => void;
 }) {
   const [lightbox, setLightbox] = useState(false);
-  const collapsed = useStore((state) => state.filmstripCollapsed);
+  const collapsed = useLayout((state) => state.filmstripCollapsed);
   const filmstripButton = props.filmstrip && (
     <button
       className={`icon-button ${collapsed ? '' : 'active'}`}

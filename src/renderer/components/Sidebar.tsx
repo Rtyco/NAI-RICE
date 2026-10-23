@@ -22,12 +22,12 @@ import {
 } from '../../core/model/folders';
 import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
 import { SECTIONS } from '../sections';
+import { sidebarStageOf, useLayout } from '../layout';
 import {
   openFree,
   openLibrary,
   openProject,
   referenceMedia,
-  sidebarStageOf,
   toggleFolder,
   toggleSidebarSection,
   updateLibrary,
@@ -232,7 +232,7 @@ export function Sidebar() {
   const view = useStore((state) => state.view);
   const queue = useStore((state) => state.queue);
   // 숨김 단계에서도 펼친 모습을 그려 둔다(화면에는 CSS가 감춘다).
-  const collapsed = useStore((state) => sidebarStageOf(state) === 'icons');
+  const collapsed = useLayout((state) => sidebarStageOf(state) === 'icons');
   const sections = useStore((state) => state.sidebarSections);
   // 좁은 막대에서는 카드 접기를 무시한다.
   const projectsFolded = !collapsed && sections.projects;

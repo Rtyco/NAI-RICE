@@ -1,4 +1,4 @@
-import type { FocusPart } from '../../store';
+import type { FocusPart } from '../../layout';
 
 const TILES = 18;
 const HISTORY_TILES = 5;

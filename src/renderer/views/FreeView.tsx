@@ -55,13 +55,12 @@ import {
   projectMedia,
   resolveFreeGeneration,
   run,
-  sidePanelShownOf,
   toast,
-  topBarShownOf,
   updateFreeGeneration,
   useLibrary,
   useStore,
 } from '../store';
+import { sidePanelShownOf, topBarShownOf, useLayout } from '../layout';
 import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeMaskCanvas } from './free/FreeMaskCanvas';
@@ -100,8 +99,8 @@ export function FreeView() {
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
-  const sideShown = useStore(sidePanelShownOf);
-  const topShown = useStore(topBarShownOf);
+  const sideShown = useLayout(sidePanelShownOf);
+  const topShown = useLayout(topBarShownOf);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],

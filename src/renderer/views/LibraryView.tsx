@@ -23,13 +23,11 @@ import { dragPayload } from '../components/listDrag';
 import { ListFolder } from '../components/ListFolder';
 import { ListRow } from '../components/ListRow';
 import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
+import { cycleLibraryList, libraryListStageOf, stageTitle, useLayout } from '../layout';
 import {
-  cycleLibraryList,
-  libraryListStageOf,
   openLibrary,
   pictureMedia,
   referenceMedia,
-  stageTitle,
   toggleFolder,
   updateLibrary,
   useLibrary,
@@ -78,7 +76,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const selected = items.find((item) => item.id === itemId) ?? items[0];
   const info = sectionInfo(section);
   const [dragging, setDragging] = useState<string[]>([]);
-  const stage = useStore(libraryListStageOf);
+  const stage = useLayout(libraryListStageOf);
   const collapsed = usePanelCompact('library-list');
   const listTitle = stageTitle(`${info.label} 목록`, 'libraryListStage', stage, 'F7');
   const reopenList = stage === 'hidden' && (

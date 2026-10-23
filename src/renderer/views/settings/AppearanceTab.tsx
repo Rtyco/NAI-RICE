@@ -1,6 +1,7 @@
 import type { AppSettings, FocusLevel, ThemeId, ThemeMode } from '../../../core/domain/types';
 import { Card, Toggle } from '../../components/ui';
-import { FOCUS_PARTS, useLibrary } from '../../store';
+import { FOCUS_PARTS } from '../../layout';
+import { useLibrary } from '../../store';
 import { MODE_LABELS, THEMES, themeSwatch } from '../../theme';
 import { FocusPreview } from './FocusPreview';
 import { patchSettings } from './patchSettings';

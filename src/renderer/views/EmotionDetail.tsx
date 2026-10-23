@@ -26,12 +26,11 @@ import {
   openEmotion,
   projectMedia,
   run,
-  sidePanelShownOf,
   toast,
-  topBarShownOf,
   updateProject,
   useStore,
 } from '../store';
+import { sidePanelShownOf, topBarShownOf, useLayout } from '../layout';
 import { fileApi, libraryApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
 
@@ -53,8 +52,8 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
-  const sideShown = useStore(sidePanelShownOf);
-  const topShown = useStore(topBarShownOf);
+  const sideShown = useLayout(sidePanelShownOf);
+  const topShown = useLayout(topBarShownOf);
   const favoriteId = project.favorites[emotion.id];
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {

@@ -1,4 +1,4 @@
-import { toggleTopBar } from '../store';
+import { toggleTopBar } from '../layout';
 import { Icon } from './Icon';
 
 /** 설정 줄 끝에 둔다. 접으면 같은 칩들이 화면 머리줄에 작게 들어간다. */

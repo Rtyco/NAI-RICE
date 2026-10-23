@@ -5,14 +5,13 @@ import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { libraryApi } from '../desktop';
 import { deleteResults } from '../generationOps';
+import { historyShownOf, toggleHistory, useLayout } from '../layout';
 import {
-  historyShownOf,
   openEmotion,
   projectMedia,
   requestResult,
   run,
   toast,
-  toggleHistory,
   useStore,
 } from '../store';
 import { Icon } from './Icon';
@@ -34,8 +33,8 @@ function describe(record: GenerationSummary): string {
 }
 
 export function HistoryPanel({ projectId }: { projectId: string }) {
-  const collapsed = useStore((state) => !historyShownOf(state));
-  const peeking = useStore((state) => state.peek === 'right');
+  const collapsed = useLayout((state) => !historyShownOf(state));
+  const peeking = useLayout((state) => state.peek === 'right');
   const allRecords = useStore((state) => state.generations[projectId]) ?? NO_RECORDS;
   const shownId = useStore((state) =>
     state.shownResult?.projectId === projectId ? state.shownResult.id : undefined,
@@ -144,7 +143,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
 
 /** 접힌 패널은 자리가 없어 화면 머리줄에서 다시 연다. */
 export function HistoryToggle() {
-  const collapsed = useStore((state) => !historyShownOf(state));
+  const collapsed = useLayout((state) => !historyShownOf(state));
   if (!collapsed) return null;
   return (
     <button

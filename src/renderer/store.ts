@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import { create } from 'zustand';
 import type {
-  FocusLevel,
   FreeGeneration,
   GenerationSummary,
   Library,
@@ -42,34 +41,6 @@ export type SidebarSection = 'projects' | 'library';
 
 export type ResultRef = { projectId: string; id: string };
 
-type CollapsedFlag =
-  'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed' | 'topBarCollapsed';
-
-export type PanelStage = 'open' | 'icons' | 'hidden';
-
-type StageFlag = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
-
-/** 누를 때마다 다음 단계로. 라이브러리 목록의 아이콘만 남은 모양은 폭을 최소보다 줄이면 된다(panelWidths). */
-const STAGE_ORDER: Record<StageFlag, PanelStage[]> = {
-  sidebarStage: ['open', 'icons', 'hidden'],
-  libraryListStage: ['open', 'hidden'],
-  promptPanelStage: ['open', 'hidden'],
-};
-
-const nextStage = (flag: StageFlag, stage: PanelStage) => {
-  const order = STAGE_ORDER[flag];
-  return order[(order.indexOf(stage) + 1) % order.length];
-};
-
-/** 집중 모드(Tab)가 숨길 수 있는 곳. 왼쪽 패널은 프롬프트 패널과 라이브러리 목록이다. */
-export type FocusPart = 'sidebar' | 'leftPanel' | 'history' | 'topBar' | 'sidePanel' | 'queueBar';
-
-export const FOCUS_PARTS: Record<FocusLevel, FocusPart[]> = {
-  panels: ['sidebar', 'leftPanel', 'history'],
-  inputs: ['sidebar', 'leftPanel', 'history', 'topBar', 'sidePanel'],
-  all: ['sidebar', 'leftPanel', 'history', 'topBar', 'sidePanel', 'queueBar'],
-};
-
 export type StoreState = {
   ready: boolean;
   root: string;
@@ -79,24 +50,10 @@ export type StoreState = {
   detailEmotionId?: string;
   settingsOpen: boolean;
   settingsTab?: string;
-  sidebarStage: PanelStage;
   /** 사이드바 전체 접기(Ctrl+B)와 따로 기억한다. */
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
   galleryAspect: GalleryAspect;
-  filmstripCollapsed: boolean;
-  libraryListStage: PanelStage;
-  /** 작업·자유 생성 화면이 함께 쓴다. */
-  promptPanelStage: PanelStage;
-  historyCollapsed: boolean;
-  /** 씬 상세·자유 생성·인페인트 편집이 함께 쓴다. */
-  sidePanelCollapsed: boolean;
-  /** 작업·자유 생성 화면의 설정 칩 줄과 씬 상세의 씬 이동 줄 */
-  topBarCollapsed: boolean;
-  /** 집중 모드가 숨긴 곳. 비면 집중 모드가 아니다. 저장하지 않아 다시 실행하면 풀린다. */
-  focusHidden: FocusPart[];
-  /** 창 가장자리에 마우스를 대어 숨긴 패널을 겹쳐 보이는 쪽 */
-  peek?: 'left' | 'right';
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
@@ -133,7 +90,6 @@ export function saveUiState(key: string, value: string): void {
   }
 }
 
-const SIDEBAR_KEY = 'sidebar-collapsed';
 const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
 export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7] as const;
@@ -158,12 +114,6 @@ const readGalleryColumns = () =>
     6,
   );
 
-const FILMSTRIP_KEY = 'filmstrip-collapsed';
-const LIBRARY_LIST_KEY = 'library-list-collapsed';
-const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
-const HISTORY_KEY = 'history-collapsed';
-const SIDE_PANEL_KEY = 'side-panel-collapsed';
-const TOP_BAR_KEY = 'top-bar-collapsed';
 const FOLDED_FOLDERS_KEY = 'folded-folders';
 const FOLDED_PROMPT_GROUPS_KEY = 'folded-prompt-groups';
 
@@ -175,16 +125,6 @@ const readStringList = (key: string) =>
       return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
     },
     [] as string[],
-  );
-
-const readCollapsed = (key: string) => readUiState(key, (raw) => raw === '1', false);
-
-/** 예전에는 접힘을 '1'로 저장했다(지금의 아이콘만). */
-const readStage = (key: string) =>
-  readUiState<PanelStage>(
-    key,
-    (raw) => (raw === '1' ? 'icons' : raw === 'icons' || raw === 'hidden' ? raw : 'open'),
-    'open',
   );
 
 const readSidebarSections = (): Record<SidebarSection, boolean> =>
@@ -204,7 +144,6 @@ export const useStore = create<StoreState>(() => ({
   library: null,
   view: { kind: 'home' },
   settingsOpen: false,
-  sidebarStage: readStage(SIDEBAR_KEY),
   sidebarSections: readSidebarSections(),
   galleryColumns: readGalleryColumns(),
   galleryAspect: readUiState(
@@ -212,13 +151,6 @@ export const useStore = create<StoreState>(() => ({
     (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
     'portrait',
   ),
-  filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
-  libraryListStage: readStage(LIBRARY_LIST_KEY) === 'hidden' ? 'hidden' : 'open',
-  promptPanelStage: readStage(PROMPT_PANEL_KEY) === 'open' ? 'open' : 'hidden',
-  historyCollapsed: readCollapsed(HISTORY_KEY),
-  sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),
-  topBarCollapsed: readCollapsed(TOP_BAR_KEY),
-  focusHidden: [],
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -495,74 +427,6 @@ export function setSettingsOpen(open: boolean, tab?: string): void {
   set({ settingsOpen: open, settingsTab: tab });
 }
 
-function toggleCollapsed(flag: CollapsedFlag, key: string): void {
-  const collapsed = !get()[flag];
-  set({ [flag]: collapsed });
-  saveUiState(key, collapsed ? '1' : '0');
-}
-
-function setStage(flag: StageFlag, key: string, stage: PanelStage): void {
-  set({ [flag]: stage });
-  saveUiState(key, stage);
-}
-
-/** 버튼 설명은 누르면 바뀔 단계를 말한다. 예: 사이드바 숨기기 (Ctrl+B) */
-export function stageTitle(
-  name: string,
-  flag: StageFlag,
-  stage: PanelStage,
-  shortcut?: string,
-): string {
-  const action = { open: '펼치기', icons: '아이콘만 남기기', hidden: '숨기기' }[
-    nextStage(flag, stage)
-  ];
-  return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
-}
-
-const focusHides = (state: StoreState, part: FocusPart) => state.focusHidden.includes(part);
-
-// 화면에 실제로 보이는 모습. 저장한 단계에 집중 모드가 덮어쓴다.
-export const sidebarStageOf = (state: StoreState): PanelStage =>
-  focusHides(state, 'sidebar') ? 'hidden' : state.sidebarStage;
-export const promptPanelStageOf = (state: StoreState): PanelStage =>
-  focusHides(state, 'leftPanel') ? 'hidden' : state.promptPanelStage;
-export const libraryListStageOf = (state: StoreState): PanelStage =>
-  focusHides(state, 'leftPanel') ? 'hidden' : state.libraryListStage;
-export const historyShownOf = (state: StoreState) =>
-  !state.historyCollapsed && !focusHides(state, 'history');
-export const sidePanelShownOf = (state: StoreState) =>
-  !state.sidePanelCollapsed && !focusHides(state, 'sidePanel');
-export const topBarShownOf = (state: StoreState) =>
-  !state.topBarCollapsed && !focusHides(state, 'topBar');
-export const queueBarShownOf = (state: StoreState) => !focusHides(state, 'queueBar');
-
-/** 집중 모드가 숨긴 곳을 열면 그곳만 돌아온다. 저장한 단계가 숨김이면 펼친다. */
-function revealFromFocus(part: FocusPart): boolean {
-  const { focusHidden } = get();
-  if (!focusHidden.includes(part)) return false;
-  set({ focusHidden: focusHidden.filter((item) => item !== part) });
-  return true;
-}
-
-function cycleStage(flag: StageFlag, key: string, part: FocusPart): void {
-  if (revealFromFocus(part)) {
-    if (get()[flag] === 'hidden') setStage(flag, key, 'open');
-    return;
-  }
-  setStage(flag, key, nextStage(flag, get()[flag]));
-}
-
-/** 다시 누르면 숨기기 전으로 돌아온다. */
-export function toggleFocusMode(): void {
-  if (get().focusHidden.length) return set({ focusHidden: [] });
-  const level = get().library?.settings.layout.focusLevel ?? 'panels';
-  set({ focusHidden: FOCUS_PARTS[level] });
-}
-
-export function cycleSidebar(): void {
-  cycleStage('sidebarStage', SIDEBAR_KEY, 'sidebar');
-}
-
 export function toggleSidebarSection(section: SidebarSection): void {
   const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
   set({ sidebarSections: sections });
@@ -577,33 +441,6 @@ export function setGalleryColumns(columns: number): void {
 export function setGalleryAspect(aspect: GalleryAspect): void {
   set({ galleryAspect: aspect });
   saveUiState(GALLERY_ASPECT_KEY, aspect);
-}
-
-export function toggleFilmstrip(): void {
-  toggleCollapsed('filmstripCollapsed', FILMSTRIP_KEY);
-}
-
-export function cycleLibraryList(): void {
-  cycleStage('libraryListStage', LIBRARY_LIST_KEY, 'leftPanel');
-}
-
-export function cyclePromptPanel(): void {
-  cycleStage('promptPanelStage', PROMPT_PANEL_KEY, 'leftPanel');
-}
-
-export function toggleHistory(): void {
-  if (revealFromFocus('history') && !get().historyCollapsed) return;
-  toggleCollapsed('historyCollapsed', HISTORY_KEY);
-}
-
-export function toggleSidePanel(): void {
-  if (revealFromFocus('sidePanel') && !get().sidePanelCollapsed) return;
-  toggleCollapsed('sidePanelCollapsed', SIDE_PANEL_KEY);
-}
-
-export function toggleTopBar(): void {
-  if (revealFromFocus('topBar') && !get().topBarCollapsed) return;
-  toggleCollapsed('topBarCollapsed', TOP_BAR_KEY);
 }
 
 export function requestResult(request: ResultRef | undefined): void {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
-import { projectMedia, useStore } from '../store';
+import { useLayout } from '../layout';
+import { projectMedia } from '../store';
 import { Icon } from './Icon';
 import { showResultMenu, type ResultAction } from './resultMenu';
 import type { ResultBrowser } from './useResultBrowser';
@@ -15,7 +16,7 @@ export function Filmstrip(props: {
   onOpen?: () => void;
   tools?: ReactNode;
 }) {
-  const collapsed = useStore((state) => state.filmstripCollapsed);
+  const collapsed = useLayout((state) => state.filmstripCollapsed);
   const { records, browser } = props;
   const { selected, picking } = browser;
   if (!records.length || collapsed) return null;

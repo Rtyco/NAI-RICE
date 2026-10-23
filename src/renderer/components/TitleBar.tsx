@@ -2,14 +2,13 @@ import { libraryApi } from '../desktop';
 import { sectionInfo } from '../sections';
 import {
   cycleSidebar,
-  run,
-  setSettingsOpen,
+  focusingOf,
   sidebarStageOf,
   stageTitle,
   toggleFocusMode,
-  useStore,
-  type StoreState,
-} from '../store';
+  useLayout,
+} from '../layout';
+import { run, setSettingsOpen, useStore, type StoreState } from '../store';
 import { Icon } from './Icon';
 
 /** 예: 작업 › 리나 › 기쁨 */
@@ -36,8 +35,8 @@ function locationOf({ library, view, detailEmotionId }: StoreState): string {
 
 /** 오른쪽 끝에는 Windows 창 버튼이 겹친다(`titleBarOverlay`). */
 export function TitleBar() {
-  const sidebar = useStore(sidebarStageOf);
-  const focusing = useStore((state) => state.focusHidden.length > 0);
+  const sidebar = useLayout(sidebarStageOf);
+  const focusing = useLayout(focusingOf);
   const saveState = useStore((state) => state.saveState);
   const location = useStore(locationOf);
   const version = useStore((state) => state.version);

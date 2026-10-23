@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { setPanelCompact, useLayout } from './layout';
 import { readUiState, saveUiState } from './store';
 
 type PanelSpec = {
@@ -62,28 +62,15 @@ export function stepWidth(panel: PanelId, width: number, delta: number): number 
   return snapWidth(panel, width + delta);
 }
 
-const compactPanels = new Set<PanelId>();
-const listeners = new Set<() => void>();
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-/** 아이콘만 남은 폭인지. 폭은 CSS 변수라 React가 모르므로 바뀔 때 알린다. */
+/** 폭은 CSS 변수라 React가 모르므로 아이콘 폭인지만 상태로 둔다. */
 export function usePanelCompact(panel: PanelId): boolean {
-  return useSyncExternalStore(subscribe, () => compactPanels.has(panel));
+  return useLayout((state) => state.compactPanels.includes(panel));
 }
 
 export function setWidth(panel: PanelId, width: number): number {
   const value = snapWidth(panel, width);
   document.documentElement.style.setProperty(spec(panel).variable, `${value}px`);
-  const compact = value === spec(panel).compact;
-  if (compact !== compactPanels.has(panel)) {
-    if (compact) compactPanels.add(panel);
-    else compactPanels.delete(panel);
-    for (const listener of listeners) listener();
-  }
+  setPanelCompact(panel, value === spec(panel).compact);
   return value;
 }
 

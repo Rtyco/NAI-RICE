@@ -36,10 +36,10 @@ import {
   run,
   scheduleSave,
   setPendingReference,
-  sidePanelShownOf,
   toast,
   useStore,
 } from '../store';
+import { sidePanelShownOf, useLayout } from '../layout';
 import { fileApi } from '../desktop';
 import { CanvasLayoutCard } from './reference/CanvasLayoutCard';
 import {
@@ -66,7 +66,7 @@ type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayou
 export function ReferenceEditor({ reference }: { reference: Reference }) {
   const pendingReference = useStore((state) => state.pendingReference);
   const presets = useStore((state) => state.library?.presets ?? []);
-  const sideShown = useStore(sidePanelShownOf);
+  const sideShown = useLayout(sidePanelShownOf);
   const [loading, setLoading] = useState(Boolean(reference.image));
   const [source, setSource] = useState<Source | null>(null);
   const [layout, setLayout] = useState<CanvasLayout>(reference.layout);

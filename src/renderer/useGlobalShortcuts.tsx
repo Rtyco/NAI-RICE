@@ -12,6 +12,12 @@ import {
   cycleLibraryList,
   cyclePromptPanel,
   cycleSidebar,
+  toggleFilmstrip,
+  toggleFocusMode,
+  toggleHistory,
+  toggleTopBar,
+} from './layout';
+import {
   flushSaves,
   loadGenerations,
   openLibrary,
@@ -19,10 +25,6 @@ import {
   refreshAccount,
   setSettingsOpen,
   toast,
-  toggleFilmstrip,
-  toggleFocusMode,
-  toggleHistory,
-  toggleTopBar,
   useStore,
 } from './store';
 
