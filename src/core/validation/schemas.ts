@@ -360,6 +360,9 @@ export const appSettingsSchema = z.object({
       mode: z.enum(['dark', 'light', 'system']).catch('dark'),
     })
     .default({ theme: 'navy', mode: 'dark' }),
+  layout: z
+    .object({ focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels') })
+    .default({ focusLevel: 'panels' }),
   update: z
     .object({
       autoCheck: z.boolean().default(true),

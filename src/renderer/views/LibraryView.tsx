@@ -24,6 +24,7 @@ import { ListRow } from '../components/ListRow';
 import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
 import {
   cycleLibraryList,
+  libraryListStageOf,
   openLibrary,
   pictureMedia,
   referenceMedia,
@@ -76,7 +77,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const selected = items.find((item) => item.id === itemId) ?? items[0];
   const info = sectionInfo(section);
   const [dragging, setDragging] = useState<string[]>([]);
-  const stage = useStore((state) => state.libraryListStage);
+  const stage = useStore(libraryListStageOf);
   const collapsed = stage === 'icons';
   const listTitle = stageTitle(`${info.label} 목록`, stage, 'F7');
   const reopenList = stage === 'hidden' && (

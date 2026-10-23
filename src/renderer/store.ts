@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { create } from 'zustand';
 import type {
+  FocusLevel,
   FreeGeneration,
   GenerationSummary,
   Library,
@@ -48,6 +49,15 @@ export type PanelStage = 'open' | 'icons' | 'hidden';
 
 type StageFlag = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
 
+/** 집중 모드(Tab)가 숨길 수 있는 곳. 왼쪽 패널은 프롬프트 패널과 라이브러리 목록이다. */
+export type FocusPart = 'sidebar' | 'leftPanel' | 'history' | 'sidePanel' | 'queueBar';
+
+export const FOCUS_PARTS: Record<FocusLevel, FocusPart[]> = {
+  panels: ['sidebar', 'leftPanel', 'history'],
+  inputs: ['sidebar', 'leftPanel', 'history', 'sidePanel'],
+  all: ['sidebar', 'leftPanel', 'history', 'sidePanel', 'queueBar'],
+};
+
 export type StoreState = {
   ready: boolean;
   root: string;
@@ -69,6 +79,8 @@ export type StoreState = {
   historyCollapsed: boolean;
   /** 씬 상세·자유 생성·인페인트 편집이 함께 쓴다. */
   sidePanelCollapsed: boolean;
+  /** 집중 모드가 숨긴 곳. 비면 집중 모드가 아니다. 저장하지 않아 다시 실행하면 풀린다. */
+  focusHidden: FocusPart[];
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
@@ -188,6 +200,7 @@ export const useStore = create<StoreState>(() => ({
   promptPanelStage: readStage(PROMPT_PANEL_KEY),
   historyCollapsed: readCollapsed(HISTORY_KEY),
   sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),
+  focusHidden: [],
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -487,8 +500,50 @@ export function stageTitle(name: string, stage: PanelStage, shortcut?: string): 
   return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
 }
 
+const focusHides = (state: StoreState, part: FocusPart) => state.focusHidden.includes(part);
+
+// 화면에 실제로 보이는 모습. 저장한 단계에 집중 모드가 덮어쓴다.
+export const sidebarStageOf = (state: StoreState): PanelStage =>
+  focusHides(state, 'sidebar') ? 'hidden' : state.sidebarStage;
+export const promptPanelStageOf = (state: StoreState): PanelStage =>
+  focusHides(state, 'leftPanel') ? 'hidden' : state.promptPanelStage;
+export const libraryListStageOf = (state: StoreState): PanelStage =>
+  focusHides(state, 'leftPanel') ? 'hidden' : state.libraryListStage;
+export const historyShownOf = (state: StoreState) =>
+  !state.historyCollapsed && !focusHides(state, 'history');
+export const sidePanelShownOf = (state: StoreState) =>
+  !state.sidePanelCollapsed && !focusHides(state, 'sidePanel');
+export const queueBarShownOf = (state: StoreState) => !focusHides(state, 'queueBar');
+
+/** 집중 모드가 숨긴 곳을 열면 그곳만 돌아온다. 저장한 단계가 숨김이면 펼친다. */
+function revealFromFocus(part: FocusPart): boolean {
+  const { focusHidden } = get();
+  if (!focusHidden.includes(part)) return false;
+  set({ focusHidden: focusHidden.filter((item) => item !== part) });
+  return true;
+}
+
+function cycleStage(flag: StageFlag, key: string, part: FocusPart): void {
+  if (revealFromFocus(part)) {
+    if (get()[flag] === 'hidden') setStage(flag, key, 'open');
+    return;
+  }
+  setStage(flag, key, NEXT_STAGE[get()[flag]]);
+}
+
+/** 다시 누르면 숨기기 전으로 돌아온다. */
+export function toggleFocusMode(): void {
+  if (get().focusHidden.length) return set({ focusHidden: [] });
+  const level = get().library?.settings.layout.focusLevel ?? 'panels';
+  set({ focusHidden: FOCUS_PARTS[level] });
+}
+
+export function showQueueBar(): void {
+  revealFromFocus('queueBar');
+}
+
 export function cycleSidebar(): void {
-  setStage('sidebarStage', SIDEBAR_KEY, NEXT_STAGE[get().sidebarStage]);
+  cycleStage('sidebarStage', SIDEBAR_KEY, 'sidebar');
 }
 
 export function toggleSidebarSection(section: SidebarSection): void {
@@ -512,22 +567,25 @@ export function toggleFilmstrip(): void {
 }
 
 export function cycleLibraryList(): void {
-  setStage('libraryListStage', LIBRARY_LIST_KEY, NEXT_STAGE[get().libraryListStage]);
+  cycleStage('libraryListStage', LIBRARY_LIST_KEY, 'leftPanel');
 }
 
 export function cyclePromptPanel(): void {
-  setStage('promptPanelStage', PROMPT_PANEL_KEY, NEXT_STAGE[get().promptPanelStage]);
+  cycleStage('promptPanelStage', PROMPT_PANEL_KEY, 'leftPanel');
 }
 
 export function openPromptPanel(): void {
+  revealFromFocus('leftPanel');
   setStage('promptPanelStage', PROMPT_PANEL_KEY, 'open');
 }
 
 export function toggleHistory(): void {
+  if (revealFromFocus('history') && !get().historyCollapsed) return;
   toggleCollapsed('historyCollapsed', HISTORY_KEY);
 }
 
 export function toggleSidePanel(): void {
+  if (revealFromFocus('sidePanel') && !get().sidePanelCollapsed) return;
   toggleCollapsed('sidePanelCollapsed', SIDE_PANEL_KEY);
 }
 

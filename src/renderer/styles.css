@@ -4813,3 +4813,76 @@ kbd {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+.palette-badge.danger {
+  background: var(--red-deep);
+}
+.palette-queue.busy {
+  color: var(--green);
+}
+.palette-queue.busy .icon {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.palette-queue.paused {
+  color: var(--orange);
+}
+.titlebar-action.active {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+/* ── 설정: 집중 모드 ─────────────────────────── */
+.focus-level-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.focus-level-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  text-align: left;
+}
+.focus-level-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a33);
+}
+.focus-level-card small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.focus-preview {
+  width: 100%;
+  height: auto;
+  margin-bottom: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+}
+.fp-stage {
+  fill: var(--bg-0);
+}
+.fp-chrome {
+  fill: var(--bg-3);
+}
+.fp-panel {
+  fill: var(--bg-2);
+  stroke: var(--line-strong);
+  stroke-width: 0.6;
+}
+.fp-image {
+  fill: var(--accent-a33);
+}
+.fp-palette {
+  fill: var(--bg-4);
+  stroke: var(--accent);
+  stroke-width: 0.8;
+}
+.fp-go {
+  fill: var(--green);
+}

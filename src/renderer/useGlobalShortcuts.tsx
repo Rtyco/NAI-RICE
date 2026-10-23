@@ -20,6 +20,7 @@ import {
   setSettingsOpen,
   toast,
   toggleFilmstrip,
+  toggleFocusMode,
   toggleHistory,
   useStore,
 } from './store';
@@ -99,6 +100,8 @@ export function useGlobalShortcuts(): void {
       if (plain && key === 'F7') action = cycleLeftPanel;
       if (plain && key === 'F8') action = toggleHistory;
       if (ctrl && key === 'Tab') action = () => cycleProject(event.shiftKey ? -1 : 1);
+      // 그림 도구(포토샵·Lightroom·클립 스튜디오·Krita)처럼 입력 칸 밖의 Tab은 패널을 한 번에 숨긴다.
+      if (plain && key === 'Tab' && !typing) action = toggleFocusMode;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'o')

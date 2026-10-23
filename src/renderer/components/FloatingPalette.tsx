@@ -8,10 +8,21 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { readUiState, saveUiState, toggleSidePanel, useStore } from '../store';
+import { queueApi } from '../desktop';
+import {
+  queueBarShownOf,
+  readUiState,
+  saveUiState,
+  showQueueBar,
+  sidePanelShownOf,
+  toggleFocusMode,
+  toggleSidePanel,
+  useStore,
+} from '../store';
 import { Icon } from './Icon';
+import { queueAction, summarizeQueue } from '../queueSummary';
 
-// 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 여기에 띄운다. 띄운 것이 없으면 창도 없다.
+// 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 여기에 띄운다. 띄운 것도 없고 생성 큐 막대도 보이면 창이 없다.
 let target: HTMLElement | null = null;
 let slots = 0;
 const listeners = new Set<() => void>();
@@ -77,11 +88,64 @@ function useWindowSize() {
 /** 글자 없이 아이콘만 둔다. 무슨 버튼인지는 마우스를 올리면 나온다. */
 export function FloatingPalette() {
   const count = useSyncExternalStore(subscribe, () => slots);
-  return count ? <Palette /> : null;
+  const queueShown = useStore(queueBarShownOf);
+  return count || !queueShown ? <Palette queueShown={queueShown} /> : null;
 }
 
-function Palette() {
-  const sideHidden = useStore((state) => state.sidePanelCollapsed);
+function QueueButtons() {
+  const queue = useStore((state) => state.queue);
+  const { active, current, failed, status } = summarizeQueue(queue);
+  const api = queueApi();
+  const phase = current ? 'busy' : queue.paused && active.length ? 'paused' : '';
+  return (
+    <>
+      <button
+        className={`palette-button palette-queue ${phase}`}
+        title={`${status}${active.length ? ` · 남은 작업 ${active.length}` : ''} · 누르면 생성 큐 막대 보이기`}
+        aria-label="생성 큐 막대 보이기"
+        onClick={showQueueBar}
+      >
+        <Icon name="queue" size={16} />
+        {active.length > 0 && <span className="palette-badge">{active.length}</span>}
+      </button>
+      {active.length > 0 &&
+        (queue.paused ? (
+          <button
+            className="palette-button"
+            title="큐 재개"
+            aria-label="큐 재개"
+            onClick={() => void queueAction('큐를 재개하는 중', () => api.resumeQueue())}
+          >
+            <Icon name="play" size={16} />
+          </button>
+        ) : (
+          <button
+            className="palette-button"
+            title="큐 일시 중지"
+            aria-label="큐 일시 중지"
+            onClick={() => void queueAction('큐를 일시 중지하는 중', () => api.pauseQueue())}
+          >
+            <Icon name="pause" size={16} />
+          </button>
+        ))}
+      {failed > 0 && (
+        <button
+          className="palette-button"
+          title={`실패한 작업 ${failed}개 다시 시도`}
+          aria-label="실패한 작업 다시 시도"
+          onClick={() => void queueAction('재시도를 등록하는 중', () => api.retryFailed())}
+        >
+          <Icon name="refresh" size={16} />
+          <span className="palette-badge danger">{failed}</span>
+        </button>
+      )}
+    </>
+  );
+}
+
+function Palette({ queueShown }: { queueShown: boolean }) {
+  const sideHidden = useStore((state) => !sidePanelShownOf(state));
+  const focusing = useStore((state) => state.focusHidden.length > 0);
   const [position, setPosition] = useState(readPosition);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
   const box = useRef<HTMLDivElement>(null);
@@ -145,6 +209,7 @@ function Palette() {
         <Icon name="grip" size={14} />
       </span>
       <div className="palette-slot" ref={setTarget} />
+      {!queueShown && <QueueButtons />}
       {sideHidden && (
         <button
           className="palette-button"
@@ -153,6 +218,16 @@ function Palette() {
           onClick={toggleSidePanel}
         >
           <Icon name="sliders" size={16} />
+        </button>
+      )}
+      {focusing && (
+        <button
+          className="palette-button active"
+          title="집중 모드 끝내기 (Tab)"
+          aria-label="집중 모드 끝내기"
+          onClick={toggleFocusMode}
+        >
+          <Icon name="focus" size={16} />
         </button>
       )}
     </div>

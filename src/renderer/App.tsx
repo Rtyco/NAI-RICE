@@ -18,7 +18,9 @@ import {
   dismissToast,
   initialize,
   openLibrary,
+  queueBarShownOf,
   setSettingsOpen,
+  sidebarStageOf,
   subscribeToMain,
   useStore,
 } from './store';
@@ -90,7 +92,8 @@ export default function App() {
   const view = useStore((state) => state.view);
   const hasLibrary = useStore((state) => Boolean(state.library));
   const settingsOpen = useStore((state) => state.settingsOpen);
-  const sidebar = useStore((state) => state.sidebarStage);
+  const sidebar = useStore(sidebarStageOf);
+  const queueShown = useStore(queueBarShownOf);
   const appearance = useStore((state) => state.library?.settings.appearance);
   const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
   const projectExists = useStore(
@@ -160,7 +163,7 @@ export default function App() {
             </div>
           </ErrorBoundary>
         </div>
-        <QueueBar />
+        {queueShown && <QueueBar />}
         <FloatingPalette />
         <Toasts />
         {settingsOpen && hasLibrary && <SettingsModal />}

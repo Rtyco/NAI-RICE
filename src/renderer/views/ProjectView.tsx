@@ -26,6 +26,8 @@ import { openDialog } from '../components/dialogStack';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';
+import { PaletteSlot } from '../components/FloatingPalette';
+import { Icon } from '../components/Icon';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
@@ -33,6 +35,7 @@ import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
+  queueBarShownOf,
   referenceMedia,
   updateLibrary,
   updateProject,
@@ -256,6 +259,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
+  const queueShown = useStore(queueBarShownOf);
   const aidSources = useStore(
     useShallow((state) => ({
       characterReferences: state.library!.characterReferences,
@@ -292,6 +296,11 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
   const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
+  const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
+  const generateTitle = resolved.missing.length
+    ? `필요: ${resolved.missing.join(', ')}`
+    : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`;
+  const generate = () => void generateEmotions(project.id, batch);
   const bannerMissing = resolved.missing.filter(
     (item) => item !== AID_MODEL_MISSING && item !== INPAINT_MODEL_MISSING,
   );
@@ -380,19 +389,29 @@ export function ProjectView({ projectId }: { projectId: string }) {
                 )}
                 <button
                   className="generate-button"
-                  disabled={!count || Boolean(busy) || resolved.missing.length > 0}
-                  title={
-                    resolved.missing.length
-                      ? `필요: ${resolved.missing.join(', ')}`
-                      : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`
-                  }
-                  onClick={() => void generateEmotions(project.id, batch)}
+                  disabled={!canGenerate}
+                  title={generateTitle}
+                  onClick={generate}
                 >
                   ▶ {count ? `${count}장 생성` : '생성할 씬 없음'}
                 </button>
               </>
             }
           />
+        )}
+        {!detail && !queueShown && (
+          <PaletteSlot>
+            <button
+              className="generate-button palette-button"
+              title={`${count}장 생성 · ${generateTitle}`}
+              aria-label={`${count}장 생성`}
+              disabled={!canGenerate}
+              onClick={generate}
+            >
+              <Icon name="play" size={16} />
+              <span className="palette-badge">{count}</span>
+            </button>
+          </PaletteSlot>
         )}
       </div>
     </section>

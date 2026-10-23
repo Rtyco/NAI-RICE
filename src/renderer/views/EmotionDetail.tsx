@@ -27,6 +27,7 @@ import {
   openEmotion,
   projectMedia,
   run,
+  sidePanelShownOf,
   toast,
   updateProject,
   useStore,
@@ -52,7 +53,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
-  const sideShown = useStore((state) => !state.sidePanelCollapsed);
+  const sideShown = useStore(sidePanelShownOf);
   const favoriteId = project.favorites[emotion.id];
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
@@ -85,12 +86,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         setFavorite(favoriteId === selected.id ? undefined : selected.id);
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
-      // 입력 칸 밖의 Tab은 씬을 넘긴다. 마지막 씬에서는 그대로 둔다.
-      if (event.key === 'Tab' && !event.ctrlKey && !event.altKey && !document.querySelector('.modal-backdrop')) {
-        event.preventDefault();
-        const target = event.shiftKey ? previous : next;
-        if (target) openEmotion(target.id);
-      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -220,13 +215,13 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
           ]}
         />
         <div className="header-spacer" />
-        <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="Shift+Tab · PageUp">
+        <button disabled={!previous} onClick={() => previous && openEmotion(previous.id)} title="PageUp">
           ‹ {previous?.name ?? '이전'}
         </button>
         <span className="detail-position">
           {index + 1} / {set.emotions.length}
         </span>
-        <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="Tab · PageDown">
+        <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
           {next?.name ?? '다음'} ›
         </button>
         <SidePanelToggle />

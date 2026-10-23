@@ -369,12 +369,18 @@ export type AppSettings = {
     theme: ThemeId;
     mode: ThemeMode;
   };
+  layout: {
+    focusLevel: FocusLevel;
+  };
   update: {
     autoCheck: boolean;
     /** 더 새 버전이 나오면 다시 알린다. */
     skippedVersion: string;
   };
 };
+
+/** 집중 모드(Tab)가 숨기는 곳. panels: 사이드바·왼쪽 패널·히스토리, inputs: + 입력 패널, all: + 생성 큐 막대 */
+export type FocusLevel = 'panels' | 'inputs' | 'all';
 
 export type ThemeId = 'navy' | 'graphite' | 'violet' | 'forest' | 'rose';
 export type ThemeMode = 'dark' | 'light' | 'system';

@@ -6,6 +6,7 @@ import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { libraryApi } from '../desktop';
 import { deleteResults } from '../generationOps';
 import {
+  historyShownOf,
   openEmotion,
   projectMedia,
   requestResult,
@@ -33,7 +34,7 @@ function describe(record: GenerationSummary): string {
 }
 
 export function HistoryPanel({ projectId }: { projectId: string }) {
-  const collapsed = useStore((state) => state.historyCollapsed);
+  const collapsed = useStore((state) => !historyShownOf(state));
   const allRecords = useStore((state) => state.generations[projectId]) ?? NO_RECORDS;
   const shownId = useStore((state) =>
     state.shownResult?.projectId === projectId ? state.shownResult.id : undefined,
@@ -142,7 +143,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
 
 /** 접힌 패널은 자리가 없어 화면 머리줄에서 다시 연다. */
 export function HistoryToggle() {
-  const collapsed = useStore((state) => state.historyCollapsed);
+  const collapsed = useStore((state) => !historyShownOf(state));
   if (!collapsed) return null;
   return (
     <button

@@ -246,6 +246,15 @@ const ICONS = {
     </>
   ),
   play: <path d="M8 5.5v13l10.5-6.5z" />,
+  pause: <path d="M9 5.5v13M15 5.5v13" />,
+  focus: <path d="M4 9V5h4M16 4h4v5M20 15v5h-4M8 20H4v-5" />,
+  queue: (
+    <>
+      <rect x="4" y="4" width="16" height="5" rx="1.5" />
+      <rect x="4" y="11" width="16" height="5" rx="1.5" />
+      <path d="M6 20h12" />
+    </>
+  ),
   grip: (
     <>
       <circle cx="9" cy="6" r="1" />

@@ -4,7 +4,9 @@ import {
   cycleSidebar,
   run,
   setSettingsOpen,
+  sidebarStageOf,
   stageTitle,
+  toggleFocusMode,
   useStore,
   type StoreState,
 } from '../store';
@@ -34,7 +36,8 @@ function locationOf({ library, view, detailEmotionId }: StoreState): string {
 
 /** 오른쪽 끝에는 Windows 창 버튼이 겹친다(`titleBarOverlay`). */
 export function TitleBar() {
-  const sidebar = useStore((state) => state.sidebarStage);
+  const sidebar = useStore(sidebarStageOf);
+  const focusing = useStore((state) => state.focusHidden.length > 0);
   const saveState = useStore((state) => state.saveState);
   const location = useStore(locationOf);
   const version = useStore((state) => state.version);
@@ -75,6 +78,15 @@ export function TitleBar() {
         </span>
       )}
       <div className="titlebar-actions">
+        <button
+          className={`titlebar-action ${focusing ? 'active' : ''}`}
+          title={focusing ? '집중 모드 끝내기 (Tab)' : '집중 모드: 패널을 한 번에 숨기기 (Tab)'}
+          aria-label="집중 모드"
+          aria-pressed={focusing}
+          onClick={toggleFocusMode}
+        >
+          <Icon name="focus" size={16} />
+        </button>
         <button
           className="titlebar-action"
           title="작업 폴더 열기"

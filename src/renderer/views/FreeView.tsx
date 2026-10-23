@@ -53,6 +53,7 @@ import {
   projectMedia,
   resolveFreeGeneration,
   run,
+  sidePanelShownOf,
   toast,
   updateFreeGeneration,
   useLibrary,
@@ -76,7 +77,7 @@ export function FreeView() {
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
-  const sideShown = useStore((state) => !state.sidePanelCollapsed);
+  const sideShown = useStore(sidePanelShownOf);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],

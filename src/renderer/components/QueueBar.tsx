@@ -1,21 +1,12 @@
 import { useState } from 'react';
-import type { QueueJobView, QueueView } from '../../core/domain/types';
-import { isActive, isFinished } from '../../core/jobs/JobLifecycle';
+import type { QueueJobView } from '../../core/domain/types';
+import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
-import { openEmotion, openFree, openProject, run, useStore } from '../store';
+import { openEmotion, openFree, openProject, useStore } from '../store';
 import { queueApi } from '../desktop';
+import { queueAction, STATUS, summarizeQueue } from '../queueSummary';
 import { BottomSlotTarget } from './BottomSlot';
 import { StreamPreview } from './StreamPreview';
-
-const STATUS: Record<string, string> = {
-  queued: '대기',
-  generating: '생성 중',
-  retry_wait: '재시도 대기',
-  completed: '완료',
-  failed: '실패',
-  cancelled: '취소',
-  interrupted: '중단',
-};
 
 function anlasText(job: QueueJobView): string {
   const estimate = job.anlasEstimate;
@@ -27,23 +18,12 @@ function anlasText(job: QueueJobView): string {
   return ` · Anlas ${spent}${expected}`;
 }
 
-function queueAction(label: string, action: () => Promise<QueueView>) {
-  return run(label, async () => useStore.setState({ queue: await action() }));
-}
-
 export function QueueBar() {
   const queue = useStore((state) => state.queue);
   const [open, setOpen] = useState(false);
   const api = queueApi();
 
-  const active = queue.jobs.filter((job) => isActive(job.status));
-  const current = queue.jobs.find(
-    (job) => job.status === 'generating' || job.status === 'retry_wait',
-  );
-  const failed = queue.jobs.filter(
-    (job) => job.status === 'failed' || job.status === 'interrupted',
-  ).length;
-  const finished = queue.jobs.filter((job) => isFinished(job.status)).length;
+  const { active, current, failed, finished, status } = summarizeQueue(queue);
 
   return (
     <footer className={`queue-bar ${open ? 'open' : ''}`}>
@@ -94,13 +74,7 @@ export function QueueBar() {
         </button>
         {current && <StreamPreview jobIds={[current.id]} className="queue-preview" />}
         <span className="queue-status">
-          {current
-            ? `${STATUS[current.status]}: ${current.projectName} · ${current.emotionName}`
-            : queue.paused && active.length
-              ? '일시 중지됨'
-              : active.length
-                ? '대기 중'
-                : '대기 없음'}
+          {status}
           {active.length > 0 && <b> · 남은 작업 {active.length}</b>}
           {failed > 0 && <b className="error-text"> · 실패 {failed}</b>}
         </span>
