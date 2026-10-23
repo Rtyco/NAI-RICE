@@ -25,13 +25,10 @@ import {
   type CanvasImage,
 } from '../lib/image';
 import { readUiState, saveUiState } from '../store';
-import { CanvasZoom, UndoRedoButtons } from './CanvasControls';
-import { Icon } from './Icon';
+import { MAX_BRUSH_CELLS, MaskToolbar, type MaskTool } from './MaskToolbar';
 import { useCanvasViewport } from './canvasViewport';
 import { TransformActions, TransformFrame } from './TransformFrame';
 import { useFreeTransform, type TransformTarget } from './useFreeTransform';
-
-type Tool = 'reference' | 'output' | 'generate' | 'keep' | 'transform';
 
 type Props = {
   image: CanvasImage;
@@ -96,7 +93,7 @@ export function ReferenceCanvas(props: Props) {
   /** 붓질 중에는 같은 버퍼를 고치고 프레임마다 한 번 그린다. */
   const strokeRef = useRef<Int8Array | null>(null);
   const frameRef = useRef(0);
-  const [tool, setTool] = useState<Tool>(props.maskOnly ? 'generate' : 'reference');
+  const [tool, setTool] = useState<MaskTool>(props.maskOnly ? 'generate' : 'reference');
   /** 칸 좌표. 다음 이벤트까지의 사이를 채운다. */
   const lastStampRef = useRef<{ x: number; y: number } | null>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -111,7 +108,7 @@ export function ReferenceCanvas(props: Props) {
   );
   const [undoStack, setUndoStack] = useState<Int8Array[]>([]);
   const [redoStack, setRedoStack] = useState<Int8Array[]>([]);
-  const previousToolRef = useRef<Tool>('reference');
+  const previousToolRef = useRef<MaskTool>('reference');
   const overlayInputsRef = useRef<unknown[]>([]);
   const { onMaskChange } = props;
 
@@ -441,7 +438,8 @@ export function ReferenceCanvas(props: Props) {
         else if (key === 'e') setTool('keep');
         else if (key === 'x' && brushing) setTool(tool === 'generate' ? 'keep' : 'generate');
         else if (event.code === 'BracketLeft') setBrushSize((value) => Math.max(1, value - 1));
-        else if (event.code === 'BracketRight') setBrushSize((value) => Math.min(32, value + 1));
+        else if (event.code === 'BracketRight')
+          setBrushSize((value) => Math.min(MAX_BRUSH_CELLS, value + 1));
         else return;
         event.preventDefault();
         return;
@@ -486,116 +484,36 @@ export function ReferenceCanvas(props: Props) {
 
   return (
     <section className="canvas-card">
-      <div className="canvas-toolbar">
-        {!props.maskOnly && (
-          <>
-            <div className="segmented" role="group" aria-label="영역 상자">
-              <button
-                className={tool === 'reference' ? 'active green' : ''}
-                aria-pressed={tool === 'reference'}
-                onClick={() => setTool('reference')}
-              >
-                <i className="green-dot" /> 참고 영역
-              </button>
-              <button
-                className={tool === 'output' ? 'active blue' : ''}
-                aria-pressed={tool === 'output'}
-                onClick={() => setTool('output')}
-              >
-                <i className="blue-dot" /> 결과 영역
-              </button>
-            </div>
-            {props.transform && (
-              <button
-                className={`with-icon ${transforming ? 'active' : ''}`}
-                aria-pressed={transforming}
-                title="이미지 변형 (Ctrl+T)"
-                onClick={transforming ? transform.commit : transform.begin}
-              >
-                <Icon name="transform" size={14} /> 이미지 변형
-              </button>
-            )}
-            <span className="zone-divider" />
-          </>
-        )}
-        <div className="segmented" role="group" aria-label="붓">
-          <button
-            className={tool === 'generate' ? 'active teal' : ''}
-            aria-pressed={tool === 'generate'}
-            title="칠하기 (B)"
-            onClick={() => setTool('generate')}
-          >
-            <i className="teal-dot" /> 칠하기
-          </button>
-          <button
-            className={tool === 'keep' ? 'active' : ''}
-            aria-pressed={tool === 'keep'}
-            title="지우기 (E)"
-            onClick={() => setTool('keep')}
-          >
-            <Icon name="eraser" size={14} /> 지우기
-          </button>
-        </div>
-        <div className={`brush-settings ${brushing ? '' : 'idle'}`}>
-          <div className="segmented" role="group" aria-label="붓 모양">
-            <button
-              className={brushShape === 'circle' ? 'active' : ''}
-              aria-pressed={brushShape === 'circle'}
-              title="둥근 붓"
-              onClick={() => setBrushShape('circle')}
-            >
-              <Icon name="circle" size={14} />
-            </button>
-            <button
-              className={brushShape === 'square' ? 'active' : ''}
-              aria-pressed={brushShape === 'square'}
-              title="네모 붓"
-              onClick={() => setBrushShape('square')}
-            >
-              <Icon name="square" size={14} />
-            </button>
-          </div>
-          <label className="range-field" title="크기 ([ / ])">
-            크기
-            <input
-              type="range"
-              min="1"
-              max="32"
-              value={brushSize}
-              onChange={(event) => setBrushSize(Number(event.target.value))}
-            />
-            <b>{brushSize * MASK_CELL}px</b>
-          </label>
-        </div>
-        <span className="zone-divider" />
-        <button onClick={invert}>반전</button>
-        <button onClick={clearMask} disabled={!hasGeneratePixels}>
-          모두 지우기
-        </button>
-        <UndoRedoButtons
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={undoStack.length > 0}
-          canRedo={redoStack.length > 0}
-        />
-        <div className="toolbar-zone view-zone">
-          <label className="range-field" title="생성 영역 표시 불투명도">
-            불투명도
-            <input
-              type="range"
-              min="0"
-              max="80"
-              value={opacity}
-              onChange={(event) => {
-                setOpacity(Number(event.target.value));
-                saveUiState(MASK_OPACITY_KEY, event.target.value);
-              }}
-            />
-            <b>{opacity}%</b>
-          </label>
-          <CanvasZoom view={view} />
-        </div>
-      </div>
+      <MaskToolbar
+        tool={tool}
+        onTool={setTool}
+        maskOnly={props.maskOnly}
+        transform={
+          props.transform && {
+            active: transforming,
+            toggle: transforming ? transform.commit : transform.begin,
+          }
+        }
+        brushShape={brushShape}
+        onBrushShape={setBrushShape}
+        brushSize={brushSize}
+        onBrushSize={setBrushSize}
+        onInvert={invert}
+        onClear={clearMask}
+        canClear={hasGeneratePixels}
+        history={{
+          onUndo: undo,
+          onRedo: redo,
+          canUndo: undoStack.length > 0,
+          canRedo: redoStack.length > 0,
+        }}
+        opacity={opacity}
+        onOpacity={(value) => {
+          setOpacity(value);
+          saveUiState(MASK_OPACITY_KEY, String(value));
+        }}
+        view={view}
+      />
       <div
         ref={view.viewport}
         className={[
