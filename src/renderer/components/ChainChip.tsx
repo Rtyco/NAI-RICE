@@ -51,6 +51,8 @@ export function ChainChip(props: {
   label?: ChainLabel;
   edit?: ChainEdit;
   chipRef?: React.Ref<HTMLDivElement>;
+  /** 접은 설정 줄에서 아이콘만 남을 때 설명에 보인다. */
+  value?: string;
   children: ReactNode;
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
@@ -66,7 +68,9 @@ export function ChainChip(props: {
     <div
       ref={props.chipRef}
       className={`chain-chip ${props.missing ? 'missing' : ''}`}
-      title={[label.text, label.usage].filter(Boolean).join(' · ')}
+      title={[props.value ? `${label.text}: ${props.value}` : label.text, label.usage]
+        .filter(Boolean)
+        .join(' · ')}
     >
       <span className="chain-chip-label">
         <Icon name={label.icon} size={15} />
@@ -297,6 +301,7 @@ export function ChecklistChip(props: {
       itemId={props.itemId}
       missing={props.missing}
       edit={props.edit}
+      value={props.value}
     >
       {props.before}
       <button
@@ -313,10 +318,7 @@ export function ChecklistChip(props: {
         <ChecklistPopover
           anchor={anchor}
           close={close}
-          title={
-            props.pickTitle ??
-            (props.multi ? `${title} 선택` : `${title} 선택`)
-          }
+          title={props.pickTitle ?? (props.multi ? `${title} 선택` : `${title} 선택`)}
           query={props.items.length >= SEARCH_FROM ? { value: query, change: setQuery } : undefined}
           options={props.options}
           footer={

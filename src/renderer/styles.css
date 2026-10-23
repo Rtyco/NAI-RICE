@@ -2506,7 +2506,7 @@ textarea.syntax-input::selection {
 .project-header {
   container-type: inline-size;
 }
-.project-header > :not(.project-name-input, .header-spacer, .account-meter) {
+.project-header > :not(.project-name-input, .header-spacer, .account-meter, .chain-bar) {
   flex: none;
 }
 .project-header .account-meter {
@@ -3827,21 +3827,69 @@ textarea.syntax-input::selection {
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
 }
-.top-bar-collapse {
+.top-bar-toggle {
   margin-left: auto;
 }
-.top-bar-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 220px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+/* 머리줄 안에 접어 둔 설정 줄. 자리가 모자라면 칩 값부터 말줄임으로 줄어든다. */
+.chain-bar.compact {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
 }
-.top-bar-summary span {
+.chain-bar.compact .top-bar-toggle {
+  margin-left: 0;
+}
+.chain-bar.compact .chain-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 2px;
+  padding: 1px 2px 1px 7px;
+}
+.chain-bar.compact .chain-chip-label .icon {
+  width: 13px;
+  height: 13px;
+}
+.chain-bar.compact :is(.chain-chip-edit, .chain-chip-switch, .chain-chip-trigger > .icon) {
+  display: none;
+}
+.chain-bar.compact .chain-chip-value {
+  min-width: 0;
+  max-width: 110px;
+  overflow: hidden;
+  padding: 2px 6px 2px 3px;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chain-bar.compact .chain-chip-trigger > span {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.chain-bar.compact .chain-thumb {
+  width: 16px;
+  height: 16px;
+}
+/* 값이 몇 글자로 잘려 읽을 수 없을 만큼 좁으면 아이콘만 남긴다. 값은 칩 설명에 있다. */
+@container (max-width: 1100px) {
+  .chain-bar.compact .chain-chip {
+    position: relative;
+    padding: 4px 7px;
+  }
+  .chain-bar.compact .chain-chip-value {
+    position: absolute;
+    inset: 0;
+    max-width: none;
+    padding: 0;
+    border-radius: inherit;
+    color: transparent;
+  }
+  .chain-bar.compact .chain-thumb {
+    display: none;
+  }
 }
 .scene-nav {
   display: inline-flex;

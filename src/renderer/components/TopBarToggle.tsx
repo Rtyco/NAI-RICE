@@ -1,27 +1,17 @@
 import { toggleTopBar } from '../store';
 import { Icon } from './Icon';
 
-/** 설정 줄 끝에 둔다. */
-export function TopBarCollapse() {
+/** 설정 줄 끝에 둔다. 접으면 같은 칩들이 화면 머리줄에 작게 들어간다. */
+export function TopBarToggle({ collapsed }: { collapsed: boolean }) {
+  const label = collapsed ? '설정 줄 펼치기' : '설정 줄 접기';
   return (
     <button
-      className="icon-button top-bar-collapse"
-      title="설정 줄 접기 (F9)"
-      aria-label="설정 줄 접기"
+      className="icon-button top-bar-toggle"
+      title={`${label} (F9)`}
+      aria-label={label}
       onClick={toggleTopBar}
     >
-      <Icon name="chevron" size={14} className="rotate-up" />
-    </button>
-  );
-}
-
-/** 접은 설정 줄 대신 화면 머리줄에 남는다. */
-export function TopBarSummary({ label }: { label: string }) {
-  return (
-    <button className="top-bar-summary" title="설정 줄 펼치기 (F9)" onClick={toggleTopBar}>
-      <Icon name="preset" size={14} />
-      <span>{label}</span>
-      <Icon name="chevron" size={12} className="rotate-down" />
+      <Icon name="chevron" size={14} className={collapsed ? 'rotate-down' : 'rotate-up'} />
     </button>
   );
 }

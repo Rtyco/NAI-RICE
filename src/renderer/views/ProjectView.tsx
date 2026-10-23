@@ -30,7 +30,7 @@ import { PaletteSlot } from '../components/FloatingPalette';
 import { Icon } from '../components/Icon';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { SidePanelToggle } from '../components/SidePanelToggle';
-import { TopBarCollapse, TopBarSummary } from '../components/TopBarToggle';
+import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
@@ -104,7 +104,8 @@ function ModeSwitch({ project }: { project: Project }) {
   );
 }
 
-function ChainBar({ resolved }: { resolved: ResolvedProject }) {
+/** 접으면(`compact`) 같은 칩들을 화면 머리줄 안에 작게 둔다. */
+function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: boolean }) {
   const presets = useStore((state) => state.library!.presets);
   const references = useStore((state) => state.library!.references);
   const emotionSets = useStore((state) => state.library!.emotionSets);
@@ -120,7 +121,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
     : undefined;
 
   return (
-    <div className="chain-bar">
+    <div className={`chain-bar ${compact ? 'compact' : ''}`}>
       <ChecklistChip
         section="presets"
         itemId={resolved.preset?.id}
@@ -181,7 +182,7 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         onPick={(emotionSetId) => patch({ emotionSetId })}
         editSection="emotionSets"
       />
-      <TopBarCollapse />
+      <TopBarToggle collapsed={Boolean(compact)} />
     </div>
   );
 }
@@ -361,7 +362,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
           }
         />
         <ModeSwitch project={project} />
-        {!topShown && <TopBarSummary label={preset?.name ?? '(생성 설정 없음)'} />}
+        {!topShown && <ChainBar resolved={resolved} compact />}
         {!topShown && detail && emotionSet && (
           <SceneNav emotions={emotionSet.emotions} current={detail.id} />
         )}

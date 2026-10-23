@@ -28,7 +28,7 @@ import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
 import { SidePanelToggle } from '../components/SidePanelToggle';
-import { TopBarCollapse, TopBarSummary } from '../components/TopBarToggle';
+import { TopBarToggle } from '../components/TopBarToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -260,6 +260,37 @@ export function FreeView() {
     />
   );
 
+  // 접으면 같은 칩들을 화면 머리줄 안에 작게 둔다.
+  const chainBar = (
+    <div className={`chain-bar ${topShown ? '' : 'compact'}`}>
+      <ChecklistChip
+        section="presets"
+        itemId={preset?.id}
+        missing={!preset}
+        value={preset?.name ?? '(없음)'}
+        items={library.presets}
+        checked={preset ? [preset.id] : []}
+        onPick={(presetId) => updateFreeGeneration({ presetId })}
+        editSection="presets"
+      />
+      <CharacterChip
+        slots={free.characters}
+        optional
+        max={maxCharactersFor(preset?.generation.model)}
+        onChange={(characters) => updateFreeGeneration({ characters })}
+      />
+      <PositionChip target="free" />
+      {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
+      <AidChip
+        value={free}
+        onChange={updateFreeGeneration}
+        model={preset?.generation.model}
+        inpaint={free.mode === 'img2img' && free.inpaint}
+      />
+      <TopBarToggle collapsed={!topShown} />
+    </div>
+  );
+
   return (
     <section className="project-view">
       <header className="project-header">
@@ -288,7 +319,7 @@ export function FreeView() {
             </button>
           ))}
         </div>
-        {!director && !topShown && <TopBarSummary label={preset?.name ?? '(생성 설정 없음)'} />}
+        {!director && !topShown && chainBar}
         <div className="header-spacer" />
         <AccountMeter />
         <button
@@ -305,35 +336,7 @@ export function FreeView() {
         <SidePanelToggle />
         <HistoryToggle />
       </header>
-      {!director && topShown && (
-        <div className="chain-bar">
-          <ChecklistChip
-            section="presets"
-            itemId={preset?.id}
-            missing={!preset}
-            value={preset?.name ?? '(없음)'}
-            items={library.presets}
-            checked={preset ? [preset.id] : []}
-            onPick={(presetId) => updateFreeGeneration({ presetId })}
-            editSection="presets"
-          />
-          <CharacterChip
-            slots={free.characters}
-            optional
-            max={maxCharactersFor(preset?.generation.model)}
-            onChange={(characters) => updateFreeGeneration({ characters })}
-          />
-          <PositionChip target="free" />
-          {preset && free.mode === 'txt2img' && <SizeChip preset={preset} />}
-          <AidChip
-            value={free}
-            onChange={updateFreeGeneration}
-            model={preset?.generation.model}
-            inpaint={free.mode === 'img2img' && free.inpaint}
-          />
-          <TopBarCollapse />
-        </div>
-      )}
+      {!director && topShown && chainBar}
       {inpaintModelMissing && (
         <div className="missing-banner">
           ⚠{' '}
