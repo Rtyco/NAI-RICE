@@ -3075,9 +3075,6 @@ textarea.syntax-input::selection {
   grid-template-columns: var(--prompt-column) minmax(0, 1fr) var(--history-column);
   transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.prompt-panel-view.panel-icons {
-  --prompt-column: 60px;
-}
 .prompt-panel-view.panel-hidden {
   --prompt-column: 0px;
 }
@@ -3214,12 +3211,6 @@ textarea.syntax-input::selection {
 }
 .prompt-group > .hint {
   margin: 0;
-}
-.prompt-panel-icons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
 }
 .prompt-panel-preview {
   align-self: flex-start;

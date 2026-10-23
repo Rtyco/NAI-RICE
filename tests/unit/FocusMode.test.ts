@@ -36,7 +36,19 @@ describe('패널 단계', () => {
       return state().sidebarStage;
     });
     expect(stages).toEqual(['icons', 'hidden', 'open']);
-    expect(store.stageTitle('사이드바', 'icons', 'Ctrl+B')).toBe('사이드바 숨기기 (Ctrl+B)');
+    expect(store.stageTitle('사이드바', 'sidebarStage', 'icons', 'Ctrl+B')).toBe(
+      '사이드바 숨기기 (Ctrl+B)',
+    );
+  });
+
+  it('프롬프트 패널은 펼침과 숨김뿐', () => {
+    store.cyclePromptPanel();
+    expect(state().promptPanelStage).toBe('hidden');
+    expect(store.stageTitle('프롬프트 패널', 'promptPanelStage', 'open')).toBe(
+      '프롬프트 패널 숨기기',
+    );
+    store.cyclePromptPanel();
+    expect(state().promptPanelStage).toBe('open');
   });
 });
 

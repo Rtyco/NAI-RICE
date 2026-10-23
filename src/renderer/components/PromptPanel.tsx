@@ -11,7 +11,6 @@ import { usesMedium } from '../../core/providers/NaiModels';
 import {
   cyclePromptPanel,
   historyShownOf,
-  openPromptPanel,
   promptPanelStageOf,
   resolveFreeGeneration,
   sameCharacters,
@@ -133,43 +132,6 @@ export function PromptPanel(props: {
       ),
     );
 
-  if (stage === 'icons') {
-    return (
-      <aside className="library-list prompt-panel collapsed" aria-label="프롬프트">
-        <div className="library-list-head">
-          <button
-            className="icon-button library-list-toggle"
-            title={stageTitle('프롬프트 패널', stage, 'F7')}
-            aria-label={stageTitle('프롬프트 패널', stage)}
-            onClick={cyclePromptPanel}
-          >
-            <Icon name="chevron-left" size={18} />
-          </button>
-        </div>
-        <div className="prompt-panel-icons">
-          <button
-            className="icon-button"
-            title={preset ? `공통 프롬프트 · ${preset.name}` : '생성 설정 없음'}
-            onClick={openPromptPanel}
-          >
-            <Icon name="preset" size={18} />
-          </button>
-          <button
-            className="icon-button"
-            title={
-              characters.length
-                ? `캐릭터 프롬프트 · ${characters.map((item) => item.character.name).join(', ')}`
-                : props.noCharacter
-            }
-            onClick={openPromptPanel}
-          >
-            <Icon name="character" size={18} />
-          </button>
-        </div>
-      </aside>
-    );
-  }
-
   return (
     <aside
       className={`library-list prompt-panel ${stage === 'hidden' ? 'stage-hidden' : ''}`}
@@ -178,8 +140,8 @@ export function PromptPanel(props: {
       <div className="library-list-head">
         <button
           className="icon-button library-list-toggle"
-          title={stageTitle('프롬프트 패널', stage, 'F7')}
-          aria-label={stageTitle('프롬프트 패널', stage)}
+          title={stageTitle('프롬프트 패널', 'promptPanelStage', stage, 'F7')}
+          aria-label={stageTitle('프롬프트 패널', 'promptPanelStage', stage)}
           onClick={cyclePromptPanel}
         >
           <Icon name="chevron-left" size={18} />
@@ -321,8 +283,8 @@ export function PromptPanelToggle() {
   return (
     <button
       className="icon-button panel-reopen"
-      title={stageTitle('프롬프트 패널', 'hidden', 'F7')}
-      aria-label={stageTitle('프롬프트 패널', 'hidden')}
+      title={stageTitle('프롬프트 패널', 'promptPanelStage', 'hidden', 'F7')}
+      aria-label={stageTitle('프롬프트 패널', 'promptPanelStage', 'hidden')}
       onClick={cyclePromptPanel}
     >
       <Icon name="prompt" size={18} />

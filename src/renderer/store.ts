@@ -44,10 +44,21 @@ export type ResultRef = { projectId: string; id: string };
 
 type CollapsedFlag = 'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed';
 
-/** 왼쪽 패널은 누를 때마다 펼침 → 아이콘만 → 숨김 순으로 바뀐다. */
 export type PanelStage = 'open' | 'icons' | 'hidden';
 
 type StageFlag = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
+
+/** 누를 때마다 다음 단계로. 프롬프트 패널은 아이콘만 남겨도 쓸 것이 없어 펼침과 숨김뿐이다. */
+const STAGE_ORDER: Record<StageFlag, PanelStage[]> = {
+  sidebarStage: ['open', 'icons', 'hidden'],
+  libraryListStage: ['open', 'icons', 'hidden'],
+  promptPanelStage: ['open', 'hidden'],
+};
+
+const nextStage = (flag: StageFlag, stage: PanelStage) => {
+  const order = STAGE_ORDER[flag];
+  return order[(order.indexOf(stage) + 1) % order.length];
+};
 
 /** 집중 모드(Tab)가 숨길 수 있는 곳. 왼쪽 패널은 프롬프트 패널과 라이브러리 목록이다. */
 export type FocusPart = 'sidebar' | 'leftPanel' | 'history' | 'sidePanel' | 'queueBar';
@@ -199,7 +210,7 @@ export const useStore = create<StoreState>(() => ({
   ),
   filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
   libraryListStage: readStage(LIBRARY_LIST_KEY),
-  promptPanelStage: readStage(PROMPT_PANEL_KEY),
+  promptPanelStage: readStage(PROMPT_PANEL_KEY) === 'open' ? 'open' : 'hidden',
   historyCollapsed: readCollapsed(HISTORY_KEY),
   sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),
   focusHidden: [],
@@ -485,20 +496,21 @@ function toggleCollapsed(flag: CollapsedFlag, key: string): void {
   saveUiState(key, collapsed ? '1' : '0');
 }
 
-const NEXT_STAGE: Record<PanelStage, PanelStage> = {
-  open: 'icons',
-  icons: 'hidden',
-  hidden: 'open',
-};
-
 function setStage(flag: StageFlag, key: string, stage: PanelStage): void {
   set({ [flag]: stage });
   saveUiState(key, stage);
 }
 
 /** 버튼 설명은 누르면 바뀔 단계를 말한다. 예: 사이드바 숨기기 (Ctrl+B) */
-export function stageTitle(name: string, stage: PanelStage, shortcut?: string): string {
-  const action = { open: '아이콘만 남기기', icons: '숨기기', hidden: '펼치기' }[stage];
+export function stageTitle(
+  name: string,
+  flag: StageFlag,
+  stage: PanelStage,
+  shortcut?: string,
+): string {
+  const action = { open: '펼치기', icons: '아이콘만 남기기', hidden: '숨기기' }[
+    nextStage(flag, stage)
+  ];
   return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
 }
 
@@ -530,7 +542,7 @@ function cycleStage(flag: StageFlag, key: string, part: FocusPart): void {
     if (get()[flag] === 'hidden') setStage(flag, key, 'open');
     return;
   }
-  setStage(flag, key, NEXT_STAGE[get()[flag]]);
+  setStage(flag, key, nextStage(flag, get()[flag]));
 }
 
 /** 다시 누르면 숨기기 전으로 돌아온다. */
@@ -574,11 +586,6 @@ export function cycleLibraryList(): void {
 
 export function cyclePromptPanel(): void {
   cycleStage('promptPanelStage', PROMPT_PANEL_KEY, 'leftPanel');
-}
-
-export function openPromptPanel(): void {
-  revealFromFocus('leftPanel');
-  setStage('promptPanelStage', PROMPT_PANEL_KEY, 'open');
 }
 
 export function toggleHistory(): void {
