@@ -370,14 +370,6 @@
   color: var(--text);
   font-size: 17px;
 }
-.welcome-steps {
-  margin: 0 0 16px;
-  text-align: left;
-  line-height: 1.9;
-}
-.welcome-steps b {
-  color: var(--text);
-}
 
 ::-webkit-scrollbar {
   width: 10px;

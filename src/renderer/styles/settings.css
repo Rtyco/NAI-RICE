@@ -1,3 +1,84 @@
+/* ── 설정: 계정·결과 파일 ─────────────────────── */
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.button-row.center {
+  justify-content: center;
+}
+.token-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.account-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+}
+.account-card span,
+.account-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.account-card strong {
+  font-size: 18px;
+}
+.quota-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-1);
+}
+.quota-track > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--accent));
+}
+.template-input {
+  font-family: Consolas, monospace;
+}
+.token-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.token-picker button {
+  padding: 3px 7px;
+  font:
+    11px Consolas,
+    monospace;
+}
+.path-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.path-row code {
+  flex: 1;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── 설정 창 ─────────────────────────────────── */
 /* 탭마다 창 크기가 바뀌지 않게 「화면 · 테마」 탭 크기로 고정한다. */
 .settings-layout {
@@ -21,8 +102,6 @@
 .four-column-fields.three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-
-/* ── 설정 창 ─────────────────────────────────── */
 .settings-tabs button {
   display: flex;
   align-items: center;
