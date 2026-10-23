@@ -25,11 +25,11 @@ import {
   type CanvasImage,
 } from '../lib/image';
 import { readUiState, saveUiState } from '../store';
+import { CanvasZoom, UndoRedoButtons } from './CanvasControls';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
 import { TransformActions, TransformFrame } from './TransformFrame';
 import { useFreeTransform, type TransformTarget } from './useFreeTransform';
-import { ZOOM_STEP } from './zoom';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep' | 'transform';
 
@@ -572,24 +572,12 @@ export function ReferenceCanvas(props: Props) {
         <button onClick={clearMask} disabled={!hasGeneratePixels}>
           모두 지우기
         </button>
-        <button
-          className="icon-button"
-          onClick={undo}
-          disabled={!undoStack.length}
-          aria-label="실행 취소"
-          title="실행 취소 (Ctrl+Z)"
-        >
-          <Icon name="undo" size={15} />
-        </button>
-        <button
-          className="icon-button redo"
-          onClick={redo}
-          disabled={!redoStack.length}
-          aria-label="다시 실행"
-          title="다시 실행 (Ctrl+Y)"
-        >
-          <Icon name="undo" size={15} />
-        </button>
+        <UndoRedoButtons
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={undoStack.length > 0}
+          canRedo={redoStack.length > 0}
+        />
         <div className="toolbar-zone view-zone">
           <label className="range-field" title="생성 영역 표시 불투명도">
             불투명도
@@ -605,30 +593,7 @@ export function ReferenceCanvas(props: Props) {
             />
             <b>{opacity}%</b>
           </label>
-          <span className="canvas-zoom">
-            <button
-              className="icon-button"
-              aria-label="축소"
-              title="축소 (휠)"
-              onClick={() => view.zoomTo(scale / ZOOM_STEP)}
-            >
-              <Icon name="zoom-out" size={15} />
-            </button>
-            <button className="zoom-level" title="화면에 맞추고 가운데로" onClick={view.fit}>
-              {Math.round(scale * 100)}%
-            </button>
-            <button
-              className="icon-button"
-              aria-label="확대"
-              title="확대 (휠)"
-              onClick={() => view.zoomTo(scale * ZOOM_STEP)}
-            >
-              <Icon name="zoom-in" size={15} />
-            </button>
-            <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => view.zoomTo(1)}>
-              1:1
-            </button>
-          </span>
+          <CanvasZoom view={view} />
         </div>
       </div>
       <div

@@ -9,8 +9,8 @@ import {
   type CanvasImage,
 } from '../lib/image';
 import { useCanvasViewport } from './canvasViewport';
+import { CanvasZoom, UndoRedoButtons } from './CanvasControls';
 import { Icon } from './Icon';
-import { ZOOM_STEP } from './zoom';
 
 type Tool = 'pen' | 'eraser' | 'fill' | 'picker';
 type Tip = 'round' | 'soft' | 'square';
@@ -506,50 +506,17 @@ export function DrawCanvas(props: {
           </label>
         )}
         <span className="zone-divider" />
-        <button
-          className="icon-button"
-          onClick={undo}
-          disabled={!undoStack.current.length}
-          aria-label="실행 취소"
-          title="실행 취소 (Ctrl+Z)"
-        >
-          <Icon name="undo" size={15} />
-        </button>
-        <button
-          className="icon-button redo"
-          onClick={redo}
-          disabled={!redoStack.current.length}
-          aria-label="다시 실행"
-          title="다시 실행 (Ctrl+Y)"
-        >
-          <Icon name="undo" size={15} />
-        </button>
+        <UndoRedoButtons
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={undoStack.current.length > 0}
+          canRedo={redoStack.current.length > 0}
+        />
         <button onClick={clearDrawing} title="모두 지우기 (Delete)">
           그린 것 지우기
         </button>
         <div className="toolbar-zone view-zone">
-          <span className="canvas-zoom">
-            <button
-              className="icon-button"
-              aria-label="축소"
-              onClick={() => view.zoomTo(view.scale / ZOOM_STEP)}
-            >
-              <Icon name="zoom-out" size={15} />
-            </button>
-            <button className="zoom-level" title="화면에 맞추고 가운데로" onClick={view.fit}>
-              {Math.round(view.scale * 100)}%
-            </button>
-            <button
-              className="icon-button"
-              aria-label="확대"
-              onClick={() => view.zoomTo(view.scale * ZOOM_STEP)}
-            >
-              <Icon name="zoom-in" size={15} />
-            </button>
-            <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => view.zoomTo(1)}>
-              1:1
-            </button>
-          </span>
+          <CanvasZoom view={view} />
           {props.onApply && (
             <button className="accent" disabled={!dirty} onClick={() => void apply()}>
               이미지에 합치기
