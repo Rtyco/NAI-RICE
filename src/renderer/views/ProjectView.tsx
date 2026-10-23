@@ -26,11 +26,11 @@ import { openDialog } from '../components/dialogStack';
 import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';
-import { PaletteSlot } from '../components/FloatingPalette';
+import { PaletteButton, PaletteSlot } from '../components/FloatingPalette';
 import { Icon } from '../components/Icon';
 import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
-import { SidePanelToggle } from '../components/SidePanelToggle';
+import { SidePanelToggle } from '../components/SidePanel';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
@@ -449,16 +449,15 @@ export function ProjectView({ projectId }: { projectId: string }) {
         )}
         {!detail && !queueShown && (
           <PaletteSlot>
-            <button
-              className="generate-button palette-button"
+            <PaletteButton
+              className="generate-button"
+              icon="play"
+              label={`${count}장 생성`}
               title={`${count}장 생성 · ${generateTitle}`}
-              aria-label={`${count}장 생성`}
+              badge={count}
               disabled={!canGenerate}
               onClick={generate}
-            >
-              <Icon name="play" size={16} />
-              <span className="palette-badge">{count}</span>
-            </button>
+            />
           </PaletteSlot>
         )}
       </div>

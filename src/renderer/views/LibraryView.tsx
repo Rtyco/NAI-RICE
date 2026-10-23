@@ -16,7 +16,7 @@ import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
 import { usePanelCompact } from '../panelWidths';
-import { SidePanelToggle } from '../components/SidePanelToggle';
+import { SidePanelToggle } from '../components/SidePanel';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';

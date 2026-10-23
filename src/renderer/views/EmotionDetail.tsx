@@ -6,10 +6,9 @@ import { usesMedium } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
-import { PanelResizer } from '../components/PanelResizer';
 import { Filmstrip } from '../components/Filmstrip';
-import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
-import { Icon } from '../components/Icon';
+import { PaletteButton } from '../components/FloatingPalette';
+import { SidePanelLayout } from '../components/SidePanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
@@ -30,7 +29,7 @@ import {
   updateProject,
   useStore,
 } from '../store';
-import { sidePanelShownOf, topBarShownOf, useLayout } from '../layout';
+import { topBarShownOf, useLayout } from '../layout';
 import { fileApi, libraryApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
 
@@ -52,7 +51,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
-  const sideShown = useLayout(sidePanelShownOf);
   const topShown = useLayout(topBarShownOf);
   const favoriteId = project.favorites[emotion.id];
   const saveAs = (record: GenerationSummary) =>
@@ -189,6 +187,54 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     },
   ];
 
+  const sidePanel = (
+    <>
+      <label className="stack-field">
+        씬 이름
+        <input value={emotion.name} onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })} />
+      </label>
+      <ScenePromptFields
+        emotion={emotion}
+        names={resolved.characters.map((item) => item.character.name)}
+        firstPlacement={
+          sceneSide ? `${sceneSide} 프롬프트 뒤에 붙습니다` : '공통 포지티브 뒤에 붙습니다'
+        }
+        negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
+        negativeHint={
+          resolved.preset && usesMedium(resolved.preset.generation)
+            ? 'Medium에서는 쓰이지 않음'
+            : undefined
+        }
+        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+      />
+      {sharedCount > 1 && (
+        <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>
+      )}
+      <label className="toggle-field">
+        <input
+          type="checkbox"
+          checked={!excluded}
+          disabled={!hasScenePrompt(emotion)}
+          onChange={(event) =>
+            updateProject(project.id, (current) => ({
+              ...current,
+              excludedEmotionIds: event.target.checked
+                ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
+                : [...current.excludedEmotionIds, emotion.id],
+            }))
+          }
+        />
+        <span>일괄 생성에 포함 (이 작업만)</span>
+      </label>
+
+      <div className="generate-dock">
+        <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
+        <button className="generate-button" disabled={!canGenerate} onClick={generate}>
+          ▶ {variants}장 생성
+        </button>
+      </div>
+    </>
+  );
 
   return (
     <div className="emotion-detail">
@@ -226,7 +272,21 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         </button>
       </div>
 
-      <div className={`detail-body ${sideShown ? '' : 'side-hidden'}`}>
+      <SidePanelLayout
+        className="detail-body"
+        panelClassName="detail-side"
+        panel={sidePanel}
+        palette={
+          <PaletteButton
+            className="generate-button"
+            icon="play"
+            label={`이 씬 ${variants}장 생성`}
+            badge={variants}
+            disabled={!canGenerate}
+            onClick={generate}
+          />
+        }
+      >
         <section className="detail-stage">
           <ImageStage
             src={selected && projectMedia(project.id, selected.file)}
@@ -273,69 +333,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
             }
           />
         </section>
-
-        <SidePanel className="detail-side">
-          <label className="stack-field">
-            씬 이름
-            <input value={emotion.name} onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })} />
-          </label>
-          <ScenePromptFields
-            emotion={emotion}
-            names={resolved.characters.map((item) => item.character.name)}
-            firstPlacement={
-              sceneSide ? `${sceneSide} 프롬프트 뒤에 붙습니다` : '공통 포지티브 뒤에 붙습니다'
-            }
-            negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
-            negativeHint={
-              resolved.preset && usesMedium(resolved.preset.generation)
-                ? 'Medium에서는 쓰이지 않음'
-                : undefined
-            }
-            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-          />
-          {sharedCount > 1 && (
-            <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>
-          )}
-          <label className="toggle-field">
-            <input
-              type="checkbox"
-              checked={!excluded}
-              disabled={!hasScenePrompt(emotion)}
-              onChange={(event) =>
-                updateProject(project.id, (current) => ({
-                  ...current,
-                  excludedEmotionIds: event.target.checked
-                    ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
-                    : [...current.excludedEmotionIds, emotion.id],
-                }))
-              }
-            />
-            <span>일괄 생성에 포함 (이 작업만)</span>
-          </label>
-
-          <div className="generate-dock">
-            <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
-            <button className="generate-button" disabled={!canGenerate} onClick={generate}>
-              ▶ {variants}장 생성
-            </button>
-          </div>
-        </SidePanel>
-        {sideShown && <PanelResizer panel="side-panel" />}
-      </div>
-      {!sideShown && (
-        <PaletteSlot>
-          <button
-            className="generate-button palette-button"
-            title={`이 씬 ${variants}장 생성`}
-            aria-label={`이 씬 ${variants}장 생성`}
-            disabled={!canGenerate}
-            onClick={generate}
-          >
-            <Icon name="play" size={16} />
-            <span className="palette-badge">{variants}</span>
-          </button>
-        </PaletteSlot>
-      )}
+      </SidePanelLayout>
     </div>
   );
 }

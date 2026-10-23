@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   historyShownOf,
@@ -17,8 +17,6 @@ type Side = 'left' | 'right';
 // 스쳐 지나갈 때 튀어나오지 않게 조금 머문 뒤 열고, 벗어나도 잠깐 기다렸다 닫는다.
 const OPEN_DELAY = 150;
 const CLOSE_DELAY = 300;
-let openTimer: ReturnType<typeof setTimeout> | undefined;
-let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** 겹쳐 보이는 패널, 가장자리 띠, 그 안에서 연 메뉴 위에서는 닫지 않는다. */
 const KEEP_OPEN =
@@ -61,19 +59,20 @@ export function EdgePeek() {
   const sidePanel = useStore(hasSidePanel);
   const { left, right } = useLayout(useShallow((state) => edges(kind, sidePanel, state)));
   const peek = useLayout((state) => state.peek);
+  const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (!enabled || (peek === 'left' && !left) || (peek === 'right' && !right)) setPeek();
   }, [enabled, peek, left, right]);
 
+  useEffect(() => () => clearTimeout(openTimer.current), []);
+
   useEffect(() => {
     if (!peek) return;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
     const onMove = (event: PointerEvent) => {
-      if ((event.target as Element | null)?.closest?.(KEEP_OPEN)) {
-        clearTimeout(closeTimer);
-        return;
-      }
       clearTimeout(closeTimer);
+      if ((event.target as Element | null)?.closest?.(KEEP_OPEN)) return;
       closeTimer = setTimeout(() => setPeek(), CLOSE_DELAY);
     };
     document.addEventListener('pointermove', onMove);
@@ -89,10 +88,10 @@ export function EdgePeek() {
       className={`edge-peek ${side}`}
       style={{ [side]: offset }}
       onPointerEnter={() => {
-        clearTimeout(openTimer);
-        openTimer = setTimeout(() => setPeek(side), OPEN_DELAY);
+        clearTimeout(openTimer.current);
+        openTimer.current = setTimeout(() => setPeek(side), OPEN_DELAY);
       }}
-      onPointerLeave={() => clearTimeout(openTimer)}
+      onPointerLeave={() => clearTimeout(openTimer.current)}
     />
   );
   return (

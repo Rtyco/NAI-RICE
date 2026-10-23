@@ -26,8 +26,8 @@ import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
-import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
-import { SidePanelToggle } from '../components/SidePanelToggle';
+import { PaletteButton } from '../components/FloatingPalette';
+import { SidePanelLayout, SidePanelToggle } from '../components/SidePanel';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
@@ -36,7 +36,6 @@ import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
 import { StreamPreview } from '../components/StreamPreview';
 import { ImageStage } from '../components/ImageStage';
-import { PanelResizer } from '../components/PanelResizer';
 import { PromptTextarea } from '../components/PromptTextarea';
 import { ExpandTextButton } from '../components/TextEditorDialog';
 import { NumberField, Toggle } from '../components/ui';
@@ -60,7 +59,7 @@ import {
   useLibrary,
   useStore,
 } from '../store';
-import { sidePanelShownOf, topBarShownOf, useLayout } from '../layout';
+import { topBarShownOf, useLayout } from '../layout';
 import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeMaskCanvas } from './free/FreeMaskCanvas';
@@ -99,7 +98,6 @@ export function FreeView() {
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
-  const sideShown = useLayout(sidePanelShownOf);
   const topShown = useLayout(topBarShownOf);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -279,6 +277,141 @@ export function FreeView() {
     />
   );
 
+  const sidePanel = (
+    <>
+      {free.mode !== 'txt2img' && <FreeImagePanel free={free} preset={preset} />}
+      {director ? (
+        <section className="detail-card">
+          <div className="detail-card-head">
+            <b>디렉터 툴</b>
+          </div>
+          <DirectorToolFields
+            value={augment}
+            onChange={(patch) =>
+              updateFreeGeneration({ augment: { ...augment, ...patch } })
+            }
+          />
+          {oversized && (
+            <Toggle
+              label="무료 면적(1024×1024)을 넘으니 비율을 지켜 줄여 보내기"
+              checked={shrink}
+              onChange={setShrink}
+            />
+          )}
+          {augment.tool === 'bg-removal' && (
+            <BgRemovalWarning results={augment.count * 3} />
+          )}
+        </section>
+      ) : (
+        <>
+          <label className="prompt-field">
+            <span>
+              프롬프트
+              <span className="prompt-field-tools">
+                <ExpandTextButton
+                  title="자유 생성 프롬프트"
+                  value={free.prompt}
+                  placeholder="예: sitting, cafe, window, warm lighting"
+                  onApply={(prompt) => updateFreeGeneration({ prompt })}
+                />
+              </span>
+            </span>
+            <PromptTextarea
+              rows={8}
+              value={free.prompt}
+              placeholder="예: sitting, cafe, window, warm lighting"
+              onChange={(prompt) => updateFreeGeneration({ prompt })}
+            />
+          </label>
+          <label
+            className="prompt-field negative-field"
+            title={
+              promptPosition === 'character-end'
+                ? '첫 캐릭터 네거티브 뒤에 붙습니다'
+                : '공통 네거티브 뒤에 붙습니다'
+            }
+          >
+            <span>
+              네거티브
+              <span className="prompt-field-tools">
+                {generation && usesMedium(generation) && <em>Medium에서는 쓰이지 않음</em>}
+                <ExpandTextButton
+                  title="자유 생성 네거티브"
+                  value={free.negative}
+                  placeholder="이번 생성에서만 뺄 태그"
+                  tone="negative"
+                  onApply={(negative) => updateFreeGeneration({ negative })}
+                />
+              </span>
+            </span>
+            <PromptTextarea
+              rows={3}
+              value={free.negative}
+              placeholder="이번 생성에서만 뺄 태그"
+              onChange={(negative) => updateFreeGeneration({ negative })}
+            />
+          </label>
+          <div className="prompt-position">
+            <span>붙일 위치</span>
+            <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
+              {(['common-end', 'character-end'] as const).map((value) => {
+                const blocked = value === 'character-end' && !hasCharacterPrompt;
+                return (
+                  <button
+                    key={value}
+                    className={promptPosition === value ? 'active' : ''}
+                    aria-pressed={promptPosition === value}
+                    disabled={blocked}
+                    title={
+                      blocked
+                        ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
+                        : value === 'character-end'
+                          ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
+                          : undefined
+                    }
+                    onClick={() => updateFreeGeneration({ promptPosition: value })}
+                  >
+                    {PROMPT_POSITIONS[value]}
+                  </button>
+                );
+              })}
+            </span>
+          </div>
+        </>
+      )}
+
+      <div className="generate-dock">
+        {!director && (
+          <NumberField
+            label="장수"
+            value={free.count}
+            min={1}
+            max={20}
+            integer
+            onChange={(count) => updateFreeGeneration({ count })}
+          />
+        )}
+        <button
+          className="generate-button"
+          disabled={!canGenerate || Boolean(busy)}
+          onClick={generate}
+        >
+          ▶ {generateLabel}
+        </button>
+        {estimate !== undefined && (
+          <p
+            className="hint"
+            title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join(
+              '\n',
+            )}
+          >
+            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
+          </p>
+        )}
+      </div>
+    </>
+  );
+
   // 접으면 같은 칩들을 화면 머리줄 안에 작게 둔다.
   const chainBar = (
     <div className={`chain-bar ${topShown ? '' : 'compact'}`}>
@@ -371,7 +504,21 @@ export function FreeView() {
 
       <div className="project-body animate-in">
         <div className="emotion-detail">
-          <div className={`detail-body ${sideShown ? '' : 'side-hidden'}`}>
+          <SidePanelLayout
+            className="detail-body"
+            panelClassName="detail-side"
+            panel={sidePanel}
+            palette={
+              <PaletteButton
+                className="generate-button"
+                icon={director ? 'wand' : 'play'}
+                label={generateLabel}
+                badge={runs}
+                disabled={!canGenerate || Boolean(busy)}
+                onClick={generate}
+              />
+            }
+          >
             <section className="detail-stage">
               {(image || free.mode === 'img2img') && (
                 <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
@@ -469,157 +616,9 @@ export function FreeView() {
                 onOpen={() => setStage('result')}
               />
             </section>
-
-            <SidePanel className="detail-side">
-              {free.mode !== 'txt2img' && <FreeImagePanel free={free} preset={preset} />}
-              {director ? (
-                <section className="detail-card">
-                  <div className="detail-card-head">
-                    <b>디렉터 툴</b>
-                  </div>
-                  <DirectorToolFields
-                    value={augment}
-                    onChange={(patch) =>
-                      updateFreeGeneration({ augment: { ...augment, ...patch } })
-                    }
-                  />
-                  {oversized && (
-                    <Toggle
-                      label="무료 면적(1024×1024)을 넘으니 비율을 지켜 줄여 보내기"
-                      checked={shrink}
-                      onChange={setShrink}
-                    />
-                  )}
-                  {augment.tool === 'bg-removal' && (
-                    <BgRemovalWarning results={augment.count * 3} />
-                  )}
-                </section>
-              ) : (
-                <>
-                  <label className="prompt-field">
-                    <span>
-                      프롬프트
-                      <span className="prompt-field-tools">
-                        <ExpandTextButton
-                          title="자유 생성 프롬프트"
-                          value={free.prompt}
-                          placeholder="예: sitting, cafe, window, warm lighting"
-                          onApply={(prompt) => updateFreeGeneration({ prompt })}
-                        />
-                      </span>
-                    </span>
-                    <PromptTextarea
-                      rows={8}
-                      value={free.prompt}
-                      placeholder="예: sitting, cafe, window, warm lighting"
-                      onChange={(prompt) => updateFreeGeneration({ prompt })}
-                    />
-                  </label>
-                  <label
-                    className="prompt-field negative-field"
-                    title={
-                      promptPosition === 'character-end'
-                        ? '첫 캐릭터 네거티브 뒤에 붙습니다'
-                        : '공통 네거티브 뒤에 붙습니다'
-                    }
-                  >
-                    <span>
-                      네거티브
-                      <span className="prompt-field-tools">
-                        {generation && usesMedium(generation) && <em>Medium에서는 쓰이지 않음</em>}
-                        <ExpandTextButton
-                          title="자유 생성 네거티브"
-                          value={free.negative}
-                          placeholder="이번 생성에서만 뺄 태그"
-                          tone="negative"
-                          onApply={(negative) => updateFreeGeneration({ negative })}
-                        />
-                      </span>
-                    </span>
-                    <PromptTextarea
-                      rows={3}
-                      value={free.negative}
-                      placeholder="이번 생성에서만 뺄 태그"
-                      onChange={(negative) => updateFreeGeneration({ negative })}
-                    />
-                  </label>
-                  <div className="prompt-position">
-                    <span>붙일 위치</span>
-                    <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
-                      {(['common-end', 'character-end'] as const).map((value) => {
-                        const blocked = value === 'character-end' && !hasCharacterPrompt;
-                        return (
-                          <button
-                            key={value}
-                            className={promptPosition === value ? 'active' : ''}
-                            aria-pressed={promptPosition === value}
-                            disabled={blocked}
-                            title={
-                              blocked
-                                ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
-                                : value === 'character-end'
-                                  ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
-                                  : undefined
-                            }
-                            onClick={() => updateFreeGeneration({ promptPosition: value })}
-                          >
-                            {PROMPT_POSITIONS[value]}
-                          </button>
-                        );
-                      })}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              <div className="generate-dock">
-                {!director && (
-                  <NumberField
-                    label="장수"
-                    value={free.count}
-                    min={1}
-                    max={20}
-                    integer
-                    onChange={(count) => updateFreeGeneration({ count })}
-                  />
-                )}
-                <button
-                  className="generate-button"
-                  disabled={!canGenerate || Boolean(busy)}
-                  onClick={generate}
-                >
-                  ▶ {generateLabel}
-                </button>
-                {estimate !== undefined && (
-                  <p
-                    className="hint"
-                    title={[...costReasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join(
-                      '\n',
-                    )}
-                  >
-                    {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
-                  </p>
-                )}
-              </div>
-            </SidePanel>
-            {sideShown && <PanelResizer panel="side-panel" />}
-          </div>
+          </SidePanelLayout>
         </div>
       </div>
-      {!sideShown && (
-        <PaletteSlot>
-          <button
-            className="generate-button palette-button"
-            title={generateLabel}
-            aria-label={generateLabel}
-            disabled={!canGenerate || Boolean(busy)}
-            onClick={generate}
-          >
-            <Icon name={director ? 'wand' : 'play'} size={16} />
-            <span className="palette-badge">{runs}</span>
-          </button>
-        </PaletteSlot>
-      )}
     </section>
   );
 }

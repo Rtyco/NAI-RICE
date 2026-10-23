@@ -15,8 +15,7 @@ import { effectiveGenerationSettings } from '../../core/model/defaults';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { confirmDialog } from '../components/dialogStack';
 import { DrawCanvas } from '../components/DrawCanvas';
-import { PanelResizer } from '../components/PanelResizer';
-import { SidePanel } from '../components/FloatingPalette';
+import { SidePanelLayout } from '../components/SidePanel';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
@@ -31,15 +30,7 @@ import {
   repaintComposed,
 } from '../lib/image';
 import { LatestOnly } from '../lib/LatestOnly';
-import {
-  errorMessage,
-  run,
-  scheduleSave,
-  setPendingReference,
-  toast,
-  useStore,
-} from '../store';
-import { sidePanelShownOf, useLayout } from '../layout';
+import { errorMessage, run, scheduleSave, setPendingReference, toast, useStore } from '../store';
 import { fileApi } from '../desktop';
 import { CanvasLayoutCard } from './reference/CanvasLayoutCard';
 import {
@@ -66,7 +57,6 @@ type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayou
 export function ReferenceEditor({ reference }: { reference: Reference }) {
   const pendingReference = useStore((state) => state.pendingReference);
   const presets = useStore((state) => state.library?.presets ?? []);
-  const sideShown = useLayout(sidePanelShownOf);
   const [loading, setLoading] = useState(Boolean(reference.image));
   const [source, setSource] = useState<Source | null>(null);
   const [layout, setLayout] = useState<CanvasLayout>(reference.layout);
@@ -368,8 +358,71 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     : undefined;
   const maskOk = mask ? maskHasGeneratePixels(mask) : false;
 
+  const settings = (
+    <>
+      <section className="detail-card settings-card">
+        <div className="detail-card-head">
+          <b>참고 이미지</b>
+        </div>
+        <button className="import-card" onClick={pickImage}>
+          <span className="file-icon image">IMG</span>
+          <span>
+            <b>{source ? source.name : '이미지 선택'}</b>
+            <small>{source ? '클릭해서 교체 · 창에 드롭해도 됩니다' : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}</small>
+          </span>
+        </button>
+      </section>
+
+      <CanvasLayoutCard
+        layout={layout}
+        threshold={threshold}
+        canReset={Boolean(source) && !rebuilding}
+        onCanvasSize={(patch) => void changeCanvasSize(patch)}
+        onLayout={changeLayout}
+        onFit={selectFit}
+        onFree={changeFree}
+        onFitFree={fitImage}
+        onThreshold={(value) => {
+          setThreshold(value);
+          scheduleRebuild(source, layout, value);
+        }}
+        onReset={() => source && void rebuild(source, layout, threshold)}
+      />
+
+      <section className="detail-card settings-card">
+        <div className="detail-card-head">
+          <b>영역</b>
+        </div>
+        <SettingRow label="참고 영역 여백" unit="px">
+          <Stepper
+            label="참고 영역 여백"
+            value={expansionPx}
+            min={0}
+            max={64}
+            step={4}
+            onChange={changeExpansion}
+          />
+        </SettingRow>
+        <DividerFields divider={divider} onChange={changeDivider} />
+        {working && (
+          <OutputRectFields
+            rect={outputRect}
+            width={working.width}
+            height={working.height}
+            onChange={(rect) => {
+              setOutputRect(rect);
+              dirty.current = true;
+            }}
+          />
+        )}
+      </section>
+
+      <InpaintRequestCard reference={reference} />
+    </>
+  );
+
   return (
-    <div className={`canvas-view ${sideShown ? '' : 'side-hidden'}`}>
+    <SidePanelLayout className="canvas-view" panelClassName="canvas-settings" panel={settings}>
       <section className="canvas-panel">
         {working && (
           <div className="segmented stage-tabs" role="group" aria-label="편집할 것">
@@ -477,68 +530,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           )}
         </div>
       </section>
-
-      <SidePanel className="canvas-settings">
-        <section className="detail-card settings-card">
-          <div className="detail-card-head">
-            <b>참고 이미지</b>
-          </div>
-          <button className="import-card" onClick={pickImage}>
-            <span className="file-icon image">IMG</span>
-            <span>
-              <b>{source ? source.name : '이미지 선택'}</b>
-              <small>{source ? '클릭해서 교체 · 창에 드롭해도 됩니다' : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}</small>
-            </span>
-          </button>
-        </section>
-
-        <CanvasLayoutCard
-          layout={layout}
-          threshold={threshold}
-          canReset={Boolean(source) && !rebuilding}
-          onCanvasSize={(patch) => void changeCanvasSize(patch)}
-          onLayout={changeLayout}
-          onFit={selectFit}
-          onFree={changeFree}
-          onFitFree={fitImage}
-          onThreshold={(value) => {
-            setThreshold(value);
-            scheduleRebuild(source, layout, value);
-          }}
-          onReset={() => source && void rebuild(source, layout, threshold)}
-        />
-
-        <section className="detail-card settings-card">
-          <div className="detail-card-head">
-            <b>영역</b>
-          </div>
-          <SettingRow label="참고 영역 여백" unit="px">
-            <Stepper
-              label="참고 영역 여백"
-              value={expansionPx}
-              min={0}
-              max={64}
-              step={4}
-              onChange={changeExpansion}
-            />
-          </SettingRow>
-          <DividerFields divider={divider} onChange={changeDivider} />
-          {working && (
-            <OutputRectFields
-              rect={outputRect}
-              width={working.width}
-              height={working.height}
-              onChange={(rect) => {
-                setOutputRect(rect);
-                dirty.current = true;
-              }}
-            />
-          )}
-        </section>
-
-        <InpaintRequestCard reference={reference} />
-      </SidePanel>
-      {sideShown && <PanelResizer panel="side-panel" />}
-    </div>
+    </SidePanelLayout>
   );
 }

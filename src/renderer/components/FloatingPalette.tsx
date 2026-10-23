@@ -3,82 +3,54 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useSyncExternalStore,
+  type ButtonHTMLAttributes,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { queueApi } from '../desktop';
-import {
-  focusingOf,
-  queueBarShownOf,
-  sidePanelShownOf,
-  toggleFocusMode,
-  useLayout,
-} from '../layout';
-import { readUiState, saveUiState, useStore } from '../store';
-import { Icon } from './Icon';
-import { QueueJobs } from './QueueBar';
+import { focusingOf, queueBarShownOf, toggleFocusMode, useLayout } from '../layout';
 import { queueAction, summarizeQueue } from '../queueSummary';
+import { readUiState, saveUiState, useStore } from '../store';
+import { Icon, type IconName } from './Icon';
+import { setPaletteSlot, setPanelPopup, useHostUser, usePaletteHost } from './paletteHost';
+import { QueueJobs } from './QueueBar';
 
-// 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 여기에 띄운다. 띄운 것도 없고 생성 큐 막대도 보이면 창이 없다.
-let target: HTMLElement | null = null;
-let slots = 0;
-let panelTarget: HTMLElement | null = null;
-let panels = 0;
-const listeners = new Set<() => void>();
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function notify() {
-  for (const listener of listeners) listener();
-}
-
-function setTarget(node: HTMLElement | null) {
-  target = node;
-  notify();
-}
-
-function setPanelTarget(node: HTMLElement | null) {
-  panelTarget = node;
-  notify();
-}
-
+/** 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 떠 있는 창에 띄운다. */
 export function PaletteSlot({ children }: { children: ReactNode }) {
-  const node = useSyncExternalStore(subscribe, () => target);
-  useEffect(() => {
-    slots += 1;
-    notify();
-    return () => {
-      slots -= 1;
-      notify();
-    };
-  }, []);
+  const node = usePaletteHost((state) => state.slot);
+  useHostUser('slotUsers');
   return node ? createPortal(children, node) : null;
 }
 
-/**
- * 오른쪽 입력 패널. 숨기면 떠 있는 창의 팝업에서 열고, 팝업을 닫아 둔 동안은 제자리에 둬서 가장자리 보기가
- * 겹쳐 보인다.
- */
-export function SidePanel({ className, children }: { className: string; children: ReactNode }) {
-  const hidden = useLayout((state) => !sidePanelShownOf(state));
-  const node = useSyncExternalStore(subscribe, () => panelTarget);
-  useEffect(() => {
-    if (!hidden) return;
-    panels += 1;
-    notify();
-    return () => {
-      panels -= 1;
-      notify();
-    };
-  }, [hidden]);
-  const aside = <aside className={className}>{children}</aside>;
-  return hidden && node ? createPortal(aside, node) : aside;
+/** 글자 없이 아이콘만 둔다. 이름은 `label`로 툴팁에 나온다. */
+export function PaletteButton({
+  icon,
+  label,
+  badge,
+  danger,
+  className = '',
+  ...rest
+}: {
+  icon: IconName;
+  label: string;
+  badge?: number;
+  danger?: boolean;
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      className={`palette-button ${className}`}
+      title={label}
+      aria-label={label}
+      {...rest}
+    >
+      <Icon name={icon} size={16} />
+      {badge !== undefined && (
+        <span className={`palette-badge ${danger ? 'danger' : ''}`}>{badge}</span>
+      )}
+    </button>
+  );
 }
 
 const POSITION_KEY = 'palette-position';
@@ -117,11 +89,10 @@ function useWindowSize() {
   return size;
 }
 
-/** 글자 없이 아이콘만 둔다. 무슨 버튼인지는 마우스를 올리면 나온다. */
 export function FloatingPalette() {
-  const count = useSyncExternalStore(subscribe, () => slots + panels);
+  const used = usePaletteHost((state) => state.slotUsers + state.hiddenPanels > 0);
   const queueShown = useLayout(queueBarShownOf);
-  return count || !queueShown ? <Palette queueShown={queueShown} /> : null;
+  return used || !queueShown ? <Palette queueShown={queueShown} /> : null;
 }
 
 type Popup = 'side' | 'queue';
@@ -133,53 +104,45 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   const phase = current ? 'busy' : queue.paused && active.length ? 'paused' : '';
   return (
     <>
-      <button
-        className={`palette-button palette-queue ${phase} ${open ? 'active' : ''}`}
+      <PaletteButton
+        icon="queue"
+        label="생성 큐 보기"
         title={`${status}${active.length ? ` · 남은 작업 ${active.length}` : ''} · 누르면 생성 큐 보기`}
-        aria-label="생성 큐 보기"
+        className={`palette-queue ${phase} ${open ? 'active' : ''}`}
+        badge={active.length || undefined}
         aria-expanded={open}
         onClick={onOpen}
-      >
-        <Icon name="queue" size={16} />
-        {active.length > 0 && <span className="palette-badge">{active.length}</span>}
-      </button>
+      />
       {active.length > 0 &&
         (queue.paused ? (
-          <button
-            className="palette-button"
-            title="큐 재개"
-            aria-label="큐 재개"
+          <PaletteButton
+            icon="play"
+            label="큐 재개"
             onClick={() => void queueAction('큐를 재개하는 중', () => api.resumeQueue())}
-          >
-            <Icon name="play" size={16} />
-          </button>
+          />
         ) : (
-          <button
-            className="palette-button"
-            title="큐 일시 중지"
-            aria-label="큐 일시 중지"
+          <PaletteButton
+            icon="pause"
+            label="큐 일시 중지"
             onClick={() => void queueAction('큐를 일시 중지하는 중', () => api.pauseQueue())}
-          >
-            <Icon name="pause" size={16} />
-          </button>
+          />
         ))}
       {failed > 0 && (
-        <button
-          className="palette-button"
+        <PaletteButton
+          icon="refresh"
+          label="실패한 작업 다시 시도"
           title={`실패한 작업 ${failed}개 다시 시도`}
-          aria-label="실패한 작업 다시 시도"
+          badge={failed}
+          danger
           onClick={() => void queueAction('재시도를 등록하는 중', () => api.retryFailed())}
-        >
-          <Icon name="refresh" size={16} />
-          <span className="palette-badge danger">{failed}</span>
-        </button>
+        />
       )}
     </>
   );
 }
 
 function Palette({ queueShown }: { queueShown: boolean }) {
-  const hasPanel = useSyncExternalStore(subscribe, () => panels > 0);
+  const hasPanel = usePaletteHost((state) => state.hiddenPanels > 0);
   const focusing = useLayout(focusingOf);
   const [position, setPosition] = useState(readPosition);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
@@ -249,30 +212,27 @@ function Palette({ queueShown }: { queueShown: boolean }) {
         <span className="palette-grip" title="끌어서 옮기기" onPointerDown={onPointerDown}>
           <Icon name="grip" size={14} />
         </span>
-        <div className="palette-slot" ref={setTarget} />
+        <div className="palette-slot" ref={setPaletteSlot} />
         {!queueShown && (
           <QueueButtons open={shownPopup === 'queue'} onOpen={() => toggle('queue')} />
         )}
         {hasPanel && (
-          <button
-            className={`palette-button ${shownPopup === 'side' ? 'active' : ''}`}
-            title="입력 패널 열기"
-            aria-label="입력 패널 열기"
+          <PaletteButton
+            icon="sliders"
+            label="입력 패널 열기"
+            className={shownPopup === 'side' ? 'active' : ''}
             aria-expanded={shownPopup === 'side'}
             onClick={() => toggle('side')}
-          >
-            <Icon name="sliders" size={16} />
-          </button>
+          />
         )}
         {focusing && (
-          <button
-            className="palette-button active"
+          <PaletteButton
+            icon="focus"
+            label="집중 모드 끝내기"
             title="집중 모드 끝내기 (Tab)"
-            aria-label="집중 모드 끝내기"
+            className="active"
             onClick={toggleFocusMode}
-          >
-            <Icon name="focus" size={16} />
-          </button>
+          />
         )}
       </div>
       {shownPopup && (
@@ -327,7 +287,7 @@ function PalettePopup(props: {
         </button>
       </div>
       {kind === 'side' ? (
-        <div className="palette-popup-body" ref={setPanelTarget} />
+        <div className="palette-popup-body" ref={setPanelPopup} />
       ) : (
         <div className="palette-popup-body queue-panel">
           <QueueJobs />
