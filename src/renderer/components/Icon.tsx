@@ -80,6 +80,7 @@ const ICONS = {
   expand: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
   chevron: <path d="m9 6 6 6-6 6" />,
   'chevron-left': <path d="m15 6-6 6 6 6" />,
+  swap: <path d="M7 4 4 7l3 3M4 7h13M17 14l3 3-3 3M20 17H7" />,
   prompt: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

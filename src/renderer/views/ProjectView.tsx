@@ -27,7 +27,7 @@ import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot } from '../components/FloatingPalette';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { SidePanelToggle } from '../components/SidePanelToggle';
 import { TopBarToggle } from '../components/TopBarToggle';
@@ -51,10 +51,14 @@ import { EmotionDetail } from './EmotionDetail';
 import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
 
-const MODES: Array<{ value: ProjectMode; label: string; title: string }> = [
-  { value: 'reference', label: '인페인트', title: '참고 이미지 옆에 인페인트로 그립니다' },
-  { value: 'txt2img', label: '일반 생성', title: '참고 이미지 없이 프롬프트로만 그립니다' },
-];
+const MODES: Record<ProjectMode, { label: string; icon: IconName; title: string }> = {
+  reference: {
+    label: '인페인트',
+    icon: 'reference',
+    title: '참고 이미지 옆에 인페인트로 그립니다',
+  },
+  txt2img: { label: '일반 생성', icon: 'sparkle', title: '참고 이미지 없이 프롬프트로만 그립니다' },
+};
 
 const MAX_VARIANTS = 20;
 
@@ -86,21 +90,22 @@ function VariantsStepper({ preset }: { preset: Preset }) {
   );
 }
 
+/** 둘뿐이라 누를 때마다 바뀐다. */
 function ModeSwitch({ project }: { project: Project }) {
+  const mode = MODES[project.mode];
+  const next: ProjectMode = project.mode === 'reference' ? 'txt2img' : 'reference';
+  const title = `${mode.title} · 누르면 「${MODES[next].label}」로 바꿉니다`;
   return (
-    <div className="segmented" role="group" aria-label="생성 방식">
-      {MODES.map((mode) => (
-        <button
-          key={mode.value}
-          className={project.mode === mode.value ? 'active blue' : ''}
-          aria-pressed={project.mode === mode.value}
-          title={mode.title}
-          onClick={() => updateProject(project.id, (current) => ({ ...current, mode: mode.value }))}
-        >
-          {mode.label}
-        </button>
-      ))}
-    </div>
+    <button
+      className="mode-toggle"
+      title={title}
+      aria-label={`생성 방식 ${mode.label}. ${title}`}
+      onClick={() => updateProject(project.id, (current) => ({ ...current, mode: next }))}
+    >
+      <Icon name={mode.icon} size={14} />
+      <span>{mode.label}</span>
+      <Icon name="swap" size={13} className="mode-toggle-swap" />
+    </button>
   );
 }
 
@@ -220,7 +225,13 @@ function SceneNav({ emotions, current }: { emotions: Emotion[]; current: string 
   );
 }
 
-export function PreviewDialog({ resolved, close }: { resolved: ResolvedProject; close: () => void }) {
+export function PreviewDialog({
+  resolved,
+  close,
+}: {
+  resolved: ResolvedProject;
+  close: () => void;
+}) {
   const library = useLibrary();
   const emotions = resolved.emotionSet?.emotions ?? [];
   const [emotionId, setEmotionId] = useState(emotions[0]?.id ?? '');

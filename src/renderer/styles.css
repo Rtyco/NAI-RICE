@@ -2815,6 +2815,24 @@ textarea.syntax-input::selection {
   align-items: center;
   gap: 6px;
 }
+.mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-color: var(--accent-strong);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+.mode-toggle-swap {
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+.mode-toggle:hover .mode-toggle-swap {
+  color: var(--accent-text);
+  transform: rotate(180deg);
+}
 .card {
   margin-bottom: 12px;
   border: 1px solid var(--line);
