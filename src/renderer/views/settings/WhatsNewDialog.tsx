@@ -17,6 +17,7 @@ const PANEL_KEYS: Array<{ keys: string; action: string; part?: FocusPart }> = [
 
 const CHANGED_KEYS: Array<[string, string]> = [
   ['Ctrl+H', '찾아 바꾸기 (히스토리 접기는 F8로 옮김)'],
+  ['PageUp / PageDown', '이전·다음 씬 (Tab은 집중 모드로 옮김)'],
   ['Ctrl+F', '찾기'],
   ['F3 / Shift+F3', '다음·이전 찾은 곳'],
   ['휠 클릭', '자동 스크롤'],
