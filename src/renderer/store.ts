@@ -81,6 +81,8 @@ export type StoreState = {
   sidePanelCollapsed: boolean;
   /** 집중 모드가 숨긴 곳. 비면 집중 모드가 아니다. 저장하지 않아 다시 실행하면 풀린다. */
   focusHidden: FocusPart[];
+  /** 창 가장자리에 마우스를 대어 숨긴 패널을 겹쳐 보이는 쪽 */
+  peek?: 'left' | 'right';
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */

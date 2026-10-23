@@ -1,5 +1,5 @@
 import type { AppSettings, FocusLevel, ThemeId, ThemeMode } from '../../../core/domain/types';
-import { Card } from '../../components/ui';
+import { Card, Toggle } from '../../components/ui';
 import { FOCUS_PARTS, useLibrary } from '../../store';
 import { MODE_LABELS, THEMES, themeSwatch } from '../../theme';
 import { FocusPreview } from './FocusPreview';
@@ -47,7 +47,7 @@ function FocusCard() {
 }
 
 export function AppearanceTab() {
-  const appearance = useLibrary().settings.appearance;
+  const { appearance, layout } = useLibrary().settings;
   const set = (value: Partial<AppSettings['appearance']>) =>
     patchSettings((current) => ({ ...current, appearance: { ...current.appearance, ...value } }));
   const preview =
@@ -92,6 +92,18 @@ export function AppearanceTab() {
         </div>
       </Card>
       <FocusCard />
+      <Card title="숨긴 패널">
+        <Toggle
+          label="창 가장자리에 마우스를 대면 숨긴 패널을 잠깐 겹쳐 보이기"
+          checked={layout.edgePeek}
+          onChange={(edgePeek) =>
+            patchSettings((current) => ({ ...current, layout: { ...current.layout, edgePeek } }))
+          }
+        />
+        <p className="hint">
+          인페인트 캔버스 가장자리를 칠하다가 패널이 튀어나올 수 있어 기본은 꺼 둡니다.
+        </p>
+      </Card>
     </>
   );
 }

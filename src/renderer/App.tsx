@@ -28,6 +28,7 @@ import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
 import { FindPanel } from './components/FindPanel';
+import { EdgePeek } from './components/EdgePeek';
 import { FloatingPalette } from './components/FloatingPalette';
 import { PanelResizer } from './components/PanelResizer';
 import { FreePromptPanel, ProjectPromptPanel, PromptPanelLayout } from './components/PromptPanel';
@@ -94,6 +95,7 @@ export default function App() {
   const settingsOpen = useStore((state) => state.settingsOpen);
   const sidebar = useStore(sidebarStageOf);
   const queueShown = useStore(queueBarShownOf);
+  const peek = useStore((state) => state.peek);
   const appearance = useStore((state) => state.library?.settings.appearance);
   const autoCheck = useStore((state) => state.library?.settings.update.autoCheck);
   const projectExists = useStore(
@@ -131,7 +133,7 @@ export default function App() {
   return (
     <>
       <TitleBar />
-      <main className={`app-shell sidebar-${sidebar}`}>
+      <main className={`app-shell sidebar-${sidebar} ${peek ? `peek-${peek}` : ''}`}>
         {hasLibrary ? <Sidebar /> : <aside className="sidebar" />}
         {sidebar === 'open' && <PanelResizer panel="sidebar" />}
         <div className="main-area">
@@ -164,6 +166,7 @@ export default function App() {
           </ErrorBoundary>
         </div>
         {queueShown && <QueueBar />}
+        <EdgePeek />
         <FloatingPalette />
         <Toasts />
         {settingsOpen && hasLibrary && <SettingsModal />}

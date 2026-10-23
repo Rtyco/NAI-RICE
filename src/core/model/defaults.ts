@@ -256,7 +256,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   streaming: false,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
-  layout: { focusLevel: 'panels' },
+  layout: { focusLevel: 'panels', edgePeek: false },
   update: { autoCheck: true, skippedVersion: '' },
 };
 

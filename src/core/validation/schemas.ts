@@ -361,8 +361,11 @@ export const appSettingsSchema = z.object({
     })
     .default({ theme: 'navy', mode: 'dark' }),
   layout: z
-    .object({ focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels') })
-    .default({ focusLevel: 'panels' }),
+    .object({
+      focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels'),
+      edgePeek: z.boolean().default(false),
+    })
+    .default({ focusLevel: 'panels', edgePeek: false }),
   update: z
     .object({
       autoCheck: z.boolean().default(true),

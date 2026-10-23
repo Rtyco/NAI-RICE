@@ -371,6 +371,8 @@ export type AppSettings = {
   };
   layout: {
     focusLevel: FocusLevel;
+    /** 숨긴 패널을 창 가장자리에 마우스를 대는 동안 겹쳐 보인다. */
+    edgePeek: boolean;
   };
   update: {
     autoCheck: boolean;

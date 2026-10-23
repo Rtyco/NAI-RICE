@@ -35,6 +35,7 @@ function describe(record: GenerationSummary): string {
 
 export function HistoryPanel({ projectId }: { projectId: string }) {
   const collapsed = useStore((state) => !historyShownOf(state));
+  const peeking = useStore((state) => state.peek === 'right');
   const allRecords = useStore((state) => state.generations[projectId]) ?? NO_RECORDS;
   const shownId = useStore((state) =>
     state.shownResult?.projectId === projectId ? state.shownResult.id : undefined,
@@ -101,9 +102,9 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
       },
     ]);
 
-  if (collapsed) return null;
+  if (collapsed && !peeking) return null;
   return (
-    <aside className="history-panel" aria-label="히스토리">
+    <aside className={`history-panel ${collapsed ? 'stage-hidden' : ''}`} aria-label="히스토리">
       <button className="history-head" title="히스토리 접기 (F8)" onClick={toggleHistory}>
         <b>히스토리</b>
         <small>{records.length}</small>

@@ -4886,3 +4886,56 @@ kbd {
 .fp-go {
   fill: var(--green);
 }
+
+/* ── 가장자리에 마우스를 대면 보이기 ─────────────── */
+.edge-peek {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 6px;
+}
+.app-shell.peek-left.sidebar-hidden {
+  --peek-left: var(--sidebar-width, 240px);
+}
+.prompt-panel-view.history-collapsed {
+  --peek-right: var(--history-panel-width, 220px);
+}
+.app-shell.peek-left.sidebar-hidden > .sidebar,
+.app-shell.peek-left .prompt-panel.stage-hidden,
+.app-shell.peek-left .library-list.stage-hidden,
+.app-shell.peek-right .history-panel.stage-hidden,
+.app-shell.peek-right .detail-body.side-hidden > .detail-side,
+.app-shell.peek-right .canvas-view.side-hidden > .canvas-settings {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 45;
+  box-shadow: 0 0 28px #000a;
+  animation: fade-in 120ms ease both;
+}
+.app-shell.peek-left.sidebar-hidden > .sidebar {
+  left: 0;
+  z-index: 46;
+  width: var(--sidebar-width, 240px);
+}
+.app-shell.peek-left .prompt-panel.stage-hidden {
+  left: var(--peek-left, 0px);
+  width: var(--prompt-panel-width, 300px);
+}
+.app-shell.peek-left .library-list.stage-hidden {
+  left: var(--peek-left, 0px);
+  width: var(--library-list-width, 260px);
+}
+.app-shell.peek-right .history-panel.stage-hidden {
+  right: 0;
+  z-index: 46;
+  width: var(--history-panel-width, 220px);
+}
+.app-shell.peek-right .detail-body.side-hidden > .detail-side,
+.app-shell.peek-right .canvas-view.side-hidden > .canvas-settings {
+  right: var(--peek-right, 0px);
+  width: var(--side-panel-width, 360px);
+}
