@@ -1,9 +1,18 @@
 import type { KeyboardEvent, PointerEvent } from 'react';
-import { commitWidth, currentWidth, PANELS, setWidth, type PanelId } from '../panelWidths';
+import {
+  commitWidth,
+  currentWidth,
+  lowestWidth,
+  PANELS,
+  setWidth,
+  stepWidth,
+  type PanelId,
+} from '../panelWidths';
 
 /** 패널을 담은 grid(`position: relative`) 안에 두면 CSS 변수 폭에 맞춰 경계에 붙는다. */
 export function PanelResizer({ panel }: { panel: PanelId }) {
-  const { side, min, max, initial, variable } = PANELS[panel];
+  const { side, max, initial, variable } = PANELS[panel];
+
   const direction = side === 'left' ? 1 : -1;
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -35,7 +44,7 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
     const step = event.key === 'ArrowRight' ? 16 : event.key === 'ArrowLeft' ? -16 : 0;
     if (!step) return;
     event.preventDefault();
-    commitWidth(panel, currentWidth(panel) + step * direction);
+    commitWidth(panel, stepWidth(panel, currentWidth(panel), step * direction));
   };
 
   return (
@@ -44,7 +53,7 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
       role="separator"
       aria-orientation="vertical"
       aria-label="패널 폭 조절"
-      aria-valuemin={min}
+      aria-valuemin={lowestWidth(panel)}
       aria-valuemax={max}
       tabIndex={0}
       title="끌어서 폭 조절 · 두 번 누르면 기본 폭"

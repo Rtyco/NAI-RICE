@@ -49,10 +49,10 @@ export type PanelStage = 'open' | 'icons' | 'hidden';
 
 type StageFlag = 'sidebarStage' | 'libraryListStage' | 'promptPanelStage';
 
-/** 누를 때마다 다음 단계로. 프롬프트 패널은 아이콘만 남겨도 쓸 것이 없어 펼침과 숨김뿐이다. */
+/** 누를 때마다 다음 단계로. 라이브러리 목록의 아이콘만 남은 모양은 폭을 최소보다 줄이면 된다(panelWidths). */
 const STAGE_ORDER: Record<StageFlag, PanelStage[]> = {
   sidebarStage: ['open', 'icons', 'hidden'],
-  libraryListStage: ['open', 'icons', 'hidden'],
+  libraryListStage: ['open', 'hidden'],
   promptPanelStage: ['open', 'hidden'],
 };
 
@@ -213,7 +213,7 @@ export const useStore = create<StoreState>(() => ({
     'portrait' as GalleryAspect,
   ),
   filmstripCollapsed: readCollapsed(FILMSTRIP_KEY),
-  libraryListStage: readStage(LIBRARY_LIST_KEY),
+  libraryListStage: readStage(LIBRARY_LIST_KEY) === 'hidden' ? 'hidden' : 'open',
   promptPanelStage: readStage(PROMPT_PANEL_KEY) === 'open' ? 'open' : 'hidden',
   historyCollapsed: readCollapsed(HISTORY_KEY),
   sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),

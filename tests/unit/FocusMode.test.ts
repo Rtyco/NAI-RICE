@@ -18,7 +18,7 @@ function reset(focusLevel: FocusLevel = 'panels') {
     library,
     sidebarStage: 'open',
     promptPanelStage: 'open',
-    libraryListStage: 'icons',
+    libraryListStage: 'open',
     historyCollapsed: false,
     sidePanelCollapsed: false,
     topBarCollapsed: false,
@@ -40,6 +40,13 @@ describe('패널 단계', () => {
     expect(store.stageTitle('사이드바', 'sidebarStage', 'icons', 'Ctrl+B')).toBe(
       '사이드바 숨기기 (Ctrl+B)',
     );
+  });
+
+  it('라이브러리 목록도 펼침과 숨김뿐', () => {
+    store.cycleLibraryList();
+    expect(state().libraryListStage).toBe('hidden');
+    store.cycleLibraryList();
+    expect(state().libraryListStage).toBe('open');
   });
 
   it('프롬프트 패널은 펼침과 숨김뿐', () => {
@@ -68,14 +75,14 @@ describe('집중 모드', () => {
     store.toggleFocusMode();
     expect(state().focusHidden).toEqual([]);
     expect(store.sidebarStageOf(state())).toBe('open');
-    expect(store.libraryListStageOf(state())).toBe('icons');
+    expect(store.libraryListStageOf(state())).toBe('open');
   });
 
   it('숨긴 곳 하나를 열면 그곳만 돌아오고, 모두 열면 집중 모드가 끝나', () => {
     store.toggleFocusMode();
     store.cyclePromptPanel();
     expect(store.promptPanelStageOf(state())).toBe('open');
-    expect(store.libraryListStageOf(state())).toBe('icons');
+    expect(store.libraryListStageOf(state())).toBe('open');
     expect(store.sidebarStageOf(state())).toBe('hidden');
 
     store.cycleSidebar();

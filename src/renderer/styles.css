@@ -2636,9 +2636,6 @@ textarea.syntax-input::selection {
   display: grid;
   grid-template-columns: var(--library-list-width, 260px) minmax(0, 1fr);
 }
-.library-view.list-icons {
-  grid-template-columns: 60px minmax(0, 1fr);
-}
 .library-view.list-hidden {
   grid-template-columns: 0 minmax(0, 1fr);
 }

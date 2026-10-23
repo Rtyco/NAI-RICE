@@ -15,6 +15,7 @@ import { showContextMenu } from '../components/contextMenuStore';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
+import { usePanelCompact } from '../panelWidths';
 import { SidePanelToggle } from '../components/SidePanelToggle';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
@@ -78,7 +79,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const info = sectionInfo(section);
   const [dragging, setDragging] = useState<string[]>([]);
   const stage = useStore(libraryListStageOf);
-  const collapsed = stage === 'icons';
+  const collapsed = usePanelCompact('library-list');
   const listTitle = stageTitle(`${info.label} 목록`, 'libraryListStage', stage, 'F7');
   const reopenList = stage === 'hidden' && (
     <button
