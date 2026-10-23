@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
@@ -13,18 +14,19 @@ import {
   queueBarShownOf,
   readUiState,
   saveUiState,
-  showQueueBar,
   sidePanelShownOf,
   toggleFocusMode,
-  toggleSidePanel,
   useStore,
 } from '../store';
 import { Icon } from './Icon';
+import { QueueJobs } from './QueueBar';
 import { queueAction, summarizeQueue } from '../queueSummary';
 
 // 패널을 숨긴 화면이 꼭 필요한 버튼(생성 등)을 여기에 띄운다. 띄운 것도 없고 생성 큐 막대도 보이면 창이 없다.
 let target: HTMLElement | null = null;
 let slots = 0;
+let panelTarget: HTMLElement | null = null;
+let panels = 0;
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -41,6 +43,11 @@ function setTarget(node: HTMLElement | null) {
   notify();
 }
 
+function setPanelTarget(node: HTMLElement | null) {
+  panelTarget = node;
+  notify();
+}
+
 export function PaletteSlot({ children }: { children: ReactNode }) {
   const node = useSyncExternalStore(subscribe, () => target);
   useEffect(() => {
@@ -54,12 +61,37 @@ export function PaletteSlot({ children }: { children: ReactNode }) {
   return node ? createPortal(children, node) : null;
 }
 
+/**
+ * 오른쪽 입력 패널. 숨기면 떠 있는 창의 팝업에서 열고, 팝업을 닫아 둔 동안은 제자리에 둬서 가장자리 보기가
+ * 겹쳐 보인다.
+ */
+export function SidePanel({ className, children }: { className: string; children: ReactNode }) {
+  const hidden = useStore((state) => !sidePanelShownOf(state));
+  const node = useSyncExternalStore(subscribe, () => panelTarget);
+  useEffect(() => {
+    if (!hidden) return;
+    panels += 1;
+    notify();
+    return () => {
+      panels -= 1;
+      notify();
+    };
+  }, [hidden]);
+  const aside = <aside className={className}>{children}</aside>;
+  return hidden && node ? createPortal(aside, node) : aside;
+}
+
 const POSITION_KEY = 'palette-position';
 
 /** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
 type Position = { x: number; y: number };
 
 const DEFAULT_POSITION: Position = { x: 0.5, y: 0.9 };
+
+/** 위 줄(창 버튼)에 걸치지 않게 위쪽은 이만큼 비운다. */
+const TOP_MARGIN = 48;
+const MARGIN = 8;
+const POPUP_GAP = 6;
 
 const readPosition = () =>
   readUiState<Position>(
@@ -87,12 +119,14 @@ function useWindowSize() {
 
 /** 글자 없이 아이콘만 둔다. 무슨 버튼인지는 마우스를 올리면 나온다. */
 export function FloatingPalette() {
-  const count = useSyncExternalStore(subscribe, () => slots);
+  const count = useSyncExternalStore(subscribe, () => slots + panels);
   const queueShown = useStore(queueBarShownOf);
   return count || !queueShown ? <Palette queueShown={queueShown} /> : null;
 }
 
-function QueueButtons() {
+type Popup = 'side' | 'queue';
+
+function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   const queue = useStore((state) => state.queue);
   const { active, current, failed, status } = summarizeQueue(queue);
   const api = queueApi();
@@ -100,10 +134,11 @@ function QueueButtons() {
   return (
     <>
       <button
-        className={`palette-button palette-queue ${phase}`}
-        title={`${status}${active.length ? ` · 남은 작업 ${active.length}` : ''} · 누르면 생성 큐 막대 보이기`}
-        aria-label="생성 큐 막대 보이기"
-        onClick={showQueueBar}
+        className={`palette-button palette-queue ${phase} ${open ? 'active' : ''}`}
+        title={`${status}${active.length ? ` · 남은 작업 ${active.length}` : ''} · 누르면 생성 큐 보기`}
+        aria-label="생성 큐 보기"
+        aria-expanded={open}
+        onClick={onOpen}
       >
         <Icon name="queue" size={16} />
         {active.length > 0 && <span className="palette-badge">{active.length}</span>}
@@ -144,10 +179,11 @@ function QueueButtons() {
 }
 
 function Palette({ queueShown }: { queueShown: boolean }) {
-  const sideHidden = useStore((state) => !sidePanelShownOf(state));
+  const hasPanel = useSyncExternalStore(subscribe, () => panels > 0);
   const focusing = useStore((state) => state.focusHidden.length > 0);
   const [position, setPosition] = useState(readPosition);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
+  const [popup, setPopup] = useState<Popup>();
   const box = useRef<HTMLDivElement>(null);
   const { width, height } = useWindowSize();
 
@@ -161,14 +197,18 @@ function Palette({ queueShown }: { queueShown: boolean }) {
     return () => observer.disconnect();
   }, []);
 
-  // 위 줄(창 버튼)에 걸치지 않게 위쪽은 48px를 비운다.
+  // 패널이나 큐 막대가 다시 보이면 팝업으로 볼 것이 없다.
+  const shownPopup =
+    (popup === 'side' && hasPanel) || (popup === 'queue' && !queueShown) ? popup : undefined;
+  const toggle = (next: Popup) => setPopup(shownPopup === next ? undefined : next);
+
   const left = Math.min(
-    Math.max(8, position.x * width - boxSize.width / 2),
-    width - boxSize.width - 8,
+    Math.max(MARGIN, position.x * width - boxSize.width / 2),
+    width - boxSize.width - MARGIN,
   );
   const top = Math.min(
-    Math.max(48, position.y * height - boxSize.height / 2),
-    height - boxSize.height - 8,
+    Math.max(TOP_MARGIN, position.y * height - boxSize.height / 2),
+    height - boxSize.height - MARGIN,
   );
 
   const onPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
@@ -198,37 +238,100 @@ function Palette({ queueShown }: { queueShown: boolean }) {
   };
 
   return (
-    <div
-      ref={box}
-      className="floating-palette"
-      role="toolbar"
-      aria-label="빠른 버튼"
-      style={{ left, top }}
-    >
-      <span className="palette-grip" title="끌어서 옮기기" onPointerDown={onPointerDown}>
-        <Icon name="grip" size={14} />
-      </span>
-      <div className="palette-slot" ref={setTarget} />
-      {!queueShown && <QueueButtons />}
-      {sideHidden && (
-        <button
-          className="palette-button"
-          title="입력 패널 보이기"
-          aria-label="입력 패널 보이기"
-          onClick={toggleSidePanel}
-        >
-          <Icon name="sliders" size={16} />
-        </button>
+    <>
+      <div
+        ref={box}
+        className="floating-palette"
+        role="toolbar"
+        aria-label="빠른 버튼"
+        style={{ left, top }}
+      >
+        <span className="palette-grip" title="끌어서 옮기기" onPointerDown={onPointerDown}>
+          <Icon name="grip" size={14} />
+        </span>
+        <div className="palette-slot" ref={setTarget} />
+        {!queueShown && (
+          <QueueButtons open={shownPopup === 'queue'} onOpen={() => toggle('queue')} />
+        )}
+        {hasPanel && (
+          <button
+            className={`palette-button ${shownPopup === 'side' ? 'active' : ''}`}
+            title="입력 패널 열기"
+            aria-label="입력 패널 열기"
+            aria-expanded={shownPopup === 'side'}
+            onClick={() => toggle('side')}
+          >
+            <Icon name="sliders" size={16} />
+          </button>
+        )}
+        {focusing && (
+          <button
+            className="palette-button active"
+            title="집중 모드 끝내기 (Tab)"
+            aria-label="집중 모드 끝내기"
+            onClick={toggleFocusMode}
+          >
+            <Icon name="focus" size={16} />
+          </button>
+        )}
+      </div>
+      {shownPopup && (
+        <PalettePopup
+          kind={shownPopup}
+          anchor={{ left, top, width: boxSize.width, height: boxSize.height }}
+          window={{ width, height }}
+          close={() => setPopup(undefined)}
+        />
       )}
-      {focusing && (
-        <button
-          className="palette-button active"
-          title="집중 모드 끝내기 (Tab)"
-          aria-label="집중 모드 끝내기"
-          onClick={toggleFocusMode}
-        >
-          <Icon name="focus" size={16} />
+    </>
+  );
+}
+
+const POPUP_WIDTH: Record<Popup, string> = {
+  side: 'var(--side-panel-width, 360px)',
+  queue: '440px',
+};
+
+/** 떠 있는 창 아래에 연다. 아래 자리가 모자라면 위에 연다. */
+function PalettePopup(props: {
+  kind: Popup;
+  anchor: { left: number; top: number; width: number; height: number };
+  window: { width: number; height: number };
+  close: () => void;
+}) {
+  const { anchor, kind } = props;
+  const below = props.window.height - (anchor.top + anchor.height + POPUP_GAP) - MARGIN;
+  const above = anchor.top - POPUP_GAP - TOP_MARGIN;
+  const downward = below >= 320 || below >= above;
+  const width = `min(${POPUP_WIDTH[kind]}, ${props.window.width - MARGIN * 2}px)`;
+  const center = anchor.left + anchor.width / 2;
+  const style: CSSProperties = {
+    width,
+    left: `clamp(${MARGIN}px, calc(${center}px - ${width} / 2), calc(100vw - ${width} - ${MARGIN}px))`,
+    maxHeight: downward ? below : above,
+    ...(downward
+      ? { top: anchor.top + anchor.height + POPUP_GAP }
+      : { bottom: props.window.height - anchor.top + POPUP_GAP }),
+  };
+  return (
+    <div
+      className={`palette-popup ${kind}`}
+      role="dialog"
+      aria-label={kind === 'side' ? '입력 패널' : '생성 큐'}
+      style={style}
+    >
+      <div className="palette-popup-head">
+        <b>{kind === 'side' ? '입력 패널' : '생성 큐'}</b>
+        <button className="icon-button" title="닫기" aria-label="닫기" onClick={props.close}>
+          <Icon name="close" size={14} />
         </button>
+      </div>
+      {kind === 'side' ? (
+        <div className="palette-popup-body" ref={setPanelTarget} />
+      ) : (
+        <div className="palette-popup-body queue-panel">
+          <QueueJobs />
+        </div>
       )}
     </div>
   );

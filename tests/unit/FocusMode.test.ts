@@ -93,14 +93,14 @@ describe('집중 모드', () => {
     expect(store.historyShownOf(state())).toBe(true);
   });
 
-  it('「모두」는 설정 줄·입력 패널·생성 큐 막대까지 숨기고, 큐 막대는 따로 다시 보일 수 있어', () => {
+  it('「모두」는 설정 줄·입력 패널·생성 큐 막대까지 숨겨', () => {
     reset('all');
     store.toggleFocusMode();
     expect(store.topBarShownOf(state())).toBe(false);
     expect(store.sidePanelShownOf(state())).toBe(false);
     expect(store.queueBarShownOf(state())).toBe(false);
-    store.showQueueBar();
-    expect(store.queueBarShownOf(state())).toBe(true);
-    expect(store.sidePanelShownOf(state())).toBe(false);
+    store.toggleSidePanel();
+    expect(store.sidePanelShownOf(state())).toBe(true);
+    expect(store.queueBarShownOf(state())).toBe(false);
   });
 });

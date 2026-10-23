@@ -559,10 +559,6 @@ export function toggleFocusMode(): void {
   set({ focusHidden: FOCUS_PARTS[level] });
 }
 
-export function showQueueBar(): void {
-  revealFromFocus('queueBar');
-}
-
 export function cycleSidebar(): void {
   cycleStage('sidebarStage', SIDEBAR_KEY, 'sidebar');
 }

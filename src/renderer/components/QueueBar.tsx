@@ -18,6 +18,47 @@ function anlasText(job: QueueJobView): string {
   return ` · Anlas ${spent}${expected}`;
 }
 
+/** 생성 큐 막대를 펼친 목록. 막대를 숨기면 떠 있는 창의 팝업에서 본다. */
+export function QueueJobs() {
+  const jobs = useStore((state) => state.queue.jobs);
+  const api = queueApi();
+  return jobs.length ? (
+    jobs
+      .slice()
+      .reverse()
+      .map((job) => (
+        <article className={`queue-item ${job.status}`} key={job.id}>
+          <span className="state-badge">{STATUS[job.status] ?? job.status}</span>
+          <button
+            className="queue-target"
+            onClick={() => {
+              if (job.projectId === FREE_PROJECT_ID) return openFree();
+              openProject(job.projectId);
+              openEmotion(job.emotionId);
+            }}
+          >
+            <b>{[job.projectName, job.emotionName].filter(Boolean).join(' · ')}</b>
+            <small>
+              v{job.variantIndex} · seed {job.seed} · 시도 {job.attempts}/{job.maxAttempts}
+              {anlasText(job)}
+            </small>
+          </button>
+          {job.error && <p>{job.error}</p>}
+          {isActive(job.status) && (
+            <button
+              className="link-button danger"
+              onClick={() => void queueAction('작업을 취소하는 중', () => api.cancelQueue(job.id))}
+            >
+              취소
+            </button>
+          )}
+        </article>
+      ))
+  ) : (
+    <p className="hint">큐가 비어 있습니다.</p>
+  );
+}
+
 export function QueueBar() {
   const queue = useStore((state) => state.queue);
   const [open, setOpen] = useState(false);
@@ -29,43 +70,7 @@ export function QueueBar() {
     <footer className={`queue-bar ${open ? 'open' : ''}`}>
       {open && (
         <div className="queue-panel">
-          {queue.jobs.length ? (
-            queue.jobs
-              .slice()
-              .reverse()
-              .map((job) => (
-                <article className={`queue-item ${job.status}`} key={job.id}>
-                  <span className="state-badge">{STATUS[job.status] ?? job.status}</span>
-                  <button
-                    className="queue-target"
-                    onClick={() => {
-                      if (job.projectId === FREE_PROJECT_ID) return openFree();
-                      openProject(job.projectId);
-                      openEmotion(job.emotionId);
-                    }}
-                  >
-                    <b>{[job.projectName, job.emotionName].filter(Boolean).join(' · ')}</b>
-                    <small>
-                      v{job.variantIndex} · seed {job.seed} · 시도 {job.attempts}/{job.maxAttempts}
-                      {anlasText(job)}
-                    </small>
-                  </button>
-                  {job.error && <p>{job.error}</p>}
-                  {isActive(job.status) && (
-                    <button
-                      className="link-button danger"
-                      onClick={() =>
-                        void queueAction('작업을 취소하는 중', () => api.cancelQueue(job.id))
-                      }
-                    >
-                      취소
-                    </button>
-                  )}
-                </article>
-              ))
-          ) : (
-            <p className="hint">큐가 비어 있습니다.</p>
-          )}
+          <QueueJobs />
         </div>
       )}
       <div className="queue-summary">

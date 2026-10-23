@@ -8,7 +8,7 @@ import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
 import { PanelResizer } from '../components/PanelResizer';
 import { Filmstrip } from '../components/Filmstrip';
-import { PaletteSlot } from '../components/FloatingPalette';
+import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
 import { Icon } from '../components/Icon';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -275,7 +275,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
           />
         </section>
 
-        <aside className="detail-side">
+        <SidePanel className="detail-side">
           <label className="stack-field">
             씬 이름
             <input value={emotion.name} onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })} />
@@ -320,7 +320,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
               ▶ {variants}장 생성
             </button>
           </div>
-        </aside>
+        </SidePanel>
         {sideShown && <PanelResizer panel="side-panel" />}
       </div>
       {!sideShown && (

@@ -26,7 +26,7 @@ import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
-import { PaletteSlot } from '../components/FloatingPalette';
+import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
 import { SidePanelToggle } from '../components/SidePanelToggle';
 import { TopBarCollapse, TopBarSummary } from '../components/TopBarToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
@@ -445,7 +445,7 @@ export function FreeView() {
               />
             </section>
 
-            <aside className="detail-side">
+            <SidePanel className="detail-side">
               {free.mode !== 'txt2img' && <FreeImagePanel free={free} preset={preset} />}
               {director ? (
                 <section className="detail-card">
@@ -576,7 +576,7 @@ export function FreeView() {
                   </p>
                 )}
               </div>
-            </aside>
+            </SidePanel>
             {sideShown && <PanelResizer panel="side-panel" />}
           </div>
         </div>

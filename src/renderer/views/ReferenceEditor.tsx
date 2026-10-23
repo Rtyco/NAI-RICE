@@ -16,6 +16,7 @@ import { checkFreeGeneration } from '../../core/providers/NaiCost';
 import { confirmDialog } from '../components/dialogStack';
 import { DrawCanvas } from '../components/DrawCanvas';
 import { PanelResizer } from '../components/PanelResizer';
+import { SidePanel } from '../components/FloatingPalette';
 import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
@@ -477,7 +478,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         </div>
       </section>
 
-      <aside className="canvas-settings">
+      <SidePanel className="canvas-settings">
         <section className="detail-card settings-card">
           <div className="detail-card-head">
             <b>참고 이미지</b>
@@ -536,7 +537,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         </section>
 
         <InpaintRequestCard reference={reference} />
-      </aside>
+      </SidePanel>
       {sideShown && <PanelResizer panel="side-panel" />}
     </div>
   );

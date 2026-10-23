@@ -4836,6 +4836,46 @@ kbd {
 .palette-badge.danger {
   background: var(--red-deep);
 }
+.palette-button.active {
+  border-color: var(--accent);
+}
+.palette-popup {
+  position: fixed;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-2);
+  box-shadow: 0 10px 28px #0009;
+}
+.palette-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-3);
+  font-size: 12px;
+}
+.palette-popup-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.palette-popup-body > aside {
+  flex: 1;
+  min-height: 0;
+  border-left: none;
+}
+.palette-popup-body.queue-panel {
+  display: block;
+  max-height: none;
+  overflow-y: auto;
+  border-bottom: none;
+}
 .palette-queue.busy {
   color: var(--green);
 }
