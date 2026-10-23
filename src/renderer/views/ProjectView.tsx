@@ -27,7 +27,8 @@ import { AccountMeter } from '../components/AccountMeter';
 import { AidChip } from '../components/AidChip';
 import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot } from '../components/FloatingPalette';
-import { Icon, type IconName } from '../components/Icon';
+import { Icon } from '../components/Icon';
+import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { SidePanelToggle } from '../components/SidePanelToggle';
 import { TopBarToggle } from '../components/TopBarToggle';
@@ -51,7 +52,7 @@ import { EmotionDetail } from './EmotionDetail';
 import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
 
-const MODES: Record<ProjectMode, { label: string; icon: IconName; title: string }> = {
+const MODES: Record<ProjectMode, ModeInfo> = {
   reference: {
     label: '인페인트',
     icon: 'reference',
@@ -90,22 +91,14 @@ function VariantsStepper({ preset }: { preset: Preset }) {
   );
 }
 
-/** 둘뿐이라 누를 때마다 바뀐다. */
 function ModeSwitch({ project }: { project: Project }) {
-  const mode = MODES[project.mode];
   const next: ProjectMode = project.mode === 'reference' ? 'txt2img' : 'reference';
-  const title = `${mode.title} · 누르면 「${MODES[next].label}」로 바꿉니다`;
   return (
-    <button
-      className="mode-toggle"
-      title={title}
-      aria-label={`생성 방식 ${mode.label}. ${title}`}
-      onClick={() => updateProject(project.id, (current) => ({ ...current, mode: next }))}
-    >
-      <Icon name={mode.icon} size={14} />
-      <span>{mode.label}</span>
-      <Icon name="swap" size={13} className="mode-toggle-swap" />
-    </button>
+    <ModeToggle
+      current={MODES[project.mode]}
+      next={MODES[next]}
+      onToggle={() => updateProject(project.id, (current) => ({ ...current, mode: next }))}
+    />
   );
 }
 

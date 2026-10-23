@@ -2830,6 +2830,23 @@ textarea.syntax-input::selection {
   color: var(--accent-text);
   transform: rotate(180deg);
 }
+.mode-toggle.dimmed {
+  border-color: var(--line);
+  color: var(--muted);
+}
+.tool-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.tool-toggle.active {
+  border-color: var(--accent-strong);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
 .card {
   margin-bottom: 12px;
   border: 1px solid var(--line);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -29,6 +29,7 @@ import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot, SidePanel } from '../components/FloatingPalette';
 import { SidePanelToggle } from '../components/SidePanelToggle';
 import { TopBarToggle } from '../components/TopBarToggle';
+import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -67,11 +68,31 @@ import { FreeMaskCanvas } from './free/FreeMaskCanvas';
 
 const NO_RECORDS: GenerationSummary[] = [];
 
+type GenerateMode = 'txt2img' | 'img2img';
+
+const GENERATE_MODES: Record<GenerateMode, ModeInfo> = {
+  txt2img: { label: '일반 생성', icon: 'sparkle', title: '프롬프트로만 그립니다' },
+  img2img: {
+    label: 'i2i',
+    icon: 'reference',
+    title: '고른 이미지를 다시 그리거나, 칠한 곳만 다시 그립니다',
+  },
+};
+
+/** 디렉터 툴을 끄면 돌아갈 방식. 저장하지 않아 다시 실행한 뒤에는 일반 생성으로 돌아간다. */
+let modeBeforeDirector: GenerateMode = 'txt2img';
+
 /** 결과는 `projects/free/`에 쌓인다. */
 export function FreeView() {
   const library = useLibrary();
   const { free, preset, promptSet } = resolveFreeGeneration(library);
   const director = free.mode === 'augment';
+  const generateMode = free.mode === 'augment' ? modeBeforeDirector : free.mode;
+  const otherMode = generateMode === 'txt2img' ? 'img2img' : 'txt2img';
+  useEffect(() => {
+    if (free.mode !== 'augment') modeBeforeDirector = free.mode;
+  }, [free.mode]);
+  const toggleDirector = () => updateFreeGeneration({ mode: director ? generateMode : 'augment' });
   const augment = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
   const image = free.mode === 'txt2img' ? undefined : free.image;
   const [shrink, setShrink] = useState(true);
@@ -146,8 +167,7 @@ export function FreeView() {
   const inpaintModelMissing = inpainting && preset && !supportsInpaint(preset.generation.model);
   const canGenerate = director
     ? Boolean(image)
-    : Boolean(preset) &&
-      (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
+    : Boolean(preset) && (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
   const generateLabel = director ? `${runs}번 적용` : `${free.count}장 생성`;
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
 
@@ -296,29 +316,29 @@ export function FreeView() {
       <header className="project-header">
         <PromptPanelToggle />
         <h1 className="free-title">자유 생성</h1>
-        <div className="segmented" role="group" aria-label="생성 방식">
-          {(
-            [
-              ['txt2img', '일반 생성', '프롬프트로만 그립니다'],
-              ['img2img', 'i2i', '고른 이미지를 다시 그리거나, 칠한 곳만 다시 그립니다'],
-              [
-                'augment',
-                '디렉터 툴',
-                '고른 이미지에 Emotion·배경 제거 같은 NovelAI 디렉터 툴을 적용합니다',
-              ],
-            ] as const
-          ).map(([mode, label, title]) => (
-            <button
-              key={mode}
-              className={free.mode === mode ? 'active blue' : ''}
-              aria-pressed={free.mode === mode}
-              title={title}
-              onClick={() => updateFreeGeneration({ mode })}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <ModeToggle
+          current={GENERATE_MODES[generateMode]}
+          next={GENERATE_MODES[otherMode]}
+          dimmed={
+            director
+              ? `디렉터 툴을 끄고 「${GENERATE_MODES[generateMode].label}」로 돌아갑니다`
+              : undefined
+          }
+          onToggle={() => updateFreeGeneration({ mode: director ? generateMode : otherMode })}
+        />
+        <button
+          className={`tool-toggle ${director ? 'active' : ''}`}
+          aria-pressed={director}
+          title={
+            director
+              ? `디렉터 툴 끄기 · 「${GENERATE_MODES[generateMode].label}」로 돌아갑니다`
+              : '고른 이미지에 Emotion·배경 제거 같은 NovelAI 디렉터 툴을 적용합니다'
+          }
+          onClick={toggleDirector}
+        >
+          <Icon name="wand" size={14} />
+          <span className="header-label">디렉터 툴</span>
+        </button>
         {!director && !topShown && chainBar}
         <div className="header-spacer" />
         <AccountMeter />
@@ -362,7 +382,10 @@ export function FreeView() {
                       aria-pressed={stage === 'source'}
                       onClick={() => setStage('source')}
                     >
-                      <Icon name={inpainting ? 'brush' : director ? 'wand' : 'reference'} size={14} />
+                      <Icon
+                        name={inpainting ? 'brush' : director ? 'wand' : 'reference'}
+                        size={14}
+                      />
                       {inpainting ? '마스크 칠하기' : sourceLabel}
                     </button>
                   )}
