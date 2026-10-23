@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import type { Library } from '../../core/domain/types';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import {
   findInLibrary,
   replaceInLibrary,
   type FindFieldHit,
-  type GenerationFindHit,
 } from '../../core/model/promptFields';
 import {
   editRange,
@@ -16,15 +15,21 @@ import {
 } from '../../core/prompts/PromptFind';
 import type { GenerationFindResult } from '../../shared/ipc';
 import { libraryApi } from '../desktop';
-import { closeFind, findPlaceOf, findQuery, useFind } from '../find';
-import { SECTIONS } from '../sections';
+import {
+  closeFind,
+  findPlaceOf,
+  findQuery,
+  insertText,
+  revealName,
+  sectionLabel,
+  useFind,
+  type FindScope,
+} from '../find';
 import {
   errorMessage,
-  openEmotion,
   openFree,
   openLibrary,
-  openProject,
-  requestResult,
+  showResult,
   toast,
   updateLibrary,
   useStore,
@@ -34,22 +39,7 @@ import { confirmDialog, useDialogs } from './dialogStack';
 /** 이보다 많으면 목록 끝에 남은 수만 적는다. */
 const SHOWN_HITS = 300;
 
-/** execCommand여야 Ctrl+Z로 되돌릴 수 있다. */
-function insertText(textarea: HTMLTextAreaElement, start: number, end: number, text: string) {
-  if (start === end && !text) return;
-  textarea.focus();
-  textarea.setSelectionRange(start, end);
-  const done = text
-    ? document.execCommand('insertText', false, text)
-    : document.execCommand('delete');
-  if (done) return;
-  const value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
-  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
-    textarea,
-    value,
-  );
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
-}
+type RecordSearch = GenerationFindResult | 'loading' | undefined;
 
 function Snippet({ text, range }: { text: string; range: TextRange }) {
   const { before, match, after } = snippetAround(text, range);
@@ -62,25 +52,53 @@ function Snippet({ text, range }: { text: string; range: TextRange }) {
   );
 }
 
-/** 옮겨 간 화면이 그려진 뒤 그 이름 칸에 커서를 두고 찾은 글자를 고른다. */
-function revealName(text: string, range: TextRange, tries = 10) {
-  requestAnimationFrame(() => {
-    const input = [...document.querySelectorAll<HTMLInputElement>('.main-area input')].find(
-      (item) => item.value === text,
-    );
-    if (!input) {
-      if (tries > 1) revealName(text, range, tries - 1);
-      return;
-    }
-    input.scrollIntoView({ block: 'center' });
-    input.focus();
-    input.setSelectionRange(range.start, range.end);
-  });
+/** 바꾸기로 라이브러리가 바뀌면 입력 이벤트 없이 글이 바뀌어 그때도 다시 읽는다. */
+function useTextOf(target: HTMLTextAreaElement | undefined, library: Library): string {
+  const [text, setText] = useState(target?.value ?? '');
+  useEffect(() => {
+    if (!target) return;
+    const sync = () => setText(target.value);
+    sync();
+    target.addEventListener('input', sync);
+    return () => target.removeEventListener('input', sync);
+  }, [target, library]);
+  return text;
 }
 
-function sectionLabel(section: FindFieldHit['section']): string {
-  if (section === 'free') return '자유 생성';
-  return SECTIONS.find((item) => item.id === section)?.label ?? '';
+/** 생성 기록은 메인 프로세스가 찾는다. 입력이 멈춘 뒤에 묻는다. */
+function useRecordSearch(
+  enabled: boolean,
+  text: string,
+  wholeTag: boolean,
+  projectIds: string,
+): RecordSearch {
+  const [records, setRecords] = useState<RecordSearch>();
+  useEffect(() => {
+    if (!enabled) {
+      setRecords(undefined);
+      return;
+    }
+    setRecords('loading');
+    let alive = true;
+    const timer = setTimeout(() => {
+      libraryApi()
+        .findGenerations({
+          projectIds: [...projectIds.split('\n').filter(Boolean), FREE_PROJECT_ID],
+          query: { text, wholeTag },
+        })
+        .then((result) => alive && setRecords(result))
+        .catch((error: unknown) => {
+          if (!alive) return;
+          setRecords(undefined);
+          toast(`생성 기록에서 찾을 수 없습니다: ${errorMessage(error)}`, 'error');
+        });
+    }, 300);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [enabled, text, wholeTag, projectIds]);
+  return records;
 }
 
 export function FindPanel() {
@@ -97,16 +115,15 @@ function FindPanelBody() {
   const dialogOpen = useDialogs((state) => state.stack.length > 0);
   const settingsOpen = useStore((state) => state.settingsOpen);
   const input = useRef<HTMLInputElement>(null);
-  const [fieldText, setFieldText] = useState(target?.value ?? '');
+  const fieldText = useTextOf(target, library);
   const [picked, setPicked] = useState(-1);
-  const [records, setRecords] = useState<GenerationFindResult | 'loading'>();
 
   // 화면을 옮기면 「이 칸」의 입력칸이 사라질 수 있다.
   const fieldTarget = find.scope === 'field' && !names && target?.isConnected ? target : undefined;
   const libraryAllowed = !dialogOpen && !settingsOpen;
   const place = useMemo(() => findPlaceOf(view, library), [view, library]);
   const only = !fieldTarget && find.scope !== 'library' ? place : undefined;
-  const scope = fieldTarget ? 'field' : only ? 'item' : 'library';
+  const scope: FindScope = fieldTarget ? 'field' : only ? 'item' : 'library';
   const findTarget = names ? 'names' : 'prompts';
   const searching = query.trim().length > 0;
   const projectIds = library.projects.map((project) => project.id).join('\n');
@@ -115,14 +132,6 @@ function FindPanelBody() {
     input.current?.focus();
     input.current?.select();
   }, [find.opened]);
-
-  useEffect(() => {
-    if (!target) return;
-    const sync = () => setFieldText(target.value);
-    sync();
-    target.addEventListener('input', sync);
-    return () => target.removeEventListener('input', sync);
-  }, [target, library]);
 
   const fieldRanges = useMemo(
     () => (fieldTarget ? findRanges(fieldText, { text: query, wholeTag }) : []),
@@ -140,58 +149,24 @@ function FindPanelBody() {
     [fieldTarget, searching, library, query, wholeTag, findTarget, only],
   );
   const libraryCount = libraryHits.reduce((sum, hit) => sum + hit.ranges.length, 0);
+  const recordsAllowed = scope === 'library' && !names;
+  const showRecords = recordsAllowed && includeRecords;
+  const records = useRecordSearch(showRecords && searching, query, wholeTag, projectIds);
   const recordHits = records && records !== 'loading' ? records.hits : [];
 
   useEffect(() => setPicked(-1), [query, wholeTag, scope, names]);
 
-  useEffect(() => {
-    if (scope !== 'library' || names || !includeRecords || !searching) {
-      setRecords(undefined);
+  const openAt = (index: number) => {
+    setPicked(index);
+    const hit = libraryHits[index];
+    if (!hit) {
+      showResult(recordHits[index - libraryHits.length]);
       return;
     }
-    setRecords('loading');
-    let alive = true;
-    const timer = setTimeout(() => {
-      libraryApi()
-        .findGenerations({
-          projectIds: [...projectIds.split('\n').filter(Boolean), FREE_PROJECT_ID],
-          query: { text: query, wholeTag },
-        })
-        .then((result) => alive && setRecords(result))
-        .catch((error: unknown) => {
-          if (!alive) return;
-          setRecords(undefined);
-          toast(`생성 기록에서 찾을 수 없습니다: ${errorMessage(error)}`, 'error');
-        });
-    }, 300);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [scope, names, includeRecords, searching, query, wholeTag, projectIds]);
-
-  const openHit = (hit: FindFieldHit) => {
     if (hit.section === 'free') openFree();
     else openLibrary(hit.section, hit.itemId);
     if (names) revealName(hit.text, hit.ranges[0]);
     else useFind.setState({ reveal: hit.text });
-  };
-
-  const openRecord = (hit: GenerationFindHit) => {
-    if (hit.projectId === FREE_PROJECT_ID) openFree();
-    else {
-      const project = library.projects.find((item) => item.id === hit.projectId);
-      const emotions =
-        library.emotionSets.find((set) => set.id === project?.emotionSetId)?.emotions ?? [];
-      if (!project) return;
-      openProject(project.id);
-      if (!emotions.some((emotion) => emotion.id === hit.emotionId)) {
-        toast(`「${hit.emotionName}」 씬이 지금 씬 모음에 없어 결과를 열 수 없습니다.`);
-        return;
-      }
-      openEmotion(hit.emotionId);
-    }
-    requestResult({ projectId: hit.projectId, id: hit.id });
   };
 
   const step = (direction: 1 | -1) => {
@@ -202,10 +177,7 @@ function FindPanelBody() {
     }
     const count = libraryHits.length + recordHits.length;
     if (!count || !libraryAllowed) return;
-    const next = picked < 0 && direction < 0 ? count - 1 : (picked + direction + count) % count;
-    setPicked(next);
-    if (next < libraryHits.length) openHit(libraryHits[next]);
-    else openRecord(recordHits[next - libraryHits.length]);
+    openAt(picked < 0 && direction < 0 ? count - 1 : (picked + direction + count) % count);
   };
 
   const latestStep = useRef(step);
@@ -356,63 +328,13 @@ function FindPanelBody() {
           </button>
         </div>
       )}
-      <div className="find-options">
-        <span className="segmented" role="group" aria-label="찾을 범위">
-          <button
-            className={scope === 'field' ? 'active' : ''}
-            disabled={!target?.isConnected || names}
-            title={
-              target?.isConnected ? undefined : '프롬프트 칸에서 Ctrl+F를 누르면 고를 수 있습니다'
-            }
-            onClick={() => useFind.setState({ scope: 'field' })}
-          >
-            이 칸
-          </button>
-          <button
-            className={scope === 'item' ? 'active' : ''}
-            disabled={!place || !libraryAllowed}
-            title={place ? undefined : '라이브러리 항목이나 자유 생성 화면을 열면 고를 수 있습니다'}
-            onClick={() => useFind.setState({ scope: 'item' })}
-          >
-            이 항목
-          </button>
-          <button
-            className={scope === 'library' ? 'active' : ''}
-            disabled={!libraryAllowed}
-            title={libraryAllowed ? undefined : '열린 창을 닫으면 고를 수 있습니다'}
-            onClick={() => useFind.setState({ scope: 'library' })}
-          >
-            라이브러리 전체
-          </button>
-        </span>
-        <label title="쉼표로 나뉜 태그와 통째로 같을 때만 찾습니다. 끄면 글자가 들어 있는 곳을 모두 찾습니다">
-          <input
-            type="checkbox"
-            checked={wholeTag}
-            disabled={names}
-            onChange={(event) => useFind.setState({ wholeTag: event.target.checked, current: 0 })}
-          />
-          태그 단위
-        </label>
-        <label title="프롬프트 대신 항목·프롬프트 세트·씬·조각 이름에서 찾고 바꿉니다. 이름은 글자가 들어 있으면 찾습니다">
-          <input
-            type="checkbox"
-            checked={names}
-            onChange={(event) => useFind.setState({ names: event.target.checked })}
-          />
-          이름만
-        </label>
-        {scope === 'library' && !names && (
-          <label title="이미 만든 결과의 프롬프트에서도 찾습니다. 바꾸지는 않습니다">
-            <input
-              type="checkbox"
-              checked={includeRecords}
-              onChange={(event) => useFind.setState({ includeRecords: event.target.checked })}
-            />
-            생성 기록 포함
-          </label>
-        )}
-      </div>
+      <FindOptions
+        scope={scope}
+        fieldAvailable={Boolean(target?.isConnected)}
+        itemAvailable={Boolean(place)}
+        libraryAllowed={libraryAllowed}
+        recordsAllowed={recordsAllowed}
+      />
       {undo && undo.after === library && (
         <div className="find-undo">
           <span>{undo.count}개를 바꿨습니다.</span>
@@ -420,69 +342,161 @@ function FindPanelBody() {
         </div>
       )}
       {!fieldTarget && searching && (
-        <fieldset className="find-results" disabled={!libraryAllowed}>
-          {libraryHits.slice(0, SHOWN_HITS).map((hit, index) => (
-            <button
-              key={`${hit.section}:${hit.itemId}:${hit.path.join('/')}:${index}`}
-              className={`find-hit ${picked === index ? 'picked' : ''}`}
-              onClick={() => {
-                setPicked(index);
-                openHit(hit);
-              }}
-            >
-              <span className="find-hit-path">
-                {[sectionLabel(hit.section), ...hit.path].join(' › ')}
-                {hit.ranges.length > 1 && <small>{hit.ranges.length}개</small>}
-              </span>
-              <Snippet text={hit.text} range={hit.ranges[0]} />
-            </button>
-          ))}
-          {libraryHits.length > SHOWN_HITS && (
-            <p className="hint">외 {libraryHits.length - SHOWN_HITS}개 칸</p>
-          )}
-          {!libraryHits.length && (
-            <p className="hint">{only ? '이 항목' : '라이브러리'}에서 찾은 곳이 없습니다.</p>
-          )}
-          {scope === 'library' && !names && includeRecords && (
-            <>
-              <div className="find-group">
-                생성 기록
-                {records && records !== 'loading' && <small>{records.total}개</small>}
-              </div>
-              {records === 'loading' && <p className="hint">찾는 중…</p>}
-              {recordHits.map((hit, index) => {
-                const order = libraryHits.length + index;
-                const project =
-                  hit.projectId === FREE_PROJECT_ID
-                    ? '자유 생성'
-                    : library.projects.find((item) => item.id === hit.projectId)?.name;
-                return (
-                  <button
-                    key={`${hit.projectId}:${hit.id}`}
-                    className={`find-hit ${picked === order ? 'picked' : ''}`}
-                    onClick={() => {
-                      setPicked(order);
-                      openRecord(hit);
-                    }}
-                  >
-                    <span className="find-hit-path">
-                      {[project, hit.emotionName, hit.field].filter(Boolean).join(' › ')}
-                      <small>{new Date(hit.createdAt).toLocaleString()}</small>
-                    </span>
-                    <Snippet text={hit.text} range={hit.range} />
-                  </button>
-                );
-              })}
-              {records && records !== 'loading' && records.total > recordHits.length && (
-                <p className="hint">최신 {recordHits.length}개만 보여 줍니다.</p>
-              )}
-              {records && records !== 'loading' && !records.total && (
-                <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>
-              )}
-            </>
-          )}
-        </fieldset>
+        <FindResults
+          hits={libraryHits}
+          records={records}
+          showRecords={showRecords}
+          picked={picked}
+          where={only ? '이 항목' : '라이브러리'}
+          disabled={!libraryAllowed}
+          onPick={openAt}
+        />
       )}
     </div>
+  );
+}
+
+function FindOptions(props: {
+  scope: FindScope;
+  fieldAvailable: boolean;
+  itemAvailable: boolean;
+  libraryAllowed: boolean;
+  recordsAllowed: boolean;
+}) {
+  const wholeTag = useFind((state) => state.wholeTag);
+  const names = useFind((state) => state.names);
+  const includeRecords = useFind((state) => state.includeRecords);
+  const { scope } = props;
+  return (
+    <div className="find-options">
+      <span className="segmented" role="group" aria-label="찾을 범위">
+        <button
+          className={scope === 'field' ? 'active' : ''}
+          disabled={!props.fieldAvailable || names}
+          title={
+            props.fieldAvailable ? undefined : '프롬프트 칸에서 Ctrl+F를 누르면 고를 수 있습니다'
+          }
+          onClick={() => useFind.setState({ scope: 'field' })}
+        >
+          이 칸
+        </button>
+        <button
+          className={scope === 'item' ? 'active' : ''}
+          disabled={!props.itemAvailable || !props.libraryAllowed}
+          title={
+            props.itemAvailable
+              ? undefined
+              : '라이브러리 항목이나 자유 생성 화면을 열면 고를 수 있습니다'
+          }
+          onClick={() => useFind.setState({ scope: 'item' })}
+        >
+          이 항목
+        </button>
+        <button
+          className={scope === 'library' ? 'active' : ''}
+          disabled={!props.libraryAllowed}
+          title={props.libraryAllowed ? undefined : '열린 창을 닫으면 고를 수 있습니다'}
+          onClick={() => useFind.setState({ scope: 'library' })}
+        >
+          라이브러리 전체
+        </button>
+      </span>
+      <label title="쉼표로 나뉜 태그와 통째로 같을 때만 찾습니다. 끄면 글자가 들어 있는 곳을 모두 찾습니다">
+        <input
+          type="checkbox"
+          checked={wholeTag}
+          disabled={names}
+          onChange={(event) => useFind.setState({ wholeTag: event.target.checked, current: 0 })}
+        />
+        태그 단위
+      </label>
+      <label title="프롬프트 대신 항목·프롬프트 세트·씬·조각 이름에서 찾고 바꿉니다. 이름은 글자가 들어 있으면 찾습니다">
+        <input
+          type="checkbox"
+          checked={names}
+          onChange={(event) => useFind.setState({ names: event.target.checked })}
+        />
+        이름만
+      </label>
+      {props.recordsAllowed && (
+        <label title="이미 만든 결과의 프롬프트에서도 찾습니다. 바꾸지는 않습니다">
+          <input
+            type="checkbox"
+            checked={includeRecords}
+            onChange={(event) => useFind.setState({ includeRecords: event.target.checked })}
+          />
+          생성 기록 포함
+        </label>
+      )}
+    </div>
+  );
+}
+
+/** 라이브러리에서 찾은 곳 다음에 생성 기록이 이어지고, `picked`는 둘을 이은 순번이다. */
+function FindResults(props: {
+  hits: FindFieldHit[];
+  records: RecordSearch;
+  showRecords: boolean;
+  picked: number;
+  where: string;
+  disabled: boolean;
+  onPick: (index: number) => void;
+}) {
+  const projects = useStore((state) => state.library!.projects);
+  const { hits, records } = props;
+  const recordHits = records && records !== 'loading' ? records.hits : [];
+  return (
+    <fieldset className="find-results" disabled={props.disabled}>
+      {hits.slice(0, SHOWN_HITS).map((hit, index) => (
+        <button
+          key={`${hit.section}:${hit.itemId}:${hit.path.join('/')}:${index}`}
+          className={`find-hit ${props.picked === index ? 'picked' : ''}`}
+          onClick={() => props.onPick(index)}
+        >
+          <span className="find-hit-path">
+            {[sectionLabel(hit.section), ...hit.path].join(' › ')}
+            {hit.ranges.length > 1 && <small>{hit.ranges.length}개</small>}
+          </span>
+          <Snippet text={hit.text} range={hit.ranges[0]} />
+        </button>
+      ))}
+      {hits.length > SHOWN_HITS && <p className="hint">외 {hits.length - SHOWN_HITS}개 칸</p>}
+      {!hits.length && <p className="hint">{props.where}에서 찾은 곳이 없습니다.</p>}
+      {props.showRecords && (
+        <>
+          <div className="find-group">
+            생성 기록
+            {records && records !== 'loading' && <small>{records.total}개</small>}
+          </div>
+          {records === 'loading' && <p className="hint">찾는 중…</p>}
+          {recordHits.map((hit, index) => {
+            const order = hits.length + index;
+            const project =
+              hit.projectId === FREE_PROJECT_ID
+                ? '자유 생성'
+                : projects.find((item) => item.id === hit.projectId)?.name;
+            return (
+              <button
+                key={`${hit.projectId}:${hit.id}`}
+                className={`find-hit ${props.picked === order ? 'picked' : ''}`}
+                onClick={() => props.onPick(order)}
+              >
+                <span className="find-hit-path">
+                  {[project, hit.emotionName, hit.field].filter(Boolean).join(' › ')}
+                  <small>{new Date(hit.createdAt).toLocaleString()}</small>
+                </span>
+                <Snippet text={hit.text} range={hit.range} />
+              </button>
+            );
+          })}
+          {records && records !== 'loading' && records.total > recordHits.length && (
+            <p className="hint">최신 {recordHits.length}개만 보여 줍니다.</p>
+          )}
+          {records && records !== 'loading' && !records.total && (
+            <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>
+          )}
+        </>
+      )}
+    </fieldset>
   );
 }

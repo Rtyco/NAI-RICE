@@ -2,18 +2,10 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { libraryApi } from '../desktop';
 import { deleteResults } from '../generationOps';
 import { historyShownOf, toggleHistory, useLayout } from '../layout';
-import {
-  openEmotion,
-  projectMedia,
-  requestResult,
-  run,
-  toast,
-  useStore,
-} from '../store';
+import { projectMedia, run, showResult, useStore } from '../store';
 import { Icon } from './Icon';
 import { showResultMenu } from './resultMenu';
 import { StreamPreview } from './StreamPreview';
@@ -68,24 +60,9 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
     list.current?.querySelector('.history-item.selected')?.scrollIntoView({ block: 'nearest' });
   }, [shownId]);
 
-  const open = (record: GenerationSummary) => {
-    if (projectId !== FREE_PROJECT_ID) {
-      const { library, detailEmotionId } = useStore.getState();
-      const project = library?.projects.find((item) => item.id === projectId);
-      const emotions =
-        library?.emotionSets.find((set) => set.id === project?.emotionSetId)?.emotions ?? [];
-      if (!emotions.some((emotion) => emotion.id === record.emotionId)) {
-        toast(`「${record.emotionName}」 씬이 지금 씬 모음에 없어 열 수 없습니다.`);
-        return;
-      }
-      if (detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
-    }
-    requestResult({ projectId, id: record.id });
-  };
-
   const menu = (event: MouseEvent, record: GenerationSummary) =>
     showResultMenu(event, [
-      { label: '보기', icon: 'images', group: 'main', onSelect: () => open(record) },
+      { label: '보기', icon: 'images', group: 'main', onSelect: () => showResult(record) },
       {
         label: '폴더에서 보기',
         icon: 'folder',
@@ -117,7 +94,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
             key={record.id}
             className={`history-item ${record.id === shownId ? 'selected' : ''}`}
             title={describe(record)}
-            onClick={() => open(record)}
+            onClick={() => showResult(record)}
             onContextMenu={(event) => menu(event, record)}
           >
             <img

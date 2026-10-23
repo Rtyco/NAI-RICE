@@ -4,6 +4,7 @@ import type {
   FreeGeneration,
   GenerationSummary,
   Library,
+  LibrarySection,
   Project,
   QueueView,
 } from '../core/domain/types';
@@ -18,14 +19,7 @@ import {
 import type { GenerationPreview, TokenStatus } from '../shared/ipc';
 import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
-export type LibrarySection =
-  | 'presets'
-  | 'characters'
-  | 'emotionSets'
-  | 'references'
-  | 'characterReferences'
-  | 'vibes'
-  | 'pieceSets';
+export type { LibrarySection };
 
 export type View =
   | { kind: 'home' }
@@ -445,6 +439,27 @@ export function setGalleryAspect(aspect: GalleryAspect): void {
 
 export function requestResult(request: ResultRef | undefined): void {
   set({ resultRequest: request });
+}
+
+/** 그 결과의 화면(씬 상세·자유 생성)으로 가서 보여 준다. 지금 씬 모음에 없는 씬은 열 수 없다. */
+export function showResult(
+  record: ResultRef & Pick<GenerationSummary, 'emotionId' | 'emotionName'>,
+): void {
+  const { library, view } = get();
+  if (record.projectId === FREE_PROJECT_ID) {
+    if (view.kind !== 'free') openFree();
+  } else {
+    const project = library?.projects.find((item) => item.id === record.projectId);
+    const set = library?.emotionSets.find((item) => item.id === project?.emotionSetId);
+    if (!project) return;
+    if (!set?.emotions.some((emotion) => emotion.id === record.emotionId)) {
+      toast(`「${record.emotionName}」 씬이 지금 씬 모음에 없어 결과를 열 수 없습니다.`);
+      return;
+    }
+    if (view.kind !== 'project' || view.projectId !== project.id) openProject(project.id);
+    if (get().detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
+  }
+  requestResult({ projectId: record.projectId, id: record.id });
 }
 
 export function setShownResult(shown: ResultRef | undefined): void {

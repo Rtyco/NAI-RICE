@@ -442,6 +442,16 @@ export type Library = {
   lastProjectId?: string;
 };
 
+/** 라이브러리 화면의 목록 하나 */
+export type LibrarySection =
+  | 'presets'
+  | 'characters'
+  | 'emotionSets'
+  | 'references'
+  | 'characterReferences'
+  | 'vibes'
+  | 'pieceSets';
+
 /** 이 값 이전의 기록·큐는 모두 inpaint로 읽는다. */
 export type GenerationKind = 'inpaint' | 'txt2img' | 'img2img' | 'augment';
 

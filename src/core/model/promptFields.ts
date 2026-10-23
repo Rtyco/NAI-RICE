@@ -1,4 +1,4 @@
-import type { GenerationRecord, Library } from '../domain/types';
+import type { GenerationRecord, Library, LibrarySection } from '../domain/types';
 import { findRanges, replaceAll, type FindQuery, type TextRange } from '../prompts/PromptFind';
 import {
   mapPromptTexts,
@@ -7,60 +7,25 @@ import {
   renamePieceSet,
   updateEmotion,
   updatePromptSet,
+  type PromptField,
 } from './mutations';
 
-type ItemSection =
-  | 'presets'
-  | 'characters'
-  | 'emotionSets'
-  | 'references'
-  | 'characterReferences'
-  | 'vibes'
-  | 'pieceSets';
-
-export type FindSection = ItemSection | 'free';
-
-/** 라이브러리 항목 하나. 자유 생성은 `itemId`가 빈 값이다. */
-export type FindPlace = { section: FindSection; itemId: string };
+export type FindPlace = Pick<PromptField, 'section' | 'itemId'>;
 
 export type FindTarget = 'prompts' | 'names';
 
-export type FindField = FindPlace & {
-  /** 항목 이름부터 칸 이름까지 */
-  path: string[];
-  text: string;
-};
+export type FindField = PromptField & { text: string };
 
 export type FindFieldHit = FindField & { ranges: TextRange[] };
 
 type NameField = FindField & { rename: (library: Library, name: string) => Library };
 
-/** `mapPromptTexts`와 같은 칸을 돈다. */
 export function listPromptFields(library: Library): FindField[] {
   const fields: FindField[] = [];
-  const add = (section: FindSection, itemId: string, path: string[], text = '') =>
-    fields.push({ section, itemId, path, text });
-  for (const preset of library.presets) {
-    add('presets', preset.id, [preset.name, '공통 포지티브'], preset.commonPositive);
-    add('presets', preset.id, [preset.name, '공통 네거티브'], preset.commonNegative);
-  }
-  for (const character of library.characters)
-    for (const set of character.promptSets) {
-      add('characters', character.id, [character.name, set.name, '포지티브'], set.positive);
-      add('characters', character.id, [character.name, set.name, '네거티브'], set.negative);
-    }
-  for (const set of library.emotionSets)
-    for (const emotion of set.emotions) {
-      add('emotionSets', set.id, [set.name, emotion.name, '프롬프트'], emotion.prompt);
-      emotion.extraPrompts?.forEach((prompt, index) =>
-        add('emotionSets', set.id, [set.name, emotion.name, `캐릭터 ${index + 2}`], prompt),
-      );
-      add('emotionSets', set.id, [set.name, emotion.name, '네거티브'], emotion.negative);
-    }
-  for (const set of library.pieceSets)
-    for (const piece of set.pieces) add('pieceSets', set.id, [set.name, piece.name], piece.prompt);
-  add('free', '', ['프롬프트'], library.freeGeneration.prompt);
-  add('free', '', ['네거티브'], library.freeGeneration.negative);
+  mapPromptTexts(library, (text, field) => {
+    fields.push({ ...field, text });
+    return text;
+  });
   return fields;
 }
 
@@ -68,13 +33,13 @@ export function listPromptFields(library: Library): FindField[] {
 function listNameFields(library: Library): NameField[] {
   const fields: NameField[] = [];
   const add = (
-    section: ItemSection,
+    section: LibrarySection,
     itemId: string,
     path: string[],
     text: string,
     rename: NameField['rename'],
   ) => fields.push({ section, itemId, path, text, rename });
-  const itemName = (section: ItemSection, item: { id: string; name: string }) =>
+  const itemName = (section: LibrarySection, item: { id: string; name: string }) =>
     add(section, item.id, [item.name, '이름'], item.name, (current, name) => {
       if (section !== 'pieceSets')
         return patchItem(current, section, item.id, (entry) => ({ ...entry, name }));

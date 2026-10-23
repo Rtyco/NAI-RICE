@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Library } from '../core/domain/types';
 import type { FindPlace } from '../core/model/promptFields';
-import { findRanges, type FindQuery } from '../core/prompts/PromptFind';
+import { findRanges, type FindQuery, type TextRange } from '../core/prompts/PromptFind';
+import { SECTIONS } from './sections';
 import { useStore, type View } from './store';
 
 export type FindScope = 'field' | 'item' | 'library';
@@ -50,8 +51,13 @@ export function findPlaceOf(view: View, library: Library | null): FindPlace | un
   return item && { section: view.section, itemId: item.id };
 }
 
-export function findQuery(state: FindState): FindQuery {
+export function findQuery(state: Pick<FindState, 'query' | 'wholeTag'>): FindQuery {
   return { text: state.query, wholeTag: state.wholeTag };
+}
+
+export function sectionLabel(section: FindPlace['section']): string {
+  if (section === 'free') return '자유 생성';
+  return SECTIONS.find((item) => item.id === section)?.label ?? '';
 }
 
 /** 대화상자가 열려 있으면 그 안의 입력칸에서만 쓴다(라이브러리로 옮겨 가면 창이 가려진다). */
@@ -76,9 +82,7 @@ export function openFind(replacing: boolean): boolean {
   useFind.setState((state) => {
     const query = selected.trim() && !selected.includes('\n') ? selected : state.query;
     const caret = target?.selectionStart ?? 0;
-    const ranges = target
-      ? findRanges(target.value, { text: query, wholeTag: state.wholeTag })
-      : [];
+    const ranges = target ? findRanges(target.value, findQuery({ ...state, query })) : [];
     return {
       open: true,
       replacing,
@@ -97,4 +101,42 @@ export function openFind(replacing: boolean): boolean {
 
 export function closeFind(): void {
   useFind.setState({ open: false, target: undefined, reveal: undefined });
+}
+
+/** execCommand여야 Ctrl+Z로 되돌릴 수 있다. */
+export function insertText(
+  textarea: HTMLTextAreaElement,
+  start: number,
+  end: number,
+  text: string,
+): void {
+  if (start === end && !text) return;
+  textarea.focus();
+  textarea.setSelectionRange(start, end);
+  const done = text
+    ? document.execCommand('insertText', false, text)
+    : document.execCommand('delete');
+  if (done) return;
+  const value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+    textarea,
+    value,
+  );
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/** 옮겨 간 화면이 그려진 뒤 그 이름 칸에 커서를 두고 찾은 글자를 고른다. */
+export function revealName(text: string, range: TextRange, tries = 10): void {
+  requestAnimationFrame(() => {
+    const input = [...document.querySelectorAll<HTMLInputElement>('.main-area input')].find(
+      (item) => item.value === text,
+    );
+    if (!input) {
+      if (tries > 1) revealName(text, range, tries - 1);
+      return;
+    }
+    input.scrollIntoView({ block: 'center' });
+    input.focus();
+    input.setSelectionRange(range.start, range.end);
+  });
 }
