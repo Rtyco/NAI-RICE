@@ -15,8 +15,8 @@ import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { Menu, NumberField } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
-import { deleteShownResult, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
-import { makeReferenceFromRecord, sendToFreeImg2Img } from '../freeImageOps';
+import { openDirectorToolDialog } from '../generationOps';
+import { sendToFreeImg2Img } from '../freeImageOps';
 import {
   emotionRecords,
   openEmotion,
@@ -26,8 +26,9 @@ import {
   updateProject,
   useStore,
 } from '../store';
+import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
-import { fileApi, libraryApi } from '../desktop';
+import { fileApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
 
 export function EmotionDetail({
@@ -105,85 +106,59 @@ export function EmotionDetail({
       return { ...current, favorites };
     });
 
-  const resultActions = (record: GenerationSummary): ResultAction[] => [
-    {
-      label: favoriteId === record.id ? '대표 해제' : '대표로 지정',
-      title: `${favoriteId === record.id ? '대표 해제' : '대표로 지정'} (F)`,
-      icon: 'star',
-      group: 'main',
-      active: favoriteId === record.id,
-      onSelect: () => setFavorite(favoriteId === record.id ? undefined : record.id),
-    },
-    {
-      label: '이 seed로 다시',
-      icon: 'refresh',
-      group: 'main',
-      title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
-      onSelect: () =>
-        void generateEmotions(project.id, [emotion.id], { seed: record.seed, variants: 1 }),
-    },
-    {
-      label: '프롬프트 복원',
-      icon: 'undo',
-      group: 'main',
-      disabled:
-        record.emotionPrompt === emotion.prompt &&
-        (record.emotionNegative ?? '') === (emotion.negative ?? ''),
-      onSelect: () =>
-        patchEmotion(set.id, emotion.id, {
-          prompt: record.emotionPrompt,
-          negative: record.emotionNegative,
-        }),
-    },
-    {
-      label: '다듬기',
-      icon: 'upscale',
-      group: 'send',
-      onSelect: () => openImg2ImgDialog(project.id, [record]),
-    },
-    {
-      label: '디렉터 툴',
-      icon: 'wand',
-      group: 'send',
-      onSelect: () => openDirectorToolDialog(project.id, [record]),
-    },
-    {
-      label: '자유 생성으로 보내기',
-      icon: 'sparkle',
-      group: 'send',
-      onSelect: () => void sendToFreeImg2Img(project.id, record),
-    },
-    {
-      label: '인페인트 만들기',
-      icon: 'reference',
-      group: 'send',
-      onSelect: () => void makeReferenceFromRecord(project.id, record),
-    },
-    {
-      label: '다른 이름으로 저장',
-      title: '다른 이름으로 저장 (Ctrl+Shift+S)',
-      icon: 'save',
-      group: 'file',
-      iconOnly: true,
-      onSelect: () => saveAs(record),
-    },
-    {
-      label: '폴더에서 보기',
-      icon: 'folder',
-      group: 'file',
-      iconOnly: true,
-      onSelect: () =>
-        void run('폴더를 여는 중', () => libraryApi().showGeneration(project.id, record.id)),
-    },
-    {
-      label: '이 결과 삭제',
-      icon: 'trash',
-      title: '이 결과 삭제 (Del)',
-      group: 'delete',
-      iconOnly: true,
-      onSelect: () => void deleteShownResult(project.id, records, record, setSelectedId),
-    },
-  ];
+  const resultActions = (record: GenerationSummary): ResultAction[] => {
+    const common = commonResultActions(project.id, record, {
+      records,
+      saveAs,
+      show: setSelectedId,
+    });
+    return [
+      {
+        label: favoriteId === record.id ? '대표 해제' : '대표로 지정',
+        title: `${favoriteId === record.id ? '대표 해제' : '대표로 지정'} (F)`,
+        icon: 'star',
+        group: 'main',
+        active: favoriteId === record.id,
+        onSelect: () => setFavorite(favoriteId === record.id ? undefined : record.id),
+      },
+      {
+        label: '이 seed로 다시',
+        icon: 'refresh',
+        group: 'main',
+        title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
+        onSelect: () =>
+          void generateEmotions(project.id, [emotion.id], { seed: record.seed, variants: 1 }),
+      },
+      {
+        label: '프롬프트 복원',
+        icon: 'undo',
+        group: 'main',
+        disabled:
+          record.emotionPrompt === emotion.prompt &&
+          (record.emotionNegative ?? '') === (emotion.negative ?? ''),
+        onSelect: () =>
+          patchEmotion(set.id, emotion.id, {
+            prompt: record.emotionPrompt,
+            negative: record.emotionNegative,
+          }),
+      },
+      common.refine,
+      {
+        label: '디렉터 툴',
+        icon: 'wand',
+        group: 'send',
+        onSelect: () => openDirectorToolDialog(project.id, [record]),
+      },
+      {
+        label: '자유 생성으로 보내기',
+        icon: 'sparkle',
+        group: 'send',
+        onSelect: () => void sendToFreeImg2Img(project.id, record),
+      },
+      common.makeReference,
+      ...common.file,
+    ];
+  };
 
   const sidePanel = (
     <>

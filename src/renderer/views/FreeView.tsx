@@ -38,13 +38,11 @@ import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
 import {
   loadFreeImageFromFile,
-  makeReferenceFromRecord,
   newBlankFreeImage,
   sendToFreeDirector,
   sendToFreeImg2Img,
   sourceMedia,
 } from '../freeImageOps';
-import { deleteShownResult, openImg2ImgDialog } from '../generationOps';
 import {
   projectMedia,
   resolveFreeGeneration,
@@ -54,6 +52,7 @@ import {
   useLibrary,
   useStore,
 } from '../store';
+import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
@@ -168,59 +167,33 @@ export function FreeView() {
           },
         ];
 
-  const resultActions = (record: GenerationSummary): ResultAction[] => [
-    ...promptActions(record),
-    {
-      label: '다듬기',
-      icon: 'upscale',
-      group: 'send',
-      onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
-    },
-    {
-      label: '이 결과로 디렉터 툴',
-      icon: 'wand',
-      group: 'send',
-      onSelect: () =>
-        void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
-    },
-    {
-      label: '이 결과로 i2i',
-      icon: 'sparkle',
-      group: 'send',
-      onSelect: () =>
-        void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
-    },
-    {
-      label: '인페인트 만들기',
-      icon: 'reference',
-      group: 'send',
-      onSelect: () => void makeReferenceFromRecord(FREE_PROJECT_ID, record),
-    },
-    {
-      label: '다른 이름으로 저장',
-      title: '다른 이름으로 저장 (Ctrl+Shift+S)',
-      icon: 'save',
-      group: 'file',
-      iconOnly: true,
-      onSelect: () => saveAs(record),
-    },
-    {
-      label: '폴더에서 보기',
-      icon: 'folder',
-      group: 'file',
-      iconOnly: true,
-      onSelect: () =>
-        void run('폴더를 여는 중', () => libraryApi().showGeneration(FREE_PROJECT_ID, record.id)),
-    },
-    {
-      label: '이 결과 삭제',
-      icon: 'trash',
-      title: '이 결과 삭제 (Del)',
-      group: 'delete',
-      iconOnly: true,
-      onSelect: () => void deleteShownResult(FREE_PROJECT_ID, records, record, setSelectedId),
-    },
-  ];
+  const resultActions = (record: GenerationSummary): ResultAction[] => {
+    const common = commonResultActions(FREE_PROJECT_ID, record, {
+      records,
+      saveAs,
+      show: setSelectedId,
+    });
+    return [
+      ...promptActions(record),
+      common.refine,
+      {
+        label: '이 결과로 디렉터 툴',
+        icon: 'wand',
+        group: 'send',
+        onSelect: () =>
+          void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
+      },
+      {
+        label: '이 결과로 i2i',
+        icon: 'sparkle',
+        group: 'send',
+        onSelect: () =>
+          void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
+      },
+      common.makeReference,
+      ...common.file,
+    ];
+  };
 
   const resultStage = (
     <ImageStage
