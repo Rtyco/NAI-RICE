@@ -82,13 +82,12 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   const listTitle = stageTitle(`${info.label} 목록`, 'libraryListStage', stage, 'F7');
   const reopenList = stage === 'hidden' && (
     <button
-      className="icon-button panel-reopen"
+      className="icon-button"
       title={listTitle}
       aria-label={listTitle}
       onClick={cycleLibraryList}
     >
       <Icon name={info.icon} size={18} />
-      <Icon name="chevron" size={12} />
     </button>
   );
   const removeMany = (ids: string[]) =>

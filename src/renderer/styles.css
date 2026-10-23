@@ -163,11 +163,6 @@ button.danger-solid:hover:not(:disabled) {
 .icon-button:hover:not(:disabled) {
   border-color: var(--line);
 }
-.panel-reopen {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-}
 .link-button {
   border: none;
   background: none;
