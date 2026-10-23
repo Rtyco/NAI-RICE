@@ -52,6 +52,7 @@ function createPreviewApi(): DesktopApi {
     deleteProjectFiles: async () => undefined,
     listGenerations: async () => [],
     getGeneration: unsupported,
+    findGenerations: async () => ({ hits: [], total: 0 }),
     deleteGenerations: async () => undefined,
     mediaUrl: () => '',
     openInExplorer: async () => undefined,

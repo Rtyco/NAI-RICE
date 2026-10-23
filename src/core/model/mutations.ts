@@ -311,9 +311,15 @@ export function clonePieceSet(set: PieceSet, name: string): PieceSet {
   };
 }
 
-function mapPromptTexts(library: Library, map: (text: string) => string): Library {
+/** 찾기의 `listPromptFields`와 같은 칸을 돈다. */
+export function mapPromptTexts(library: Library, map: (text: string) => string): Library {
   return {
     ...library,
+    freeGeneration: {
+      ...library.freeGeneration,
+      prompt: map(library.freeGeneration.prompt),
+      negative: map(library.freeGeneration.negative),
+    },
     presets: library.presets.map((preset) => ({
       ...preset,
       commonPositive: map(preset.commonPositive),

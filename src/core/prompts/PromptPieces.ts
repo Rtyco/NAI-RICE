@@ -66,6 +66,13 @@ export function expandPieces(text: string, sets: PieceSet[], seed?: number): Pie
   return { text: expanded === text ? text : tidyCommas(expanded), missing: [...missing] };
 }
 
+export function pieceRefRanges(text: string): Array<{ start: number; end: number }> {
+  return [...text.matchAll(PIECE_REF)].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+}
+
 export function pieceRefsIn(text: string): Array<{ setName: string; pieceName: string }> {
   const seen = new Set<string>();
   const refs: Array<{ setName: string; pieceName: string }> = [];

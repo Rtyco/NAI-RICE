@@ -663,6 +663,11 @@ export const generationEnqueueRequestSchema = z.object({
   jobs: z.array(generationJobSnapshotSchema).min(1).max(MAX_ENQUEUE_JOBS),
 });
 
+export const generationFindRequestSchema = z.object({
+  projectIds: z.array(z.string()).max(10000),
+  query: z.object({ text: z.string().min(1).max(4000), wholeTag: z.boolean() }),
+});
+
 /** v1 기록(characterId)도 읽는다. */
 export const generationIndexSchema = z.object({
   schemaVersion: z.union([z.literal(1), z.literal(2)]),

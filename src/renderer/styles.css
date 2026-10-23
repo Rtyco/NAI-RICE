@@ -4573,3 +4573,138 @@ kbd {
 .update-notes p.sub {
   padding-left: 14px;
 }
+
+/* ── 찾기·바꾸기 ───────────────────────────── */
+/* 문법 레이어와 입력칸 사이에 놓여 찾은 곳만 칠한다. */
+.syntax-backdrop.find-layer {
+  background: transparent;
+  color: transparent;
+}
+.find-mark {
+  color: transparent;
+  background: color-mix(in srgb, var(--orange) 30%, transparent);
+  border-radius: 2px;
+}
+.find-mark.current {
+  background: color-mix(in srgb, var(--orange) 55%, transparent);
+  outline: 1px solid var(--orange);
+}
+.find-panel {
+  position: fixed;
+  top: calc(var(--titlebar-height) + 8px);
+  right: 16px;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - var(--titlebar-height) - 80px);
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  box-shadow: 0 12px 30px #0009;
+  font-size: 12px;
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.find-row input {
+  flex: 1;
+  min-width: 0;
+}
+.find-indent {
+  flex: none;
+  width: 30px;
+}
+.find-count {
+  flex: none;
+  min-width: 44px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.find-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-left: 34px;
+}
+.find-options label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.find-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 4px 4px 34px;
+  color: var(--muted);
+}
+.find-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 6px 0 0;
+}
+.find-results .hint {
+  margin: 4px 6px;
+}
+.find-group {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 8px 6px 2px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.find-hit {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 5px 8px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+.find-hit:hover,
+.find-hit.picked {
+  background: var(--accent-bg);
+}
+.find-hit-path {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--text);
+}
+.find-hit-path small,
+.find-group small {
+  flex: none;
+  color: var(--muted);
+  font-weight: normal;
+}
+.find-hit-snippet {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.find-hit-snippet mark {
+  color: var(--orange-text);
+  background: var(--orange-bg);
+  border-radius: 2px;
+}

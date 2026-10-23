@@ -5,6 +5,7 @@ import { appApi } from './desktop';
 import { importJsonFromPicker } from './importers';
 import { groupFromShortcut } from './components/listFolders';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
+import { openFind } from './find';
 import { requestRename } from './renameRequest';
 import { SECTIONS } from './sections';
 import {
@@ -94,6 +95,10 @@ export function useGlobalShortcuts(): void {
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;
+
+      // 찾기는 입력칸·열린 창 안에서도 연다.
+      if (ctrl && !event.shiftKey && (key.toLowerCase() === 'f' || key.toLowerCase() === 'h'))
+        action = () => openFind(key.toLowerCase() === 'h');
 
       // 저장은 대화상자가 열려 있어도 한다.
       if (ctrl && !event.shiftKey && key.toLowerCase() === 's')

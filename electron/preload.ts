@@ -32,6 +32,7 @@ const api: DesktopApi = {
   deleteProjectFiles: (id) => ipcRenderer.invoke('project:delete-files', id),
   listGenerations: (id) => ipcRenderer.invoke('generations:list', id),
   getGeneration: (id, generationId) => ipcRenderer.invoke('generations:get', id, generationId),
+  findGenerations: (request) => ipcRenderer.invoke('generations:find', request),
   deleteGenerations: (id, generationIds, options) =>
     ipcRenderer.invoke('generations:delete', id, generationIds, options),
   mediaUrl: (owner, relative) =>

@@ -14,6 +14,8 @@ import type {
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
 import type { TokenizerName } from '../core/prompts/PromptTokens';
 import type { MetadataVibe } from '../core/vibes/VibeFile';
+import type { GenerationFindHit } from '../core/model/promptFields';
+import type { FindQuery } from '../core/prompts/PromptFind';
 
 export type ImportedVibe = {
   name: string;
@@ -27,6 +29,12 @@ export type ImportedVibe = {
 export type VibeEncodingInfo = { model: string; informationExtracted: number };
 
 export type MetadataVibeImport = { model: string; name: string; vibes: MetadataVibe[] };
+
+export const GENERATION_FIND_LIMIT = 200;
+
+export type GenerationFindRequest = { projectIds: string[]; query: FindQuery };
+
+export type GenerationFindResult = { hits: GenerationFindHit[]; total: number };
 
 export type OpenTextFileResult = {
   path: string;
@@ -183,6 +191,8 @@ export type LibraryApi = {
   /** 프롬프트·설정은 getGeneration으로 따로 받는다. */
   listGenerations: (projectId: string) => Promise<GenerationSummary[]>;
   getGeneration: (projectId: string, generationId: string) => Promise<GenerationRecord>;
+  /** 최신순으로 `GENERATION_FIND_LIMIT`개까지. `total`은 전체 수. */
+  findGenerations: (request: GenerationFindRequest) => Promise<GenerationFindResult>;
   /** 기본은 휴지통. */
   deleteGenerations: (
     projectId: string,

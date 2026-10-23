@@ -16,6 +16,8 @@ import {
   type TagMatch,
   type TagQuery,
 } from '../../core/prompts/TagSearch';
+import { findRanges, type TextRange } from '../../core/prompts/PromptFind';
+import { useFind } from '../find';
 import { useStore } from '../store';
 import { searchTags, warmTagIndex } from '../tagDictionary';
 
@@ -91,6 +93,34 @@ function renderHighlights(text: string, report: SyntaxReport, matched: Set<numbe
   // 마지막 줄바꿈 뒤 빈 줄도 높이를 차지하도록.
   root.push(' ');
   return root;
+}
+
+function renderFindMarks(text: string, ranges: TextRange[], current: number): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  ranges.forEach((range, index) => {
+    nodes.push(text.slice(cursor, range.start));
+    nodes.push(
+      <mark key={index} className={`find-mark ${index === current ? 'current' : ''}`}>
+        {text.slice(range.start, range.end)}
+      </mark>,
+    );
+    cursor = range.end;
+  });
+  nodes.push(text.slice(cursor), ' ');
+  return nodes;
+}
+
+/** 입력칸 안에서 `mark`가 보이도록 스크롤한다. */
+function scrollToMark(textarea: HTMLTextAreaElement, layer: HTMLElement, mark: HTMLElement): void {
+  const top = mark.offsetTop;
+  if (
+    top >= textarea.scrollTop &&
+    top + mark.offsetHeight <= textarea.scrollTop + textarea.clientHeight
+  )
+    return;
+  textarea.scrollTop = Math.max(0, top - textarea.clientHeight / 3);
+  layer.scrollTop = textarea.scrollTop;
 }
 
 function pointAt(layer: HTMLElement, offset: number): DOMRect | null {
@@ -201,6 +231,17 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
   const autocomplete = useStore((state) => state.library!.settings.tagAutocomplete);
   const area = useRef<HTMLTextAreaElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
+  const findLayer = useRef<HTMLDivElement>(null);
+  const findText = useFind((state) =>
+    state.open && (state.scope === 'library' || (state.target && state.target === area.current))
+      ? state.query
+      : '',
+  );
+  const wholeTag = useFind((state) => state.wholeTag);
+  const findCurrent = useFind((state) =>
+    state.scope === 'field' && state.target && state.target === area.current ? state.current : -1,
+  );
+  const reveal = useFind((state) => state.reveal);
   const [caret, setCaret] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
   /** 늦게 도착한 검색 결과를 버린다. */
@@ -284,17 +325,24 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
       ),
     [value, pieceSets],
   );
+  const marks = useMemo(
+    () => (findText ? findRanges(value, { text: findText, wholeTag }) : []),
+    [value, findText, wholeTag],
+  );
   const matched = matchedAt(report, caret);
   const weight = caret === null ? 1 : weightAt(report, caret);
 
   useLayoutEffect(() => {
     const textarea = area.current;
-    const layer = backdrop.current;
-    if (!textarea || !layer) return;
+    const layers = [backdrop.current, findLayer.current];
+    if (!textarea) return;
     const sync = () => {
       const style = getComputedStyle(textarea);
-      for (const key of MIRRORED) layer.style[key] = style[key];
-      layer.scrollTop = textarea.scrollTop;
+      for (const layer of layers) {
+        if (!layer) continue;
+        for (const key of MIRRORED) layer.style[key] = style[key];
+        layer.scrollTop = textarea.scrollTop;
+      }
     };
     sync();
     const observer = new ResizeObserver(sync);
@@ -303,8 +351,29 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
   }, []);
 
   useLayoutEffect(() => {
-    if (backdrop.current && area.current) backdrop.current.scrollTop = area.current.scrollTop;
+    if (!area.current) return;
+    if (backdrop.current) backdrop.current.scrollTop = area.current.scrollTop;
+    if (findLayer.current) findLayer.current.scrollTop = area.current.scrollTop;
   }, [value]);
+
+  useLayoutEffect(() => {
+    const textarea = area.current;
+    const layer = findLayer.current;
+    const mark = layer?.querySelector<HTMLElement>('.find-mark.current');
+    if (!textarea || !layer || !mark) return;
+    scrollToMark(textarea, layer, mark);
+    textarea.closest('.syntax-field')?.scrollIntoView({ block: 'nearest' });
+  }, [findCurrent, marks]);
+
+  useLayoutEffect(() => {
+    const textarea = area.current;
+    const layer = findLayer.current;
+    const mark = layer?.querySelector<HTMLElement>('.find-mark');
+    if (reveal === undefined || reveal !== value || !textarea || !layer || !mark) return;
+    useFind.setState({ reveal: undefined });
+    textarea.closest('.syntax-field')?.scrollIntoView({ block: 'center' });
+    scrollToMark(textarea, layer, mark);
+  }, [reveal, value, marks]);
 
   const jump = (start: number) => {
     const textarea = area.current;
@@ -322,6 +391,9 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
       <div className="syntax-editor">
         <div ref={backdrop} className="syntax-backdrop" aria-hidden>
           {renderHighlights(value, report, matched)}
+        </div>
+        <div ref={findLayer} className="syntax-backdrop find-layer" aria-hidden>
+          {marks.length > 0 && renderFindMarks(value, marks, findCurrent)}
         </div>
         <textarea
           {...rest}
@@ -360,6 +432,7 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
           onKeyDown={onKeyDown}
           onScroll={(event) => {
             if (backdrop.current) backdrop.current.scrollTop = event.currentTarget.scrollTop;
+            if (findLayer.current) findLayer.current.scrollTop = event.currentTarget.scrollTop;
             onScroll?.(event);
           }}
         />

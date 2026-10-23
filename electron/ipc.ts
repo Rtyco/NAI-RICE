@@ -1,6 +1,10 @@
 import { BrowserWindow, ipcMain, shell } from 'electron';
 import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain/types';
-import { exportQualitySchema, exportRequestSchema } from '../src/core/validation/schemas';
+import {
+  exportQualitySchema,
+  exportRequestSchema,
+  generationFindRequestSchema,
+} from '../src/core/validation/schemas';
 import type {
   ImageDataSource,
   ImageInputRequest,
@@ -18,6 +22,8 @@ import type { GenerationRequests } from './services/GenerationRequests';
 import { toQueueView } from '../src/core/jobs/QueueView';
 import type { TokenizerName } from '../src/core/prompts/PromptTokens';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
+import { findInRecord, type GenerationFindHit } from '../src/core/model/promptFields';
+import { GENERATION_FIND_LIMIT } from '../src/shared/ipc';
 import { ZOOM_STEP, zoomWindow } from './window';
 import type { AppCache } from './services/AppCache';
 import type { TokenizerFiles } from './services/TokenizerFiles';
@@ -114,6 +120,17 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('generations:get', (_event, id: string, generationId: string) =>
     library.findGeneration(id, generationId),
   );
+  ipcMain.handle('generations:find', async (_event, request: unknown) => {
+    const { projectIds, query } = generationFindRequestSchema.parse(request);
+    const hits: GenerationFindHit[] = [];
+    for (const id of projectIds)
+      for (const record of await library.listGenerations(id)) {
+        const hit = findInRecord(record, query);
+        if (hit) hits.push(hit);
+      }
+    hits.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return { hits: hits.slice(0, GENERATION_FIND_LIMIT), total: hits.length };
+  });
   ipcMain.handle(
     'generations:delete',
     (_event, id: string, generationIds: string[], options?: { permanent?: boolean }) =>
