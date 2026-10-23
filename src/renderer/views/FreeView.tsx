@@ -150,7 +150,7 @@ export function FreeView() {
             label: '이 seed로 다시',
             icon: 'refresh',
             group: 'main',
-            title: '지금 프롬프트와 이 결과의 seed로 다시 생성',
+            title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
             onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
           },
           {
@@ -174,15 +174,12 @@ export function FreeView() {
       label: '다듬기',
       icon: 'upscale',
       group: 'send',
-      title:
-        '이 결과를 크기·강도를 정해 다시 그려 다듬습니다(NovelAI 웹의 Enhance). 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(FREE_PROJECT_ID, [record]),
     },
     {
       label: '이 결과로 디렉터 툴',
       icon: 'wand',
       group: 'send',
-      title: '이 결과를 디렉터 툴 이미지로 정해 Emotion·배경 제거·Declutter 같은 툴을 적용합니다',
       onSelect: () =>
         void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
     },
@@ -190,7 +187,6 @@ export function FreeView() {
       label: '이 결과로 i2i',
       icon: 'sparkle',
       group: 'send',
-      title: '이 결과를 i2i 이미지로 정해 다시 그리거나, 인페인팅으로 일부만 고칩니다',
       onSelect: () =>
         void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
     },
@@ -198,7 +194,6 @@ export function FreeView() {
       label: '인페인트 만들기',
       icon: 'reference',
       group: 'send',
-      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
       onSelect: () => void makeReferenceFromRecord(FREE_PROJECT_ID, record),
     },
     {

@@ -139,31 +139,24 @@ export function EmotionDetail({
       label: '다듬기',
       icon: 'upscale',
       group: 'send',
-      title:
-        '이 결과를 크기·강도를 정해 다시 그려 다듬습니다(NovelAI 웹의 Enhance). 더 큰 크기로 키울 때도 씁니다.',
       onSelect: () => openImg2ImgDialog(project.id, [record]),
     },
     {
       label: '디렉터 툴',
       icon: 'wand',
       group: 'send',
-      title:
-        'Emotion(표정 바꾸기)·배경 제거·Declutter 같은 NovelAI 디렉터 툴을 이 결과에 적용합니다',
       onSelect: () => openDirectorToolDialog(project.id, [record]),
     },
     {
       label: '자유 생성으로 보내기',
       icon: 'sparkle',
       group: 'send',
-      title:
-        '자유 생성의 i2i 이미지로 보내 프롬프트를 바꿔 다시 그리거나, 인페인팅으로 일부만 고칩니다',
       onSelect: () => void sendToFreeImg2Img(project.id, record),
     },
     {
       label: '인페인트 만들기',
       icon: 'reference',
       group: 'send',
-      title: '이 결과를 참고 이미지로 쓰는 새 인페인트를 만듭니다',
       onSelect: () => void makeReferenceFromRecord(project.id, record),
     },
     {

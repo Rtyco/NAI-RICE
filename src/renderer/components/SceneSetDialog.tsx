@@ -172,7 +172,7 @@ export function SceneSetDialog(props: {
                   <MoodSelect
                     value={row.mood}
                     label={`${emotion.name} 표정`}
-                    emptyLabel={suggested ? `추천: ${moodLabel(suggested)}` : '표정을 고르십시오'}
+                    emptyLabel={suggested ? `추천: ${moodLabel(suggested)}` : '표정 선택'}
                     onChange={(mood) =>
                       patchRow(emotion.id, {
                         mood: mood || suggested || '',

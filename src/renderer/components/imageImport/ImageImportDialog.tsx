@@ -524,11 +524,11 @@ export function ImageImportDialog({
             {embeddedVibes > 0 && (
               <Check checked={useVibes} onChange={setUseVibes}>
                 <b>이미지에 든 바이브 {embeddedVibes}개 가져오기</b>
-                <small>
-                  {data.vibeFile
-                    ? 'NovelAI 웹이 이미지에 넣어 둔 바이브 파일입니다'
-                    : `이 이미지를 만들 때 쓴 바이브입니다. 인코딩이 들어 있어 ${modelLabel(data.model ?? '')}에서는 인코딩 비용 없이 씁니다`}
-                </small>
+                {!data.vibeFile && (
+                  <small>
+                    {`인코딩이 들어 있어 ${modelLabel(data.model ?? '')}에서는 인코딩 비용이 들지 않습니다`}
+                  </small>
+                )}
               </Check>
             )}
           </div>

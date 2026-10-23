@@ -347,11 +347,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
           <span className="file-icon image">IMG</span>
           <span>
             <b>{source ? source.name : '이미지 선택'}</b>
-            <small>
-              {source
-                ? '클릭해서 교체 · 창에 드롭해도 됩니다'
-                : 'PNG, JPG, WebP · 창에 드롭해도 됩니다'}
-            </small>
+            {!source && <small>PNG, JPG, WebP</small>}
           </span>
         </button>
       </section>
