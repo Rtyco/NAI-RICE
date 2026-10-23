@@ -8,6 +8,9 @@ import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
 import { PanelResizer } from '../components/PanelResizer';
 import { Filmstrip } from '../components/Filmstrip';
+import { PaletteSlot } from '../components/FloatingPalette';
+import { Icon } from '../components/Icon';
+import { SidePanelToggle } from '../components/SidePanelToggle';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
@@ -49,6 +52,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
+  const sideShown = useStore((state) => !state.sidePanelCollapsed);
   const favoriteId = project.favorites[emotion.id];
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
@@ -91,6 +95,9 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
+
+  const canGenerate = hasScenePrompt(emotion) && !resolved.missing.length;
+  const generate = () => void generateEmotions(project.id, [emotion.id], { variants });
 
   const setFavorite = (generationId?: string) =>
     updateProject(project.id, (current) => {
@@ -222,9 +229,10 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="Tab · PageDown">
           {next?.name ?? '다음'} ›
         </button>
+        <SidePanelToggle />
       </div>
 
-      <div className="detail-body">
+      <div className={`detail-body ${sideShown ? '' : 'side-hidden'}`}>
         <section className="detail-stage">
           <ImageStage
             src={selected && projectMedia(project.id, selected.file)}
@@ -313,17 +321,27 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
 
           <div className="generate-dock">
             <NumberField label="생성 수" value={variants} min={1} max={20} integer onChange={setVariants} />
-            <button
-              className="generate-button"
-              disabled={!hasScenePrompt(emotion) || resolved.missing.length > 0}
-              onClick={() => void generateEmotions(project.id, [emotion.id], { variants })}
-            >
+            <button className="generate-button" disabled={!canGenerate} onClick={generate}>
               ▶ {variants}장 생성
             </button>
           </div>
         </aside>
-        <PanelResizer panel="side-panel" />
+        {sideShown && <PanelResizer panel="side-panel" />}
       </div>
+      {!sideShown && (
+        <PaletteSlot>
+          <button
+            className="generate-button palette-button"
+            title={`이 씬 ${variants}장 생성`}
+            aria-label={`이 씬 ${variants}장 생성`}
+            disabled={!canGenerate}
+            onClick={generate}
+          >
+            <Icon name="play" size={16} />
+            <span className="palette-badge">{variants}</span>
+          </button>
+        </PaletteSlot>
+      )}
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
 import { FindPanel } from './components/FindPanel';
+import { FloatingPalette } from './components/FloatingPalette';
 import { PanelResizer } from './components/PanelResizer';
 import { FreePromptPanel, ProjectPromptPanel, PromptPanelLayout } from './components/PromptPanel';
 import { SettingsModal } from './views/SettingsModal';
@@ -160,6 +161,7 @@ export default function App() {
           </ErrorBoundary>
         </div>
         <QueueBar />
+        <FloatingPalette />
         <Toasts />
         {settingsOpen && hasLibrary && <SettingsModal />}
         <DialogHost />

@@ -41,7 +41,7 @@ export type SidebarSection = 'projects' | 'library';
 
 export type ResultRef = { projectId: string; id: string };
 
-type CollapsedFlag = 'filmstripCollapsed' | 'historyCollapsed';
+type CollapsedFlag = 'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed';
 
 /** 왼쪽 패널은 누를 때마다 펼침 → 아이콘만 → 숨김 순으로 바뀐다. */
 export type PanelStage = 'open' | 'icons' | 'hidden';
@@ -67,6 +67,8 @@ export type StoreState = {
   /** 작업·자유 생성 화면이 함께 쓴다. */
   promptPanelStage: PanelStage;
   historyCollapsed: boolean;
+  /** 씬 상세·자유 생성·인페인트 편집이 함께 쓴다. */
+  sidePanelCollapsed: boolean;
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
@@ -132,6 +134,7 @@ const FILMSTRIP_KEY = 'filmstrip-collapsed';
 const LIBRARY_LIST_KEY = 'library-list-collapsed';
 const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
 const HISTORY_KEY = 'history-collapsed';
+const SIDE_PANEL_KEY = 'side-panel-collapsed';
 const FOLDED_FOLDERS_KEY = 'folded-folders';
 const FOLDED_PROMPT_GROUPS_KEY = 'folded-prompt-groups';
 
@@ -184,6 +187,7 @@ export const useStore = create<StoreState>(() => ({
   libraryListStage: readStage(LIBRARY_LIST_KEY),
   promptPanelStage: readStage(PROMPT_PANEL_KEY),
   historyCollapsed: readCollapsed(HISTORY_KEY),
+  sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -521,6 +525,10 @@ export function openPromptPanel(): void {
 
 export function toggleHistory(): void {
   toggleCollapsed('historyCollapsed', HISTORY_KEY);
+}
+
+export function toggleSidePanel(): void {
+  toggleCollapsed('sidePanelCollapsed', SIDE_PANEL_KEY);
 }
 
 export function requestResult(request: ResultRef | undefined): void {

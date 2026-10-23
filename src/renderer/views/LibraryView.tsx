@@ -15,6 +15,7 @@ import { showContextMenu } from '../components/contextMenuStore';
 import { AccountMeter } from '../components/AccountMeter';
 import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
+import { SidePanelToggle } from '../components/SidePanelToggle';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';
@@ -411,6 +412,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               >
                 <Icon name="trash" /> 삭제
               </button>
+              {section === 'references' && <SidePanelToggle />}
             </header>
             <UsedBy section={section} id={selected.id} />
             <div className={`library-editor-body ${section === 'references' ? 'fill' : ''}`}>

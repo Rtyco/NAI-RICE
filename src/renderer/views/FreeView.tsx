@@ -26,6 +26,8 @@ import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
+import { PaletteSlot } from '../components/FloatingPalette';
+import { SidePanelToggle } from '../components/SidePanelToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -74,6 +76,7 @@ export function FreeView() {
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
+  const sideShown = useStore((state) => !state.sidePanelCollapsed);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],
@@ -141,6 +144,8 @@ export function FreeView() {
     ? Boolean(image)
     : Boolean(preset) &&
       (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
+  const generateLabel = director ? `${runs}번 적용` : `${free.count}장 생성`;
+  const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
   const promptActions = (record: GenerationSummary): ResultAction[] =>
@@ -292,6 +297,7 @@ export function FreeView() {
         >
           <Icon name="folder" size={14} /> <span className="header-label">폴더</span>
         </button>
+        <SidePanelToggle />
         <HistoryToggle />
       </header>
       {!director && (
@@ -337,7 +343,7 @@ export function FreeView() {
 
       <div className="project-body animate-in">
         <div className="emotion-detail">
-          <div className="detail-body">
+          <div className={`detail-body ${sideShown ? '' : 'side-hidden'}`}>
             <section className="detail-stage">
               {(image || free.mode === 'img2img') && (
                 <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
@@ -549,9 +555,9 @@ export function FreeView() {
                 <button
                   className="generate-button"
                   disabled={!canGenerate || Boolean(busy)}
-                  onClick={() => void (director ? runFreeDirectorTool(shrink) : generateFree())}
+                  onClick={generate}
                 >
-                  {director ? `▶ ${runs}번 적용` : `▶ ${free.count}장 생성`}
+                  ▶ {generateLabel}
                 </button>
                 {estimate !== undefined && (
                   <p
@@ -565,10 +571,24 @@ export function FreeView() {
                 )}
               </div>
             </aside>
-            <PanelResizer panel="side-panel" />
+            {sideShown && <PanelResizer panel="side-panel" />}
           </div>
         </div>
       </div>
+      {!sideShown && (
+        <PaletteSlot>
+          <button
+            className="generate-button palette-button"
+            title={generateLabel}
+            aria-label={generateLabel}
+            disabled={!canGenerate || Boolean(busy)}
+            onClick={generate}
+          >
+            <Icon name={director ? 'wand' : 'play'} size={16} />
+            <span className="palette-badge">{runs}</span>
+          </button>
+        </PaletteSlot>
+      )}
     </section>
   );
 }

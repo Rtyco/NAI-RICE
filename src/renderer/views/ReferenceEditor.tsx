@@ -57,6 +57,7 @@ type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayou
 export function ReferenceEditor({ reference }: { reference: Reference }) {
   const pendingReference = useStore((state) => state.pendingReference);
   const presets = useStore((state) => state.library?.presets ?? []);
+  const sideShown = useStore((state) => !state.sidePanelCollapsed);
   const [loading, setLoading] = useState(Boolean(reference.image));
   const [source, setSource] = useState<Source | null>(null);
   const [layout, setLayout] = useState<CanvasLayout>(reference.layout);
@@ -359,7 +360,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const maskOk = mask ? maskHasGeneratePixels(mask) : false;
 
   return (
-    <div className="canvas-view">
+    <div className={`canvas-view ${sideShown ? '' : 'side-hidden'}`}>
       <section className="canvas-panel">
         {working && (
           <div className="segmented stage-tabs" role="group" aria-label="편집할 것">
@@ -528,7 +529,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
 
         <InpaintRequestCard reference={reference} />
       </aside>
-      <PanelResizer panel="side-panel" />
+      {sideShown && <PanelResizer panel="side-panel" />}
     </div>
   );
 }
