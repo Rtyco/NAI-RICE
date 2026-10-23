@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { popDialog, useDialogs, type DialogRequest } from './dialogStack';
 
+/** 창이 겹치면 맨 위 창만 Enter·Esc를 받는다. */
+const isTopModal = (modal: HTMLElement | null) =>
+  Boolean(modal && [...document.querySelectorAll('.modal-backdrop')].at(-1)?.contains(modal));
+
 /** 버튼·여러 줄 글·목록 위의 Enter는 그 요소 몫이다. */
 function submitOnEnter(event: KeyboardEvent, modal: HTMLElement | null) {
   if (!modal || event.defaultPrevented || event.isComposing || event.repeat) return;
   if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
-  if (![...document.querySelectorAll('.modal-backdrop')].at(-1)?.contains(modal)) return;
+  if (!isTopModal(modal)) return;
   const target = event.target as HTMLElement;
   if (
     modal.contains(target) &&
@@ -46,7 +50,7 @@ export function Modal({
   }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && isTopModal(ref.current)) onClose();
       if (event.key === 'Enter' && !large) submitOnEnter(event, ref.current);
     };
     window.addEventListener('keydown', onKey);
