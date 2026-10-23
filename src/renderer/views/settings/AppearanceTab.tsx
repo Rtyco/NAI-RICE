@@ -10,7 +10,7 @@ const FOCUS_LEVELS: Array<{ id: FocusLevel; label: string; detail: string }> = [
   {
     id: 'inputs',
     label: '입력 패널까지',
-    detail: '+ 오른쪽 입력 패널. 생성 버튼은 떠 있는 창으로',
+    detail: '+ 설정 줄·오른쪽 입력 패널. 생성 버튼은 떠 있는 창으로',
   },
   { id: 'all', label: '모두', detail: '+ 생성 큐 막대. 큐 상태도 떠 있는 창으로' },
 ];

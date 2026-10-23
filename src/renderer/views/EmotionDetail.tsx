@@ -10,7 +10,6 @@ import { PanelResizer } from '../components/PanelResizer';
 import { Filmstrip } from '../components/Filmstrip';
 import { PaletteSlot } from '../components/FloatingPalette';
 import { Icon } from '../components/Icon';
-import { SidePanelToggle } from '../components/SidePanelToggle';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
@@ -29,6 +28,7 @@ import {
   run,
   sidePanelShownOf,
   toast,
+  topBarShownOf,
   updateProject,
   useStore,
 } from '../store';
@@ -54,6 +54,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
   const sideShown = useStore(sidePanelShownOf);
+  const topShown = useStore(topBarShownOf);
   const favoriteId = project.favorites[emotion.id];
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
@@ -192,7 +193,7 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
 
   return (
     <div className="emotion-detail">
-      <div className="detail-nav">
+      <div className={`detail-nav ${topShown ? '' : 'top-hidden'}`}>
         <button onClick={() => openEmotion(undefined)}>← 갤러리</button>
         {/* 결과 막대의 결과 삭제와 헷갈리지 않게 메뉴 안에 둔다. */}
         <Menu
@@ -224,7 +225,6 @@ export function EmotionDetail({ resolved, emotion }: { resolved: ResolvedProject
         <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
           {next?.name ?? '다음'} ›
         </button>
-        <SidePanelToggle />
       </div>
 
       <div className={`detail-body ${sideShown ? '' : 'side-hidden'}`}>

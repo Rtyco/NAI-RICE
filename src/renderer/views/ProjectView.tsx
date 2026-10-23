@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { Preset, Project, ProjectMode } from '../../core/domain/types';
+import type { Emotion, Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   AID_MODEL_MISSING,
@@ -29,14 +29,18 @@ import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot } from '../components/FloatingPalette';
 import { Icon } from '../components/Icon';
 import { PromptPanelToggle } from '../components/PromptPanel';
+import { SidePanelToggle } from '../components/SidePanelToggle';
+import { TopBarCollapse, TopBarSummary } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
 import { deleteProject, duplicateProject, openProjectFolder } from '../projectOps';
 import {
+  openEmotion,
   queueBarShownOf,
   referenceMedia,
+  topBarShownOf,
   updateLibrary,
   updateProject,
   useLibrary,
@@ -177,6 +181,40 @@ function ChainBar({ resolved }: { resolved: ResolvedProject }) {
         onPick={(emotionSetId) => patch({ emotionSetId })}
         editSection="emotionSets"
       />
+      <TopBarCollapse />
+    </div>
+  );
+}
+
+/** 설정 줄을 접은 씬 상세에서 씬 이동 줄 대신 쓴다. */
+function SceneNav({ emotions, current }: { emotions: Emotion[]; current: string }) {
+  const index = emotions.findIndex((item) => item.id === current);
+  const previous = emotions[index - 1];
+  const next = emotions[index + 1];
+  return (
+    <div className="scene-nav">
+      <button className="icon-button" title="갤러리로" onClick={() => openEmotion(undefined)}>
+        <Icon name="images" size={16} />
+      </button>
+      <button
+        className="icon-button"
+        disabled={!previous}
+        title={`${previous?.name ?? '이전'} (PageUp)`}
+        onClick={() => previous && openEmotion(previous.id)}
+      >
+        <Icon name="chevron-left" size={16} />
+      </button>
+      <span className="detail-position">
+        {index + 1} / {emotions.length}
+      </span>
+      <button
+        className="icon-button"
+        disabled={!next}
+        title={`${next?.name ?? '다음'} (PageDown)`}
+        onClick={() => next && openEmotion(next.id)}
+      >
+        <Icon name="chevron" size={16} />
+      </button>
     </div>
   );
 }
@@ -260,6 +298,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
   const queueShown = useStore(queueBarShownOf);
+  const topShown = useStore(topBarShownOf);
   const aidSources = useStore(
     useShallow((state) => ({
       characterReferences: state.library!.characterReferences,
@@ -322,6 +361,10 @@ export function ProjectView({ projectId }: { projectId: string }) {
           }
         />
         <ModeSwitch project={project} />
+        {!topShown && <TopBarSummary label={preset?.name ?? '(생성 설정 없음)'} />}
+        {!topShown && detail && emotionSet && (
+          <SceneNav emotions={emotionSet.emotions} current={detail.id} />
+        )}
         <div className="header-spacer" />
         <AccountMeter />
         <Menu
@@ -337,9 +380,10 @@ export function ProjectView({ projectId }: { projectId: string }) {
             { label: '작업 삭제', danger: true, onSelect: () => void deleteProject(project) },
           ]}
         />
+        {detail && <SidePanelToggle />}
         <HistoryToggle />
       </header>
-      <ChainBar resolved={resolved} />
+      {topShown && <ChainBar resolved={resolved} />}
       {(bannerMissing.length > 0 || inpaintModel) && (
         <div className="missing-banner">
           ⚠

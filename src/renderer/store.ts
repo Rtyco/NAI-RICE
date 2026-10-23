@@ -42,7 +42,8 @@ export type SidebarSection = 'projects' | 'library';
 
 export type ResultRef = { projectId: string; id: string };
 
-type CollapsedFlag = 'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed';
+type CollapsedFlag =
+  'filmstripCollapsed' | 'historyCollapsed' | 'sidePanelCollapsed' | 'topBarCollapsed';
 
 export type PanelStage = 'open' | 'icons' | 'hidden';
 
@@ -61,12 +62,12 @@ const nextStage = (flag: StageFlag, stage: PanelStage) => {
 };
 
 /** 집중 모드(Tab)가 숨길 수 있는 곳. 왼쪽 패널은 프롬프트 패널과 라이브러리 목록이다. */
-export type FocusPart = 'sidebar' | 'leftPanel' | 'history' | 'sidePanel' | 'queueBar';
+export type FocusPart = 'sidebar' | 'leftPanel' | 'history' | 'topBar' | 'sidePanel' | 'queueBar';
 
 export const FOCUS_PARTS: Record<FocusLevel, FocusPart[]> = {
   panels: ['sidebar', 'leftPanel', 'history'],
-  inputs: ['sidebar', 'leftPanel', 'history', 'sidePanel'],
-  all: ['sidebar', 'leftPanel', 'history', 'sidePanel', 'queueBar'],
+  inputs: ['sidebar', 'leftPanel', 'history', 'topBar', 'sidePanel'],
+  all: ['sidebar', 'leftPanel', 'history', 'topBar', 'sidePanel', 'queueBar'],
 };
 
 export type StoreState = {
@@ -90,6 +91,8 @@ export type StoreState = {
   historyCollapsed: boolean;
   /** 씬 상세·자유 생성·인페인트 편집이 함께 쓴다. */
   sidePanelCollapsed: boolean;
+  /** 작업·자유 생성 화면의 설정 칩 줄과 씬 상세의 씬 이동 줄 */
+  topBarCollapsed: boolean;
   /** 집중 모드가 숨긴 곳. 비면 집중 모드가 아니다. 저장하지 않아 다시 실행하면 풀린다. */
   focusHidden: FocusPart[];
   /** 창 가장자리에 마우스를 대어 숨긴 패널을 겹쳐 보이는 쪽 */
@@ -160,6 +163,7 @@ const LIBRARY_LIST_KEY = 'library-list-collapsed';
 const PROMPT_PANEL_KEY = 'prompt-panel-collapsed';
 const HISTORY_KEY = 'history-collapsed';
 const SIDE_PANEL_KEY = 'side-panel-collapsed';
+const TOP_BAR_KEY = 'top-bar-collapsed';
 const FOLDED_FOLDERS_KEY = 'folded-folders';
 const FOLDED_PROMPT_GROUPS_KEY = 'folded-prompt-groups';
 
@@ -213,6 +217,7 @@ export const useStore = create<StoreState>(() => ({
   promptPanelStage: readStage(PROMPT_PANEL_KEY) === 'open' ? 'open' : 'hidden',
   historyCollapsed: readCollapsed(HISTORY_KEY),
   sidePanelCollapsed: readCollapsed(SIDE_PANEL_KEY),
+  topBarCollapsed: readCollapsed(TOP_BAR_KEY),
   focusHidden: [],
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
@@ -527,6 +532,8 @@ export const historyShownOf = (state: StoreState) =>
   !state.historyCollapsed && !focusHides(state, 'history');
 export const sidePanelShownOf = (state: StoreState) =>
   !state.sidePanelCollapsed && !focusHides(state, 'sidePanel');
+export const topBarShownOf = (state: StoreState) =>
+  !state.topBarCollapsed && !focusHides(state, 'topBar');
 export const queueBarShownOf = (state: StoreState) => !focusHides(state, 'queueBar');
 
 /** 집중 모드가 숨긴 곳을 열면 그곳만 돌아온다. 저장한 단계가 숨김이면 펼친다. */
@@ -596,6 +603,11 @@ export function toggleHistory(): void {
 export function toggleSidePanel(): void {
   if (revealFromFocus('sidePanel') && !get().sidePanelCollapsed) return;
   toggleCollapsed('sidePanelCollapsed', SIDE_PANEL_KEY);
+}
+
+export function toggleTopBar(): void {
+  if (revealFromFocus('topBar') && !get().topBarCollapsed) return;
+  toggleCollapsed('topBarCollapsed', TOP_BAR_KEY);
 }
 
 export function requestResult(request: ResultRef | undefined): void {

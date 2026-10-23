@@ -3827,6 +3827,30 @@ textarea.syntax-input::selection {
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
 }
+.top-bar-collapse {
+  margin-left: auto;
+}
+.top-bar-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.top-bar-summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scene-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.detail-nav.top-hidden {
+  display: none;
+}
 .chain-chip {
   display: inline-flex;
   align-items: center;

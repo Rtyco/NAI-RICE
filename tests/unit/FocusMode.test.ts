@@ -21,6 +21,7 @@ function reset(focusLevel: FocusLevel = 'panels') {
     libraryListStage: 'icons',
     historyCollapsed: false,
     sidePanelCollapsed: false,
+    topBarCollapsed: false,
     focusHidden: [],
   });
 }
@@ -92,9 +93,10 @@ describe('집중 모드', () => {
     expect(store.historyShownOf(state())).toBe(true);
   });
 
-  it('「모두」는 입력 패널과 생성 큐 막대까지 숨기고, 큐 막대는 따로 다시 보일 수 있어', () => {
+  it('「모두」는 설정 줄·입력 패널·생성 큐 막대까지 숨기고, 큐 막대는 따로 다시 보일 수 있어', () => {
     reset('all');
     store.toggleFocusMode();
+    expect(store.topBarShownOf(state())).toBe(false);
     expect(store.sidePanelShownOf(state())).toBe(false);
     expect(store.queueBarShownOf(state())).toBe(false);
     store.showQueueBar();

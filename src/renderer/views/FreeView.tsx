@@ -28,6 +28,7 @@ import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteSlot } from '../components/FloatingPalette';
 import { SidePanelToggle } from '../components/SidePanelToggle';
+import { TopBarCollapse, TopBarSummary } from '../components/TopBarToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
@@ -55,6 +56,7 @@ import {
   run,
   sidePanelShownOf,
   toast,
+  topBarShownOf,
   updateFreeGeneration,
   useLibrary,
   useStore,
@@ -78,6 +80,7 @@ export function FreeView() {
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
   const sideShown = useStore(sidePanelShownOf);
+  const topShown = useStore(topBarShownOf);
   const records = useMemo(
     () => [...allRecords].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allRecords],
@@ -285,6 +288,7 @@ export function FreeView() {
             </button>
           ))}
         </div>
+        {!director && !topShown && <TopBarSummary label={preset?.name ?? '(생성 설정 없음)'} />}
         <div className="header-spacer" />
         <AccountMeter />
         <button
@@ -301,7 +305,7 @@ export function FreeView() {
         <SidePanelToggle />
         <HistoryToggle />
       </header>
-      {!director && (
+      {!director && topShown && (
         <div className="chain-bar">
           <ChecklistChip
             section="presets"
@@ -327,6 +331,7 @@ export function FreeView() {
             model={preset?.generation.model}
             inpaint={free.mode === 'img2img' && free.inpaint}
           />
+          <TopBarCollapse />
         </div>
       )}
       {inpaintModelMissing && (
