@@ -15,7 +15,7 @@ import {
 import { normalizeCanvasSize } from '../../core/imaging/CanvasNormalizer';
 import type { ImageBox } from '../../core/imaging/FreeTransform';
 import { maskHasGeneratePixels } from '../../core/imaging/MaskBuilder';
-import { cropOutside, suggestOutputRect } from '../../core/imaging/OutputCropper';
+import { cropOutside } from '../../core/imaging/OutputCropper';
 import { expandRect } from '../../core/imaging/rects';
 import { effectiveGenerationSettings } from '../../core/model/defaults';
 import { checkFreeGeneration } from '../../core/providers/NaiCost';
@@ -26,18 +26,10 @@ import { ReferenceCanvas } from '../components/ReferenceCanvas';
 import { Icon } from '../components/Icon';
 import { Stepper } from '../components/Stepper';
 import { EmptyState } from '../components/ui';
-import {
-  composeCanvas,
-  imageSizeOf,
-  isBlank,
-  loadOriginal,
-  masksEqual,
-  prepareImage,
-  repaintComposed,
-} from '../lib/image';
-import { LatestOnly } from '../lib/LatestOnly';
+import { imageSizeOf, isBlank, loadOriginal, masksEqual } from '../lib/image';
 import { errorMessage, run, scheduleSave, setPendingReference, toast, useStore } from '../store';
 import { fileApi } from '../desktop';
+import { useCanvasBuilder } from './reference/canvasBuilder';
 import { CanvasLayoutCard } from './reference/CanvasLayoutCard';
 import {
   DividerFields,
@@ -47,7 +39,6 @@ import {
 } from './reference/ReferenceFields';
 import {
   canSaveImages,
-  detectionText,
   loadReference,
   saveReferenceImages,
   saveReferenceLayout,
@@ -63,8 +54,6 @@ const REPAINT_KEYS: ReadonlySet<string> = new Set<keyof CanvasLayout>([
   'free',
 ]);
 
-type Repaint = { canvas: HTMLCanvasElement; dataUrl: string; layout: CanvasLayout };
-
 export function ReferenceEditor({ reference }: { reference: Reference }) {
   const pendingReference = useStore((state) => state.pendingReference);
   const presets = useStore((state) => state.library?.presets ?? []);
@@ -72,7 +61,6 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const [source, setSource] = useState<Source | null>(null);
   const [layout, setLayout] = useState<CanvasLayout>(reference.layout);
   const [working, setWorking] = useState<Working | null>(null);
-  const [rebuilding, setRebuilding] = useState(false);
   const [referenceRect, setReferenceRect] = useState<Rect>(
     reference.image?.referenceRect ?? { x: 0, y: 0, width: 1, height: 1 },
   );
@@ -80,18 +68,12 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     reference.image?.outputRect ?? { x: 0, y: 0, width: 1, height: 1 },
   );
   const [expansionPx, setExpansionPx] = useState(reference.maskExpansionPx);
-  // 재구성은 비동기로 끝나 그때의 값을 ref로 읽는다.
-  const expansionRef = useRef(expansionPx);
-  expansionRef.current = expansionPx;
   const [threshold, setThreshold] = useState(reference.backgroundThreshold);
   const [divider, setDivider] = useState<DividerLine>(reference.divider);
   const [initialMask, setInitialMask] = useState<Uint8Array>();
   const [mask, setMask] = useState<Uint8Array>();
   const savedMask = useRef<Uint8Array | undefined>(undefined);
   const dirty = useRef(false);
-  const rebuildSeq = useRef(0);
-  /** 캔버스 객체는 그대로라 이 값으로 다시 그리게 한다. */
-  const [imageVersion, setImageVersion] = useState(0);
   const [sourceImage, setSourceImage] = useState<HTMLImageElement>();
   const [stage, setStage] = useState<'mask' | 'draw'>('mask');
   /** 그린 것이 없으면 undefined. 저장 전까지 PNG로 바꾸지 않는다. */
@@ -124,80 +106,14 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     };
   }, [mounted]);
 
-  const rebuild = useCallback(
-    async (nextSource: Source, nextLayout: CanvasLayout, nextThreshold: number) => {
-      const sequence = (rebuildSeq.current += 1);
-      setRebuilding(true);
-      try {
-        if (nextLayout.mode === 'auto') {
-          const composed = await composeCanvas(nextSource.dataUrl, nextLayout);
-          if (sequence !== rebuildSeq.current) return;
-          setWorking({
-            canvas: composed.canvas,
-            width: composed.width,
-            height: composed.height,
-            backgroundMask: composed.backgroundMask,
-            detectionLabel: '자동 구성',
-          });
-          setReferenceRect(composed.referenceRect);
-          const blocked = expandRect(
-            composed.referenceRect,
-            expansionRef.current,
-            composed.width,
-            composed.height,
-          );
-          setOutputRect(cropOutside(composed.outputRect, blocked));
-        } else {
-          const prepared = await prepareImage(nextSource.dataUrl, nextThreshold);
-          if (sequence !== rebuildSeq.current) return;
-          const rect = prepared.detection.referenceRect;
-          setWorking({
-            canvas: prepared.canvas,
-            width: prepared.width,
-            height: prepared.height,
-            backgroundMask: prepared.backgroundMask,
-            detectionLabel: detectionText(prepared.detection.mode, prepared.detection.confidence),
-          });
-          setReferenceRect(rect);
-          const blocked = expandRect(rect, expansionRef.current, prepared.width, prepared.height);
-          setOutputRect(suggestOutputRect(blocked, prepared.width, prepared.height, 1));
-        }
-        setInitialMask(undefined);
-        dirty.current = true;
-      } catch (error) {
-        toast(`캔버스를 만들 수 없습니다: ${errorMessage(error)}`, 'error');
-      } finally {
-        if (sequence === rebuildSeq.current) setRebuilding(false);
-      }
-    },
-    [],
-  );
-
-  const [rebuilds] = useState(
-    () => new LatestOnly<[Source, CanvasLayout, number]>((args) => rebuild(...args)),
-  );
-  useEffect(() => () => rebuilds.clear(), [rebuilds]);
-  const scheduleRebuild = (
-    nextSource: Source | null,
-    nextLayout: CanvasLayout,
-    nextThreshold: number,
-  ) => {
-    if (nextSource) rebuilds.push([nextSource, nextLayout, nextThreshold]);
-  };
-
-  /** 프레임마다 한 번 */
-  const [repaints] = useState(
-    () =>
-      new LatestOnly<Repaint>(async ({ canvas, dataUrl, layout: next }) => {
-        try {
-          await repaintComposed(canvas, dataUrl, next);
-          setImageVersion((version) => version + 1);
-        } catch (error) {
-          toast(`캔버스를 다시 칠할 수 없습니다: ${errorMessage(error)}`, 'error');
-        }
-        await new Promise(requestAnimationFrame);
-      }),
-  );
+  const builder = useCanvasBuilder(expansionPx, (built) => {
+    setWorking(built.working);
+    setReferenceRect(built.referenceRect);
+    setOutputRect(built.outputRect);
+    setInitialMask(undefined);
+    dirty.current = true;
+  });
+  const { rebuilding, imageVersion } = builder;
 
   /** 캔버스 크기가 바뀌면 그린 층을 맞출 수 없어 지운다. */
   const keepsPaint = async (next: CanvasLayout, image?: { width: number; height: number }) => {
@@ -225,7 +141,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       return;
     const next = { dataUrl, name, changed: true };
     setSource(next);
-    void rebuild(next, layout, threshold);
+    void builder.rebuild(next, layout, threshold);
   };
 
   const changeLayout = (patch: Partial<CanvasLayout>) => {
@@ -237,10 +153,10 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
       next.mode === 'auto' &&
       source &&
       working?.canvas instanceof HTMLCanvasElement &&
-      !rebuilds.busy
+      !builder.busy()
     )
-      repaints.push({ canvas: working.canvas, dataUrl: source.dataUrl, layout: next });
-    else scheduleRebuild(source, next, threshold);
+      builder.repaint({ canvas: working.canvas, dataUrl: source.dataUrl, layout: next });
+    else builder.schedule(source, next, threshold);
   };
 
   const changeCanvasSize = async (patch: Partial<CanvasLayout>) => {
@@ -351,19 +267,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     dirty.current = true;
   };
 
-  const latest = useRef({
-    source,
-    layout,
-    working,
-    referenceRect,
-    outputRect,
-    expansionPx,
-    threshold,
-    mask,
-    divider,
-    paint,
-  });
-  latest.current = {
+  const values = {
     source,
     layout,
     working,
@@ -375,6 +279,8 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     divider,
     paint,
   };
+  const latest = useRef(values);
+  latest.current = values;
 
   useEffect(() => {
     if (!dirty.current || rebuilding) return;
@@ -461,9 +367,9 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
         onFitFree={fitImage}
         onThreshold={(value) => {
           setThreshold(value);
-          scheduleRebuild(source, layout, value);
+          builder.schedule(source, layout, value);
         }}
-        onReset={() => source && void rebuild(source, layout, threshold)}
+        onReset={() => source && void builder.rebuild(source, layout, threshold)}
       />
 
       <section className="detail-card settings-card">
