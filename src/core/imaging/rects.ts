@@ -34,3 +34,34 @@ export function isValidRect(rect: Rect, width: number, height: number): boolean 
     rect.y + rect.height <= height
   );
 }
+
+export type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
+
+/** 모서리가 안쪽 이동보다 먼저다. */
+export function rectHandleAt(rect: Rect, x: number, y: number, radius: number): RectHandle | null {
+  const corners: Array<[RectHandle, number, number]> = [
+    ['nw', rect.x, rect.y],
+    ['ne', rect.x + rect.width, rect.y],
+    ['sw', rect.x, rect.y + rect.height],
+    ['se', rect.x + rect.width, rect.y + rect.height],
+  ];
+  for (const [handle, cornerX, cornerY] of corners) {
+    if (Math.hypot(x - cornerX, y - cornerY) <= radius) return handle;
+  }
+  return contains(rect, x, y) ? 'move' : null;
+}
+
+export function resizeRect(original: Rect, handle: RectHandle, dx: number, dy: number): Rect {
+  if (handle === 'move') return { ...original, x: original.x + dx, y: original.y + dy };
+  let left = original.x;
+  let top = original.y;
+  let right = original.x + original.width;
+  let bottom = original.y + original.height;
+  if (handle.includes('w')) left += dx;
+  if (handle.includes('e')) right += dx;
+  if (handle.includes('n')) top += dy;
+  if (handle.includes('s')) bottom += dy;
+  if (right < left) [left, right] = [right, left];
+  if (bottom < top) [top, bottom] = [bottom, top];
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}

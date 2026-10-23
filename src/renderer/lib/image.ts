@@ -33,7 +33,7 @@ export function loadHtmlImage(source: string): Promise<HTMLImageElement> {
 }
 
 /** willReadFrequently면 Chromium이 CPU로 그리고, 화면에 그릴 때마다 GPU로 다시 올려 끌기가 버벅인다. 픽셀을 읽을 캔버스에만 켠다. */
-function canvas2d(
+export function canvas2d(
   width: number,
   height: number,
   willReadFrequently = true,
@@ -229,9 +229,34 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
+export function rgbToHex(red: number, green: number, blue: number): string {
+  return `#${[red, green, blue].map((part) => part.toString(16).padStart(2, '0')).join('')}`;
+}
+
 /** `ImageData`를 `Uint32Array`로 쓸 때의 픽셀 값. 리틀 엔디언이라 ABGR 순서다. */
 export function packedColor([red, green, blue]: [number, number, number], alpha = 255): number {
   return ((alpha << 24) | (blue << 16) | (green << 8) | red) >>> 0;
+}
+
+export function fillRegion(pixels: Uint32Array, region: Uint8Array, color: number): void {
+  for (let pixel = 0; pixel < region.length; pixel += 1) if (region[pixel]) pixels[pixel] = color;
+}
+
+/** 안쪽에 둔 선도 보이게 생성 영역 색보다 위에 칠한다. */
+export function paintMask(
+  pixels: Uint32Array,
+  mask: Uint8Array,
+  color: number,
+  divider?: { pixels: Uint8Array; color: number },
+): void {
+  if (!divider) {
+    fillRegion(pixels, mask, color);
+    return;
+  }
+  for (let pixel = 0; pixel < mask.length; pixel += 1) {
+    if (divider.pixels[pixel]) pixels[pixel] = divider.color;
+    else if (mask[pixel]) pixels[pixel] = color;
+  }
 }
 
 /** NovelAI에 보내는 canvas.png. 편집기는 층을 합치지 않은 base를 따로 둔다. */

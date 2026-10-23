@@ -2,7 +2,7 @@ import type { FreeImage, GenerationSummary } from '../core/domain/types';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
 import { createReference, FREE_PROJECT_ID } from '../core/model/defaults';
 import { fileApi, libraryApi } from './desktop';
-import { maskToDataUrl } from './lib/image';
+import { canvas2d, maskToDataUrl } from './lib/image';
 import type { StoredSource } from '../shared/ipc';
 import {
   openFree,
@@ -97,10 +97,7 @@ export function loadFreeImageFromFile(): Promise<void> {
 
 export function newBlankFreeImage(width: number, height: number): Promise<void> {
   return run('빈 캔버스를 만드는 중', async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d')!;
+    const { canvas, context } = canvas2d(width, height, false);
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, width, height);
     const stored = await libraryApi().addSourceImage({

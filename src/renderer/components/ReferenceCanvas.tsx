@@ -4,10 +4,9 @@ import type { DividerLine, Rect } from '../../core/domain/types';
 import { dividerPixels } from '../../core/imaging/Divider';
 import {
   buildGenerationMask,
-  inferSavedExpansion,
   invertMask,
-  manualOverrides,
   maskHasGeneratePixels,
+  savedOverrides,
 } from '../../core/imaging/MaskBuilder';
 import {
   fillCell,
@@ -16,8 +15,15 @@ import {
   strokeStamps,
   type BrushShape,
 } from '../../core/imaging/MaskBrush';
-import { clampRect, contains } from '../../core/imaging/rects';
-import { drawImageBox, hexToRgb, packedColor, type CanvasImage } from '../lib/image';
+import { clampRect, rectHandleAt, resizeRect, type RectHandle } from '../../core/imaging/rects';
+import {
+  canvas2d,
+  drawImageBox,
+  hexToRgb,
+  packedColor,
+  paintMask,
+  type CanvasImage,
+} from '../lib/image';
 import { readUiState, saveUiState } from '../store';
 import { Icon } from './Icon';
 import { useCanvasViewport } from './canvasViewport';
@@ -26,7 +32,6 @@ import { useFreeTransform, type TransformTarget } from './useFreeTransform';
 import { ZOOM_STEP } from './zoom';
 
 type Tool = 'reference' | 'output' | 'generate' | 'keep' | 'transform';
-type RectHandle = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type Props = {
   image: CanvasImage;
@@ -79,48 +84,9 @@ type OverrideBase = Pick<
   'width' | 'height' | 'backgroundMask' | 'referenceRect' | 'expansionPx'
 >;
 
-/** 붓으로 고친 픽셀만 남겨 나머지는 여백 값 변경을 따른다. 예전 두 배 확장 마스크도 알아본다. */
 function createOverrides(base: OverrideBase, initialMask?: Uint8Array): Int8Array {
-  const length = base.width * base.height;
-  if (!initialMask || initialMask.length !== length) return new Int8Array(length).fill(-1);
-  const input = {
-    width: base.width,
-    height: base.height,
-    backgroundMask: base.backgroundMask,
-    referenceRect: base.referenceRect,
-  };
-  return manualOverrides(initialMask, [
-    buildGenerationMask({ ...input, expansionPx: base.expansionPx }),
-    buildGenerationMask({ ...input, expansionPx: inferSavedExpansion(initialMask, input) }),
-  ]);
-}
-
-function rectHandle(rect: Rect, x: number, y: number, radius: number): RectHandle | null {
-  const points: Array<[RectHandle, number, number]> = [
-    ['nw', rect.x, rect.y],
-    ['ne', rect.x + rect.width, rect.y],
-    ['sw', rect.x, rect.y + rect.height],
-    ['se', rect.x + rect.width, rect.y + rect.height],
-  ];
-  for (const [handle, hx, hy] of points) {
-    if (Math.hypot(x - hx, y - hy) <= radius) return handle;
-  }
-  return contains(rect, x, y) ? 'move' : null;
-}
-
-function resizedRect(original: Rect, handle: RectHandle, dx: number, dy: number): Rect {
-  if (handle === 'move') return { ...original, x: original.x + dx, y: original.y + dy };
-  let left = original.x;
-  let top = original.y;
-  let right = original.x + original.width;
-  let bottom = original.y + original.height;
-  if (handle.includes('w')) left += dx;
-  if (handle.includes('e')) right += dx;
-  if (handle.includes('n')) top += dy;
-  if (handle.includes('s')) bottom += dy;
-  if (right < left) [left, right] = [right, left];
-  if (bottom < top) [top, bottom] = [bottom, top];
-  return { x: left, y: top, width: right - left, height: bottom - top };
+  const { width, height, backgroundMask, referenceRect, expansionPx } = base;
+  return savedOverrides({ width, height, backgroundMask, referenceRect, expansionPx }, initialMask);
 }
 
 export function ReferenceCanvas(props: Props) {
@@ -243,9 +209,7 @@ export function ReferenceCanvas(props: Props) {
       overlayCanvas.width !== props.width ||
       overlayCanvas.height !== props.height
     ) {
-      overlayCanvas = document.createElement('canvas');
-      overlayCanvas.width = props.width;
-      overlayCanvas.height = props.height;
+      overlayCanvas = canvas2d(props.width, props.height, false).canvas;
       overlayRef.current = overlayCanvas;
       overlayInputsRef.current = [];
     }
@@ -255,19 +219,14 @@ export function ReferenceCanvas(props: Props) {
       const overlayContext = overlayCanvas.getContext('2d')!;
       const overlay = overlayContext.createImageData(props.width, props.height);
       const pixels = new Uint32Array(overlay.data.buffer);
-      const color = packedColor(MASK_RGB, Math.round((opacity / 100) * 255));
-      if (dividerMask && dividerColor) {
-        const line = packedColor(hexToRgb(dividerColor));
-        // 안쪽에 둔 선도 보이게 생성 영역 색보다 위에 둔다.
-        for (let pixel = 0; pixel < mask.length; pixel += 1) {
-          if (dividerMask[pixel]) pixels[pixel] = line;
-          else if (mask[pixel]) pixels[pixel] = color;
-        }
-      } else {
-        for (let pixel = 0; pixel < mask.length; pixel += 1) {
-          if (mask[pixel]) pixels[pixel] = color;
-        }
-      }
+      paintMask(
+        pixels,
+        mask,
+        packedColor(MASK_RGB, Math.round((opacity / 100) * 255)),
+        dividerMask && dividerColor
+          ? { pixels: dividerMask, color: packedColor(hexToRgb(dividerColor)) }
+          : undefined,
+      );
       overlayContext.putImageData(overlay, 0, 0);
     }
     context.drawImage(overlayCanvas, 0, 0);
@@ -395,7 +354,7 @@ export function ReferenceCanvas(props: Props) {
       return;
     }
     const rect = tool === 'reference' ? props.referenceRect : props.outputRect;
-    const handle = rectHandle(rect, point.x, point.y, Math.max(8, 12 * point.scale));
+    const handle = rectHandleAt(rect, point.x, point.y, Math.max(8, 12 * point.scale));
     if (handle) {
       dragRef.current = {
         kind: 'rect',
@@ -419,7 +378,7 @@ export function ReferenceCanvas(props: Props) {
       return;
     }
     if (!drag.originalRect || !drag.handle) return;
-    const candidate = resizedRect(
+    const candidate = resizeRect(
       drag.originalRect,
       drag.handle,
       point.x - drag.startX,

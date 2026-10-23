@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import type { CanvasImage } from '../lib/image';
+import { floodRegion } from '../../core/imaging/FloodFill';
+import {
+  canvas2d,
+  fillRegion,
+  hexToRgb,
+  packedColor,
+  rgbToHex,
+  type CanvasImage,
+} from '../lib/image';
 import { useCanvasViewport } from './canvasViewport';
 import { Icon } from './Icon';
 import { ZOOM_STEP } from './zoom';
@@ -54,26 +62,6 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return canvas.getContext('2d')!;
 }
 
-function readable(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
-  return canvas.getContext('2d', { willReadFrequently: true })!;
-}
-
-function makeCanvas(width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return `#${[r, g, b].map((part) => part.toString(16).padStart(2, '0')).join('')}`;
-}
-
 function stamp(
   context: CanvasRenderingContext2D,
   point: Point,
@@ -97,36 +85,6 @@ function stamp(
   context.beginPath();
   context.arc(point.x, point.y, radius, 0, Math.PI * 2);
   context.fill();
-}
-
-/** 채널마다 차이가 `tolerance` 이하인 4방향 연결 영역. `pixels`는 바탕과 그린 것을 합친 색. */
-function floodRegion(
-  pixels: Uint32Array,
-  width: number,
-  height: number,
-  startX: number,
-  startY: number,
-  tolerance: number,
-): Uint8Array {
-  const region = new Uint8Array(width * height);
-  const seed = pixels[startY * width + startX];
-  const near = (value: number) =>
-    Math.abs((value & 255) - (seed & 255)) <= tolerance &&
-    Math.abs(((value >> 8) & 255) - ((seed >> 8) & 255)) <= tolerance &&
-    Math.abs(((value >> 16) & 255) - ((seed >> 16) & 255)) <= tolerance &&
-    Math.abs(((value >>> 24) & 255) - ((seed >>> 24) & 255)) <= tolerance;
-  const stack = [startY * width + startX];
-  while (stack.length) {
-    const index = stack.pop()!;
-    if (region[index] || !near(pixels[index])) continue;
-    region[index] = 1;
-    const x = index % width;
-    if (x > 0) stack.push(index - 1);
-    if (x < width - 1) stack.push(index + 1);
-    if (index >= width) stack.push(index - width);
-    if (index < width * (height - 1)) stack.push(index + width);
-  }
-  return region;
 }
 
 /**
@@ -190,7 +148,7 @@ export function DrawCanvas(props: {
   }, [width, height]);
 
   const composite = (): CanvasRenderingContext2D => {
-    const context = readable(makeCanvas(width, height));
+    const { context } = canvas2d(width, height);
     context.drawImage(props.base, 0, 0, width, height);
     context.drawImage(layerRef.current!, 0, 0);
     return context;
@@ -211,9 +169,9 @@ export function DrawCanvas(props: {
 
   /** GPU 안 복사라 getImageData처럼 멈칫하지 않는다. */
   const snapshot = () => {
-    const copy = makeCanvas(width, height);
-    context2d(copy).drawImage(layerRef.current!, 0, 0);
-    return copy;
+    const copy = canvas2d(width, height, false);
+    copy.context.drawImage(layerRef.current!, 0, 0);
+    return copy.canvas;
   };
   const changed = () => {
     if (props.onLayerChange) props.onLayerChange(snapshot());
@@ -288,19 +246,12 @@ export function DrawCanvas(props: {
     const pixels = composite().getImageData(0, 0, width, height);
     const region = floodRegion(new Uint32Array(pixels.data.buffer), width, height, x, y, tolerance);
     const paint = new ImageData(width, height);
-    const [r, g, b] = hexToRgb(color);
-    for (let index = 0; index < region.length; index += 1) {
-      if (!region[index]) continue;
-      paint.data[index * 4] = r;
-      paint.data[index * 4 + 1] = g;
-      paint.data[index * 4 + 2] = b;
-      paint.data[index * 4 + 3] = 255;
-    }
-    const temp = makeCanvas(width, height);
-    context2d(temp).putImageData(paint, 0, 0);
+    fillRegion(new Uint32Array(paint.data.buffer), region, packedColor(hexToRgb(color)));
+    const temp = canvas2d(width, height, false);
+    temp.context.putImageData(paint, 0, 0);
     const context = layer();
     context.globalAlpha = opacity / 100;
-    context.drawImage(temp, 0, 0);
+    context.drawImage(temp.canvas, 0, 0);
     context.globalAlpha = 1;
     changed();
   };

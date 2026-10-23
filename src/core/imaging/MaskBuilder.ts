@@ -71,3 +71,17 @@ export function invertMask(mask: Uint8Array): Uint8Array {
 export function maskHasGeneratePixels(mask: Uint8Array): boolean {
   return mask.some((value) => value === 1);
 }
+
+/** 붓으로 고친 픽셀만 남겨 나머지는 여백 값 변경을 따른다. 예전 두 배 확장 마스크도 알아본다. */
+export function savedOverrides(
+  input: Omit<MaskBuildInput, 'overrides'>,
+  saved: Uint8Array | undefined,
+): Int8Array {
+  const length = input.width * input.height;
+  if (!saved || saved.length !== length) return new Int8Array(length).fill(-1);
+  const { expansionPx, ...area } = input;
+  return manualOverrides(saved, [
+    buildGenerationMask({ ...area, expansionPx }),
+    buildGenerationMask({ ...area, expansionPx: inferSavedExpansion(saved, area) }),
+  ]);
+}
