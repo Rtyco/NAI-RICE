@@ -375,8 +375,9 @@ export const appSettingsSchema = z.object({
     .object({
       autoCheck: z.boolean().default(true),
       skippedVersion: z.string().default(''),
+      seenVersion: z.string().default(''),
     })
-    .default({ autoCheck: true, skippedVersion: '' }),
+    .default({ autoCheck: true, skippedVersion: '', seenVersion: '' }),
 });
 
 /** 해시 이름이라 경로 문자가 없다. */

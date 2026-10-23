@@ -48,6 +48,14 @@ export class Library
   /** 큐가 요청 간격 같은 설정을 읽는다. */
   private latest?: LibraryData;
 
+  /** 새로 설치한 사람에게는 이 버전의 바뀐 점 안내를 띄우지 않는다. */
+  constructor(
+    root: string,
+    private readonly appVersion = '',
+  ) {
+    super(root);
+  }
+
   get settings(): LibraryData['settings'] | undefined {
     return this.latest?.settings;
   }
@@ -76,6 +84,7 @@ export class Library
       library = await migrateV1Workspace(this, notices);
     } else {
       library = createDefaultLibrary();
+      library.settings.update.seenVersion = this.appVersion;
       await this.save(library);
     }
     this.latest = library;

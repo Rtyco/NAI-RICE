@@ -135,6 +135,22 @@ describe('Library migration', () => {
     ).toBe(true);
   });
 
+  it('새로 만든 라이브러리만 이 버전의 바뀐 점 안내를 본 것으로 둬', async () => {
+    const fresh = await mkdtemp(path.join(os.tmpdir(), 'desk-fresh-'));
+    temporary.push(fresh);
+    const created = await new Library(fresh, '1.1.2').load();
+    expect(created.library.settings.update.seenVersion).toBe('1.1.2');
+
+    const old = await mkdtemp(path.join(os.tmpdir(), 'desk-old-'));
+    temporary.push(old);
+    // 1.1.1까지는 seenVersion이 없다.
+    const library: Record<string, unknown> = JSON.parse(JSON.stringify(createDefaultLibrary()));
+    delete (library.settings as { update: Record<string, unknown> }).update.seenVersion;
+    await writeFile(path.join(old, 'library.json'), JSON.stringify(library));
+    const upgraded = await new Library(old, '1.1.2').load();
+    expect(upgraded.library.settings.update.seenVersion).toBe('');
+  });
+
   it('중간에 멈춘 이전 이동을 이어서 끝내고 처음 백업을 그대로 둬', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'desk-resume-'));
     temporary.push(root);

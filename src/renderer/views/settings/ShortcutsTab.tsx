@@ -144,6 +144,16 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
   },
 ];
 
+/** 'A / B'는 같은 동작의 다른 키 */
+export function Keys({ keys }: { keys: string }) {
+  return keys.split(' / ').map((combo, index) => (
+    <span key={combo}>
+      {index > 0 && ' / '}
+      <kbd>{combo}</kbd>
+    </span>
+  ));
+}
+
 export function ShortcutsTab() {
   return (
     <>
@@ -153,12 +163,7 @@ export function ShortcutsTab() {
             {group.keys.map(([keys, action]) => (
               <div key={keys + action}>
                 <dt>
-                  {keys.split(' / ').map((combo, index) => (
-                    <span key={combo}>
-                      {index > 0 && ' / '}
-                      <kbd>{combo}</kbd>
-                    </span>
-                  ))}
+                  <Keys keys={keys} />
                 </dt>
                 <dd>{action}</dd>
               </div>

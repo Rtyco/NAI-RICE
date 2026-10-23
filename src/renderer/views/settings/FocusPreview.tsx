@@ -7,8 +7,8 @@ const lines = (count: number) =>
   Array.from({ length: count }, (_, index) => <i key={index} className="fp-line" />);
 
 /** 집중 모드를 켠 뒤의 작은 앱 화면. 카드에 마우스를 올리면 숨는 곳이 돌아온다(CSS). */
-export function FocusPreview({ hidden }: { hidden: FocusPart[] }) {
-  const off = (part: FocusPart) => (hidden.includes(part) ? 'off' : '');
+export function FocusPreview({ hidden, lit }: { hidden: FocusPart[]; lit?: FocusPart }) {
+  const off = (part: FocusPart) => (hidden.includes(part) ? 'off' : part === lit ? 'lit' : '');
   const palette = hidden.includes('sidePanel') || hidden.includes('queueBar');
   return (
     <div

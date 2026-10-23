@@ -2,6 +2,7 @@ import { Icon } from '../../components/Icon';
 import { Card, Toggle } from '../../components/ui';
 import { useLibrary, useStore } from '../../store';
 import { checkForUpdate, openUpdateDialog } from '../../updates';
+import { openWhatsNew, WHATS_NEW_VERSION } from '../../whatsNew';
 import { patchSettings } from './patchSettings';
 
 /** THIRD_PARTY_NOTICES.md와 맞춘다. */
@@ -23,7 +24,12 @@ export function InfoTab() {
   const autoCheck = useLibrary().settings.update.autoCheck;
   return (
     <>
-      <Card title="버전">
+      <Card
+        title="버전"
+        actions={
+          <button onClick={() => void openWhatsNew()}>{WHATS_NEW_VERSION}에서 바뀐 점</button>
+        }
+      >
         <div className="version-row">
           <strong>NAI RICE {version}</strong>
           <span className="hint">NovelAI Reference Inpaint Character Emotions</span>

@@ -377,6 +377,8 @@ export type AppSettings = {
     autoCheck: boolean;
     /** 더 새 버전이 나오면 다시 알린다. */
     skippedVersion: string;
+    /** 바뀐 점 안내까지 확인한 앱 버전. 비면 1.1.1 이하에서 올라왔다. */
+    seenVersion: string;
   };
 };
 

@@ -35,6 +35,7 @@ import { SettingsModal } from './views/SettingsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 import { useMiddleClickScroll } from './useMiddleClickScroll';
 import { checkForUpdate } from './updates';
+import { showWhatsNewOnce } from './whatsNew';
 
 function Toasts() {
   const toasts = useStore((state) => state.toasts);
@@ -122,7 +123,8 @@ export default function App() {
   useEffect(() => {
     if (!ready || autoCheck === undefined || checkedUpdate.current) return;
     checkedUpdate.current = true;
-    if (autoCheck) void checkForUpdate();
+    // 두 창이 겹치지 않게 안내를 닫은 뒤 업데이트를 확인한다.
+    void showWhatsNewOnce().then(() => (autoCheck ? checkForUpdate() : undefined));
   }, [ready, autoCheck]);
 
   useEffect(() => {

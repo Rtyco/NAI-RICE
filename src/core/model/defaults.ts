@@ -257,7 +257,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   layout: { focusLevel: 'panels', edgePeek: false },
-  update: { autoCheck: true, skippedVersion: '' },
+  update: { autoCheck: true, skippedVersion: '', seenVersion: '' },
 };
 
 export function createDefaultLibrary(): Library {

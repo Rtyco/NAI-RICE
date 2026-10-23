@@ -37,6 +37,7 @@ async function createServices(): Promise<AppServices> {
   const provider = new NovelAIProvider();
   const library = new Library(
     renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk'),
+    app.getVersion(),
   );
   const account = new AccountService(new TokenVault(userData), provider, (status) =>
     broadcast('token:status', status),
