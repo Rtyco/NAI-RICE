@@ -394,6 +394,10 @@ textarea.syntax-input::selection {
   padding: 2px 6px;
   font-size: 12px;
 }
+.scene-option-head .link-button {
+  flex: none;
+  font-size: 11px;
+}
 .scene-extras {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

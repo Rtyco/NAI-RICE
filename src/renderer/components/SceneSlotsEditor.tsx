@@ -31,6 +31,15 @@ export function SceneSlotsEditor(props: {
   const slots = emotion.slots ?? [];
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
+  // 캐릭터 몫은 내용이 있는 칸만 보인다. 펼친 후보는 모두 보이고, 고치는 중에 비워도 칸이 사라지지 않는다.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const expand = (id: string, open = true) =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (open) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const used = Math.max(0, ...slots.flat().map((option) => option.characterPrompts.length));
   const characterCount = Math.max(names.length, used, opened);
   const count = comboCount(emotion);
@@ -65,7 +74,10 @@ export function SceneSlotsEditor(props: {
         <button
           className="link-button"
           title="다음 캐릭터 몫 칸 추가"
-          onClick={() => setOpened(characterCount + 1)}
+          onClick={() => {
+            setOpened(characterCount + 1);
+            setExpanded(new Set(slots.flat().map((option) => option.id)));
+          }}
         >
           ＋ 캐릭터
         </button>
@@ -98,63 +110,80 @@ export function SceneSlotsEditor(props: {
               ×
             </button>
           </div>
-          {slot.map((option) => (
-            <div className={`scene-option ${option.enabled ? '' : 'off'}`} key={option.id}>
-              <div className="scene-option-head">
-                <input
-                  type="checkbox"
-                  checked={option.enabled}
-                  title="조합에 넣기"
-                  onChange={(event) =>
-                    patchOption(slotIndex, option.id, { enabled: event.target.checked })
-                  }
-                />
-                <input
-                  className="scene-option-name"
-                  value={option.name ?? ''}
-                  placeholder="후보 이름"
-                  aria-label="후보 이름"
-                  onChange={(event) =>
-                    patchOption(slotIndex, option.id, { name: event.target.value || undefined })
-                  }
-                />
-                <button
-                  className="icon-button danger"
-                  title="후보 삭제"
-                  onClick={() =>
-                    save(
-                      slots.map((item, index) =>
-                        index === slotIndex ? item.filter((entry) => entry.id !== option.id) : item,
-                      ),
-                    )
-                  }
-                >
-                  ×
-                </button>
-              </div>
-              <PromptTextarea
-                rows={2}
-                value={option.prompt}
-                aria-label="후보 프롬프트"
-                placeholder="씬 프롬프트 자리에 붙음"
-                onChange={(prompt) => patchOption(slotIndex, option.id, { prompt })}
-              />
-              {Array.from({ length: characterCount }, (_, index) => (
-                <div className="emotion-extra-prompt" key={index}>
-                  <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
-                  <PromptTextarea
-                    rows={1}
-                    value={option.characterPrompts[index] ?? ''}
-                    aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
-                    placeholder="이 캐릭터 프롬프트에 붙음"
-                    onChange={(value) =>
-                      setOption(slotIndex, withCharacterPrompt(option, index, value))
+          {slot.map((option) => {
+            const open = expanded.has(option.id);
+            const filled = Array.from({ length: characterCount }, (_, index) => index).filter(
+              (index) => option.characterPrompts[index]?.trim(),
+            );
+            const shown = open
+              ? Array.from({ length: characterCount }, (_, index) => index)
+              : filled;
+            return (
+              <div className={`scene-option ${option.enabled ? '' : 'off'}`} key={option.id}>
+                <div className="scene-option-head">
+                  <input
+                    type="checkbox"
+                    checked={option.enabled}
+                    title="조합에 넣기"
+                    onChange={(event) =>
+                      patchOption(slotIndex, option.id, { enabled: event.target.checked })
                     }
                   />
+                  <input
+                    className="scene-option-name"
+                    value={option.name ?? ''}
+                    placeholder="후보 이름"
+                    aria-label="후보 이름"
+                    onChange={(event) =>
+                      patchOption(slotIndex, option.id, { name: event.target.value || undefined })
+                    }
+                  />
+                  {(open || filled.length < characterCount) && (
+                    <button className="link-button" onClick={() => expand(option.id, !open)}>
+                      {open ? '캐릭터 몫 접기' : '＋ 캐릭터 몫'}
+                    </button>
+                  )}
+                  <button
+                    className="icon-button danger"
+                    title="후보 삭제"
+                    onClick={() =>
+                      save(
+                        slots.map((item, index) =>
+                          index === slotIndex
+                            ? item.filter((entry) => entry.id !== option.id)
+                            : item,
+                        ),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
                 </div>
-              ))}
-            </div>
-          ))}
+                <PromptTextarea
+                  rows={2}
+                  value={option.prompt}
+                  aria-label="후보 프롬프트"
+                  placeholder="씬 프롬프트 자리에 붙음"
+                  onChange={(prompt) => patchOption(slotIndex, option.id, { prompt })}
+                />
+                {shown.map((index) => (
+                  <div className="emotion-extra-prompt" key={index}>
+                    <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
+                    <PromptTextarea
+                      rows={1}
+                      value={option.characterPrompts[index] ?? ''}
+                      aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
+                      placeholder="이 캐릭터 프롬프트에 붙음"
+                      onChange={(value) => {
+                        expand(option.id);
+                        setOption(slotIndex, withCharacterPrompt(option, index, value));
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
