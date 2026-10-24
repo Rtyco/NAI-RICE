@@ -78,6 +78,31 @@ describe('expandPieces', () => {
       { setName: 'c', pieceName: 'd e' },
     ]);
   });
+
+  it('##주석##은 여러 줄·쉼표를 넘어 지우고 짝 없는 ##는 남겨', () => {
+    expect(expandPieces('smile, ##메모, 두 줄\n짜리## blush, ##x', sets).text).toBe(
+      'smile, blush, ##x',
+    );
+    const noted: PieceSet[] = [createPieceSet('s', [{ name: 'a', prompt: 'hat ##모자##' }])];
+    expect(expandPieces('<s.a>', noted).text).toBe('hat');
+  });
+
+  it('{a|b}는 seed로 하나를 고르고, | 없는 중괄호는 강조로 둬', () => {
+    expect(expandPieces('{jeans|black pants}, {{smile}}', sets).text).toBe('jeans, {{smile}}');
+    const picked = new Set<string>();
+    for (let seed = 0; seed < 40; seed += 1) {
+      const text = expandPieces('{jeans|black pants|skirt}', sets, seed).text;
+      expect(expandPieces('{jeans|black pants|skirt}', sets, seed).text).toBe(text);
+      picked.add(text);
+    }
+    expect([...picked].sort()).toEqual(['black pants', 'jeans', 'skirt']);
+  });
+
+  it('{a|b} 안의 중첩 후보와 강조, 조각도 풀어', () => {
+    expect(expandPieces('{{a|b}}', sets).text).toBe('{a}');
+    expect(expandPieces('{<에셋봇.eyes>|x}', sets).text).toBe('red eyes, slit pupils');
+    expect(expandPieces('{{c|d}, e|f}', sets).text).toBe('c, e');
+  });
 });
 
 describe('라이브러리와 함께', () => {

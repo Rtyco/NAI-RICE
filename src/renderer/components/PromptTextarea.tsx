@@ -254,7 +254,7 @@ function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
   if (caret === null) return matched;
   report.tokens.forEach((token, index) => {
     if (token.pair === undefined || (caret !== token.start && caret !== token.end)) return;
-    if (!['brace', 'bracket', 'weight', 'close-all'].includes(token.kind)) return;
+    if (!['brace', 'bracket', 'weight', 'close-all', 'choice'].includes(token.kind)) return;
     matched.add(index);
     matched.add(token.pair);
   });

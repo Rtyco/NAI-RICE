@@ -165,6 +165,15 @@ textarea.syntax-input::selection {
 .syn-interaction {
   color: var(--green-text);
 }
+/* 굵기·기울임은 글자 폭이 바뀌어 입력칸 글자와 어긋난다. 색만 바꾼다. */
+.syn-comment {
+  color: var(--faint);
+}
+.syn-choice {
+  color: var(--green-text);
+  background: var(--accent-a12);
+  border-radius: 3px;
+}
 .syn-pipe,
 .syn-warning {
   text-decoration: wavy underline var(--orange);

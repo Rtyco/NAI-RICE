@@ -37,6 +37,27 @@ describe('analyzePrompt', () => {
       'interaction',
     ]);
   });
+
+  it('##주석## 안은 분석하지 않아', () => {
+    const report = analyzePrompt('smile, ##{ 닫지 않은 메모 ##, blush');
+    expect(report.tokens.map((token) => token.kind)).toEqual(['comment']);
+    expect(report.issues).toEqual([]);
+  });
+
+  it('{a|b}는 후보 문법이라 경고하지 않고 강조로 세지 않아', () => {
+    const text = '{jeans|{black} pants}, smile';
+    const report = analyzePrompt(text);
+    expect(report.issues).toEqual([]);
+    expect(report.tokens.map((token) => token.kind)).toEqual([
+      'choice',
+      'choice',
+      'brace',
+      'brace',
+      'choice',
+    ]);
+    expect(weightAt(report, text.indexOf('jeans'))).toBe(1);
+    expect(messages('{a|b')).toEqual(['닫히지 않은 {']);
+  });
 });
 
 describe('weightAt', () => {

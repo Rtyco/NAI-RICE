@@ -5,10 +5,20 @@
  * - 숫자 없는 `::`는 열린 가중치와 괄호를 모두 닫는다.
  * - `|` 캐릭터 구분자는 캐릭터 프롬프트 칸과 함께 쓸 수 없다.
  * - `source#`·`target#`·`mutual#` 상호작용 태그, `<세트.조각>` 이 앱의 조각 참조.
+ * - SDStudio 문법: `##주석##`(보내기 전에 지운다), `{a|b}`(후보 하나를 고른다).
  */
 
 export type SyntaxKind =
-  'brace' | 'bracket' | 'weight' | 'close-all' | 'piece' | 'pipe' | 'interaction';
+  | 'brace'
+  | 'bracket'
+  | 'weight'
+  | 'close-all'
+  | 'piece'
+  | 'pipe'
+  | 'interaction'
+  | 'comment'
+  /** `{a|b}`의 중괄호와 `|`. 강조가 아니다. */
+  | 'choice';
 
 export type SyntaxToken = {
   kind: SyntaxKind;
@@ -39,7 +49,7 @@ const INTERACTION = /^(?:source|target|mutual)#/;
 
 const OPENERS: Record<string, 'brace' | 'bracket'> = { '{': 'brace', '[': 'bracket' };
 const CLOSERS: Record<string, 'brace' | 'bracket'> = { '}': 'brace', ']': 'bracket' };
-const LABEL = { brace: '{', bracket: '[' } as const;
+const LABEL = { brace: '{', choice: '{', bracket: '[' } as const;
 
 export function analyzePrompt(
   text: string,
@@ -55,6 +65,13 @@ export function analyzePrompt(
     const char = text[i];
     const rest = text.slice(i, i + 200);
     const wordStart = i === 0 || !/[\w.]/.test(text[i - 1]);
+
+    const commentEnd = char === '#' && text[i + 1] === '#' ? text.indexOf('##', i + 2) : -1;
+    if (commentEnd >= 0) {
+      push({ kind: 'comment', start: i, end: commentEnd + 2 });
+      i = commentEnd + 2;
+      continue;
+    }
 
     const piece = char === '<' ? PIECE.exec(rest) : null;
     if (piece) {
@@ -110,8 +127,10 @@ export function analyzePrompt(
     if (CLOSERS[char]) {
       const kind = CLOSERS[char];
       const top = stack.at(-1);
-      const index = push({ kind, start: i, end: i + 1 });
-      if (top !== undefined && tokens[top].kind === kind) {
+      const opener = top === undefined ? undefined : tokens[top].kind;
+      const choice = kind === 'brace' && opener === 'choice';
+      const index = push({ kind: choice ? 'choice' : kind, start: i, end: i + 1 });
+      if (top !== undefined && (opener === kind || choice)) {
         stack.pop();
         tokens[index].pair = top;
         tokens[index].depth = tokens[top].depth;
@@ -123,11 +142,19 @@ export function analyzePrompt(
           level: 'error',
           start: i,
           message:
-            open && (open.kind === 'brace' || open.kind === 'bracket')
-              ? `${char} 앞에 닫히지 않은 ${LABEL[open.kind]}`
+            open && open.kind in LABEL
+              ? `${char} 앞에 닫히지 않은 ${LABEL[open.kind as keyof typeof LABEL]}`
               : `짝이 없는 ${char}`,
         });
       }
+      i += 1;
+      continue;
+    }
+
+    const open = stack.at(-1);
+    if (char === '|' && open !== undefined && ['brace', 'choice'].includes(tokens[open].kind)) {
+      tokens[open].kind = 'choice';
+      push({ kind: 'choice', start: i, end: i + 1 });
       i += 1;
       continue;
     }
@@ -167,7 +194,7 @@ export function analyzePrompt(
       issues.push({
         level: 'error',
         start: token.start,
-        message: `닫히지 않은 ${LABEL[token.kind as 'brace' | 'bracket']}`,
+        message: `닫히지 않은 ${LABEL[token.kind as keyof typeof LABEL]}`,
       });
     }
   }
