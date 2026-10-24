@@ -268,6 +268,85 @@ function commonSize(emotions: Emotion[]): { width: number; height: number } | un
 const optionHasText = (option: SceneOption) =>
   Boolean(option.prompt || option.characterPrompts.some(Boolean));
 
+function convertScenes(
+  scenes: Json,
+  warnings: ImportWarning[],
+): { emotions: Emotion[]; size?: { width: number; height: number } } {
+  const emotions: Emotion[] = [];
+  const named = new Set<Emotion>();
+  for (const [sceneName, sceneValue] of Object.entries(scenes)) {
+    if (!isObject(sceneValue)) continue;
+    const emotion = convertScene(sceneName, sceneValue);
+    if (typeof sceneValue.resolution === 'string' && sceneValue.resolution !== 'custom')
+      named.add(emotion);
+    const options = (emotion.slots ?? []).flat();
+    // SDStudio가 새 프로젝트에 만들어 두는 빈 씬
+    if (sceneName === 'default' && !options.some(optionHasText) && !emotion.negative) continue;
+    if ((emotion.slots ?? []).some((slot) => !slot.some((option) => option.enabled))) {
+      warnings.push({
+        code: 'empty-prompt',
+        message: `${sceneName}: 켜진 후보가 없는 칸이 있어 SD Studio처럼 생성하지 않습니다.`,
+        path: `scenes.${sceneName}.slots`,
+      });
+    }
+    emotions.push(emotion);
+  }
+  const size = commonSize([...named]);
+  for (const emotion of named)
+    if (size && emotion.width === size.width && emotion.height === size.height) {
+      delete emotion.width;
+      delete emotion.height;
+    }
+  const solo = Object.values(scenes).filter(
+    (scene) =>
+      isObject(scene) &&
+      sceneRoles(scene).mode === 'scene' &&
+      objects(scene.sceneCharacterPrompts).length,
+  );
+  if (solo.length) {
+    warnings.push({
+      code: 'scene-characters-mixed',
+      message: `씬 전용 캐릭터를 쓰는 씬 ${solo.length}개는 캐릭터마다 씬 캐릭터 프롬프트를 덧붙이는 방식(역할 혼합)으로 가져왔습니다.`,
+      path: 'scenes',
+    });
+  }
+  return { emotions, size };
+}
+
+function convertCast(
+  preset: Json,
+  shared: Json,
+  projectName: string,
+): { characters: Character[]; slots: CharacterSlot[]; manual: boolean } {
+  const sources = orderedCharacters(preset, shared).filter((item) => text(item.prompt));
+  const characters = sources.map((item, index) => {
+    const name =
+      (typeof item.fromPreset === 'string' && item.fromPreset.trim()) ||
+      (typeof item.name === 'string' && item.name.trim()) ||
+      (sources.length > 1 ? `${projectName} ${index + 1}` : projectName);
+    return createCharacter(name, [
+      createPromptSet('기본', { positive: characterPrompt(item.prompt), negative: text(item.uc) }),
+    ]);
+  });
+  const manual = preset.useCoords === true;
+  const slots = characters.map((character, index): CharacterSlot => {
+    const position = sources[index].position;
+    const center =
+      manual &&
+      isObject(position) &&
+      typeof position.x === 'number' &&
+      typeof position.y === 'number'
+        ? { x: position.x, y: position.y }
+        : undefined;
+    return {
+      characterId: character.id,
+      promptSetId: character.promptSets[0].id,
+      ...(center ? { center } : {}),
+    };
+  });
+  return { characters, slots, manual };
+}
+
 export function isSDStudioProject(value: unknown): boolean {
   return sdStudioRootSchema.safeParse(value).success;
 }
@@ -299,44 +378,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   const selected = isObject(root.selectedWorkflow) ? root.selectedWorkflow : {};
   const extra = typeof root.extraPrompt === 'string' ? root.extraPrompt : '';
 
-  const emotions: Emotion[] = [];
-  const named = new Set<Emotion>();
-  for (const [sceneName, sceneValue] of Object.entries(root.scenes)) {
-    if (!isObject(sceneValue)) continue;
-    const emotion = convertScene(sceneName, sceneValue);
-    if (typeof sceneValue.resolution === 'string' && sceneValue.resolution !== 'custom')
-      named.add(emotion);
-    const options = (emotion.slots ?? []).flat();
-    // SDStudio가 새 프로젝트에 만들어 두는 빈 씬
-    if (sceneName === 'default' && !options.some(optionHasText) && !emotion.negative) continue;
-    if ((emotion.slots ?? []).some((slot) => !slot.some((option) => option.enabled))) {
-      warnings.push({
-        code: 'empty-prompt',
-        message: `${sceneName}: 켜진 후보가 없는 칸이 있어 SD Studio처럼 생성하지 않습니다.`,
-        path: `scenes.${sceneName}.slots`,
-      });
-    }
-    emotions.push(emotion);
-  }
-  const size = commonSize([...named]);
-  for (const emotion of named)
-    if (size && emotion.width === size.width && emotion.height === size.height) {
-      delete emotion.width;
-      delete emotion.height;
-    }
-  const solo = Object.entries(root.scenes).filter(
-    ([, scene]) =>
-      isObject(scene) &&
-      sceneRoles(scene).mode === 'scene' &&
-      objects(scene.sceneCharacterPrompts).length,
-  );
-  if (solo.length) {
-    warnings.push({
-      code: 'scene-characters-mixed',
-      message: `씬 전용 캐릭터를 쓰는 씬 ${solo.length}개는 캐릭터마다 씬 캐릭터 프롬프트를 덧붙이는 방식(역할 혼합)으로 가져왔습니다.`,
-      path: 'scenes',
-    });
-  }
+  const { emotions, size } = convertScenes(root.scenes, warnings);
   const emotionSet: EmotionSet = { id: newId(), name: `${root.name} 씬`, emotions };
 
   const sources = WORKFLOWS.flatMap((type) =>
@@ -365,40 +407,13 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   );
   const chosen = sources[chosenIndex];
   const shared = sharedOf(chosen.type);
-  const presetPath = `presets.${chosen.type}[${chosen.index}]`;
-
-  const castSources = orderedCharacters(chosen.source, shared).filter((item) => text(item.prompt));
-  const characters = castSources.map((item, index) => {
-    const name =
-      (typeof item.fromPreset === 'string' && item.fromPreset.trim()) ||
-      (typeof item.name === 'string' && item.name.trim()) ||
-      (castSources.length > 1 ? `${root.name} ${index + 1}` : root.name);
-    return createCharacter(name, [
-      createPromptSet('기본', { positive: characterPrompt(item.prompt), negative: text(item.uc) }),
-    ]);
-  });
-  const manual = chosen.source.useCoords === true;
-  const slots: CharacterSlot[] = characters.map((character, index) => {
-    const position = castSources[index].position;
-    const center =
-      manual &&
-      isObject(position) &&
-      typeof position.x === 'number' &&
-      typeof position.y === 'number'
-        ? { x: position.x, y: position.y }
-        : undefined;
-    return {
-      characterId: character.id,
-      promptSetId: character.promptSets[0].id,
-      ...(center ? { center } : {}),
-    };
-  });
+  const { characters, slots, manual } = convertCast(chosen.source, shared, root.name);
 
   if (!characters.length) {
     warnings.push({
       code: 'missing-character-positive',
       message: '켜진 캐릭터 프롬프트가 없어 캐릭터 없이 생성합니다.',
-      path: `${presetPath}.characterPrompts`,
+      path: `presets.${chosen.type}[${chosen.index}].characterPrompts`,
     });
   }
   if (several) {

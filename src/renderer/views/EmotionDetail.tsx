@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
-import { scenePosition } from '../../core/jobs/JobBuilder';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
-import { comboCount, findCombo } from '../../core/model/sceneCombos';
-import { SceneExtras, SceneSlotsEditor } from '../components/SceneSlotsEditor';
-import { usesMedium } from '../../core/providers/NaiModels';
+import { findCombo } from '../../core/model/sceneCombos';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
@@ -15,7 +12,7 @@ import { SidePanelLayout } from '../components/SidePanel';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
-import { Menu, NumberField } from '../components/ui';
+import { Menu } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { openDirectorToolDialog } from '../generationOps';
 import { sendToFreeImg2Img } from '../freeImageOps';
@@ -32,13 +29,9 @@ import {
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { fileApi } from '../desktop';
-import { ScenePromptFields } from '../components/ScenePromptFields';
 import { sceneOrder } from '../sceneSearch';
 import { ScenePicker } from '../components/ScenePicker';
-
-type SideView = 'scene' | 'combos';
-// 씬을 넘겨도 보던 쪽을 유지한다(이번 실행 동안).
-let lastSideView: SideView = 'scene';
+import { DetailSidePanel } from './detail/DetailSidePanel';
 
 export function EmotionDetail({
   resolved,
@@ -50,26 +43,9 @@ export function EmotionDetail({
   const { project } = resolved;
   const set = resolved.emotionSet!;
   const exportQuality = useStore((state) => state.library!.settings.export.quality);
-  const sharedCount = useStore(
-    (state) => state.library!.projects.filter((item) => item.emotionSetId === set.id).length,
-  );
   const allRecords = useStore((state) => state.generations[project.id]);
-  const onCharacter =
-    resolved.preset &&
-    scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
-      'character-end';
-  const sceneSide = !onCharacter
-    ? undefined
-    : resolved.characters.length > 1
-      ? '첫 캐릭터'
-      : '캐릭터';
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
-  const [sideView, setSideView] = useState(lastSideView);
-  const showSide = (view: SideView) => {
-    lastSideView = view;
-    setSideView(view);
-  };
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
   const topShown = useLayout(topBarShownOf);
   const favoriteId = project.favorites[emotion.id];
@@ -86,7 +62,6 @@ export function EmotionDetail({
   const index = order.findIndex((item) => item.id === emotion.id);
   const previous = order[index - 1];
   const next = order[index + 1];
-  const excluded = project.excludedEmotionIds.includes(emotion.id);
   const sceneJobs = queue.jobs.filter(
     (job) => job.projectId === project.id && job.emotionId === emotion.id,
   );
@@ -182,93 +157,14 @@ export function EmotionDetail({
   };
 
   const sidePanel = (
-    <>
-      <label className="stack-field">
-        씬 이름
-        <input
-          value={emotion.name}
-          onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })}
-        />
-      </label>
-      <div className="segmented full" role="group" aria-label="편집할 프롬프트">
-        <button className={sideView === 'scene' ? 'active' : ''} onClick={() => showSide('scene')}>
-          씬 프롬프트
-        </button>
-        <button
-          className={sideView === 'combos' ? 'active blue' : ''}
-          onClick={() => showSide('combos')}
-        >
-          조합 프롬프트{emotion.slots?.length ? ` · ${comboCount(emotion)}` : ''}
-        </button>
-      </div>
-      {sideView === 'scene' ? (
-        <>
-          <ScenePromptFields
-            emotion={emotion}
-            names={resolved.characters.map((item) => item.character.name)}
-            firstOnCommon={!sceneSide}
-            firstPlacement={
-              sceneSide
-                ? `${sceneSide} 프롬프트 뒤에 붙습니다`
-                : resolved.preset?.generation.emotionPosition === 'common-marker'
-                  ? '공통 포지티브의 | 자리에 들어갑니다'
-                  : '공통 포지티브 뒤에 붙습니다'
-            }
-            negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
-            negativeHint={
-              resolved.preset && usesMedium(resolved.preset.generation)
-                ? 'Medium에서는 쓰이지 않음'
-                : undefined
-            }
-            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-          />
-          <SceneExtras
-            emotion={emotion}
-            txt2img={project.mode === 'txt2img'}
-            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-          />
-        </>
-      ) : (
-        <SceneSlotsEditor
-          emotion={emotion}
-          names={resolved.characters.map((item) => item.character.name)}
-          onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-        />
-      )}
-      {sharedCount > 1 && (
-        <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>
-      )}
-      <label className="toggle-field">
-        <input
-          type="checkbox"
-          checked={!excluded}
-          disabled={!hasScenePrompt(emotion)}
-          onChange={(event) =>
-            updateProject(project.id, (current) => ({
-              ...current,
-              excludedEmotionIds: event.target.checked
-                ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
-                : [...current.excludedEmotionIds, emotion.id],
-            }))
-          }
-        />
-        <span>일괄 생성에 포함 (이 작업만)</span>
-      </label>
-
-      <div className="generate-dock">
-        <NumberField
-          label="생성 수"
-          value={variants}
-          min={1}
-          max={20}
-          integer
-          onChange={setVariants}
-        />
-        <button className="generate-button" disabled={!canGenerate} onClick={generate}>
-          ▶ {variants * comboCount(emotion)}장 생성
-        </button>
-      </div>
-    </>
+    <DetailSidePanel
+      resolved={resolved}
+      emotion={emotion}
+      variants={variants}
+      setVariants={setVariants}
+      canGenerate={canGenerate}
+      generate={generate}
+    />
   );
 
   return (

@@ -38,6 +38,132 @@ function EmotionSummary({ emotion, onOpen }: { emotion: Emotion; onOpen: () => v
   );
 }
 
+function EmotionRow({
+  emotion,
+  index,
+  last,
+  collapsed,
+  opened,
+  toggle,
+  openExtra,
+  save,
+}: {
+  emotion: Emotion;
+  index: number;
+  last: boolean;
+  collapsed: boolean;
+  opened: number;
+  toggle: (open?: boolean) => void;
+  openExtra: () => void;
+  save: (recipe: (item: EmotionSet) => EmotionSet) => void;
+}) {
+  const patch = (value: Partial<Omit<Emotion, 'id'>>) =>
+    save((item) => updateEmotion(item, emotion.id, value));
+  return (
+    <div
+      className={`piece-row emotion-row ${collapsed ? 'collapsed' : ''}`}
+      data-row-id={emotion.id}
+    >
+      <div className="piece-row-head">
+        <button
+          className="icon-button emotion-fold"
+          aria-expanded={!collapsed}
+          title={collapsed ? '펼치기' : '접기'}
+          onClick={() => toggle()}
+        >
+          <Icon name="chevron" size={14} className="section-chevron" />
+        </button>
+        <span className="row-index">{index + 1}</span>
+        <input
+          className="emotion-name-input"
+          value={emotion.name}
+          aria-label="씬 이름"
+          onChange={(event) => patch({ name: event.target.value })}
+        />
+        {collapsed && <EmotionSummary emotion={emotion} onOpen={() => toggle(true)} />}
+        <div className="row-actions">
+          <button
+            className="icon-button"
+            title="다음 캐릭터의 씬 프롬프트 칸 추가"
+            onClick={() => {
+              toggle(true);
+              openExtra();
+            }}
+          >
+            ＋
+          </button>
+          <ExpandTextButton
+            title={`${emotion.name || '씬'} 프롬프트`}
+            value={emotion.prompt}
+            placeholder="씬 프롬프트"
+            onApply={(prompt) => patch({ prompt })}
+          />
+          <button
+            className="icon-button"
+            disabled={index === 0}
+            title="위로"
+            onClick={() => save((item) => moveEmotion(item, emotion.id, index - 1))}
+          >
+            ↑
+          </button>
+          <button
+            className="icon-button"
+            disabled={last}
+            title="아래로"
+            onClick={() => save((item) => moveEmotion(item, emotion.id, index + 1))}
+          >
+            ↓
+          </button>
+          <button
+            className="icon-button danger"
+            title="삭제"
+            onClick={() => save((item) => removeEmotion(item, emotion.id))}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      {!collapsed && (
+        <div className="emotion-prompts">
+          <PromptTextarea
+            rows={3}
+            value={emotion.prompt}
+            aria-label={`${emotion.name} 프롬프트`}
+            placeholder="씬 프롬프트"
+            onChange={(prompt) => patch({ prompt })}
+          />
+          {Array.from(
+            { length: Math.max(emotion.extraPrompts?.length ?? 0, opened) },
+            (_, extra) => (
+              <div className="emotion-extra-prompt" key={extra}>
+                <span>캐릭터 {extra + 2}</span>
+                <PromptTextarea
+                  rows={2}
+                  value={emotion.extraPrompts?.[extra] ?? ''}
+                  aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
+                  placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
+                  onChange={(prompt) => patch(withExtraPrompt(emotion, extra, prompt))}
+                />
+              </div>
+            ),
+          )}
+          <div className="emotion-extra-prompt negative-field">
+            <span>네거티브</span>
+            <PromptTextarea
+              rows={2}
+              value={emotion.negative ?? ''}
+              aria-label={`${emotion.name} 씬 네거티브`}
+              placeholder="이 씬에서만 뺄 태그"
+              onChange={(negative) => patch({ negative: negative || undefined })}
+            />
+          </div>
+          <SceneSlotsEditor emotion={emotion} names={[]} foldable onChange={patch} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const library = useLibrary();
   const save = (recipe: (item: EmotionSet) => EmotionSet) =>
@@ -109,143 +235,23 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
         {set.emotions.map(
           (emotion, index) =>
             matchesScene(emotion, query) && (
-              <div
-                className={`piece-row emotion-row ${collapsed.has(emotion.id) ? 'collapsed' : ''}`}
+              <EmotionRow
                 key={emotion.id}
-                data-row-id={emotion.id}
-              >
-                <div className="piece-row-head">
-                  <button
-                    className="icon-button emotion-fold"
-                    aria-expanded={!collapsed.has(emotion.id)}
-                    title={collapsed.has(emotion.id) ? '펼치기' : '접기'}
-                    onClick={() => toggle(emotion.id)}
-                  >
-                    <Icon name="chevron" size={14} className="section-chevron" />
-                  </button>
-                  <span className="row-index">{index + 1}</span>
-                  <input
-                    className="emotion-name-input"
-                    value={emotion.name}
-                    aria-label="씬 이름"
-                    onChange={(event) =>
-                      save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
-                    }
-                  />
-                  {collapsed.has(emotion.id) && (
-                    <EmotionSummary emotion={emotion} onOpen={() => toggle(emotion.id, true)} />
-                  )}
-                  <div className="row-actions">
-                    <button
-                      className="icon-button"
-                      title="다음 캐릭터의 씬 프롬프트 칸 추가"
-                      onClick={() => {
-                        toggle(emotion.id, true);
-                        setOpened((current) => ({
-                          ...current,
-                          [emotion.id]:
-                            Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) +
-                            1,
-                        }));
-                      }}
-                    >
-                      ＋
-                    </button>
-                    <ExpandTextButton
-                      title={`${emotion.name || '씬'} 프롬프트`}
-                      value={emotion.prompt}
-                      placeholder="씬 프롬프트"
-                      onApply={(prompt) =>
-                        save((item) => updateEmotion(item, emotion.id, { prompt }))
-                      }
-                    />
-                    <button
-                      className="icon-button"
-                      disabled={index === 0}
-                      title="위로"
-                      onClick={() => save((item) => moveEmotion(item, emotion.id, index - 1))}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="icon-button"
-                      disabled={index === set.emotions.length - 1}
-                      title="아래로"
-                      onClick={() => save((item) => moveEmotion(item, emotion.id, index + 1))}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      className="icon-button danger"
-                      title="삭제"
-                      onClick={() => save((item) => removeEmotion(item, emotion.id))}
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-                {!collapsed.has(emotion.id) && (
-                  <div className="emotion-prompts">
-                    <PromptTextarea
-                      rows={3}
-                      value={emotion.prompt}
-                      aria-label={`${emotion.name} 프롬프트`}
-                      placeholder="씬 프롬프트"
-                      onChange={(prompt) =>
-                        save((item) => updateEmotion(item, emotion.id, { prompt }))
-                      }
-                    />
-                    {Array.from(
-                      {
-                        length: Math.max(
-                          emotion.extraPrompts?.length ?? 0,
-                          opened[emotion.id] ?? 0,
-                        ),
-                      },
-                      (_, extra) => (
-                        <div className="emotion-extra-prompt" key={extra}>
-                          <span>캐릭터 {extra + 2}</span>
-                          <PromptTextarea
-                            rows={2}
-                            value={emotion.extraPrompts?.[extra] ?? ''}
-                            aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
-                            placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
-                            onChange={(prompt) =>
-                              save((item) =>
-                                updateEmotion(
-                                  item,
-                                  emotion.id,
-                                  withExtraPrompt(emotion, extra, prompt),
-                                ),
-                              )
-                            }
-                          />
-                        </div>
-                      ),
-                    )}
-                    <div className="emotion-extra-prompt negative-field">
-                      <span>네거티브</span>
-                      <PromptTextarea
-                        rows={2}
-                        value={emotion.negative ?? ''}
-                        aria-label={`${emotion.name} 씬 네거티브`}
-                        placeholder="이 씬에서만 뺄 태그"
-                        onChange={(negative) =>
-                          save((item) =>
-                            updateEmotion(item, emotion.id, { negative: negative || undefined }),
-                          )
-                        }
-                      />
-                    </div>
-                    <SceneSlotsEditor
-                      emotion={emotion}
-                      names={[]}
-                      foldable
-                      onChange={(patch) => save((item) => updateEmotion(item, emotion.id, patch))}
-                    />
-                  </div>
-                )}
-              </div>
+                emotion={emotion}
+                index={index}
+                last={index === set.emotions.length - 1}
+                collapsed={collapsed.has(emotion.id)}
+                opened={opened[emotion.id] ?? 0}
+                toggle={(open) => toggle(emotion.id, open)}
+                openExtra={() =>
+                  setOpened((current) => ({
+                    ...current,
+                    [emotion.id]:
+                      Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) + 1,
+                  }))
+                }
+                save={save}
+              />
             ),
         )}
         {!set.emotions.length && <p className="hint">씬이 없습니다.</p>}

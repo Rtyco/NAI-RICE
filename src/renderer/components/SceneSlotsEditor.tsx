@@ -34,6 +34,85 @@ const slotsSummary = (slots: SceneOption[][]) =>
     )
     .join('  ×  ');
 
+function SceneOptionRow({
+  option,
+  names,
+  characterCount,
+  open,
+  expand,
+  patch,
+  replace,
+  remove,
+}: {
+  option: SceneOption;
+  names: string[];
+  characterCount: number;
+  /** 빈 캐릭터 몫 칸까지 보인다. */
+  open: boolean;
+  expand: (open: boolean) => void;
+  patch: (patch: Partial<SceneOption>) => void;
+  replace: (next: SceneOption) => void;
+  remove: () => void;
+}) {
+  const filled = Array.from({ length: characterCount }, (_, index) => index).filter((index) =>
+    option.characterPrompts[index]?.trim(),
+  );
+  const shown = open ? Array.from({ length: characterCount }, (_, index) => index) : filled;
+  return (
+    <div className={`scene-option ${option.enabled ? '' : 'off'}`}>
+      <div className="scene-option-head">
+        <input
+          type="checkbox"
+          checked={option.enabled}
+          title="조합에 넣기"
+          onChange={(event) => patch({ enabled: event.target.checked })}
+        />
+        <input
+          className="scene-option-name"
+          value={option.name ?? ''}
+          placeholder="후보 이름"
+          aria-label="후보 이름"
+          onChange={(event) => patch({ name: event.target.value || undefined })}
+        />
+        {(open || filled.length < characterCount) && (
+          <button className="link-button" onClick={() => expand(!open)}>
+            {open ? '캐릭터 몫 접기' : '＋ 캐릭터 몫'}
+          </button>
+        )}
+        <button className="icon-button danger row-remove" title="후보 삭제" onClick={remove}>
+          ×
+        </button>
+      </div>
+      <PromptTextarea
+        rows={1}
+        value={option.prompt}
+        aria-label="후보 프롬프트"
+        placeholder="씬 프롬프트 자리에 붙음"
+        onChange={(prompt) => patch({ prompt })}
+      />
+      {shown.length > 0 && (
+        <div className="scene-option-chars">
+          {shown.map((index) => (
+            <div className="emotion-extra-prompt" key={index}>
+              <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
+              <PromptTextarea
+                rows={1}
+                value={option.characterPrompts[index] ?? ''}
+                aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
+                placeholder="이 캐릭터 프롬프트에 붙음"
+                onChange={(value) => {
+                  expand(true);
+                  replace(withCharacterPrompt(option, index, value));
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** SDStudio 조합 칸. 씬 모음은 여러 작업이 함께 써서 캐릭터 몫은 순서로 저장된다. */
 export function SceneSlotsEditor(props: {
   emotion: Emotion;
@@ -144,84 +223,25 @@ export function SceneSlotsEditor(props: {
               ×
             </button>
           </div>
-          {slot.map((option) => {
-            const open = expanded.has(option.id);
-            const filled = Array.from({ length: characterCount }, (_, index) => index).filter(
-              (index) => option.characterPrompts[index]?.trim(),
-            );
-            const shown = open
-              ? Array.from({ length: characterCount }, (_, index) => index)
-              : filled;
-            return (
-              <div className={`scene-option ${option.enabled ? '' : 'off'}`} key={option.id}>
-                <div className="scene-option-head">
-                  <input
-                    type="checkbox"
-                    checked={option.enabled}
-                    title="조합에 넣기"
-                    onChange={(event) =>
-                      patchOption(slotIndex, option.id, { enabled: event.target.checked })
-                    }
-                  />
-                  <input
-                    className="scene-option-name"
-                    value={option.name ?? ''}
-                    placeholder="후보 이름"
-                    aria-label="후보 이름"
-                    onChange={(event) =>
-                      patchOption(slotIndex, option.id, { name: event.target.value || undefined })
-                    }
-                  />
-                  {(open || filled.length < characterCount) && (
-                    <button className="link-button" onClick={() => expand(option.id, !open)}>
-                      {open ? '캐릭터 몫 접기' : '＋ 캐릭터 몫'}
-                    </button>
-                  )}
-                  <button
-                    className="icon-button danger row-remove"
-                    title="후보 삭제"
-                    onClick={() =>
-                      save(
-                        slots.map((item, index) =>
-                          index === slotIndex
-                            ? item.filter((entry) => entry.id !== option.id)
-                            : item,
-                        ),
-                      )
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-                <PromptTextarea
-                  rows={1}
-                  value={option.prompt}
-                  aria-label="후보 프롬프트"
-                  placeholder="씬 프롬프트 자리에 붙음"
-                  onChange={(prompt) => patchOption(slotIndex, option.id, { prompt })}
-                />
-                {shown.length > 0 && (
-                  <div className="scene-option-chars">
-                    {shown.map((index) => (
-                      <div className="emotion-extra-prompt" key={index}>
-                        <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
-                        <PromptTextarea
-                          rows={1}
-                          value={option.characterPrompts[index] ?? ''}
-                          aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
-                          placeholder="이 캐릭터 프롬프트에 붙음"
-                          onChange={(value) => {
-                            expand(option.id);
-                            setOption(slotIndex, withCharacterPrompt(option, index, value));
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {slot.map((option) => (
+            <SceneOptionRow
+              key={option.id}
+              option={option}
+              names={names}
+              characterCount={characterCount}
+              open={expanded.has(option.id)}
+              expand={(open) => expand(option.id, open)}
+              patch={(patch) => patchOption(slotIndex, option.id, patch)}
+              replace={(next) => setOption(slotIndex, next)}
+              remove={() =>
+                save(
+                  slots.map((item, index) =>
+                    index === slotIndex ? item.filter((entry) => entry.id !== option.id) : item,
+                  ),
+                )
+              }
+            />
+          ))}
           <button
             className="link-button scene-slot-add"
             onClick={() =>

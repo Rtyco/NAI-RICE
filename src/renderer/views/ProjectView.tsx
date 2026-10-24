@@ -11,7 +11,11 @@ import {
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
-import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
+import {
+  estimateJobAnlas,
+  generationCostWarnings,
+  type CostAccount,
+} from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
   maxCharactersFor,
@@ -321,6 +325,56 @@ export function PreviewDialog({
   );
 }
 
+/** 메인 프로세스가 큐에 넣을 때와 같은 식. 일반 생성은 씬 크기가 씬마다 다를 수 있다. */
+function batchCost(
+  resolved: ResolvedProject,
+  scenes: Emotion[],
+  aid: ReturnType<typeof projectAid>,
+  token: CostAccount,
+): { estimate?: number; reasons: string[] } {
+  const { project, preset, reference } = resolved;
+  const variants = preset?.generation.variantsPerEmotion ?? 1;
+  const generation = preset && effectiveGenerationSettings(preset.generation);
+  const costJob =
+    project.mode !== 'reference'
+      ? generation && {
+          kind: project.mode,
+          settings: generation,
+          canvasWidth: generation.width,
+          canvasHeight: generation.height,
+          aid,
+        }
+      : generation && reference?.image
+        ? {
+            settings: generation,
+            canvasWidth: reference.image.canvasWidth,
+            canvasHeight: reference.image.canvasHeight,
+            aid,
+          }
+        : undefined;
+  if (!costJob) return { reasons: [] };
+  const sceneCosts = scenes.map((emotion) => {
+    const size = project.mode === 'txt2img' && sceneSize(emotion, costJob.settings);
+    return {
+      job: size ? { ...costJob, canvasWidth: size.width, canvasHeight: size.height } : costJob,
+      images: comboCount(emotion) * variants,
+    };
+  });
+  const images = sceneCosts.reduce((total, item) => total + item.images, 0);
+  return {
+    estimate: images
+      ? sceneCosts.reduce(
+          (total, item) => total + estimateJobAnlas(item.job, token) * item.images,
+          0,
+        )
+      : undefined,
+    reasons: generationCostWarnings(
+      sceneCosts.length ? sceneCosts.map((item) => item.job) : [costJob],
+      token,
+    ),
+  };
+}
+
 export function ProjectView({ projectId }: { projectId: string }) {
   const resolved = useResolvedProject(projectId);
   const busy = useStore((state) => state.busy);
@@ -345,49 +399,12 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const scenes = emotionSet?.emotions.filter((emotion) => batch.includes(emotion.id)) ?? [];
   const combos = scenes.reduce((total, emotion) => total + comboCount(emotion), 0);
   const count = combos * (preset?.generation.variantsPerEmotion ?? 1);
-  // 메인 프로세스가 큐에 넣을 때와 같은 식
-  const generation = preset && effectiveGenerationSettings(preset.generation);
-  const aid = projectAid(aidSources, project);
-  const costJob =
-    project.mode !== 'reference'
-      ? generation && {
-          kind: project.mode,
-          settings: generation,
-          canvasWidth: generation.width,
-          canvasHeight: generation.height,
-          aid,
-        }
-      : generation && reference?.image
-        ? {
-            settings: generation,
-            canvasWidth: reference.image.canvasWidth,
-            canvasHeight: reference.image.canvasHeight,
-            aid,
-          }
-        : undefined;
-  // 일반 생성은 씬 크기가 씬마다 다를 수 있다.
-  const sceneCosts = costJob
-    ? scenes.map((emotion) => {
-        const size = project.mode === 'txt2img' && generation && sceneSize(emotion, generation);
-        return {
-          job: size ? { ...costJob, canvasWidth: size.width, canvasHeight: size.height } : costJob,
-          images: comboCount(emotion) * (preset?.generation.variantsPerEmotion ?? 1),
-        };
-      })
-    : [];
-  const estimate =
-    costJob && count
-      ? sceneCosts.reduce(
-          (total, item) => total + estimateJobAnlas(item.job, token) * item.images,
-          0,
-        )
-      : undefined;
-  const costReasons = costJob
-    ? generationCostWarnings(
-        sceneCosts.length ? sceneCosts.map((item) => item.job) : [costJob],
-        token,
-      )
-    : [];
+  const { estimate, reasons: costReasons } = batchCost(
+    resolved,
+    scenes,
+    projectAid(aidSources, project),
+    token,
+  );
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
   const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
   const generateTitle = resolved.missing.length
