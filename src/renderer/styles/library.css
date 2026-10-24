@@ -190,3 +190,7 @@
 .inset-label {
   color: var(--text-2);
 }
+/* 스크롤 영역의 padding만큼 아래에 붙어 그 틈으로 줄이 비쳤다. */
+.library-editor-body .card-head.sticky {
+  top: -12px;
+}

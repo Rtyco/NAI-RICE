@@ -10,6 +10,7 @@ import { pieceRef } from '../../../core/prompts/PromptPieces';
 import { PromptTextarea } from '../../components/PromptTextarea';
 import { ExpandTextButton } from '../../components/TextEditorDialog';
 import { Card } from '../../components/ui';
+import { revealRow } from '../../components/revealRow';
 import { toast, updateLibrary } from '../../store';
 
 async function copyText(text: string): Promise<void> {
@@ -24,11 +25,21 @@ async function copyText(text: string): Promise<void> {
 export function PieceSetEditor({ set }: { set: PieceSet }) {
   const save = (recipe: (item: PieceSet) => PieceSet) =>
     updateLibrary((current) => patchItem(current, 'pieceSets', set.id, recipe));
+  const add = () => {
+    let id = '';
+    save((item) => {
+      const added = addPiece(item);
+      id = added.piece.id;
+      return added.set;
+    });
+    revealRow(id);
+  };
   return (
     <Card
+      sticky
       title={`조각 (${set.pieces.length})`}
       actions={
-        <button className="accent" onClick={() => save((item) => addPiece(item).set)}>
+        <button className="accent" onClick={add}>
           ＋ 조각 추가
         </button>
       }
@@ -37,7 +48,7 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
         {set.pieces.map((piece) => {
           const ref = pieceRef(set.name.trim(), piece.name.trim());
           return (
-            <div className="piece-row" key={piece.id}>
+            <div className="piece-row" key={piece.id} data-row-id={piece.id}>
               <div className="piece-row-head">
                 <input
                   className="emotion-name-input"

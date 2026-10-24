@@ -2,7 +2,9 @@
 .gallery-view {
   height: 100%;
   overflow-y: auto;
-  padding: 14px 16px 24px;
+  padding: 0 16px 24px;
+  /* 고정 도구 줄에 가리지 않게 */
+  scroll-padding-top: 64px;
 }
 .toolbar {
   display: flex;

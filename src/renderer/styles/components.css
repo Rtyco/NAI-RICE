@@ -52,6 +52,15 @@
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
 }
+/* 입력칸(.syntax-editor)이 position: relative라 z-index가 있어야 그 위에 남는다. */
+.card-head.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  align-items: center;
+  border-radius: 10px 10px 0 0;
+  background: var(--bg-2);
+}
 .card-head > div:first-child {
   display: flex;
   flex-direction: column;

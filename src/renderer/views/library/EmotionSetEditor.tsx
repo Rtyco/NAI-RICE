@@ -14,6 +14,7 @@ import { toast, updateLibrary, useLibrary } from '../../store';
 import { PromptTextarea } from '../../components/PromptTextarea';
 import { ExpandTextButton } from '../../components/TextEditorDialog';
 import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
+import { revealRow } from '../../components/revealRow';
 
 export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const library = useLibrary();
@@ -22,8 +23,18 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const others = library.emotionSets.filter((item) => item.id !== set.id);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState<Record<string, number>>({});
+  const add = () => {
+    let id = '';
+    save((item) => {
+      const next = addEmotion(item);
+      id = next.emotions.at(-1)!.id;
+      return next;
+    });
+    revealRow(id);
+  };
   return (
     <Card
+      sticky
       title={`씬 (${set.emotions.length})`}
       actions={
         <>
@@ -39,7 +50,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
               }))}
             />
           )}
-          <button className="accent" onClick={() => save((item) => addEmotion(item))}>
+          <button className="accent" onClick={add}>
             ＋ 씬 추가
           </button>
         </>
@@ -47,7 +58,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
     >
       <div className="emotion-table">
         {set.emotions.map((emotion, index) => (
-          <div className="piece-row emotion-row" key={emotion.id}>
+          <div className="piece-row emotion-row" key={emotion.id} data-row-id={emotion.id}>
             <div className="piece-row-head">
               <span className="row-index">{index + 1}</span>
               <input

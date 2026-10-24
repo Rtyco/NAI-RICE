@@ -124,16 +124,19 @@ export function Card({
   title,
   subtitle,
   actions,
+  sticky,
   children,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** 긴 목록 카드: 스크롤해도 머리줄(추가 버튼)이 남는다. */
+  sticky?: boolean;
   children: ReactNode;
 }) {
   return (
     <section className="card">
-      <header className="card-head">
+      <header className={`card-head ${sticky ? 'sticky' : ''}`}>
         <div>
           <b>{title}</b>
           {subtitle && <small>{subtitle}</small>}

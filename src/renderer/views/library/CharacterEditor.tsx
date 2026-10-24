@@ -7,6 +7,7 @@ import {
   updatePromptSet,
 } from '../../../core/model/mutations';
 import { Card, Menu, PromptField } from '../../components/ui';
+import { revealRow } from '../../components/revealRow';
 import { updateLibrary } from '../../store';
 
 export function CharacterEditor({ character }: { character: Character }) {
@@ -16,10 +17,27 @@ export function CharacterEditor({ character }: { character: Character }) {
       const updated = next.characters.find((item) => item.id === character.id)!;
       return repairPromptSetRefs(next, updated);
     });
+  const add = (name?: string, values?: { positive?: string; negative?: string }) => {
+    let id = '';
+    save((item) => {
+      const added = addPromptSet(item, name, values);
+      id = added.setId;
+      return added.character;
+    });
+    revealRow(id);
+  };
   return (
-    <Card title="캐릭터 프롬프트 세트">
+    <Card
+      sticky
+      title="캐릭터 프롬프트 세트"
+      actions={
+        <button className="accent" onClick={() => add()}>
+          ＋ 프롬프트 세트 추가
+        </button>
+      }
+    >
       {character.promptSets.map((set, index) => (
-        <section className="prompt-set" key={set.id}>
+        <section className="prompt-set" key={set.id} data-row-id={set.id}>
           <div className="prompt-set-head">
             <input
               className="inline-name"
@@ -34,8 +52,7 @@ export function CharacterEditor({ character }: { character: Character }) {
               items={[
                 {
                   label: '이 세트 복제',
-                  onSelect: () =>
-                    save((item) => addPromptSet(item, `${set.name} 복사본`, set).character),
+                  onSelect: () => add(`${set.name} 복사본`, set),
                 },
                 {
                   label: '삭제',
@@ -65,9 +82,6 @@ export function CharacterEditor({ character }: { character: Character }) {
           </div>
         </section>
       ))}
-      <button onClick={() => save((item) => addPromptSet(item).character)}>
-        ＋ 프롬프트 세트 추가
-      </button>
     </Card>
   );
 }
