@@ -19,15 +19,15 @@ export function ContextMenuHost() {
     if (!menu) return;
     const close = (event: Event) => {
       if (event.type === 'keydown' && (event as KeyboardEvent).key !== 'Escape') return;
-      if (event.type === 'mousedown' && ref.current?.contains(event.target as Node)) return;
+      if (event.type === 'pointerdown' && ref.current?.contains(event.target as Node)) return;
       closeContextMenu();
     };
-    window.addEventListener('mousedown', close);
+    window.addEventListener('pointerdown', close);
     window.addEventListener('keydown', close);
     window.addEventListener('blur', close);
     window.addEventListener('wheel', close, { passive: true });
     return () => {
-      window.removeEventListener('mousedown', close);
+      window.removeEventListener('pointerdown', close);
       window.removeEventListener('keydown', close);
       window.removeEventListener('blur', close);
       window.removeEventListener('wheel', close);

@@ -136,7 +136,7 @@ function ChecklistPopover(props: {
   }, [anchor]);
 
   useEffect(() => {
-    const onDown = (event: MouseEvent) => {
+    const onDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (ref.current?.contains(target) || anchor.contains(target)) return;
       close();
@@ -146,12 +146,12 @@ function ChecklistPopover(props: {
       event.stopPropagation();
       close();
     };
-    window.addEventListener('mousedown', onDown);
+    window.addEventListener('pointerdown', onDown);
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', close);
     window.addEventListener('blur', close);
     return () => {
-      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('pointerdown', onDown);
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('resize', close);
       window.removeEventListener('blur', close);
