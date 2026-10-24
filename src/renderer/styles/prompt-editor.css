@@ -423,6 +423,38 @@ textarea.syntax-input::selection {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.scene-slot-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.scene-slot-tabs > button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 34px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.scene-slot-tabs small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.scene-slot-tabs > button.empty small {
+  color: var(--orange-text);
+}
+.scene-slot-tabs > button[aria-selected='true'] {
+  border-color: var(--accent);
+  background: var(--accent-a12);
+  color: var(--accent-text);
+}
+.scene-slot-tabs > .scene-slot-tab-add {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--muted);
+}
 /* 상자를 겹치지 않고 왼쪽 선 하나로 칸을 묶는다. */
 .scene-slot {
   display: flex;
@@ -452,20 +484,70 @@ textarea.syntax-input::selection {
   grid-template-columns: 16px minmax(0, 1fr);
   column-gap: 8px;
   row-gap: 4px;
-  padding: 6px 0;
+  padding: 4px 0;
+}
+.scene-option.open {
+  padding-bottom: 8px;
 }
 .scene-option + .scene-option {
   border-top: 1px solid var(--line);
 }
 .scene-option-head {
   grid-column: 1 / -1;
+  gap: 4px;
 }
 .scene-option > :not(.scene-option-head) {
   grid-column: 2;
 }
 .scene-option.off > :not(.scene-option-head),
-.scene-option.off .scene-option-name {
+.scene-option.off .scene-option-name,
+.scene-option.off .scene-option-toggle,
+.scene-option-table tr.off td:not(:first-child) {
   opacity: 0.5;
+}
+.scene-option-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+.scene-option:not(.open) .scene-option-toggle {
+  flex: 1;
+}
+.scene-option-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.scene-option-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.scene-option-toggle > b {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-option-toggle > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-option-toggle > small {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--muted);
+  font-size: 11px;
 }
 .scene-option-name {
   flex: 1;
@@ -485,12 +567,9 @@ textarea.syntax-input::selection {
   color: var(--faint);
   font-weight: 400;
 }
-.scene-option-head .link-button {
-  flex: none;
-  font-size: 11px;
-}
-.scene-slots .scene-option textarea {
-  min-height: 0;
+/* 후보 프롬프트는 짧아도 두 줄은 보인다(padding 7px·테두리 1px 위아래). */
+.scene-slots textarea {
+  min-height: calc(2lh + 16px);
   max-height: 160px;
   field-sizing: content;
 }
@@ -506,54 +585,58 @@ textarea.syntax-input::selection {
 }
 /* 지우기는 그 줄에 올렸을 때만 보인다. */
 .scene-slot-head .row-remove,
-.scene-option-head .row-remove {
+.scene-option-head .row-remove,
+.scene-option-table .row-remove {
   opacity: 0;
 }
 .scene-slot-head:is(:hover, :focus-within) .row-remove,
-.scene-option:is(:hover, :focus-within) .row-remove {
+.scene-option:is(:hover, :focus-within) .row-remove,
+.scene-option-table tr:is(:hover, :focus-within) .row-remove {
   opacity: 1;
 }
 .scene-slot-add {
   align-self: flex-start;
-  margin-left: 24px;
+  margin-left: 18px;
   font-size: 12px;
 }
-/* 넓으면 후보 하나를 한 줄(이름 | 프롬프트)로 놓아 표처럼 위아래를 비교한다. */
-@container (min-width: 600px) {
-  .scene-option {
-    grid-template-columns: 16px 140px minmax(0, 1fr) 80px auto;
-    align-items: start;
-  }
-  .scene-option-head {
-    display: contents;
-  }
-  .scene-option-head > input[type='checkbox'] {
-    grid-column: 1;
-    grid-row: 1;
-    margin-top: 8px;
-  }
-  .scene-option-name {
-    grid-column: 2;
-    grid-row: 1;
-    margin-top: 3px;
-  }
-  .scene-option > .syntax-field {
-    grid-column: 3;
-    grid-row: 1;
-  }
-  .scene-option-head .link-button {
-    grid-column: 4;
-    grid-row: 1;
-    justify-self: start;
-    margin-top: 7px;
-  }
-  .scene-option-head .row-remove {
-    grid-column: 5;
-    grid-row: 1;
-  }
-  .scene-option > .scene-option-chars {
-    grid-column: 3;
-  }
+.scene-option-table-wrap {
+  overflow-x: auto;
+}
+.scene-option-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.scene-option-table col.check {
+  width: 24px;
+}
+.scene-option-table col.name {
+  width: 120px;
+}
+.scene-option-table col.remove {
+  width: 30px;
+}
+.scene-option-table th {
+  padding: 2px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+}
+.scene-option-table td {
+  padding: 3px 2px;
+  vertical-align: top;
+}
+.scene-option-table tbody tr + tr td {
+  border-top: 1px solid var(--line);
+}
+.scene-option-table td:first-child {
+  padding-top: 9px;
+  text-align: center;
+}
+.scene-option-table .scene-option-name {
+  margin-top: 4px;
 }
 .scene-extras {
   display: grid;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
 import { withPromptAt } from '../../core/model/mutations';
@@ -27,86 +27,188 @@ const slotsSummary = (slots: SceneOption[][]) =>
     )
     .join('  ×  ');
 
-function SceneOptionRow({
-  option,
-  names,
-  characterCount,
-  open,
-  expand,
-  patch,
-  replace,
-  remove,
-}: {
+type OptionProps = {
   option: SceneOption;
   names: string[];
   characterCount: number;
-  /** 빈 캐릭터 몫 칸까지 보인다. */
-  open: boolean;
-  expand: (open: boolean) => void;
   patch: (patch: Partial<SceneOption>) => void;
-  replace: (next: SceneOption) => void;
+  setCharacterPrompt: (index: number, value: string) => void;
   remove: () => void;
-}) {
-  const filled = Array.from({ length: characterCount }, (_, index) => index).filter((index) =>
-    option.characterPrompts[index]?.trim(),
-  );
-  const shown = open ? Array.from({ length: characterCount }, (_, index) => index) : filled;
+};
+
+const characterName = (names: string[], index: number) => names[index] ?? `캐릭터 ${index + 1}`;
+
+function OptionCheck({ option, patch }: Pick<OptionProps, 'option' | 'patch'>) {
   return (
-    <div className={`scene-option ${option.enabled ? '' : 'off'}`}>
+    <input
+      type="checkbox"
+      checked={option.enabled}
+      title="조합에 넣기"
+      onChange={(event) => patch({ enabled: event.target.checked })}
+    />
+  );
+}
+
+function OptionName({ option, patch }: Pick<OptionProps, 'option' | 'patch'>) {
+  return (
+    <input
+      className="scene-option-name"
+      value={option.name ?? ''}
+      placeholder="후보 이름"
+      aria-label="후보 이름"
+      onChange={(event) => patch({ name: event.target.value || undefined })}
+    />
+  );
+}
+
+function RemoveOption({ remove }: Pick<OptionProps, 'remove'>) {
+  return (
+    <button className="icon-button danger row-remove" title="후보 삭제" onClick={remove}>
+      ×
+    </button>
+  );
+}
+
+/** 한 번에 하나만 펼쳐, 접힌 후보는 한 줄 요약이다. */
+function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => void }) {
+  const { option, names, characterCount, open } = props;
+  const filled = option.characterPrompts.filter((prompt) => prompt.trim()).length;
+  const name = option.name?.trim();
+  return (
+    <div className={`scene-option ${option.enabled ? '' : 'off'} ${open ? 'open' : ''}`}>
       <div className="scene-option-head">
-        <input
-          type="checkbox"
-          checked={option.enabled}
-          title="조합에 넣기"
-          onChange={(event) => patch({ enabled: event.target.checked })}
-        />
-        <input
-          className="scene-option-name"
-          value={option.name ?? ''}
-          placeholder="후보 이름"
-          aria-label="후보 이름"
-          onChange={(event) => patch({ name: event.target.value || undefined })}
-        />
-        {(open || filled.length < characterCount) && (
-          <button className="link-button" onClick={() => expand(!open)}>
-            {open ? '캐릭터 몫 접기' : '＋ 캐릭터 몫'}
-          </button>
-        )}
-        <button className="icon-button danger row-remove" title="후보 삭제" onClick={remove}>
-          ×
+        <OptionCheck option={option} patch={props.patch} />
+        <button
+          className="scene-option-toggle"
+          aria-expanded={open}
+          title={open ? '접기' : '펼치기'}
+          onClick={props.toggle}
+        >
+          <Icon name="chevron" size={12} className="section-chevron" />
+          {!open && (
+            <>
+              {name && <b>{name}</b>}
+              <span>{option.prompt.trim() || (name ? '' : '(빈 후보)')}</span>
+              {filled > 0 && <small>+{filled}</small>}
+            </>
+          )}
         </button>
+        {open && <OptionName option={option} patch={props.patch} />}
+        <RemoveOption remove={props.remove} />
       </div>
-      <PromptTextarea
-        rows={1}
-        value={option.prompt}
-        aria-label="후보 프롬프트"
-        placeholder="씬 프롬프트 자리에 붙음"
-        onChange={(prompt) => patch({ prompt })}
-      />
-      {shown.length > 0 && (
-        <div className="scene-option-chars">
-          {shown.map((index) => (
-            <div className="emotion-extra-prompt" key={index}>
-              <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
-              <PromptTextarea
-                rows={1}
-                value={option.characterPrompts[index] ?? ''}
-                aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
-                placeholder="이 캐릭터 프롬프트에 붙음"
-                onChange={(value) => {
-                  expand(true);
-                  replace({
-                    ...option,
-                    characterPrompts: withPromptAt(option.characterPrompts, index, value),
-                  });
-                }}
-              />
+      {open && (
+        <>
+          <PromptTextarea
+            rows={2}
+            value={option.prompt}
+            aria-label="후보 프롬프트"
+            placeholder="씬 프롬프트 자리에 붙음"
+            onChange={(prompt) => props.patch({ prompt })}
+          />
+          {characterCount > 0 && (
+            <div className="scene-option-chars">
+              {Array.from({ length: characterCount }, (_, index) => (
+                <div className="emotion-extra-prompt" key={index}>
+                  <span>{characterName(names, index)}</span>
+                  <PromptTextarea
+                    rows={2}
+                    value={option.characterPrompts[index] ?? ''}
+                    aria-label={`${characterName(names, index)} 몫`}
+                    placeholder="이 캐릭터 프롬프트에 붙음"
+                    onChange={(value) => props.setCharacterPrompt(index, value)}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
+}
+
+/** 넓은 화면: 후보는 행, 씬 자리와 캐릭터 몫은 열. */
+function SceneOptionTable(props: {
+  slot: SceneOption[];
+  names: string[];
+  characterCount: number;
+  option: (option: SceneOption) => OptionProps;
+}) {
+  const characters = Array.from({ length: props.characterCount }, (_, index) => index);
+  return (
+    <div className="scene-option-table-wrap">
+      <table className="scene-option-table">
+        <colgroup>
+          <col className="check" />
+          <col className="name" />
+          <col />
+          {characters.map((index) => (
+            <col key={index} />
+          ))}
+          <col className="remove" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th />
+            <th>이름</th>
+            <th>씬 자리</th>
+            {characters.map((index) => (
+              <th key={index}>{characterName(props.names, index)}</th>
+            ))}
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {props.slot.map((option) => {
+            const row = props.option(option);
+            return (
+              <tr key={option.id} className={option.enabled ? '' : 'off'}>
+                <td>
+                  <OptionCheck option={option} patch={row.patch} />
+                </td>
+                <td>
+                  <OptionName option={option} patch={row.patch} />
+                </td>
+                <td>
+                  <PromptTextarea
+                    rows={2}
+                    value={option.prompt}
+                    aria-label="후보 프롬프트"
+                    onChange={(prompt) => row.patch({ prompt })}
+                  />
+                </td>
+                {characters.map((index) => (
+                  <td key={index}>
+                    <PromptTextarea
+                      rows={2}
+                      value={option.characterPrompts[index] ?? ''}
+                      aria-label={`${characterName(props.names, index)} 몫`}
+                      onChange={(value) => row.setCharacterPrompt(index, value)}
+                    />
+                  </td>
+                ))}
+                <td>
+                  <RemoveOption remove={row.remove} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** ↑↓로 접힌 후보 사이를 옮긴다. */
+function moveBetweenOptions(event: KeyboardEvent<HTMLElement>) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+  const target = event.target as HTMLElement;
+  if (!target.matches('.scene-option-toggle')) return;
+  const toggles = [...event.currentTarget.querySelectorAll<HTMLElement>('.scene-option-toggle')];
+  const next = toggles[toggles.indexOf(target) + (event.key === 'ArrowDown' ? 1 : -1)];
+  if (!next) return;
+  event.preventDefault();
+  next.focus();
 }
 
 /** SDStudio 조합 칸. 씬 모음은 여러 작업이 함께 써서 캐릭터 몫은 순서로 저장된다. */
@@ -114,7 +216,7 @@ export function SceneSlotsEditor(props: {
   emotion: Emotion;
   /** 작업의 캐릭터 이름. 라이브러리에서는 비었다. */
   names: string[];
-  /** 접힌 한 줄로 시작한다. */
+  /** 접힌 한 줄로 시작하고, 후보를 표로 보인다. */
   foldable?: boolean;
   onChange: (patch: Pick<Emotion, 'slots'>) => void;
 }) {
@@ -123,35 +225,47 @@ export function SceneSlotsEditor(props: {
   const [open, setOpen] = useState(!props.foldable);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
-  // 펼친 후보는 고치는 중에 몫을 비워도 그 칸이 남는다.
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const expand = (id: string, open = true) =>
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (open) next.add(id);
-      else next.delete(id);
-      return next;
-    });
+  const [tab, setTab] = useState(0);
+  const [openId, setOpenId] = useState<string>();
+  const slotIndex = Math.min(tab, slots.length - 1);
+  const slot = slots[slotIndex] ?? [];
   const used = Math.max(0, ...slots.flat().map((option) => option.characterPrompts.length));
   const characterCount = Math.max(names.length, used, opened);
   const count = comboCount(emotion);
   const total = <b>조합 {count > MAX_COMBOS ? `${MAX_COMBOS}개 넘음` : `${count}개`}</b>;
 
   const save = (next: SceneOption[][]) => props.onChange({ slots: next.length ? next : undefined });
-  const patchOption = (slotIndex: number, optionId: string, patch: Partial<SceneOption>) =>
-    save(
-      slots.map((slot, index) =>
-        index === slotIndex
-          ? slot.map((option) => (option.id === optionId ? { ...option, ...patch } : option))
-          : slot,
+  const saveSlot = (recipe: (slot: SceneOption[]) => SceneOption[]) =>
+    save(slots.map((item, index) => (index === slotIndex ? recipe(item) : item)));
+  const optionProps = (option: SceneOption): OptionProps => ({
+    option,
+    names,
+    characterCount,
+    patch: (patch) =>
+      saveSlot((item) =>
+        item.map((entry) => (entry.id === option.id ? { ...entry, ...patch } : entry)),
       ),
-    );
-  const setOption = (slotIndex: number, next: SceneOption) =>
-    save(
-      slots.map((slot, index) =>
-        index === slotIndex ? slot.map((option) => (option.id === next.id ? next : option)) : slot,
+    setCharacterPrompt: (index, value) =>
+      saveSlot((item) =>
+        item.map((entry) =>
+          entry.id === option.id
+            ? { ...entry, characterPrompts: withPromptAt(entry.characterPrompts, index, value) }
+            : entry,
+        ),
       ),
-    );
+    remove: () => saveSlot((item) => item.filter((entry) => entry.id !== option.id)),
+  });
+  const addOption = () => {
+    const option = newOption();
+    setOpenId(option.id);
+    saveSlot((item) => [...item, option]);
+  };
+  const addSlot = () => {
+    const option = newOption();
+    setTab(slots.length);
+    setOpenId(option.id);
+    save([...slots, [option]]);
+  };
   const removeCharacter = async () => {
     const index = characterCount - 1;
     const filled = slots.flat().filter((option) => option.characterPrompts[index]?.trim()).length;
@@ -166,8 +280,8 @@ export function SceneSlotsEditor(props: {
     if (!ok) return;
     setOpened(index);
     save(
-      slots.map((slot) =>
-        slot.map((option) => ({
+      slots.map((item) =>
+        item.map((option) => ({
           ...option,
           characterPrompts: withPromptAt(option.characterPrompts, index, ''),
         })),
@@ -181,7 +295,7 @@ export function SceneSlotsEditor(props: {
         className="scene-slots-add"
         onClick={() => {
           setOpen(true);
-          save([[newOption()]]);
+          addSlot();
         }}
       >
         ＋ 조합 칸
@@ -214,10 +328,7 @@ export function SceneSlotsEditor(props: {
         <button
           className="link-button"
           title="다음 캐릭터 몫 칸 추가"
-          onClick={() => {
-            setOpened(characterCount + 1);
-            setExpanded(new Set(slots.flat().map((option) => option.id)));
-          }}
+          onClick={() => setOpened(characterCount + 1)}
         >
           ＋ 캐릭터
         </button>
@@ -231,59 +342,65 @@ export function SceneSlotsEditor(props: {
           </button>
         )}
       </div>
-      {slots.map((slot, slotIndex) => (
-        <section className="scene-slot" key={slotIndex}>
-          <div className="scene-slot-head">
-            <b>칸 {slotIndex + 1}</b>
-            {enabledCount(slot) ? (
-              <small>
-                켜짐 {enabledCount(slot)}/{slot.length}
-              </small>
-            ) : (
-              <em className="scene-slot-empty">켜진 후보가 없어 생성되지 않음</em>
-            )}
-            <button
-              className="icon-button danger row-remove"
-              title="칸 삭제"
-              onClick={() => save(slots.filter((_, index) => index !== slotIndex))}
-            >
-              ×
-            </button>
-          </div>
-          {slot.map((option) => (
-            <SceneOptionRow
-              key={option.id}
-              option={option}
-              names={names}
-              characterCount={characterCount}
-              open={expanded.has(option.id)}
-              expand={(open) => expand(option.id, open)}
-              patch={(patch) => patchOption(slotIndex, option.id, patch)}
-              replace={(next) => setOption(slotIndex, next)}
-              remove={() =>
-                save(
-                  slots.map((item, index) =>
-                    index === slotIndex ? item.filter((entry) => entry.id !== option.id) : item,
-                  ),
-                )
-              }
-            />
-          ))}
+      <div className="scene-slot-tabs" role="tablist" aria-label="조합 칸">
+        {slots.map((item, index) => (
           <button
-            className="link-button scene-slot-add"
-            onClick={() =>
-              save(
-                slots.map((item, index) => (index === slotIndex ? [...item, newOption()] : item)),
-              )
-            }
+            key={index}
+            role="tab"
+            aria-selected={index === slotIndex}
+            className={enabledCount(item) ? '' : 'empty'}
+            title={`칸 ${index + 1}`}
+            onClick={() => setTab(index)}
           >
-            ＋ 후보
+            {index + 1}
+            <small>{enabledCount(item)}</small>
           </button>
-        </section>
-      ))}
-      <button className="scene-slots-add" onClick={() => save([...slots, [newOption()]])}>
-        ＋ 칸
-      </button>
+        ))}
+        <button className="scene-slot-tab-add" title="칸 추가" onClick={addSlot}>
+          ＋
+        </button>
+      </div>
+      <section className="scene-slot" role="tabpanel">
+        <div className="scene-slot-head">
+          <b>칸 {slotIndex + 1}</b>
+          {enabledCount(slot) ? (
+            <small>
+              켜짐 {enabledCount(slot)}/{slot.length}
+            </small>
+          ) : (
+            <em className="scene-slot-empty">켜진 후보가 없어 생성되지 않음</em>
+          )}
+          <button
+            className="icon-button danger row-remove"
+            title="칸 삭제"
+            onClick={() => save(slots.filter((_, index) => index !== slotIndex))}
+          >
+            ×
+          </button>
+        </div>
+        {props.foldable ? (
+          <SceneOptionTable
+            slot={slot}
+            names={names}
+            characterCount={characterCount}
+            option={optionProps}
+          />
+        ) : (
+          <div className="scene-option-list" onKeyDown={moveBetweenOptions}>
+            {slot.map((option) => (
+              <SceneOptionItem
+                key={option.id}
+                {...optionProps(option)}
+                open={openId === option.id}
+                toggle={() => setOpenId(openId === option.id ? undefined : option.id)}
+              />
+            ))}
+          </div>
+        )}
+        <button className="link-button scene-slot-add" onClick={addOption}>
+          ＋ 후보
+        </button>
+      </section>
     </div>
   );
 }
