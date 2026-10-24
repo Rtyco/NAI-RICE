@@ -1,4 +1,5 @@
 import type { Emotion, SceneOption } from '../domain/types';
+import { stripComments } from '../prompts/PromptPieces';
 
 export type SceneCombo = {
   /** 칸 순서대로 고른 후보 ID를 `+`로 이었다. 조합 칸이 없으면 빈 값. */
@@ -20,7 +21,7 @@ export function optionLabel(option: SceneOption): string {
   const name = option.name?.trim();
   if (name) return name;
   const text = [option.prompt, ...option.characterPrompts]
-    .map((prompt) => prompt.trim())
+    .map((prompt) => stripComments(prompt).trim())
     .find(Boolean);
   return text ? (text.length > 24 ? `${text.slice(0, 24)}…` : text) : '(빈 후보)';
 }

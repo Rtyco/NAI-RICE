@@ -136,6 +136,12 @@ export function RecordInfo({
       </dd>
       <dt>씬 프롬프트</dt>
       <dd className="mono">{record.emotionPrompt || '—'}</dd>
+      {record.comboName && (
+        <>
+          <dt>조합 후보</dt>
+          <dd>{record.comboName}</dd>
+        </>
+      )}
       {record.emotionNegative && (
         <>
           <dt>씬 네거티브</dt>

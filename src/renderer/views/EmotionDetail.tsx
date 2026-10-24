@@ -4,6 +4,7 @@ import { scenePosition } from '../../core/jobs/JobBuilder';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { comboCount, findCombo } from '../../core/model/sceneCombos';
+import { SceneSlotsEditor } from '../components/SceneSlotsEditor';
 import { usesMedium } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
@@ -178,6 +179,7 @@ export function EmotionDetail({
       <ScenePromptFields
         emotion={emotion}
         names={resolved.characters.map((item) => item.character.name)}
+        firstOnCommon={!sceneSide}
         firstPlacement={
           sceneSide
             ? `${sceneSide} 프롬프트 뒤에 붙습니다`
@@ -191,6 +193,11 @@ export function EmotionDetail({
             ? 'Medium에서는 쓰이지 않음'
             : undefined
         }
+        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+      />
+      <SceneSlotsEditor
+        emotion={emotion}
+        names={resolved.characters.map((item) => item.character.name)}
         onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
       />
       {sharedCount > 1 && (

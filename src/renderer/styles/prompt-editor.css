@@ -285,6 +285,71 @@ textarea.syntax-input::selection {
   color: var(--muted);
   font-size: 11px;
 }
+
+/* ── 씬 조합 칸 ─────────────────────────────── */
+.scene-slots-add {
+  align-self: flex-start;
+  font-size: 12px;
+}
+.scene-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.scene-slots-head,
+.scene-slot-head,
+.scene-option-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.scene-slots-head > span {
+  flex: 1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.scene-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+.scene-slot-head > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.scene-slot-head .link-button {
+  margin-left: auto;
+  font-size: 12px;
+}
+.scene-slot-empty {
+  color: var(--orange-text);
+  font-size: 11px;
+  font-style: normal;
+}
+.scene-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 5px;
+  background: var(--bg-3);
+}
+.scene-option.off {
+  opacity: 0.55;
+}
+.scene-option-name {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+}
 .prompt-panel-order {
   display: inline-grid;
   place-items: center;

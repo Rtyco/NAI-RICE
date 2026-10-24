@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Character, CharacterPromptSet, EmotionSet, PieceSet } from '../domain/types';
+import type { Character, CharacterPromptSet, Emotion, EmotionSet, PieceSet } from '../domain/types';
 import { createCharacter, createPromptSet, newId } from '../model/defaults';
 import { pieceRefsIn } from '../prompts/PromptPieces';
 
@@ -21,29 +21,47 @@ function uniqueKey(name: string, taken: Set<string>): string {
   return key;
 }
 
+function sceneTexts(emotion: Emotion): string[] {
+  return [
+    emotion.prompt,
+    ...(emotion.extraPrompts ?? []),
+    ...(emotion.slots ?? [])
+      .flat()
+      .flatMap((option) => [option.prompt, ...option.characterPrompts]),
+  ];
+}
+
 /**
- * SDStudio 「현재 프로젝트에 씬만 불러오기」로 읽히는 프로젝트 파일. 씬 프롬프트는 캐릭터마다
- * `characterPrompts[j]`에 넣는다. `presetShareds`가 없으면 SDStudio가 읽다가 멈춘다.
+ * SDStudio 「현재 프로젝트에 씬만 불러오기」로 읽히는 프로젝트 파일. 고정 씬 프롬프트는 맨 앞 칸에
+ * 캐릭터마다 `characterPrompts[j]`로 넣고(캐릭터 프롬프트 끝이 기본 위치라서), 조합 칸은 그대로 옮긴다.
+ * `presetShareds`가 없으면 SDStudio가 읽다가 멈춘다.
  */
 export function exportSDStudioScenes(set: EmotionSet, pieceSets: PieceSet[]): SDStudioSceneFile {
   const taken = new Set<string>();
   const scenes: Record<string, unknown> = {};
   for (const emotion of set.emotions) {
     const name = uniqueKey(emotion.name, taken);
+    const fixed = [emotion.prompt, ...(emotion.extraPrompts ?? [])];
+    const slots = (emotion.slots ?? []).map((slot) =>
+      slot.map(({ name: optionName, prompt, characterPrompts, enabled }) => ({
+        id: newId(),
+        ...(optionName ? { name: optionName } : {}),
+        prompt,
+        characterPrompts,
+        enabled,
+      })),
+    );
     scenes[name] = {
       type: 'scene',
       name,
       resolution: 'portrait',
       slots: [
-        [
-          {
-            id: newId(),
-            prompt: '',
-            characterPrompts: [emotion.prompt, ...(emotion.extraPrompts ?? [])],
-            enabled: true,
-          },
-        ],
+        ...(fixed.some((text) => text.trim()) || !slots.length
+          ? [[{ id: newId(), prompt: '', characterPrompts: fixed, enabled: true }]]
+          : []),
+        ...slots,
       ],
+      ...(emotion.negative?.trim() ? { sceneUC: emotion.negative } : {}),
       meta: {},
       imageMap: [],
       mains: [],
@@ -51,9 +69,7 @@ export function exportSDStudioScenes(set: EmotionSet, pieceSets: PieceSet[]): SD
   }
   const used = new Set(
     set.emotions.flatMap((emotion) =>
-      [emotion.prompt, ...(emotion.extraPrompts ?? [])].flatMap((text) =>
-        pieceRefsIn(text).map((ref) => ref.setName),
-      ),
+      sceneTexts(emotion).flatMap((text) => pieceRefsIn(text).map((ref) => ref.setName)),
     ),
   );
   const library = Object.fromEntries(

@@ -10,7 +10,7 @@ import {
   projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
-import { comboCount } from '../../core/model/sceneCombos';
+import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
@@ -223,6 +223,9 @@ export function PreviewDialog({
   const emotions = resolved.emotionSet?.emotions ?? [];
   const [emotionId, setEmotionId] = useState(emotions[0]?.id ?? '');
   const emotion = emotions.find((item) => item.id === emotionId);
+  const [comboKey, setComboKey] = useState('');
+  const combos = emotion ? sceneCombos(emotion) : [];
+  const combo = combos.find((item) => item.key === comboKey) ?? combos[0];
   if (!resolved.preset || !resolved.promptSet) {
     return (
       <Modal title="최종 요청 미리보기" onClose={close}>
@@ -233,7 +236,7 @@ export function PreviewDialog({
   const prompts = composeRequestPrompts(
     resolved.preset,
     resolved.characters.map((item) => item.promptSet),
-    emotion,
+    emotion && comboPrompts(emotion, combo),
     { sets: library.pieceSets },
     generationKindFor(resolved.project.mode),
   );
@@ -254,6 +257,18 @@ export function PreviewDialog({
           ))}
         </select>
       </label>
+      {Boolean(emotion?.slots?.length) && (
+        <label className="stack-field">
+          조합 ({combos.length})
+          <select value={combo?.key ?? ''} onChange={(event) => setComboKey(event.target.value)}>
+            {combos.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="two-column">
         <div className="prompt-preview">
           <span>공통 포지티브 (품질 태그 포함)</span>

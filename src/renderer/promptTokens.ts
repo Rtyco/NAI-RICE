@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Library, PieceSet } from '../core/domain/types';
 import { composeRequestPrompts, freePromptPreset } from '../core/jobs/JobBuilder';
+import { comboPrompts, sceneCombos } from '../core/model/sceneCombos';
 import {
   effectiveGenerationSettings,
   generationKindFor,
@@ -127,7 +128,13 @@ export function projectTokenScenes(resolved: ResolvedProject, pieceSets: PieceSe
     name: emotion?.name,
     texts: requestPromptTexts(
       model,
-      composeRequestPrompts(preset, promptSets, emotion, { sets: pieceSets }, kind),
+      composeRequestPrompts(
+        preset,
+        promptSets,
+        emotion && comboPrompts(emotion, sceneCombos(emotion)[0]),
+        { sets: pieceSets },
+        kind,
+      ),
     ),
   }));
 }

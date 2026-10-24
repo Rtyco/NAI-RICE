@@ -56,6 +56,65 @@ describe('SDStudio 호환 내보내기', () => {
     ]);
   });
 
+  it('조합 칸·씬 네거티브를 그대로 내보내고 다시 읽으면 같은 조합이 나와', () => {
+    const combos: EmotionSet = {
+      id: 'c',
+      name: '조합',
+      emotions: [
+        {
+          id: 'x',
+          name: '외출',
+          prompt: '',
+          negative: 'rain',
+          slots: [
+            [
+              {
+                id: 'o1',
+                name: '카페',
+                prompt: 'cafe, <포즈.손>',
+                characterPrompts: [],
+                enabled: true,
+              },
+              { id: 'o2', prompt: 'park', characterPrompts: ['', 'wave'], enabled: false },
+            ],
+            [{ id: 'o3', prompt: 'sitting', characterPrompts: ['smile'], enabled: true }],
+          ],
+        },
+      ],
+    };
+    const pieces = [createPieceSet('포즈', [{ name: '손', prompt: 'hand up' }])];
+    const file = exportEmotionSet(combos, pieces) as Record<string, any>;
+    expect(file.scenes['외출'].sceneUC).toBe('rain');
+    expect(file.scenes['외출'].slots).toHaveLength(2);
+    expect(file.scenes['외출'].slots[0][0]).toMatchObject({
+      name: '카페',
+      prompt: 'cafe, <포즈.손>',
+    });
+    expect(Object.keys(file.library)).toEqual(['포즈']);
+    const [back] = parseImportFile(JSON.stringify(file), 'c.json', PRESET_ID).emotionSets[0]
+      .emotions;
+    expect(back.negative).toBe('rain');
+    expect(
+      back.slots!.map((slot) =>
+        slot.map(({ name, prompt, characterPrompts, enabled }) => ({
+          name,
+          prompt,
+          characterPrompts,
+          enabled,
+        })),
+      ),
+    ).toEqual(
+      combos.emotions[0].slots!.map((slot) =>
+        slot.map(({ name, prompt, characterPrompts, enabled }) => ({
+          name,
+          prompt,
+          characterPrompts,
+          enabled,
+        })),
+      ),
+    );
+  });
+
   it('캐릭터는 프롬프트 세트마다 SDStudio 캐릭터 프리셋이 되고 다시 읽으면 한 캐릭터로 묶여', () => {
     const character = createCharacter('리나', [
       createPromptSet('교복', { positive: '1girl, uniform', negative: 'hat' }),

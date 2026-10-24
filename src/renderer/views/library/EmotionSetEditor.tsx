@@ -13,6 +13,7 @@ import { Card, Menu } from '../../components/ui';
 import { toast, updateLibrary, useLibrary } from '../../store';
 import { PromptTextarea } from '../../components/PromptTextarea';
 import { ExpandTextButton } from '../../components/TextEditorDialog';
+import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
 
 export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   const library = useLibrary();
@@ -145,6 +146,11 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                   }
                 />
               </div>
+              <SceneSlotsEditor
+                emotion={emotion}
+                names={[]}
+                onChange={(patch) => save((item) => updateEmotion(item, emotion.id, patch))}
+              />
             </div>
           </div>
         ))}
