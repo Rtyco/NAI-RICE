@@ -35,6 +35,8 @@ export type SidebarSection = 'projects' | 'library';
 
 export type ResultRef = { projectId: string; id: string };
 
+export type DetailSideView = 'scene' | 'combos';
+
 export type StoreState = {
   ready: boolean;
   root: string;
@@ -52,6 +54,10 @@ export type StoreState = {
   galleryAspect: GalleryAspect;
   /** 작업 ID → 갤러리 씬 이름 검색어. 씬 상세의 이전·다음도 따른다. 이번 실행 동안만. */
   sceneQueries: Record<string, string>;
+  /** 씬 상세 오른쪽 패널이 보여 주는 쪽. 씬을 넘겨도 유지한다(이번 실행 동안). */
+  detailSideView: DetailSideView;
+  /** 작업 ID → 갤러리 scrollTop. 씬 상세를 열면 갤러리가 내려가 위치가 버려진다. */
+  galleryScrollTops: Record<string, number>;
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
@@ -150,6 +156,8 @@ export const useStore = create<StoreState>(() => ({
     'portrait',
   ),
   sceneQueries: {},
+  detailSideView: 'scene',
+  galleryScrollTops: {},
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -459,6 +467,14 @@ export function setSceneQuery(projectId: string, query: string): void {
 
 export const sceneQueryOf = (projectId: string) => (state: StoreState) =>
   state.sceneQueries[projectId] ?? '';
+
+export function setDetailSideView(view: DetailSideView): void {
+  set({ detailSideView: view });
+}
+
+export function saveGalleryScroll(projectId: string, top: number): void {
+  set((state) => ({ galleryScrollTops: { ...state.galleryScrollTops, [projectId]: top } }));
+}
 
 export function requestResult(request: ResultRef | undefined): void {
   set({ resultRequest: request });

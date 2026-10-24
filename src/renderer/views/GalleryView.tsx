@@ -42,6 +42,7 @@ import {
   openEmotion,
   openLibrary,
   projectMedia,
+  saveGalleryScroll,
   sceneQueryOf,
   setGalleryAspect,
   setGalleryColumns,
@@ -66,8 +67,6 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
 const DRAG_TYPE = 'application/x-emotion';
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
-/** 작업 ID → scrollTop. 씬 상세를 열면 갤러리가 내려가 위치가 버려진다. */
-const scrollTops = new Map<string, number>();
 
 /** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
@@ -287,14 +286,14 @@ export function GalleryView({
   useLayoutEffect(() => {
     const element = scroller.current;
     if (!element) return;
-    element.scrollTop = scrollTops.get(project.id) ?? 0;
+    element.scrollTop = useStore.getState().galleryScrollTops[project.id] ?? 0;
     const last = useStore.getState().lastEmotionId;
     if (last)
       element
         .querySelector(`[data-select-id="${CSS.escape(last)}"]`)
         ?.scrollIntoView({ block: 'nearest' });
     // 레이아웃 정리는 요소를 떼기 전에 돌아 아직 scrollTop을 읽을 수 있다.
-    return () => void scrollTops.set(project.id, element.scrollTop);
+    return () => saveGalleryScroll(project.id, element.scrollTop);
   }, [project.id, scroller]);
 
   if (!emotionSet) {

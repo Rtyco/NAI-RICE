@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { Emotion } from '../../../core/domain/types';
 import { scenePosition } from '../../../core/jobs/JobBuilder';
 import { hasScenePrompt, type ResolvedProject } from '../../../core/model/defaults';
@@ -9,11 +8,7 @@ import { ScenePromptFields } from '../../components/ScenePromptFields';
 import { SceneExtras, SceneSlotsEditor } from '../../components/SceneSlotsEditor';
 import { NumberField } from '../../components/ui';
 import { patchEmotion } from '../../emotionOps';
-import { updateProject, useStore } from '../../store';
-
-type SideView = 'scene' | 'combos';
-// 씬을 넘겨도 보던 쪽을 유지한다(이번 실행 동안).
-let lastSideView: SideView = 'scene';
+import { setDetailSideView, updateProject, useStore } from '../../store';
 
 export function DetailSidePanel({
   resolved,
@@ -38,11 +33,7 @@ export function DetailSidePanel({
   const sharedCount = useStore(
     (state) => state.library!.projects.filter((item) => item.emotionSetId === set.id).length,
   );
-  const [sideView, setSideView] = useState(lastSideView);
-  const showSide = (view: SideView) => {
-    lastSideView = view;
-    setSideView(view);
-  };
+  const sideView = useStore((state) => state.detailSideView);
   const onCharacter =
     resolved.preset &&
     scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
@@ -63,12 +54,15 @@ export function DetailSidePanel({
         <input value={emotion.name} onChange={(event) => patch({ name: event.target.value })} />
       </label>
       <div className="segmented full" role="group" aria-label="편집할 프롬프트">
-        <button className={sideView === 'scene' ? 'active' : ''} onClick={() => showSide('scene')}>
+        <button
+          className={sideView === 'scene' ? 'active' : ''}
+          onClick={() => setDetailSideView('scene')}
+        >
           씬 프롬프트
         </button>
         <button
           className={sideView === 'combos' ? 'active blue' : ''}
-          onClick={() => showSide('combos')}
+          onClick={() => setDetailSideView('combos')}
         >
           조합 프롬프트{emotion.slots?.length ? ` · ${comboCount(emotion)}` : ''}
         </button>
