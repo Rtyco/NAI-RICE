@@ -26,12 +26,14 @@ import {
   run,
   toast,
   updateProject,
+  sceneQueryOf,
   useStore,
 } from '../store';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { fileApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
+import { sceneOrder } from '../sceneSearch';
 
 export function EmotionDetail({
   resolved,
@@ -69,9 +71,11 @@ export function EmotionDetail({
 
   const browser = useResultBrowser(project.id, records, { preferredId: favoriteId, saveAs });
   const { selected, setSelectedId, picking } = browser;
-  const index = set.emotions.findIndex((item) => item.id === emotion.id);
-  const previous = set.emotions[index - 1];
-  const next = set.emotions[index + 1];
+  const query = useStore(sceneQueryOf(project.id));
+  const order = sceneOrder(set.emotions, query, emotion.id);
+  const index = order.findIndex((item) => item.id === emotion.id);
+  const previous = order[index - 1];
+  const next = order[index + 1];
   const excluded = project.excludedEmotionIds.includes(emotion.id);
   const sceneJobs = queue.jobs.filter(
     (job) => job.projectId === project.id && job.emotionId === emotion.id,
@@ -273,8 +277,11 @@ export function EmotionDetail({
         >
           ‹ {previous?.name ?? '이전'}
         </button>
-        <span className="detail-position">
-          {index + 1} / {set.emotions.length}
+        <span
+          className="detail-position"
+          title={order === set.emotions ? undefined : `씬 이름 검색 「${query.trim()}」 결과`}
+        >
+          {index + 1} / {order.length}
         </span>
         <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
           {next?.name ?? '다음'} ›

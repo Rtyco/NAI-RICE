@@ -125,3 +125,45 @@
   margin-right: 6px;
   background: var(--line);
 }
+
+/* ── 씬 검색 ───────────────────────────────── */
+/* 남는 폭만큼 늘고, 140px도 없으면 보기 단추가 다음 줄로 간다. */
+.scene-search-zone {
+  flex: 1 1 140px;
+  max-width: 240px;
+}
+.scene-search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  color: var(--muted);
+}
+.scene-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-a12);
+}
+.scene-search input,
+.scene-search input:focus {
+  flex: 1;
+  width: 0;
+  min-width: 40px;
+  padding: 5px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.scene-search small {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.card-head .scene-search {
+  flex: none;
+  width: 220px;
+}

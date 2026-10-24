@@ -50,6 +50,8 @@ export type StoreState = {
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
   galleryAspect: GalleryAspect;
+  /** 작업 ID → 갤러리 씬 이름 검색어. 씬 상세의 이전·다음도 따른다. 이번 실행 동안만. */
+  sceneQueries: Record<string, string>;
   /** 히스토리에서 고른 결과. 그 결과를 가진 결과 화면이 보여 주고 지운다. */
   resultRequest?: ResultRef;
   /** 결과 화면(씬 상세·자유 생성)이 지금 보여 주는 결과 */
@@ -147,6 +149,7 @@ export const useStore = create<StoreState>(() => ({
     (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
     'portrait',
   ),
+  sceneQueries: {},
   foldedFolders: readStringList(FOLDED_FOLDERS_KEY),
   foldedPromptGroups: readStringList(FOLDED_PROMPT_GROUPS_KEY),
   generations: {},
@@ -449,6 +452,13 @@ export function setGalleryAspect(aspect: GalleryAspect): void {
   set({ galleryAspect: aspect });
   saveUiState(GALLERY_ASPECT_KEY, aspect);
 }
+
+export function setSceneQuery(projectId: string, query: string): void {
+  set((state) => ({ sceneQueries: { ...state.sceneQueries, [projectId]: query } }));
+}
+
+export const sceneQueryOf = (projectId: string) => (state: StoreState) =>
+  state.sceneQueries[projectId] ?? '';
 
 export function requestResult(request: ResultRef | undefined): void {
   set({ resultRequest: request });

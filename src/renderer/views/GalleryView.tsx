@@ -36,12 +36,16 @@ import {
   openEmotion,
   openLibrary,
   projectMedia,
+  sceneQueryOf,
   setGalleryAspect,
   setGalleryColumns,
+  setSceneQuery,
   updateProject,
   useStore,
 } from '../store';
 import { StreamPreview } from '../components/StreamPreview';
+import { SceneSearch } from '../components/SceneSearch';
+import { matchesScene } from '../sceneSearch';
 
 function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null {
   if (jobs.some((job) => job.status === 'generating')) return { label: '생성 중', tone: 'busy' };
@@ -193,7 +197,12 @@ export function GalleryView({
   const columns = useStore((state) => state.galleryColumns);
   const aspect = useStore((state) => state.galleryAspect);
   const lastEmotionId = useStore((state) => state.lastEmotionId);
-  const emotions = emotionSet?.emotions ?? [];
+  const query = useStore(sceneQueryOf(project.id));
+  const allEmotions = emotionSet?.emotions ?? [];
+  // 고르기·끌기·모두 고르기는 보이는 씬만 대상으로 한다.
+  const emotions = query.trim()
+    ? allEmotions.filter((emotion) => matchesScene(emotion, query))
+    : allEmotions;
   const recordsByEmotion = useMemo(() => {
     const groups = new Map<string, GenerationSummary[]>();
     for (const record of records ?? []) {
@@ -355,6 +364,15 @@ export function GalleryView({
           </section>
         )}
 
+        <section className="toolbar-zone scene-search-zone" aria-label="씬 검색">
+          <SceneSearch
+            value={query}
+            found={emotions.length}
+            total={allEmotions.length}
+            onChange={(value) => setSceneQuery(project.id, value)}
+          />
+        </section>
+
         <section className="toolbar-zone view-zone" aria-label="보기">
           <button
             className="with-icon"
@@ -421,6 +439,9 @@ export function GalleryView({
         {generate}
       </BottomSlot>
       {!records && <p className="hint">생성 기록을 불러오는 중…</p>}
+      {!emotions.length && query.trim() && (
+        <p className="hint">「{query.trim()}」 검색 결과가 없습니다.</p>
+      )}
       <div
         className="emotion-grid"
         style={
@@ -430,7 +451,7 @@ export function GalleryView({
           } as CSSProperties
         }
       >
-        {emotionSet.emotions.map((emotion) => (
+        {emotions.map((emotion) => (
           <EmotionCard
             key={emotion.id}
             projectId={project.id}

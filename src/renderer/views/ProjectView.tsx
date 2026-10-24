@@ -43,6 +43,7 @@ import { queueBarShownOf, topBarShownOf, useLayout } from '../layout';
 import {
   openEmotion,
   referenceMedia,
+  sceneQueryOf,
   updateLibrary,
   updateProject,
   useLibrary,
@@ -52,6 +53,7 @@ import {
 import { EmotionDetail } from './EmotionDetail';
 import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
+import { sceneOrder } from '../sceneSearch';
 
 const MODES: Record<ProjectMode, ModeInfo> = {
   reference: { label: '인페인트', icon: 'reference' },
@@ -180,7 +182,17 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
 }
 
 /** 설정 줄을 접은 씬 상세에서 씬 이동 줄 대신 쓴다. */
-function SceneNav({ emotions, current }: { emotions: Emotion[]; current: string }) {
+function SceneNav({
+  emotions: all,
+  projectId,
+  current,
+}: {
+  emotions: Emotion[];
+  projectId: string;
+  current: string;
+}) {
+  const query = useStore(sceneQueryOf(projectId));
+  const emotions = sceneOrder(all, query, current);
   const index = emotions.findIndex((item) => item.id === current);
   const previous = emotions[index - 1];
   const next = emotions[index + 1];
@@ -197,7 +209,10 @@ function SceneNav({ emotions, current }: { emotions: Emotion[]; current: string 
       >
         <Icon name="chevron-left" size={16} />
       </button>
-      <span className="detail-position">
+      <span
+        className="detail-position"
+        title={emotions === all ? undefined : `씬 이름 검색 「${query.trim()}」 결과`}
+      >
         {index + 1} / {emotions.length}
       </span>
       <button
@@ -402,7 +417,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
         <ModeSwitch project={project} />
         {!topShown && <ChainBar resolved={resolved} compact />}
         {!topShown && detail && emotionSet && (
-          <SceneNav emotions={emotionSet.emotions} current={detail.id} />
+          <SceneNav emotions={emotionSet.emotions} projectId={project.id} current={detail.id} />
         )}
         <div className="header-spacer" />
         <AccountMeter />
