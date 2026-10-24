@@ -263,12 +263,12 @@ describe('buildJobs', () => {
     const alone = composeRequestPrompts(preset, [], scene);
     expect(alone.negativePrompt).toBe('lowres, open mouth');
 
-    preset.generation = { ...preset.generation, emotionPosition: 'common-end' };
+    preset.generation = { ...preset.generation, emotionPosition: 'middle' };
     const common = composeRequestPrompts(preset, [promptSet], scene);
     expect(common.negativePrompt).toBe('lowres, open mouth');
     expect(common.characterNegativePrompt).toBe('bad hands');
 
-    for (const emotionPosition of ['character-end', 'common-end'] as const) {
+    for (const emotionPosition of ['character-end', 'middle'] as const) {
       preset.generation = {
         ...preset.generation,
         model: 'nai-diffusion-5-full-inpainting',
@@ -530,12 +530,13 @@ describe('여러 캐릭터', () => {
 });
 
 describe('SDStudio | 자리와 여러 캐릭터', () => {
-  it('공통 | 자리에 씬을 넣고 씬 네거티브는 공통 쪽, 둘째 캐릭터는 자기 | 자리에 받아', () => {
+  it('상위 | 자리에 씬을 넣고 씬 네거티브는 공통 쪽, 둘째 캐릭터는 자기 | 자리에 받아', () => {
     const preset = createPreset('p', {
-      commonPositive: '2girls, |, masterpiece',
+      commonPositive: '2girls, |',
+      backPositive: 'masterpiece',
       commonNegative: 'lowres',
     });
-    preset.generation = { ...preset.generation, emotionPosition: 'common-marker' };
+    preset.generation = { ...preset.generation, emotionPosition: 'middle' };
     const first = createPromptSet('a', { positive: 'girl, red hair', negative: '' });
     const second = createPromptSet('b', { positive: 'girl, |, black hair', negative: '' });
     const scene = { prompt: 'cafe', extraPrompts: ['waving'], negative: 'rain' };

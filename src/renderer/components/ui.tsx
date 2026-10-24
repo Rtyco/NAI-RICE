@@ -85,6 +85,7 @@ export function PromptField(props: {
   rows: number;
   placeholder?: string;
   counter?: boolean;
+  markers?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
@@ -109,6 +110,7 @@ export function PromptField(props: {
         rows={props.rows}
         value={props.value}
         placeholder={props.placeholder}
+        markers={props.markers}
         onChange={props.onChange}
       />
       {props.counter !== false && (

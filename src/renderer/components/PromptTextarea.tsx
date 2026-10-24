@@ -24,6 +24,8 @@ import { searchTags, warmTagIndex } from '../tagDictionary';
 type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
   value: string;
   onChange: (value: string) => void;
+  /** false면 `|` 자리를 채우지 않는 칸이라 보내지 않는 글자로 보인다. */
+  markers?: boolean;
 };
 
 /** 배경 레이어가 따라 해야 하는 스타일 */
@@ -262,7 +264,15 @@ function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
 }
 
 /** 글자는 뒤의 레이어가 그리고 textarea는 글자를 투명하게 해 커서·선택만 보인다. */
-export function PromptTextarea({ value, onChange, className, onScroll, onSelect, ...rest }: Props) {
+export function PromptTextarea({
+  value,
+  onChange,
+  markers = true,
+  className,
+  onScroll,
+  onSelect,
+  ...rest
+}: Props) {
   const pieceSets = useStore((state) => state.library!.pieceSets);
   const autocomplete = useStore((state) => state.library!.settings.tagAutocomplete);
   const area = useRef<HTMLTextAreaElement>(null);
@@ -352,17 +362,20 @@ export function PromptTextarea({ value, onChange, className, onScroll, onSelect,
     rest.onKeyDown?.(event);
   };
 
-  const report = useMemo(
-    () =>
-      analyzePrompt(value, (setName, pieceName) =>
-        pieceSets.some(
-          (set) =>
-            set.name.trim() === setName &&
-            set.pieces.some((piece) => piece.name.trim() === pieceName),
-        ),
+  const report = useMemo(() => {
+    const result = analyzePrompt(value, (setName, pieceName) =>
+      pieceSets.some(
+        (set) =>
+          set.name.trim() === setName &&
+          set.pieces.some((piece) => piece.name.trim() === pieceName),
       ),
-    [value, pieceSets],
-  );
+    );
+    if (markers) return result;
+    const tokens = result.tokens.map((token) =>
+      token.kind === 'marker' ? { ...token, kind: 'comment' as const } : token,
+    );
+    return { ...result, tokens };
+  }, [value, pieceSets, markers]);
   const marks = useMemo(
     () => (findText ? findRanges(value, { text: findText, wholeTag }) : []),
     [value, findText, wholeTag],

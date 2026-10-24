@@ -247,7 +247,7 @@ export function PreviewDialog({
     resolved.preset,
     resolved.characters.map((item) => item.promptSet),
     emotion && comboPrompts(emotion, combo),
-    { sets: library.pieceSets },
+    { sets: library.pieceSets, extraPrompt: resolved.project.extraPrompt },
     generationKindFor(resolved.project.mode),
   );
   return (

@@ -6,8 +6,7 @@ import { PROMPT_POSITIONS } from '../../promptPositions';
 import { updateFreeGeneration } from '../../store';
 
 const SHORT_LABELS: Record<EmotionPosition, string> = {
-  'common-end': '공통 끝',
-  'common-marker': '공통 | 자리',
+  middle: '중간',
   'character-end': '캐릭터 끝',
 };
 
@@ -53,7 +52,7 @@ export function FreePromptFields(props: {
       <div className="prompt-position">
         <span>붙일 위치</span>
         <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
-          {(['common-end', 'common-marker', 'character-end'] as const).map((value) => {
+          {(['middle', 'character-end'] as const).map((value) => {
             const blocked = value === 'character-end' && !hasCharacterPrompt;
             return (
               <button

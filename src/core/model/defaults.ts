@@ -132,6 +132,7 @@ export function createPreset(name = '기본 생성 설정', partial?: Partial<Pr
     id: newId(),
     name,
     commonPositive: 'masterpiece, best quality',
+    backPositive: '',
     commonNegative: 'lowres, bad anatomy, bad hands, text, watermark',
     generation: { ...DEFAULT_GENERATION_SETTINGS },
     ...partial,
@@ -283,7 +284,7 @@ export function createDefaultLibrary(): Library {
       count: 1,
       mode: 'txt2img',
       inpaint: false,
-      promptPosition: 'common-end',
+      promptPosition: 'middle',
       characterReferenceIds: [],
       vibeIds: [],
     },
@@ -442,7 +443,12 @@ function projectsUsingPieceSet(library: Library, id: string): Project[] {
   return library.projects.filter((project) => {
     const resolved = resolveProject(library, project);
     return (
-      mentions(resolved.preset?.commonPositive, resolved.preset?.commonNegative) ||
+      mentions(
+        resolved.preset?.commonPositive,
+        resolved.preset?.backPositive,
+        resolved.preset?.commonNegative,
+        project.extraPrompt,
+      ) ||
       resolved.characters.some(({ promptSet }) =>
         mentions(promptSet.positive, promptSet.negative),
       ) ||

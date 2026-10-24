@@ -309,8 +309,20 @@ export function ImageImportDialog({
           </div>
           <h3>① 생성 설정</h3>
           <Check checked={usePositive} disabled={!hasPositive} onChange={setUsePositive}>
-            <b>공통 포지티브</b>
+            <b>상위 프롬프트</b>
             <pre className="prompt-code small">{tags.positive || '(없음)'}</pre>
+            {data.extraPrompt && (
+              <>
+                <b>추가 프롬프트 (작업)</b>
+                <pre className="prompt-code small">{data.extraPrompt}</pre>
+              </>
+            )}
+            {data.backPositive && (
+              <>
+                <b>하위 프롬프트</b>
+                <pre className="prompt-code small">{data.backPositive}</pre>
+              </>
+            )}
           </Check>
           <Check checked={useNegative} disabled={!hasNegative} onChange={setUseNegative}>
             <b>공통 네거티브</b>

@@ -41,8 +41,8 @@ import { PROMPT_POSITIONS } from '../../promptPositions';
 import { toast, updateLibrary } from '../../store';
 
 const INSET_POSITIONS: Record<ReferenceInsetPosition, string> = {
-  'common-start': '공통 포지티브 맨 앞',
-  'common-end': '공통 포지티브 맨 끝',
+  'common-start': '상위 프롬프트 맨 앞',
+  'common-end': '하위 프롬프트 맨 끝',
   'character-start': '캐릭터 프롬프트 맨 앞 (성별 태그 뒤)',
   'character-end': '캐릭터 프롬프트 맨 끝',
 };
@@ -102,18 +102,39 @@ export function PresetEditor({ preset }: { preset: Preset }) {
     <>
       <Card title="공통 프롬프트">
         <div className="two-column">
-          <PromptField
-            label="공통 포지티브"
-            hint={
-              g.referenceInset && g.referenceInsetPosition.startsWith('common')
-                ? 'reference inset 자동 추가'
-                : undefined
-            }
-            value={preset.commonPositive}
-            rows={5}
-            placeholder="화풍, 품질 등 모든 캐릭터에 공통으로 쓸 태그"
-            onChange={(commonPositive) => patch({ commonPositive })}
-          />
+          <div className="prompt-stack">
+            <PromptField
+              label="상위 프롬프트"
+              hint={
+                g.referenceInset && g.referenceInsetPosition === 'common-start'
+                  ? 'reference inset 자동 추가'
+                  : undefined
+              }
+              value={preset.commonPositive}
+              rows={4}
+              placeholder="화풍, 품질 등 모든 캐릭터에 공통으로 쓸 태그"
+              markers={g.emotionPosition === 'middle'}
+              onChange={(commonPositive) => patch({ commonPositive })}
+            />
+            <p className="prompt-slot">
+              {g.emotionPosition === 'middle'
+                ? '씬 프롬프트 (중간)'
+                : '씬 프롬프트는 캐릭터 프롬프트 뒤'}
+            </p>
+            <PromptField
+              label="하위 프롬프트"
+              hint={
+                g.referenceInset && g.referenceInsetPosition === 'common-end'
+                  ? 'reference inset 자동 추가'
+                  : undefined
+              }
+              value={preset.backPositive}
+              rows={3}
+              placeholder="씬 프롬프트 뒤에 붙일 태그"
+              markers={false}
+              onChange={(backPositive) => patch({ backPositive })}
+            />
+          </div>
           <PromptField
             label="공통 네거티브"
             tone="negative"
@@ -144,12 +165,10 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           <SelectField
             label="붙일 위치"
             value={g.emotionPosition}
-            options={(['character-end', 'common-end', 'common-marker'] as EmotionPosition[]).map(
-              (value) => ({
-                value,
-                label: PROMPT_POSITIONS[value],
-              }),
-            )}
+            options={(['character-end', 'middle'] as EmotionPosition[]).map((value) => ({
+              value,
+              label: PROMPT_POSITIONS[value],
+            }))}
             onChange={(emotionPosition) => setting({ emotionPosition })}
           />
         </div>

@@ -19,8 +19,8 @@ export type UcPresetId = 'none' | 'heavy' | 'light' | 'human' | 'furry';
 /** V5 전용. 다른 모델은 standard뿐이다. */
 export type QualityLevel = 'standard' | 'light';
 
-/** `common-marker`: 공통 포지티브의 `|` 자리(SDStudio), 없으면 맨 끝. */
-export type EmotionPosition = 'character-end' | 'common-end' | 'common-marker';
+/** `middle`: 상위(+추가 프롬프트)와 하위 사이. 상위에 `|` 자리가 있으면 SDStudio처럼 나눠 채운다. */
+export type EmotionPosition = 'middle' | 'character-end';
 
 /** V5 Full 전용. NovelAI는 medium을 모델 ID `-medium`으로 보낸다. */
 export type Effort = 'high' | 'medium';
@@ -71,7 +71,10 @@ export type Preset = {
   id: string;
   name: string;
   folder?: FolderName;
+  /** 상위 프롬프트 */
   commonPositive: string;
+  /** 하위 프롬프트 */
+  backPositive: string;
   commonNegative: string;
   generation: GenerationSettings;
 };
@@ -246,6 +249,8 @@ export type Project = {
   characters: CharacterSlot[];
   positionMode: CharacterPositionMode;
   emotionSetId: string;
+  /** 상위 프롬프트 뒤, 씬 프롬프트 앞(SDStudio 추가 프롬프트). 생성 설정에는 저장하지 않는다. */
+  extraPrompt?: string;
   /** 인페인트에서만 쓰지만 모드를 바꿔도 남겨 둔다. */
   referenceId: string;
   /** 없으면 캐릭터 레퍼런스를 골라 둔 작업은 캐릭터 레퍼런스, 아니면 바이브. */
@@ -431,7 +436,7 @@ export type FreeGeneration = {
   augment?: AugmentSettings;
   /** 끄면 이미지 전체를 i2i한다. */
   inpaint: boolean;
-  /** 캐릭터 프롬프트가 비면 공통 포지티브 끝. */
+  /** 캐릭터 프롬프트가 비면 `middle`. */
   promptPosition: EmotionPosition;
   /** `Project`와 같다. 디렉터 툴에는 쓰지 않는다. */
   aidMode?: AidMode;
@@ -582,7 +587,11 @@ export type JobSnapshotCommon = {
   characterCenters?: CharacterCenter[];
   /** 사용자 입력 원문. 메타데이터에 따로 남긴다. */
   source: {
+    /** 상위 프롬프트 */
     commonPositive: string;
+    /** 1.1.1 이하 기록에는 없다. */
+    backPositive?: string;
+    extraPrompt?: string;
     commonNegative: string;
     characterPositive: string;
   };

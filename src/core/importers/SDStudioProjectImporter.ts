@@ -16,7 +16,7 @@ import {
   createPromptSet,
   newId,
 } from '../model/defaults';
-import { hasMarker, joinFragments } from '../prompts/PromptComposer';
+import { joinFragments } from '../prompts/PromptComposer';
 import { sdStudioRootSchema } from '../validation/schemas';
 
 export class SDStudioImportError extends Error {
@@ -77,12 +77,6 @@ function easyFront(front: string, characterPrompt: string): string {
   );
 }
 
-/** 캐릭터 프롬프트에 `|`가 있으면 SDStudio는 남는 조각을 끝에 붙인다. 끝에 자리를 하나 더 두어 같게 만든다. */
-function characterPrompt(value: unknown): string {
-  const prompt = text(value);
-  return hasMarker(prompt) ? joinFragments(prompt, '|') : prompt;
-}
-
 const validSeed = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffffffff;
 
@@ -99,13 +93,7 @@ function orderedCharacters(preset: Json, shared: Json): Json[] {
     .filter((item) => item.enabled !== false);
 }
 
-function convertPreset(
-  name: string,
-  type: string,
-  source: Json,
-  shared: Json,
-  extra: string,
-): Preset {
+function convertPreset(name: string, type: string, source: Json, shared: Json): Preset {
   const easy = type === 'SDImageGenEasy';
   const front = easy
     ? easyFront(text(source.frontPrompt), text(shared.characterPrompt))
@@ -118,8 +106,8 @@ function convertPreset(
     typeof source[key] === 'string' ? source[key] : fallback;
   return {
     ...base,
-    // SDStudio 순서: 상위 → 추가 프롬프트 → 씬 → 하위. 씬은 마지막 `|` 자리에 들어간다.
-    commonPositive: joinFragments(front, text(extra), '|', back),
+    commonPositive: front,
+    backPositive: back,
     commonNegative: joinFragments(easy ? text(shared.uc) : '', text(source.uc)),
     generation: {
       ...base.generation,
@@ -129,7 +117,7 @@ function convertPreset(
       cfgRescale: number('cfgRescale', base.generation.cfgRescale),
       noiseSchedule: word('noiseSchedule', base.generation.noiseSchedule),
       variety: source.varietyPlus === true,
-      emotionPosition: 'common-marker',
+      emotionPosition: 'middle',
       ...(validSeed(shared.seed) ? { seedMode: 'fixed' as const, fixedSeed: shared.seed } : {}),
     },
   };
@@ -321,7 +309,7 @@ function convertCast(
       (typeof item.name === 'string' && item.name.trim()) ||
       (sources.length > 1 ? `${projectName} ${index + 1}` : projectName);
     return createCharacter(name, [
-      createPromptSet('기본', { positive: characterPrompt(item.prompt), negative: text(item.uc) }),
+      createPromptSet('기본', { positive: text(item.prompt), negative: text(item.uc) }),
     ]);
   });
   const manual = preset.useCoords === true;
@@ -377,10 +365,16 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   const { emotions, size } = convertScenes(root.scenes, warnings);
   const emotionSet: EmotionSet = { id: newId(), name: `${root.name} 씬`, emotions };
 
-  const sources = WORKFLOWS.flatMap((type) =>
+  const all = WORKFLOWS.flatMap((type) =>
     objects(root.presets[type]).map((source, index) => ({ type, source, index })),
   );
-  if (!sources.length) return { presets: [], characters: [], emotionSet, warnings };
+  if (!all.length) return { presets: [], characters: [], emotionSet, warnings };
+  const picked =
+    all.find(
+      ({ type, source }) => type === selected.workflowType && source.name === selected.presetName,
+    ) ?? all[0];
+  // 이지 모드 프리셋에는 SDStudio가 프로젝트마다 넣어 두는 기본 화풍(애니스타일 등)이 섞여 있다.
+  const sources = all.filter((item) => item === picked || item.type === 'SDImageGen');
 
   const several = sources.length > 1;
   const presets = sources.map(({ type, source, index }): Preset => {
@@ -391,17 +385,11 @@ export function importSDStudioProject(raw: string): SDStudioImport {
       type,
       source,
       sharedOf(type),
-      extra,
     );
     return size ? { ...preset, generation: { ...preset.generation, ...size } } : preset;
   });
-  const chosenIndex = Math.max(
-    0,
-    sources.findIndex(
-      ({ type, source }) => type === selected.workflowType && source.name === selected.presetName,
-    ),
-  );
-  const chosen = sources[chosenIndex];
+  const chosenIndex = sources.indexOf(picked);
+  const chosen = picked;
   const shared = sharedOf(chosen.type);
   const { characters, slots, manual } = convertCast(chosen.source, shared, root.name);
 
@@ -444,6 +432,7 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     mode: 'txt2img',
     characters: slots,
     positionMode: manual ? 'manual' : 'ai',
+    ...(text(extra) ? { extraPrompt: text(extra) } : {}),
   };
   return { presets, characters, emotionSet, project, warnings };
 }

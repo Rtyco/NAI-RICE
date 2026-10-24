@@ -57,6 +57,7 @@ export function findQuery(state: Pick<FindState, 'query' | 'wholeTag'>): FindQue
 
 export function sectionLabel(section: FindPlace['section']): string {
   if (section === 'free') return '자유 생성';
+  if (section === 'projects') return '작업';
   return SECTIONS.find((item) => item.id === section)?.label ?? '';
 }
 

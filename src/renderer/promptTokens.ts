@@ -132,7 +132,7 @@ export function projectTokenScenes(resolved: ResolvedProject, pieceSets: PieceSe
         preset,
         promptSets,
         emotion && comboPrompts(emotion, sceneCombos(emotion)[0]),
-        { sets: pieceSets },
+        { sets: pieceSets, extraPrompt: project.extraPrompt },
         kind,
       ),
     ),

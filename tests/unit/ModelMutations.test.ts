@@ -200,3 +200,36 @@ describe('scene prompt lists', () => {
     expect(setEmotionsExcluded(project, ['b', 'c'], false).excludedEmotionIds).toEqual(['a']);
   });
 });
+
+describe('1.1.1 이하 생성 설정 읽기', () => {
+  const read = (commonPositive: string, emotionPosition: string) => {
+    const library = createDefaultLibrary();
+    const [preset] = library.presets;
+    const old = {
+      ...library,
+      presets: [
+        {
+          ...preset,
+          commonPositive,
+          backPositive: undefined,
+          generation: { ...preset.generation, emotionPosition },
+        },
+      ],
+      freeGeneration: { ...library.freeGeneration, promptPosition: 'common-marker' },
+    };
+    return librarySchema.parse(old);
+  };
+
+  it('「공통 | 자리」는 마지막 | 뒤를 하위로 옮기고, 위치는 모두 중간으로 읽어', () => {
+    const marker = read('a, |, b, |, c', 'common-marker');
+    expect(marker.presets[0]).toMatchObject({ commonPositive: 'a, |, b', backPositive: 'c' });
+    expect(marker.presets[0].generation.emotionPosition).toBe('middle');
+    expect(marker.freeGeneration.promptPosition).toBe('middle');
+
+    const end = read('a, |, b', 'common-end');
+    expect(end.presets[0]).toMatchObject({ commonPositive: 'a, |, b', backPositive: '' });
+    expect(end.presets[0].generation.emotionPosition).toBe('middle');
+
+    expect(read('a', 'character-end').presets[0].generation.emotionPosition).toBe('character-end');
+  });
+});

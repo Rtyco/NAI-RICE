@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
 import {
@@ -6,6 +6,7 @@ import {
   projectsUsing,
   type ResolvedCharacter,
 } from '../../core/model/defaults';
+import { freePromptPosition, scenePosition } from '../../core/jobs/JobBuilder';
 import { patchItem, updatePromptSet } from '../../core/model/mutations';
 import { usesMedium } from '../../core/providers/NaiModels';
 import {
@@ -20,6 +21,7 @@ import {
   sameCharacters,
   togglePromptGroup,
   updateLibrary,
+  updateProject,
   useResolvedProject,
   useStore,
   useStoreMemo,
@@ -27,10 +29,12 @@ import {
 import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { PreviewDialog } from '../views/ProjectView';
 import { freeTokenScenes, projectTokenScenes, sameTokenScenes } from '../promptTokens';
+import { useFind } from '../find';
 import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PanelResizer } from './PanelResizer';
 import { TokenMeter } from './TokenMeter';
+import { PromptTextarea } from './PromptTextarea';
 import { PromptField } from './ui';
 
 function editInPopup(section: 'presets' | 'characters', itemId: string) {
@@ -97,6 +101,10 @@ export function PromptPanel(props: {
   characters: ResolvedCharacter[];
   /** 자유 생성이면 없다. */
   projectId?: string;
+  /** 상위와 하위 사이에 들어가는 것. 캐릭터 뒤에 붙으면 없다. */
+  middle?: string;
+  /** 작업의 추가 프롬프트. 자유 생성이면 없다. */
+  extraPrompt?: string;
   noCharacter: string;
   meter?: ReactNode;
   footer?: ReactNode;
@@ -119,7 +127,12 @@ export function PromptPanel(props: {
   const unusedInMedium =
     preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
 
-  const patchPreset = (value: Partial<Pick<Preset, 'commonPositive' | 'commonNegative'>>) =>
+  const [extraFolded, setExtraFolded] = useState(true);
+  const revealing = useFind((state) => Boolean(state.reveal) && state.reveal === props.extraPrompt);
+  const extraOpen = !extraFolded || revealing;
+  const patchPreset = (
+    value: Partial<Pick<Preset, 'commonPositive' | 'backPositive' | 'commonNegative'>>,
+  ) =>
     preset &&
     updateLibrary((current) =>
       patchItem(current, 'presets', preset.id, (item) => ({ ...item, ...value })),
@@ -166,11 +179,57 @@ export function PromptPanel(props: {
           {preset ? (
             <>
               <PromptField
-                label="공통 포지티브"
+                label="상위 프롬프트"
                 value={preset.commonPositive}
-                rows={6}
+                rows={5}
                 placeholder="화풍, 품질 등 모든 캐릭터에 공통으로 쓸 태그"
+                markers={Boolean(props.middle)}
                 onChange={(commonPositive) => patchPreset({ commonPositive })}
+              />
+              {props.projectId && props.extraPrompt !== undefined && (
+                <>
+                  <button
+                    className="prompt-extra-toggle"
+                    aria-expanded={extraOpen}
+                    onClick={() => setExtraFolded(extraOpen)}
+                  >
+                    <Icon name="chevron" size={12} className="section-chevron" />
+                    추가 프롬프트
+                    <small>
+                      이 작업만{!extraOpen && props.extraPrompt.trim() ? ' · 작성됨' : ''}
+                    </small>
+                  </button>
+                  {extraOpen && (
+                    <div className="prompt-field">
+                      <PromptTextarea
+                        rows={2}
+                        value={props.extraPrompt}
+                        aria-label="추가 프롬프트"
+                        placeholder="상위 프롬프트 뒤에 붙일 태그"
+                        markers={Boolean(props.middle)}
+                        onChange={(extraPrompt) =>
+                          updateProject(props.projectId!, (project) => ({
+                            ...project,
+                            extraPrompt: extraPrompt || undefined,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              <p className="prompt-slot">
+                {props.middle
+                  ? `${props.middle} (중간)`
+                  : `${props.projectId ? '씬 프롬프트' : '자유 생성 프롬프트'}는 캐릭터 프롬프트 뒤`}
+              </p>
+              <PromptField
+                label="하위 프롬프트"
+                value={preset.backPositive}
+                rows={2}
+                placeholder="씬 프롬프트 뒤에 붙일 태그"
+                markers={false}
+                onChange={(backPositive) => patchPreset({ backPositive })}
               />
               <PromptField
                 label="공통 네거티브"
@@ -308,6 +367,14 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
       preset={resolved.preset}
       characters={resolved.characters}
       projectId={projectId}
+      middle={
+        resolved.preset &&
+        scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
+          'middle'
+          ? '씬 프롬프트'
+          : undefined
+      }
+      extraPrompt={resolved.project.extraPrompt ?? ''}
       noCharacter="캐릭터 없이 생성합니다."
       meter={<TokenMeter model={presetModel(resolved.preset)} scenes={scenes} />}
       footer={
@@ -330,10 +397,16 @@ export function FreePromptPanel() {
     (a, b) => a.preset === b.preset && sameCharacters(a.characters, b.characters),
   );
   const scenes = useStoreMemo((state) => freeTokenScenes(state.library!), sameTokenScenes);
+  const position = useStore((state) => state.library!.freeGeneration.promptPosition);
   return (
     <PromptPanel
       preset={preset}
       characters={characters}
+      middle={
+        freePromptPosition(position, characters[0]?.promptSet.positive) === 'middle'
+          ? '자유 생성 프롬프트'
+          : undefined
+      }
       noCharacter="캐릭터 없이 생성합니다."
       meter={<TokenMeter model={presetModel(preset)} scenes={scenes} />}
     />

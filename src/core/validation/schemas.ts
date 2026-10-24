@@ -4,6 +4,7 @@ import {
   DEFAULT_OUTPUT_FILENAME_TEMPLATE,
 } from '../output/OutputFilename';
 import { DEFAULT_DIVIDER, DEFAULT_SETTINGS } from '../model/defaults';
+import { splitAtLastMarker } from '../prompts/PromptComposer';
 
 export const rectSchema = z.object({
   x: z.number().finite(),
@@ -18,6 +19,12 @@ const extraCharacterSchema = z.object({
   prompt: z.string(),
   negative: z.string(),
 });
+
+// 1.1.1 이하의 「공통 끝」과 「공통 | 자리」는 둘 다 상위·하위 사이다.
+const emotionPositionSchema = z.preprocess(
+  (value) => (value === 'common-end' || value === 'common-marker' ? 'middle' : value),
+  z.enum(['middle', 'character-end']),
+);
 
 export const generationSettingsSchema = z.object({
   model: z.string(),
@@ -37,9 +44,7 @@ export const generationSettingsSchema = z.object({
   referenceInsetPosition: z
     .enum(['common-start', 'common-end', 'character-start', 'character-end'])
     .default('common-start'),
-  emotionPosition: z
-    .enum(['character-end', 'common-end', 'common-marker'])
-    .default('character-end'),
+  emotionPosition: emotionPositionSchema.default('character-end'),
   width: z.number().int().min(256).max(2048).multipleOf(64).default(832),
   height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
   img2imgStrength: z.number().min(0.01).max(0.99).default(0.4),
@@ -53,14 +58,33 @@ export const generationSettingsSchema = z.object({
 // 빈 이름은 폴더 밖으로 읽는다.
 const folderSchema = z.string().trim().min(1).optional().catch(undefined);
 
-export const presetSchema = z.object({
-  id: z.string().min(1),
-  name: z.string(),
-  folder: folderSchema,
-  commonPositive: z.string(),
-  commonNegative: z.string(),
-  generation: generationSettingsSchema,
-});
+/** 1.1.1 이하의 「공통 | 자리」 생성 설정은 마지막 `|` 뒤를 하위로 옮기면 결과가 같다. */
+function readBackPositive(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const preset = value as Record<string, unknown>;
+  if (preset.backPositive !== undefined || typeof preset.commonPositive !== 'string') return value;
+  const generation = preset.generation as Record<string, unknown> | undefined;
+  const split =
+    generation?.emotionPosition === 'common-marker'
+      ? splitAtLastMarker(preset.commonPositive)
+      : undefined;
+  return split
+    ? { ...preset, commonPositive: split.front, backPositive: split.back }
+    : { ...preset, backPositive: '' };
+}
+
+export const presetSchema = z.preprocess(
+  readBackPositive,
+  z.object({
+    id: z.string().min(1),
+    name: z.string(),
+    folder: folderSchema,
+    commonPositive: z.string(),
+    backPositive: z.string(),
+    commonNegative: z.string(),
+    generation: generationSettingsSchema,
+  }),
+);
 
 const promptSetSchema = z.object({
   id: z.string().min(1),
@@ -275,6 +299,7 @@ export const projectSchema = z.preprocess(
     characters: z.array(characterSlotSchema),
     positionMode: z.enum(['ai', 'manual']).catch('ai'),
     emotionSetId: z.string(),
+    extraPrompt: z.string().optional().catch(undefined),
     referenceId: z.string(),
     aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
     characterReferenceIds: z.array(z.string().min(1)).catch([]),
@@ -466,9 +491,7 @@ export const librarySchema = z.object({
           .catch(undefined),
         negative: z.string().default(''),
         // 예전에는 늘 공통 포지티브 끝이었다.
-        promptPosition: z
-          .enum(['character-end', 'common-end', 'common-marker'])
-          .catch('common-end'),
+        promptPosition: emotionPositionSchema.catch('middle'),
         aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
         characterReferenceIds: z.array(z.string().min(1)).catch([]),
         vibeIds: z.array(z.string().min(1)).catch([]),
@@ -484,7 +507,7 @@ export const librarySchema = z.object({
       count: 1,
       mode: 'txt2img',
       inpaint: false,
-      promptPosition: 'common-end',
+      promptPosition: 'middle',
       characterReferenceIds: [],
       vibeIds: [],
     }),
@@ -612,6 +635,8 @@ const jobSnapshotCommonSchema = z.object({
   characterCenters: z.array(centerSchema).max(32).optional(),
   source: z.object({
     commonPositive: z.string(),
+    backPositive: z.string().optional(),
+    extraPrompt: z.string().optional(),
     commonNegative: z.string(),
     characterPositive: z.string(),
   }),

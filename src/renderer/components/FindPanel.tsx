@@ -25,6 +25,7 @@ import {
   errorMessage,
   openFree,
   openLibrary,
+  openProject,
   showResult,
   toast,
   updateLibrary,
@@ -160,6 +161,7 @@ function FindPanelBody() {
       return;
     }
     if (hit.section === 'free') openFree();
+    else if (hit.section === 'projects') openProject(hit.itemId);
     else openLibrary(hit.section, hit.itemId);
     if (names) revealName(hit.text, hit.ranges[0]);
     else useFind.setState({ reveal: hit.text });

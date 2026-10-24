@@ -3,6 +3,7 @@ import { scenePosition } from '../../../core/jobs/JobBuilder';
 import { hasScenePrompt, type ResolvedProject } from '../../../core/model/defaults';
 import { setEmotionsExcluded } from '../../../core/model/mutations';
 import { comboCount } from '../../../core/model/sceneCombos';
+import { hasMarker } from '../../../core/prompts/PromptComposer';
 import { usesMedium } from '../../../core/providers/NaiModels';
 import { ScenePromptFields } from '../../components/ScenePromptFields';
 import { SceneExtras, SceneSlotsEditor } from '../../components/SceneSlotsEditor';
@@ -76,9 +77,11 @@ export function DetailSidePanel({
             firstPlacement={
               sceneSide
                 ? `${sceneSide} 프롬프트 뒤에 붙습니다`
-                : resolved.preset?.generation.emotionPosition === 'common-marker'
-                  ? '공통 포지티브의 | 자리에 들어갑니다'
-                  : '공통 포지티브 뒤에 붙습니다'
+                : hasMarker(
+                      `${resolved.preset?.commonPositive ?? ''}, ${project.extraPrompt ?? ''}`,
+                    )
+                  ? '상위 프롬프트의 | 자리에 들어갑니다'
+                  : '상위와 하위 프롬프트 사이에 들어갑니다'
             }
             negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
             negativeHint={

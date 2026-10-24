@@ -109,10 +109,9 @@ export function applyImageImport(
       generation = { ...generation, seedMode: 'fixed', fixedSeed: data.seed };
     const preset: Preset = {
       ...base,
-      commonPositive:
-        presetChoice.positive && data.commonPositive !== undefined
-          ? tags.positive
-          : base.commonPositive,
+      ...(presetChoice.positive && data.commonPositive !== undefined
+        ? { commonPositive: tags.positive, backPositive: data.backPositive ?? '' }
+        : {}),
       commonNegative:
         presetChoice.negative && data.commonNegative !== undefined
           ? tags.negative
@@ -201,6 +200,9 @@ export function applyImageImport(
     applied.push(`새 인페인트 "${reference.name}"`);
   }
 
+  // 이 앱의 결과에만 따로 남는다. NovelAI 이미지는 상위 프롬프트에 모두 들어 있다.
+  const takesExtra = Boolean(choices.preset?.positive) && data.source === 'desk';
+  const extraPrompt = takesExtra ? data.extraPrompt || undefined : undefined;
   let openId: string | undefined;
   if (choices.newProject) {
     const character = characterForProject ?? createCharacter(name);
@@ -225,6 +227,7 @@ export function applyImageImport(
     if (promptSetId && character.promptSets.some((set) => set.id === promptSetId))
       created.characters[0].promptSetId = promptSetId;
     created.characters.push(...moreSlots);
+    if (extraPrompt) created.extraPrompt = extraPrompt;
     placeCharacters(created, data);
     next = { ...next, projects: [...next.projects, created] };
     openId = created.id;
@@ -245,6 +248,7 @@ export function applyImageImport(
         : item.characters,
       emotionSetId: emotionSetId ?? item.emotionSetId,
       referenceId: referenceId ?? item.referenceId,
+      ...(takesExtra ? { extraPrompt } : {}),
     }));
   }
 

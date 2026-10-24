@@ -97,7 +97,7 @@ describe('자유 생성 프롬프트 위치', () => {
   const preset = createPreset('P', { commonPositive: 'masterpiece', commonNegative: '' });
   const build = (
     positive: string,
-    promptPosition?: 'character-end' | 'common-end',
+    promptPosition?: 'character-end' | 'middle',
     negative?: string,
   ) =>
     buildFreeJobs({
@@ -124,7 +124,7 @@ describe('자유 생성 프롬프트 위치', () => {
   });
 
   it('네거티브는 프롬프트와 같은 쪽 네거티브 뒤에 붙이고 작업에 따로 남겨', () => {
-    const common = build('1girl', 'common-end', 'standing');
+    const common = build('1girl', 'middle', 'standing');
     expect(common.negativePrompt).toContain('standing');
     expect(common.characterNegativePrompt).toBe('');
     expect(common.emotionNegative).toBe('standing');

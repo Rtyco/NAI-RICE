@@ -61,6 +61,37 @@
   align-items: center;
   gap: 6px;
 }
+.prompt-stack {
+  min-width: 0;
+}
+/* 상위와 하위 사이에 씬 프롬프트가 들어가는 자리 */
+.prompt-slot {
+  margin: -2px 0 8px;
+  padding: 3px 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.prompt-extra-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-weight: 600;
+}
+.prompt-extra-toggle small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.prompt-extra-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
 .expand-text-button {
   min-width: 24px;
   height: 24px;

@@ -9,7 +9,7 @@ export function ScenePromptFields(props: {
   /** 비어 있으면 칸 하나 */
   names: string[];
   firstPlacement: string;
-  /** 첫 칸이 첫 캐릭터가 아니라 공통 포지티브로 갈 때 */
+  /** 첫 칸이 첫 캐릭터가 아니라 상위·하위 사이로 갈 때 */
   firstOnCommon?: boolean;
   negativePlacement: string;
   negativeHint?: string;
@@ -36,7 +36,7 @@ export function ScenePromptFields(props: {
           slots < 2
             ? '씬 프롬프트'
             : index === 0 && props.firstOnCommon
-              ? '씬 프롬프트 · 공통'
+              ? '씬 프롬프트 · 중간'
               : `씬 프롬프트 · ${index + 1}. ${names[index]}`;
         return (
           <PromptField

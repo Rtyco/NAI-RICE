@@ -6,6 +6,7 @@ import {
   createEmotionSet,
   createPieceSet,
   createPreset,
+  createProject,
   createPromptSet,
 } from '../../src/core/model/defaults';
 import {
@@ -66,7 +67,15 @@ describe('프롬프트 찾기', () => {
 describe('라이브러리 찾기·바꾸기', () => {
   it('찾는 칸과 바꾸는 칸이 같아', () => {
     const base = createDefaultLibrary();
-    const preset = createPreset('P', { commonPositive: 'smile', commonNegative: 'smile, bad' });
+    const preset = createPreset('P', {
+      commonPositive: 'smile',
+      backPositive: 'smile',
+      commonNegative: 'smile, bad',
+    });
+    const project = {
+      ...createProject('작업', { presetId: preset.id, emotionSetId: 's', referenceId: '' }),
+      extraPrompt: 'smile',
+    };
     const emotion = {
       ...createEmotion('기쁨', 'smile'),
       extraPrompts: ['smile'],
@@ -75,13 +84,16 @@ describe('라이브러리 찾기·바꾸기', () => {
     const library = {
       ...base,
       presets: [preset],
+      projects: [project],
       emotionSets: [{ id: 's', name: '씬', emotions: [emotion] }],
       freeGeneration: { ...base.freeGeneration, prompt: 'smile', negative: 'smile' },
     };
     const hits = findInLibrary(library, tag('smile'));
     expect(hits.map((hit) => [hit.section, ...hit.path])).toEqual([
-      ['presets', 'P', '공통 포지티브'],
+      ['presets', 'P', '상위 프롬프트'],
+      ['presets', 'P', '하위 프롬프트'],
       ['presets', 'P', '공통 네거티브'],
+      ['projects', '작업', '추가 프롬프트'],
       ['emotionSets', '씬', '기쁨', '프롬프트'],
       ['emotionSets', '씬', '기쁨', '캐릭터 2'],
       ['emotionSets', '씬', '기쁨', '네거티브'],

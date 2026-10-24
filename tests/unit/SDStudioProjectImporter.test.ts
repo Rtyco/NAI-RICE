@@ -63,7 +63,7 @@ function prompts(imported: ReturnType<typeof importSDStudioProject>, sceneIndex 
       preset,
       imported.characters.map((character) => character.promptSets[0]),
       comboPrompts(emotion, combo),
-      { sets: [] },
+      { sets: [], extraPrompt: imported.project?.extraPrompt },
       'txt2img',
     ),
   );
@@ -92,9 +92,12 @@ describe('importSDStudioProject', () => {
     const imported = importSDStudioProject(JSON.stringify(makeProject()));
     const [preset] = imported.presets;
     expect(preset.name).toBe('테스트 (SDStudio)');
-    expect(preset.commonPositive).toBe('masterpiece, |, 1girl, outdoors, |, best quality');
+    expect(preset).toMatchObject({
+      commonPositive: 'masterpiece, |, 1girl',
+      backPositive: 'best quality',
+    });
     expect(preset.generation).toMatchObject({
-      emotionPosition: 'common-marker',
+      emotionPosition: 'middle',
       seedMode: 'fixed',
       fixedSeed: 1234,
       variety: true,
@@ -105,6 +108,7 @@ describe('importSDStudioProject', () => {
       presetId: preset.id,
       emotionSetId: imported.emotionSet.id,
       positionMode: 'ai',
+      extraPrompt: 'outdoors',
     });
     expect(imported.project!.characters).toHaveLength(1);
     expect(imported.warnings).toEqual([]);
@@ -154,7 +158,8 @@ describe('importSDStudioProject', () => {
       }),
     );
     expect(imported.presets[0]).toMatchObject({
-      commonPositive: '1girl, masterpiece, blue hair, |, park, best',
+      commonPositive: '1girl, masterpiece, blue hair',
+      backPositive: 'park, best',
       commonNegative: 'bad hands, lowres',
     });
     expect(prompts(imported)[0].prompt).toBe('1girl, masterpiece, blue hair, smile, park, best');
@@ -173,6 +178,21 @@ describe('importSDStudioProject', () => {
     expect(imported.warnings.map((warning) => warning.code)).toEqual(['multiple-presets']);
   });
 
+  it('이지 모드 프리셋(SDStudio 기본 화풍)은 작업이 고른 것만 가져와', () => {
+    const file = makeProject() as ReturnType<typeof makeProject> & {
+      presets: Record<string, unknown[]>;
+    };
+    const easy = (name: string) => ({ name, frontPrompt: name, backPrompt: '', uc: '' });
+    file.presets.SDImageGenEasy = [easy('애니스타일'), easy('선명동글'), easy('동글')];
+    expect(importSDStudioProject(JSON.stringify(file)).presets.map((p) => p.name)).toEqual([
+      '테스트 (SDStudio)',
+    ]);
+    file.selectedWorkflow = { workflowType: 'SDImageGenEasy', presetName: '동글' };
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.presets.map((p) => p.name)).toEqual(['테스트 · 기본', '테스트 · 동글']);
+    expect(imported.project!.presetId).toBe(imported.presets[1].id);
+  });
+
   it('켜진 후보가 없는 칸이 있으면 SDStudio처럼 조합이 없고 알려', () => {
     const file = makeProject();
     file.scenes.기쁨.slots.push([
@@ -187,9 +207,7 @@ describe('importSDStudioProject', () => {
     const file = makeProject();
     file.presets.SDImageGen[0].frontPrompt = 'masterpiece\n|\n1girl';
     const imported = importSDStudioProject(JSON.stringify(file));
-    expect(imported.presets[0].commonPositive).toBe(
-      'masterpiece, |, 1girl, outdoors, |, best quality',
-    );
+    expect(imported.presets[0].commonPositive).toBe('masterpiece, |, 1girl');
   });
 
   it('그림이 필요한 인페인트 씬·바이브는 가져오지 않았다고 알려', () => {

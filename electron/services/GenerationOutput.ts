@@ -24,6 +24,8 @@ export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
     characterName: job.characterName,
     presetName: job.presetName,
     commonPositive: job.source.commonPositive,
+    ...(job.source.backPositive ? { backPositive: job.source.backPositive } : {}),
+    ...(job.source.extraPrompt ? { extraPrompt: job.source.extraPrompt } : {}),
     commonNegative: job.source.commonNegative,
     promptSet: {
       name: job.promptSetName,

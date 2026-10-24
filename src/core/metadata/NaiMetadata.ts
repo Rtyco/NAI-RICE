@@ -20,7 +20,11 @@ export type DeskMetadata = {
   version: 1 | 2;
   characterName: string;
   presetName: string;
+  /** 상위 프롬프트 */
   commonPositive: string;
+  /** 1.1.2부터 */
+  backPositive?: string;
+  extraPrompt?: string;
   commonNegative: string;
   promptSet: { name: string; positive: string; negative: string };
   emotion: { name: string; prompt: string; negative?: string };
@@ -38,7 +42,10 @@ export type DeskMetadata = {
 
 export type ImageImportData = {
   source: 'novelai' | 'desk';
+  /** NovelAI 이미지면 공통 프롬프트 전체 */
   commonPositive?: string;
+  backPositive?: string;
+  extraPrompt?: string;
   commonNegative?: string;
   characters: Array<{ positive: string; negative: string }>;
   /** `use_coords`일 때만 */
@@ -293,6 +300,8 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
   if (desk) {
     // 이 앱의 결과면 따로 저장한 원래 값이 감정 섞이지 않은 값이다.
     result.commonPositive = desk.commonPositive;
+    if (typeof desk.backPositive === 'string') result.backPositive = desk.backPositive;
+    if (typeof desk.extraPrompt === 'string') result.extraPrompt = desk.extraPrompt;
     result.commonNegative = desk.commonNegative;
     result.characters = [
       { positive: desk.promptSet.positive, negative: desk.promptSet.negative },

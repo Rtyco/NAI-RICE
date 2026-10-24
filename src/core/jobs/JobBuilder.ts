@@ -118,12 +118,12 @@ export function composeRequestPrompts(
   rawPreset: Preset,
   rawCharacters: Array<Pick<CharacterPromptSet, 'positive' | 'negative'>>,
   scene: ScenePrompts | undefined,
-  pieces: { sets: PieceSet[]; seed?: number } = { sets: [] },
+  context: { sets: PieceSet[]; seed?: number; extraPrompt?: string } = { sets: [] },
   kind: GenerationKind = 'inpaint',
 ): RequestPrompts {
   const missing = new Set<string>();
   const expand = (text: string) => {
-    const result = expandPieces(text, pieces.sets, pieces.seed);
+    const result = expandPieces(text, context.sets, context.seed);
     result.missing.forEach((ref) => missing.add(ref));
     return result.text;
   };
@@ -160,6 +160,8 @@ export function composeRequestPrompts(
   const insetWritten = extraCharacters.some((character) => referenceInsetCount(character.prompt));
   const prompts = composeSeparatedPrompts({
     commonPositive,
+    extraPrompt: expand(context.extraPrompt ?? ''),
+    backPositive: expand(rawPreset.backPositive),
     qualityTags: naiTagText(settings.model, settings).quality,
     characterPositive: first.positive,
     emotion: emotionPrompt,
@@ -278,7 +280,7 @@ function buildEmotionJobs<T>(
           input.preset,
           input.characters.map((character) => character.promptSet),
           comboPrompts(emotion, combo),
-          { sets: input.pieceSets ?? [], seed },
+          { sets: input.pieceSets ?? [], seed, extraPrompt: input.project.extraPrompt },
           kind,
         );
         if (missingPieces.length) {
@@ -316,6 +318,8 @@ function buildEmotionJobs<T>(
             ...prompts,
             source: {
               commonPositive: input.preset.commonPositive,
+              backPositive: input.preset.backPositive,
+              ...(input.project.extraPrompt ? { extraPrompt: input.project.extraPrompt } : {}),
               commonNegative: input.preset.commonNegative,
               characterPositive: first?.promptSet.positive ?? '',
             },
@@ -365,7 +369,7 @@ export type FreeJobBuildInput = {
   positionMode?: CharacterPositionMode;
   prompt: string;
   negative?: string;
-  /** 캐릭터 프롬프트가 없으면 공통 포지티브 끝. */
+  /** 캐릭터 프롬프트가 없으면 `middle`. */
   promptPosition?: EmotionPosition;
   count: number;
   /** 크기는 해상도 설정 대신 이미지 크기. 마스크가 있으면 인페인팅. */
@@ -386,7 +390,7 @@ export type FreeJobBuildInput = {
 
 /** 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다. */
 export function scenePosition(position: EmotionPosition, characterCount: number): EmotionPosition {
-  return characterCount || position !== 'character-end' ? position : 'common-end';
+  return characterCount || position !== 'character-end' ? position : 'middle';
 }
 
 /** 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다. */
@@ -394,8 +398,8 @@ export function freePromptPosition(
   position: EmotionPosition | undefined,
   firstCharacterPositive: string | undefined,
 ): EmotionPosition {
-  if (position === 'character-end') return firstCharacterPositive?.trim() ? position : 'common-end';
-  return position ?? 'common-end';
+  if (position === 'character-end') return firstCharacterPositive?.trim() ? position : 'middle';
+  return position ?? 'middle';
 }
 
 /** 자유 생성의 입력 프롬프트 자리를 생성 설정의 씬 자리로 바꾼다. */
@@ -458,6 +462,7 @@ export function buildFreeJobs(
       ...prompts,
       source: {
         commonPositive: input.preset.commonPositive,
+        backPositive: input.preset.backPositive,
         commonNegative: input.preset.commonNegative,
         characterPositive: characters[0]?.promptSet.positive ?? '',
       },

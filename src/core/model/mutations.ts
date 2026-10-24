@@ -320,7 +320,7 @@ export function clonePieceSet(set: PieceSet, name: string): PieceSet {
 
 /** 자유 생성은 `itemId`가 빈 값이다. `path`는 항목 이름부터 칸 이름까지. */
 export type PromptField = {
-  section: LibrarySection | 'free';
+  section: LibrarySection | 'free' | 'projects';
   itemId: string;
   path: string[];
 };
@@ -340,10 +340,23 @@ export function mapPromptTexts(
         map(text, { section: 'presets', itemId: preset.id, path: [preset.name, label] });
       return {
         ...preset,
-        commonPositive: at('공통 포지티브', preset.commonPositive),
+        commonPositive: at('상위 프롬프트', preset.commonPositive),
+        backPositive: at('하위 프롬프트', preset.backPositive),
         commonNegative: at('공통 네거티브', preset.commonNegative),
       };
     }),
+    projects: library.projects.map((project) =>
+      project.extraPrompt === undefined
+        ? project
+        : {
+            ...project,
+            extraPrompt: map(project.extraPrompt, {
+              section: 'projects',
+              itemId: project.id,
+              path: [project.name, '추가 프롬프트'],
+            }),
+          },
+    ),
     characters: library.characters.map((character) => ({
       ...character,
       promptSets: character.promptSets.map((set) => {
