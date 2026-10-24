@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Emotion, Preset, Project, ProjectMode } from '../../core/domain/types';
 import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
@@ -31,6 +31,7 @@ import { Icon } from '../components/Icon';
 import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { SidePanelToggle } from '../components/SidePanel';
+import { useHeaderFit } from '../components/useHeaderFit';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { Stepper } from '../components/Stepper';
@@ -296,6 +297,8 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const token = useStore((state) => state.token);
   const queueShown = useLayout(queueBarShownOf);
   const topShown = useLayout(topBarShownOf);
+  const headerRef = useRef<HTMLElement>(null);
+  useHeaderFit(headerRef);
   const aidSources = useStore(
     useShallow((state) => ({
       characterReferences: state.library!.characterReferences,
@@ -347,7 +350,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
 
   return (
     <section className="project-view">
-      <header className="project-header">
+      <header ref={headerRef} className="project-header">
         <PromptPanelToggle />
         <input
           className="project-name-input"

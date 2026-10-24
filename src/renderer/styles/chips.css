@@ -11,7 +11,7 @@
 .top-bar-toggle {
   margin-left: auto;
 }
-/* 머리줄 안에 접어 둔 설정 줄. 칩이 줄면 아이콘끼리 겹쳐서 줄이지 않는다. */
+/* 머리줄 안에 접어 둔 설정 줄. 칩이 줄면 아이콘끼리 겹쳐서 줄이지 않는다. 그래도 모자랄 때만 끝이 잘린다. */
 .chain-bar.compact {
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -56,21 +56,34 @@
   position: relative;
   z-index: 1;
 }
-@container (max-width: 760px) {
-  .project-header:has(.chain-bar.compact) .header-label {
-    display: none;
-  }
+.project-header:has(.chain-bar.compact) .mode-toggle-swap {
+  display: none;
 }
-@container (max-width: 560px) {
-  .chain-bar.compact .chain-chip {
-    padding: 0 7px;
-  }
-  .chain-bar.compact .chain-chip-value {
-    padding: 0;
-  }
-  .chain-bar.compact .chain-chip-trigger > .icon {
-    display: none;
-  }
+/* 칩이 잘리면 useHeaderFit이 한 단계씩 올린다. */
+.project-header.fit-1 .header-label {
+  display: none;
+}
+.project-header.fit-2 :is(.account-meter .checked, .quota-track) {
+  display: none;
+}
+.project-header.fit-3 .chain-bar.compact .chain-chip {
+  padding: 0 7px;
+}
+.project-header.fit-3 .chain-bar.compact .chain-chip-value {
+  padding: 0;
+}
+.project-header.fit-3 .chain-bar.compact .chain-chip-trigger > .icon {
+  display: none;
+}
+.project-header.fit-4 .account-meter {
+  display: none;
+}
+/* 작업 이름은 제목 표시줄에도 있다. */
+.project-header.fit-5 :is(.project-name-input, .free-title) {
+  display: none;
+}
+.project-header.fit-6 .chain-bar.compact .chain-chip {
+  padding: 0 5px;
 }
 .scene-nav {
   display: inline-flex;

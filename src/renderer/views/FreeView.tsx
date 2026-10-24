@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -12,6 +12,7 @@ import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/N
 import { modelLabel, noInpaintReason, supportsInpaint } from '../../core/providers/NaiModels';
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
+import { useHeaderFit } from '../components/useHeaderFit';
 import { BgRemovalWarning, DirectorToolFields } from '../components/DirectorToolFields';
 import { Filmstrip } from '../components/Filmstrip';
 import { HistoryToggle } from '../components/HistoryPanel';
@@ -62,6 +63,8 @@ export function FreeView() {
   const augment = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
   const image = free.mode === 'txt2img' ? undefined : free.image;
   const [shrink, setShrink] = useState(true);
+  const headerRef = useRef<HTMLElement>(null);
+  useHeaderFit(headerRef);
   const allRecords = useStore((state) => state.generations[FREE_PROJECT_ID]) ?? NO_RECORDS;
   const queue = useStore((state) => state.queue);
   const token = useStore((state) => state.token);
@@ -274,7 +277,7 @@ export function FreeView() {
 
   return (
     <section className="project-view">
-      <header className="project-header">
+      <header ref={headerRef} className="project-header">
         <PromptPanelToggle />
         <h1 className="free-title">자유 생성</h1>
         <FreeModeSwitch mode={free.mode} />
