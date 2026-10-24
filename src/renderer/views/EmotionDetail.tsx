@@ -36,6 +36,10 @@ import { ScenePromptFields } from '../components/ScenePromptFields';
 import { sceneOrder } from '../sceneSearch';
 import { ScenePicker } from '../components/ScenePicker';
 
+type SideView = 'scene' | 'combos';
+// 씬을 넘겨도 보던 쪽을 유지한다(이번 실행 동안).
+let lastSideView: SideView = 'scene';
+
 export function EmotionDetail({
   resolved,
   emotion,
@@ -61,6 +65,11 @@ export function EmotionDetail({
       : '캐릭터';
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
+  const [sideView, setSideView] = useState(lastSideView);
+  const showSide = (view: SideView) => {
+    lastSideView = view;
+    setSideView(view);
+  };
   const [variants, setVariants] = useState(resolved.preset?.generation.variantsPerEmotion ?? 1);
   const topShown = useLayout(topBarShownOf);
   const favoriteId = project.favorites[emotion.id];
@@ -181,35 +190,51 @@ export function EmotionDetail({
           onChange={(event) => patchEmotion(set.id, emotion.id, { name: event.target.value })}
         />
       </label>
-      <ScenePromptFields
-        emotion={emotion}
-        names={resolved.characters.map((item) => item.character.name)}
-        firstOnCommon={!sceneSide}
-        firstPlacement={
-          sceneSide
-            ? `${sceneSide} 프롬프트 뒤에 붙습니다`
-            : resolved.preset?.generation.emotionPosition === 'common-marker'
-              ? '공통 포지티브의 | 자리에 들어갑니다'
-              : '공통 포지티브 뒤에 붙습니다'
-        }
-        negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
-        negativeHint={
-          resolved.preset && usesMedium(resolved.preset.generation)
-            ? 'Medium에서는 쓰이지 않음'
-            : undefined
-        }
-        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-      />
-      <SceneSlotsEditor
-        emotion={emotion}
-        names={resolved.characters.map((item) => item.character.name)}
-        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-      />
-      <SceneExtras
-        emotion={emotion}
-        txt2img={project.mode === 'txt2img'}
-        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
-      />
+      <div className="segmented full" role="group" aria-label="편집할 프롬프트">
+        <button className={sideView === 'scene' ? 'active' : ''} onClick={() => showSide('scene')}>
+          씬 프롬프트
+        </button>
+        <button
+          className={sideView === 'combos' ? 'active blue' : ''}
+          onClick={() => showSide('combos')}
+        >
+          조합 프롬프트{emotion.slots?.length ? ` · ${comboCount(emotion)}` : ''}
+        </button>
+      </div>
+      {sideView === 'scene' ? (
+        <>
+          <ScenePromptFields
+            emotion={emotion}
+            names={resolved.characters.map((item) => item.character.name)}
+            firstOnCommon={!sceneSide}
+            firstPlacement={
+              sceneSide
+                ? `${sceneSide} 프롬프트 뒤에 붙습니다`
+                : resolved.preset?.generation.emotionPosition === 'common-marker'
+                  ? '공통 포지티브의 | 자리에 들어갑니다'
+                  : '공통 포지티브 뒤에 붙습니다'
+            }
+            negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
+            negativeHint={
+              resolved.preset && usesMedium(resolved.preset.generation)
+                ? 'Medium에서는 쓰이지 않음'
+                : undefined
+            }
+            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+          />
+          <SceneExtras
+            emotion={emotion}
+            txt2img={project.mode === 'txt2img'}
+            onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+          />
+        </>
+      ) : (
+        <SceneSlotsEditor
+          emotion={emotion}
+          names={resolved.characters.map((item) => item.character.name)}
+          onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+        />
+      )}
       {sharedCount > 1 && (
         <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>
       )}

@@ -46,17 +46,16 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState<Record<string, number>>({});
   const [query, setQuery] = useState('');
-  // 씬이 많으면 한두 개만 고치므로 접어 둔다. 새 씬은 펼친다.
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const toggle = (id: string, open = !expanded.has(id)) =>
-    setExpanded((current) => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string, open = collapsed.has(id)) =>
+    setCollapsed((current) => {
       const next = new Set(current);
-      if (open) next.add(id);
-      else next.delete(id);
+      if (open) next.delete(id);
+      else next.add(id);
       return next;
     });
   const visible = set.emotions.filter((emotion) => matchesScene(emotion, query));
-  const allOpen = visible.length > 0 && visible.every((emotion) => expanded.has(emotion.id));
+  const allOpen = visible.every((emotion) => !collapsed.has(emotion.id));
   const add = () => {
     // 새 씬 이름이 검색어와 맞지 않으면 보이지 않는다.
     setQuery('');
@@ -66,7 +65,6 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
       id = next.emotions.at(-1)!.id;
       return next;
     });
-    toggle(id, true);
     revealRow(id);
   };
   return (
@@ -84,7 +82,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
           <button
             disabled={!visible.length}
             onClick={() =>
-              setExpanded(allOpen ? new Set() : new Set(visible.map((emotion) => emotion.id)))
+              setCollapsed(allOpen ? new Set(visible.map((emotion) => emotion.id)) : new Set())
             }
           >
             {allOpen ? '모두 접기' : '모두 펼치기'}
@@ -112,15 +110,15 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
           (emotion, index) =>
             matchesScene(emotion, query) && (
               <div
-                className={`piece-row emotion-row ${expanded.has(emotion.id) ? '' : 'collapsed'}`}
+                className={`piece-row emotion-row ${collapsed.has(emotion.id) ? 'collapsed' : ''}`}
                 key={emotion.id}
                 data-row-id={emotion.id}
               >
                 <div className="piece-row-head">
                   <button
                     className="icon-button emotion-fold"
-                    aria-expanded={expanded.has(emotion.id)}
-                    title={expanded.has(emotion.id) ? '접기' : '펼치기'}
+                    aria-expanded={!collapsed.has(emotion.id)}
+                    title={collapsed.has(emotion.id) ? '펼치기' : '접기'}
                     onClick={() => toggle(emotion.id)}
                   >
                     <Icon name="chevron" size={14} className="section-chevron" />
@@ -134,7 +132,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                       save((item) => updateEmotion(item, emotion.id, { name: event.target.value }))
                     }
                   />
-                  {!expanded.has(emotion.id) && (
+                  {collapsed.has(emotion.id) && (
                     <EmotionSummary emotion={emotion} onOpen={() => toggle(emotion.id, true)} />
                   )}
                   <div className="row-actions">
@@ -186,7 +184,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                     </button>
                   </div>
                 </div>
-                {expanded.has(emotion.id) && (
+                {!collapsed.has(emotion.id) && (
                   <div className="emotion-prompts">
                     <PromptTextarea
                       rows={3}
@@ -242,6 +240,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                     <SceneSlotsEditor
                       emotion={emotion}
                       names={[]}
+                      foldable
                       onChange={(patch) => save((item) => updateEmotion(item, emotion.id, patch))}
                     />
                   </div>

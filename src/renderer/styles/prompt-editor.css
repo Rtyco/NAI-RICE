@@ -338,8 +338,9 @@ textarea.syntax-input::selection {
 .scene-slots {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
+  container-type: inline-size;
 }
 .scene-slots-head,
 .scene-slot-head,
@@ -349,54 +350,176 @@ textarea.syntax-input::selection {
   gap: 8px;
   min-width: 0;
 }
-.scene-slots-head > span {
-  flex: 1;
+.scene-slots-head > b,
+.scene-slots-toggle b {
+  font-size: 12px;
+}
+.scene-slots-head .link-button {
+  margin-left: auto;
+  font-size: 12px;
+}
+.scene-slots-formula {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
+.scene-slots-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+.scene-slots-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.scene-slots-toggle[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.scene-slots-toggle > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 상자를 겹치지 않고 왼쪽 선 하나로 칸을 묶는다. */
 .scene-slot {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-1);
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent-strong);
 }
-.scene-slot-head > span {
+.scene-slot-head > b {
+  font-size: 12px;
+}
+.scene-slot-head > small {
   color: var(--muted);
   font-size: 11px;
-}
-.scene-slot-head .link-button {
-  margin-left: auto;
-  font-size: 12px;
 }
 .scene-slot-empty {
   color: var(--orange-text);
   font-size: 11px;
   font-style: normal;
 }
-.scene-option {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  border-radius: 5px;
-  background: var(--bg-3);
+.scene-slot-head .row-remove,
+.scene-option-head .row-remove {
+  margin-left: auto;
 }
-.scene-option.off {
-  opacity: 0.55;
+.scene-option {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 4px;
+  padding: 6px 0;
+}
+.scene-option + .scene-option {
+  border-top: 1px solid var(--line);
+}
+.scene-option-head {
+  grid-column: 1 / -1;
+}
+.scene-option > :not(.scene-option-head) {
+  grid-column: 2;
+}
+.scene-option.off > :not(.scene-option-head),
+.scene-option.off .scene-option-name {
+  opacity: 0.5;
 }
 .scene-option-name {
   flex: 1;
   min-width: 0;
   padding: 2px 6px;
+  border-color: transparent;
+  background: transparent;
   font-size: 12px;
+  font-weight: 600;
+}
+.scene-option-name:hover,
+.scene-option-name:focus {
+  border-color: var(--line);
+  background: var(--bg-1);
+}
+.scene-option-name::placeholder {
+  color: var(--faint);
+  font-weight: 400;
 }
 .scene-option-head .link-button {
   flex: none;
   font-size: 11px;
+}
+.scene-slots .scene-option textarea {
+  min-height: 0;
+  max-height: 160px;
+  field-sizing: content;
+}
+.scene-option-chars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line-strong);
+}
+.scene-option-chars .emotion-extra-prompt > span {
+  padding-top: 5px;
+}
+/* 지우기는 그 줄에 올렸을 때만 보인다. */
+.scene-slot-head .row-remove,
+.scene-option-head .row-remove {
+  opacity: 0;
+}
+.scene-slot-head:is(:hover, :focus-within) .row-remove,
+.scene-option:is(:hover, :focus-within) .row-remove {
+  opacity: 1;
+}
+.scene-slot-add {
+  align-self: flex-start;
+  margin-left: 24px;
+  font-size: 12px;
+}
+/* 넓으면 후보 하나를 한 줄(이름 | 프롬프트)로 놓아 표처럼 위아래를 비교한다. */
+@container (min-width: 600px) {
+  .scene-option {
+    grid-template-columns: 16px 140px minmax(0, 1fr) 80px auto;
+    align-items: start;
+  }
+  .scene-option-head {
+    display: contents;
+  }
+  .scene-option-head > input[type='checkbox'] {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 8px;
+  }
+  .scene-option-name {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 3px;
+  }
+  .scene-option > .syntax-field {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .scene-option-head .link-button {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: start;
+    margin-top: 7px;
+  }
+  .scene-option-head .row-remove {
+    grid-column: 5;
+    grid-row: 1;
+  }
+  .scene-option > .scene-option-chars {
+    grid-column: 3;
+  }
 }
 .scene-extras {
   display: grid;

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
-import { comboCount, MAX_COMBOS } from '../../core/model/sceneCombos';
+import { comboCount, MAX_COMBOS, optionLabel } from '../../core/model/sceneCombos';
+import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
 
 const newOption = (): SceneOption => ({
@@ -20,15 +21,31 @@ function withCharacterPrompt(option: SceneOption, index: number, value: string):
   return { ...option, characterPrompts: prompts };
 }
 
+const enabledCount = (slot: SceneOption[]) => slot.filter((option) => option.enabled).length;
+
+const slotsSummary = (slots: SceneOption[][]) =>
+  slots
+    .map(
+      (slot) =>
+        slot
+          .filter((option) => option.enabled)
+          .map(optionLabel)
+          .join(' · ') || '(없음)',
+    )
+    .join('  ×  ');
+
 /** SDStudio 조합 칸. 씬 모음은 여러 작업이 함께 써서 캐릭터 몫은 순서로 저장된다. */
 export function SceneSlotsEditor(props: {
   emotion: Emotion;
   /** 작업의 캐릭터 이름. 라이브러리에서는 비었다. */
   names: string[];
+  /** 접힌 한 줄로 시작한다. */
+  foldable?: boolean;
   onChange: (patch: Pick<Emotion, 'slots'>) => void;
 }) {
   const { emotion, names } = props;
   const slots = emotion.slots ?? [];
+  const [open, setOpen] = useState(!props.foldable);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
   // 캐릭터 몫은 내용이 있는 칸만 보인다. 펼친 후보는 모두 보이고, 고치는 중에 비워도 칸이 사라지지 않는다.
@@ -43,6 +60,7 @@ export function SceneSlotsEditor(props: {
   const used = Math.max(0, ...slots.flat().map((option) => option.characterPrompts.length));
   const characterCount = Math.max(names.length, used, opened);
   const count = comboCount(emotion);
+  const total = <b>조합 {count > MAX_COMBOS ? `${MAX_COMBOS}개 넘음` : `${count}개`}</b>;
 
   const save = (next: SceneOption[][]) => props.onChange({ slots: next.length ? next : undefined });
   const patchOption = (slotIndex: number, optionId: string, patch: Partial<SceneOption>) =>
@@ -62,15 +80,40 @@ export function SceneSlotsEditor(props: {
 
   if (!slots.length)
     return (
-      <button className="scene-slots-add" onClick={() => save([[newOption()]])}>
+      <button
+        className="scene-slots-add"
+        onClick={() => {
+          setOpen(true);
+          save([[newOption()]]);
+        }}
+      >
         ＋ 조합 칸
+      </button>
+    );
+
+  if (!open)
+    return (
+      <button className="scene-slots-toggle" aria-expanded={false} onClick={() => setOpen(true)}>
+        <Icon name="chevron" size={12} className="section-chevron" />
+        {total}
+        <span>{slotsSummary(slots)}</span>
       </button>
     );
 
   return (
     <div className="scene-slots">
       <div className="scene-slots-head">
-        <span>조합 칸 · 조합 {count > MAX_COMBOS ? `${MAX_COMBOS}개 넘음` : `${count}개`}</span>
+        {props.foldable ? (
+          <button className="scene-slots-toggle" aria-expanded onClick={() => setOpen(false)}>
+            <Icon name="chevron" size={12} className="section-chevron" />
+            {total}
+          </button>
+        ) : (
+          total
+        )}
+        {slots.length > 1 && (
+          <span className="scene-slots-formula">= {slots.map(enabledCount).join(' × ')}</span>
+        )}
         <button
           className="link-button"
           title="다음 캐릭터 몫 칸 추가"
@@ -81,29 +124,20 @@ export function SceneSlotsEditor(props: {
         >
           ＋ 캐릭터
         </button>
-        <button className="link-button" onClick={() => save([...slots, [newOption()]])}>
-          ＋ 칸
-        </button>
       </div>
       {slots.map((slot, slotIndex) => (
-        <div className="scene-slot" key={slotIndex}>
+        <section className="scene-slot" key={slotIndex}>
           <div className="scene-slot-head">
-            <span>칸 {slotIndex + 1}</span>
-            {!slot.some((option) => option.enabled) && (
+            <b>칸 {slotIndex + 1}</b>
+            {enabledCount(slot) ? (
+              <small>
+                켜짐 {enabledCount(slot)}/{slot.length}
+              </small>
+            ) : (
               <em className="scene-slot-empty">켜진 후보가 없어 생성되지 않음</em>
             )}
             <button
-              className="link-button"
-              onClick={() =>
-                save(
-                  slots.map((item, index) => (index === slotIndex ? [...item, newOption()] : item)),
-                )
-              }
-            >
-              ＋ 후보
-            </button>
-            <button
-              className="icon-button danger"
+              className="icon-button danger row-remove"
               title="칸 삭제"
               onClick={() => save(slots.filter((_, index) => index !== slotIndex))}
             >
@@ -144,7 +178,7 @@ export function SceneSlotsEditor(props: {
                     </button>
                   )}
                   <button
-                    className="icon-button danger"
+                    className="icon-button danger row-remove"
                     title="후보 삭제"
                     onClick={() =>
                       save(
@@ -160,32 +194,49 @@ export function SceneSlotsEditor(props: {
                   </button>
                 </div>
                 <PromptTextarea
-                  rows={2}
+                  rows={1}
                   value={option.prompt}
                   aria-label="후보 프롬프트"
                   placeholder="씬 프롬프트 자리에 붙음"
                   onChange={(prompt) => patchOption(slotIndex, option.id, { prompt })}
                 />
-                {shown.map((index) => (
-                  <div className="emotion-extra-prompt" key={index}>
-                    <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
-                    <PromptTextarea
-                      rows={1}
-                      value={option.characterPrompts[index] ?? ''}
-                      aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
-                      placeholder="이 캐릭터 프롬프트에 붙음"
-                      onChange={(value) => {
-                        expand(option.id);
-                        setOption(slotIndex, withCharacterPrompt(option, index, value));
-                      }}
-                    />
+                {shown.length > 0 && (
+                  <div className="scene-option-chars">
+                    {shown.map((index) => (
+                      <div className="emotion-extra-prompt" key={index}>
+                        <span>{names[index] ?? `캐릭터 ${index + 1}`}</span>
+                        <PromptTextarea
+                          rows={1}
+                          value={option.characterPrompts[index] ?? ''}
+                          aria-label={`${names[index] ?? `캐릭터 ${index + 1}`} 몫`}
+                          placeholder="이 캐릭터 프롬프트에 붙음"
+                          onChange={(value) => {
+                            expand(option.id);
+                            setOption(slotIndex, withCharacterPrompt(option, index, value));
+                          }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             );
           })}
-        </div>
+          <button
+            className="link-button scene-slot-add"
+            onClick={() =>
+              save(
+                slots.map((item, index) => (index === slotIndex ? [...item, newOption()] : item)),
+              )
+            }
+          >
+            ＋ 후보
+          </button>
+        </section>
       ))}
+      <button className="scene-slots-add" onClick={() => save([...slots, [newOption()]])}>
+        ＋ 칸
+      </button>
     </div>
   );
 }
