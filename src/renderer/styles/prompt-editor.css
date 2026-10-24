@@ -268,6 +268,50 @@ textarea.syntax-input::selection {
   min-width: 14px;
   margin-top: 0;
 }
+.emotion-fold {
+  flex: none;
+}
+.emotion-fold[aria-expanded='true'] .section-chevron {
+  transform: rotate(90deg);
+}
+.emotion-row.collapsed {
+  contain-intrinsic-size: auto 46px;
+}
+.emotion-summary {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+}
+.emotion-summary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--bg-4);
+}
+.emotion-summary span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.emotion-summary span.empty {
+  color: var(--faint);
+}
+.emotion-summary small {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--muted);
+  font-size: 11px;
+}
 .emotion-prompts {
   display: flex;
   flex-direction: column;
