@@ -140,6 +140,11 @@ describe('Library migration', () => {
     temporary.push(fresh);
     const created = await new Library(fresh, '1.1.2').load();
     expect(created.library.settings.update.seenVersion).toBe('1.1.2');
+    // 버전을 올리기 전(1.1.1) 개발 실행도 안내를 본 것으로 둔다.
+    const early = await mkdtemp(path.join(os.tmpdir(), 'desk-early-'));
+    temporary.push(early);
+    const before = await new Library(early, '1.1.1').load();
+    expect(before.library.settings.update.seenVersion).toBe('1.1.2');
 
     const old = await mkdtemp(path.join(os.tmpdir(), 'desk-old-'));
     temporary.push(old);

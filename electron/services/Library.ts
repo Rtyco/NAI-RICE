@@ -6,6 +6,7 @@ import type {
   Reference,
 } from '../../src/core/domain/types';
 import { createDefaultLibrary } from '../../src/core/model/defaults';
+import { compareVersions, WHATS_NEW_VERSION } from '../../src/core/update/UpdateCheck';
 import { librarySchema } from '../../src/core/validation/schemas';
 import type {
   GenerationMeasure,
@@ -84,7 +85,11 @@ export class Library
       library = await migrateV1Workspace(this, notices);
     } else {
       library = createDefaultLibrary();
-      library.settings.update.seenVersion = this.appVersion;
+      // 버전을 올리기 전 개발 실행에서도 새로 설치한 상태에는 안내를 띄우지 않는다.
+      library.settings.update.seenVersion =
+        compareVersions(this.appVersion, WHATS_NEW_VERSION) > 0
+          ? this.appVersion
+          : WHATS_NEW_VERSION;
       await this.save(library);
     }
     this.latest = library;

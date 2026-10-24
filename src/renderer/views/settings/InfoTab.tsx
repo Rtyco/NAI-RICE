@@ -2,7 +2,8 @@ import { Icon } from '../../components/Icon';
 import { Card, Toggle } from '../../components/ui';
 import { useLibrary, useStore } from '../../store';
 import { checkForUpdate, openUpdateDialog } from '../../updates';
-import { openWhatsNew, WHATS_NEW_VERSION } from '../../whatsNew';
+import { WHATS_NEW_VERSION } from '../../../core/update/UpdateCheck';
+import { openWhatsNew } from '../../whatsNew';
 import { patchSettings } from './patchSettings';
 
 /** THIRD_PARTY_NOTICES.md와 맞춘다. */

@@ -26,6 +26,9 @@ function parts(version: string): number[] {
     .filter((value) => Number.isFinite(value));
 }
 
+/** 바뀐 점 안내 내용이 바뀐 버전. 다음 버전의 안내를 만들면 올린다. */
+export const WHATS_NEW_VERSION = '1.1.2';
+
 /** a가 새 버전이면 양수 */
 export function compareVersions(a: string, b: string): number {
   const left = parts(a);
