@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { dimTitleBar } from '../theme';
 import { popDialog, useDialogs, type DialogRequest } from './dialogStack';
 
 /** 창이 겹치면 맨 위 창만 Enter·Esc를 받는다. */
@@ -56,6 +57,10 @@ export function Modal({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, large]);
+  useEffect(() => {
+    dimTitleBar(1);
+    return () => dimTitleBar(-1);
+  }, []);
   return (
     <div
       className="modal-backdrop"

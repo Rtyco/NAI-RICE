@@ -150,27 +150,42 @@ export function applyAppearance(appearance: Appearance): void {
   }
 }
 
-/** hsl·color-mix 포함 */
-function cssColorToHex(variable: string): string {
+let dimLayers = 0;
+
+/** 모달 배경(--overlay)이 Windows 창 버튼은 덮지 못해 버튼 색을 같은 만큼 어둡게 칠한다. */
+export function dimTitleBar(delta: 1 | -1): void {
+  dimLayers = Math.max(0, dimLayers + delta);
+  syncTitleBar();
+}
+
+function computedColor(variable: string): string {
   const probe = document.createElement('span');
   probe.style.color = `var(${variable})`;
   probe.style.display = 'none';
   document.body.appendChild(probe);
-  const rgb = getComputedStyle(probe)
-    .color.match(/[\d.]+/g)
-    ?.map(Number) ?? [0, 0, 0];
+  const color = getComputedStyle(probe).color;
   probe.remove();
-  return `#${rgb
-    .slice(0, 3)
-    .map((value) => Math.round(value).toString(16).padStart(2, '0'))
+  return color;
+}
+
+/** 반투명 --overlay를 겹쳐 칠한 결과를 읽는다. color-mix는 color(srgb …)로 풀려 나와 캔버스로 rgb를 얻는다. */
+function titleBarHex(variable: string): string {
+  const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  if (!context) return '#000000';
+  context.fillStyle = computedColor(variable);
+  context.fillRect(0, 0, 1, 1);
+  if (dimLayers) context.fillStyle = computedColor('--overlay');
+  for (let layer = 0; layer < dimLayers; layer++) context.fillRect(0, 0, 1, 1);
+  return `#${[...context.getImageData(0, 0, 1, 1).data.slice(0, 3)]
+    .map((value) => value.toString(16).padStart(2, '0'))
     .join('')}`;
 }
 
 function syncTitleBar(): void {
   try {
     window.referenceDesk?.setTitleBarColors?.({
-      color: cssColorToHex('--bg-2'),
-      symbolColor: cssColorToHex('--text-2'),
+      color: titleBarHex('--bg-2'),
+      symbolColor: titleBarHex('--text-2'),
     });
   } catch {
     // 꾸밈일 뿐이다.
