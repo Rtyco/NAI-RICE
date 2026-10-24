@@ -5,7 +5,7 @@ import { createDefaultLibrary } from '../core/model/defaults';
 import type { DesktopApi } from '../shared/ipc';
 import App from './App';
 import { applyAppearance, cachedAppearance } from './theme';
-import { restorePanelWidths } from './panelWidths';
+import { restorePanelWidths, watchPanelFit } from './panelWidths';
 import './styles/index.css';
 
 /** 브라우저(vite 단독)에서 화면만 볼 때 쓰는 메모리 API */
@@ -105,6 +105,7 @@ function createPreviewApi(): DesktopApi {
 // 라이브러리를 읽기 전에도 마지막 테마로 그려 깜빡임을 줄인다.
 applyAppearance(cachedAppearance());
 restorePanelWidths();
+watchPanelFit();
 
 if (import.meta.env.DEV && !window.referenceDesk) {
   window.referenceDesk = createPreviewApi();

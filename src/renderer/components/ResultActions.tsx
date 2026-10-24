@@ -41,12 +41,12 @@ export function ResultBar(props: {
               key={action.label}
               className={`${action.iconOnly ? 'icon-button' : 'with-icon'} ${action.group === 'delete' ? 'danger-quiet' : action.active ? 'active' : ''}`}
               disabled={action.disabled}
-              title={action.iconOnly ? (action.title ?? action.label) : action.title}
+              title={action.title ?? action.label}
               aria-label={action.label}
               onClick={action.onSelect}
             >
               <Icon name={action.icon} size={14} className={action.active ? 'filled' : ''} />
-              {!action.iconOnly && action.label}
+              {!action.iconOnly && <span className="result-label">{action.label}</span>}
             </button>
           ))}
         </Fragment>

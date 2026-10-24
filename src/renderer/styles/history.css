@@ -43,7 +43,7 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   /* 칸이 overflow: hidden이라 auto 행은 목록 높이에 맞춰 줄어든다. */
   grid-auto-rows: max-content;
   align-content: start;

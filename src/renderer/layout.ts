@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { FocusLevel } from '../core/domain/types';
 import type { PanelId } from './panelWidths';
-import { readUiState, saveUiState, useStore } from './store';
+import { readUiState, saveUiState, useStore, type StoreState } from './store';
 
 export type PanelStage = 'open' | 'icons' | 'hidden';
 
@@ -108,6 +108,12 @@ export const sidePanelShownOf = (state: LayoutState) => unfolded(state, 'sidePan
 export const topBarShownOf = (state: LayoutState) => unfolded(state, 'topBarCollapsed');
 export const queueBarShownOf = (state: LayoutState) => !hiddenByFocus(state, 'queueBar');
 export const focusingOf = (state: LayoutState) => state.focusHidden.length > 0;
+
+/** 결과 화면(씬 상세·자유 생성)과 인페인트 편집에만 입력 패널이 있다. */
+export const hasSidePanel = ({ view, detailEmotionId }: StoreState) =>
+  view.kind === 'free' ||
+  (view.kind === 'project' && Boolean(detailEmotionId)) ||
+  (view.kind === 'library' && view.section === 'references');
 
 /** 누르면 바뀔 단계를 말한다. 예: 사이드바 숨기기 (Ctrl+B) */
 export function stageTitle(

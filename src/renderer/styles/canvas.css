@@ -3,7 +3,7 @@
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--side-panel-width, 360px);
+  grid-template-columns: minmax(0, 1fr) var(--side-panel-column, 360px);
 }
 .canvas-settings {
   display: flex;

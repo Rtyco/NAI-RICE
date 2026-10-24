@@ -1,7 +1,7 @@
 /* ── 프롬프트 패널 (작업·자유 생성) ──────────── */
 .prompt-panel-view {
-  --prompt-column: var(--prompt-panel-width, 300px);
-  --history-column: var(--history-panel-width, 220px);
+  --prompt-column: var(--prompt-panel-column, 300px);
+  --history-column: var(--history-panel-column, 220px);
   position: relative;
   height: 100%;
   display: grid;

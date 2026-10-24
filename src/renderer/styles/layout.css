@@ -100,7 +100,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: var(--sidebar-width, 240px) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-column, 240px) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
 }
 .main-area {

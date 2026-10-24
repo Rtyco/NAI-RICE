@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { PromptTextarea } from './PromptTextarea';
 import { ExpandTextButton } from './TextEditorDialog';
@@ -88,8 +88,11 @@ export function PromptField(props: {
   markers?: boolean;
   onChange: (value: string) => void;
 }) {
+  // for가 없으면 앞에 있는 크게 편집 버튼이 라벨의 대상이 되어 행 전체의 hover·클릭을 받는다.
+  const id = useId();
   return (
     <label
+      htmlFor={id}
       className={`prompt-field ${props.tone === 'negative' ? 'negative-field' : ''}`}
       title={props.title}
     >
@@ -107,6 +110,7 @@ export function PromptField(props: {
         </span>
       </span>
       <PromptTextarea
+        id={id}
         rows={props.rows}
         value={props.value}
         placeholder={props.placeholder}

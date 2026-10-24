@@ -11,7 +11,7 @@ import {
 
 /** 패널을 담은 grid(`position: relative`) 안에 두면 CSS 변수 폭에 맞춰 경계에 붙는다. */
 export function PanelResizer({ panel }: { panel: PanelId }) {
-  const { side, max, initial, variable } = PANELS[panel];
+  const { side, max, initial, column } = PANELS[panel];
 
   const direction = side === 'left' ? 1 : -1;
 
@@ -57,7 +57,7 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
       aria-valuemax={max}
       tabIndex={0}
       title="끌어서 폭 조절 · 두 번 누르면 기본 폭"
-      style={{ [side]: `calc(var(${variable}, ${initial}px) - 3px)` }}
+      style={{ [side]: `calc(var(${column}, ${initial}px) - 3px)` }}
       onPointerDown={onPointerDown}
       onDoubleClick={() => commitWidth(panel, initial)}
       onKeyDown={onKeyDown}

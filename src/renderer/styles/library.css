@@ -3,7 +3,7 @@
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-columns: var(--library-list-width, 260px) minmax(0, 1fr);
+  grid-template-columns: var(--library-list-column, 260px) minmax(0, 1fr);
 }
 .library-view.list-hidden {
   grid-template-columns: 0 minmax(0, 1fr);
