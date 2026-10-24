@@ -269,3 +269,78 @@ export function emotionMenu(
     },
   ];
 }
+
+/** 갤러리에서 고른 씬 여럿에 한꺼번에 */
+export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emotion[]): MenuItem[] {
+  const state = useStore.getState();
+  const project = state.library?.projects.find((item) => item.id === projectId);
+  const generations = state.generations[projectId];
+  const ids = emotions.map((emotion) => emotion.id);
+  const ready = emotions.filter(hasScenePrompt).map((emotion) => emotion.id);
+  const excluded = new Set(project?.excludedEmotionIds);
+  const covers = emotions
+    .map((emotion) =>
+      coverRecord(emotionRecords(generations, emotion.id), project?.favorites[emotion.id]),
+    )
+    .filter((record): record is GenerationSummary => Boolean(record));
+  const setExcluded = (exclude: boolean) =>
+    updateProject(projectId, (current) => {
+      const others = current.excludedEmotionIds.filter((id) => !ids.includes(id));
+      return { ...current, excludedEmotionIds: exclude ? [...others, ...ids] : others };
+    });
+  return [
+    { heading: `고른 씬 ${emotions.length}개` },
+    {
+      label: '고른 씬 생성',
+      disabled: !ready.length,
+      onSelect: () => void generateEmotions(projectId, ready),
+    },
+    {
+      label: '일괄 생성에 포함',
+      disabled: ids.every((id) => !excluded.has(id)),
+      onSelect: () => setExcluded(false),
+    },
+    {
+      label: '일괄 생성에서 제외',
+      disabled: ids.every((id) => excluded.has(id)),
+      onSelect: () => setExcluded(true),
+    },
+    'divider',
+    {
+      label: '씬 복제',
+      onSelect: () => {
+        for (const id of ids) duplicateEmotionIn(set.id, id);
+        toast(`씬 ${ids.length}개를 복제했습니다.`);
+      },
+    },
+    'divider',
+    {
+      heading: covers.length
+        ? `대표 이미지 ${covers.length}장 (없으면 최신)`
+        : '대표 이미지 (결과 없음)',
+    },
+    {
+      label: '다듬기',
+      disabled: !covers.length,
+      onSelect: () => openImg2ImgDialog(projectId, covers),
+    },
+    {
+      label: '디렉터 툴',
+      hint: 'Emotion·배경 제거 등',
+      disabled: !covers.length,
+      onSelect: () => openDirectorToolDialog(projectId, covers),
+    },
+    'divider',
+    {
+      label: '결과만 삭제',
+      hint: '대표 이미지는 남김',
+      disabled: !covers.length,
+      onSelect: () => void clearEmotionResults(projectId, emotions),
+    },
+    {
+      label: '씬 삭제',
+      danger: true,
+      onSelect: () => void deleteEmotions(set.id, emotions, projectId),
+    },
+  ];
+}

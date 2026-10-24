@@ -9,7 +9,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import type { Emotion, EmotionSet, GenerationSummary, QueueJobView } from '../../core/domain/types';
+import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { moveEmotions } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
@@ -27,7 +27,13 @@ import {
   writeDragPayload,
   type DragPayload,
 } from '../components/listDrag';
-import { addEmotionTo, deleteEmotions, emotionMenu, updateEmotionSet } from '../emotionOps';
+import {
+  addEmotionTo,
+  deleteEmotions,
+  emotionMenu,
+  emotionsMenu,
+  updateEmotionSet,
+} from '../emotionOps';
 import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
 import {
   coverRecord,
@@ -66,7 +72,6 @@ const scrollTops = new Map<string, number>();
 /** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
   projectId: string;
-  set: EmotionSet;
   emotion: Emotion;
   favoriteId?: string;
   /** 일괄 생성에서 뺐는지 */
@@ -86,6 +91,7 @@ const EmotionCard = memo(function EmotionCard(props: {
   returned: boolean;
   /** Ctrl·Shift 클릭이면 true */
   onPick: (event: MouseEvent, id: string) => boolean;
+  onMenu: (event: MouseEvent, emotion: Emotion, excluded: boolean) => void;
 }) {
   const { projectId, emotion, records, favoriteId, excluded } = props;
   const open = (event: MouseEvent) => {
@@ -94,8 +100,7 @@ const EmotionCard = memo(function EmotionCard(props: {
   const cover = coverRecord(records, favoriteId, props.prefer);
   const state = jobState(props.jobs);
   const included = !excluded && hasScenePrompt(emotion);
-  const menu = (event: React.MouseEvent) =>
-    showContextMenu(event, emotionMenu(projectId, props.set, emotion, excluded));
+  const menu = (event: MouseEvent) => props.onMenu(event, emotion, excluded);
   const [over, setOver] = useState(false);
 
   return (
@@ -240,14 +245,14 @@ export function GalleryView({
     { selectAllKey: () => emotions.map((emotion) => emotion.id) },
   );
   const [dragging, setDragging] = useState<string[]>([]);
-  const latest = useRef({ selected: selection.selected, emotions, setId: emotionSet?.id });
-  latest.current = { selected: selection.selected, emotions, setId: emotionSet?.id };
+  const latest = useRef({ selection, emotions, set: emotionSet });
+  latest.current = { selection, emotions, set: emotionSet };
   // 카드가 memo라 함수는 늘 같게 두고 최신 값은 ref에서 읽는다.
   const startDrag = useCallback((id: string) => {
-    const { selected, emotions: order } = latest.current;
+    const { selection: current, emotions: order } = latest.current;
     const payload = dragPayload(
       id,
-      selected,
+      current.selected,
       order.map((emotion) => emotion.id),
     );
     setDragging(payload.ids);
@@ -255,12 +260,27 @@ export function GalleryView({
   }, []);
   const endDrag = useCallback(() => setDragging([]), []);
   const dropOn = useCallback((payload: DragPayload, targetId: string) => {
-    const setId = latest.current.setId;
+    const setId = latest.current.set?.id;
     if (setId)
       updateEmotionSet(setId, (current) =>
         moveEmotions(current, payload.ids, payload.grabbed, targetId),
       );
   }, []);
+  // 고른 카드를 우클릭하면 고른 씬 모두에, 고르지 않은 카드면 고르기를 풀고 그 씬에만(탐색기와 같다).
+  const menuFor = useCallback(
+    (event: MouseEvent, emotion: Emotion, excluded: boolean) => {
+      const { selection: current, emotions: order, set } = latest.current;
+      if (!set) return;
+      if (current.selected.size > 1 && current.selected.has(emotion.id)) {
+        const picked = order.filter((item) => current.selected.has(item.id));
+        showContextMenu(event, emotionsMenu(project.id, set, picked));
+        return;
+      }
+      if (current.selected.size && !current.selected.has(emotion.id)) current.clear();
+      showContextMenu(event, emotionMenu(project.id, set, emotion, excluded));
+    },
+    [project.id],
+  );
   const openExport = () =>
     void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
@@ -455,7 +475,6 @@ export function GalleryView({
           <EmotionCard
             key={emotion.id}
             projectId={project.id}
-            set={emotionSet}
             emotion={emotion}
             favoriteId={project.favorites[emotion.id]}
             excluded={excluded.has(emotion.id)}
@@ -470,6 +489,7 @@ export function GalleryView({
             picked={selection.isSelected(emotion.id)}
             returned={emotion.id === lastEmotionId}
             onPick={selection.clickItem}
+            onMenu={menuFor}
           />
         ))}
         <button className="emotion-card add-card" onClick={addAndOpen}>
