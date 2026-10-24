@@ -31,8 +31,10 @@ export function joinFragments(...fragments: Array<string | undefined>): string {
 /** SDStudio `|` 자리: 쉼표·줄바꿈 사이에 `|`만 있는 칸. `{a|b}`·`a|b`의 `|`는 아니다. */
 const MARKER = /(?:^|[,\n])[ \t]*\|[ \t]*(?=[,\n]|$)/;
 
+const MARKERS = new RegExp(MARKER, 'g');
+
 function splitMarkers(text: string): string[] {
-  return text.split(new RegExp(MARKER, 'g'));
+  return text.includes('|') ? text.split(MARKERS) : [text];
 }
 
 export function hasMarker(text: string): boolean {

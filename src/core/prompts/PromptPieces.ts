@@ -32,7 +32,7 @@ function lines(prompt: string): string[] {
 const COMMENT = /##[\s\S]*?##[ \t]*/g;
 
 export function stripComments(text: string): string {
-  return text.replace(COMMENT, '');
+  return text.includes('##') ? text.replace(COMMENT, '') : text;
 }
 
 /** 여러 줄이면 쉼표로 잇고, multi면 seed로 한 줄을 고른다(seed가 없으면 첫 줄). SDStudio처럼 빈 줄도 후보다. */
@@ -61,6 +61,8 @@ function choiceAt(text: string, open: number): { close: number; pipes: number[] 
  * SDStudio는 매번 무작위지만 여기서는 seed로 골라 같은 seed면 같은 결과다(seed가 없으면 첫 후보).
  */
 export function resolveChoices(text: string, seed?: number): string {
+  // 토큰 막대가 키마다 모든 씬을 조립해 대부분인 `|` 없는 칸은 건너뛴다.
+  if (!text.includes('|')) return text;
   let count = 0;
   const resolve = (value: string): string => {
     let result = '';
