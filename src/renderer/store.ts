@@ -86,7 +86,7 @@ export function saveUiState(key: string, value: string): void {
 
 const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
-export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7] as const;
+export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7, 8] as const;
 const GALLERY_COLUMNS_KEY = 'gallery-columns';
 
 /** NovelAI 웹 기본 해상도의 비율(832×1216, 1216×832, 1024×1024). */
