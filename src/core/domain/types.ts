@@ -109,6 +109,11 @@ export type Emotion = {
    * 조합이 0개다(SDStudio와 같다). 고른 후보는 위의 고정 프롬프트 뒤에 붙는다.
    */
   slots?: SceneOption[][];
+  /** 생성 설정의 seed 방식보다 우선한다(SDStudio 씬 seed). */
+  seed?: number;
+  /** 일반 생성의 결과 크기(SDStudio 씬 해상도). 인페인트는 캔버스 크기를 쓴다. 둘 다 있거나 둘 다 없다. */
+  width?: number;
+  height?: number;
 };
 
 export type SceneOption = {
@@ -693,7 +698,12 @@ export type QueueView = {
 };
 
 export type ImportWarning = {
-  code: 'empty-prompt' | 'missing-character-positive' | 'multiple-presets' | 'images-not-imported';
+  code:
+    | 'empty-prompt'
+    | 'missing-character-positive'
+    | 'multiple-presets'
+    | 'images-not-imported'
+    | 'scene-characters-mixed';
   message: string;
   path?: string;
 };

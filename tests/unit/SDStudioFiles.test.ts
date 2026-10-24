@@ -66,6 +66,9 @@ describe('SDStudio 호환 내보내기', () => {
           name: '외출',
           prompt: '',
           negative: 'rain',
+          seed: 77,
+          width: 1024,
+          height: 1536,
           slots: [
             [
               {
@@ -93,7 +96,7 @@ describe('SDStudio 호환 내보내기', () => {
     expect(Object.keys(file.library)).toEqual(['포즈']);
     const [back] = parseImportFile(JSON.stringify(file), 'c.json', PRESET_ID).emotionSets[0]
       .emotions;
-    expect(back.negative).toBe('rain');
+    expect(back).toMatchObject({ negative: 'rain', seed: 77, width: 1024, height: 1536 });
     expect(
       back.slots!.map((slot) =>
         slot.map(({ name, prompt, characterPrompts, enabled }) => ({

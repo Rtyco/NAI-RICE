@@ -350,6 +350,11 @@ textarea.syntax-input::selection {
   padding: 2px 6px;
   font-size: 12px;
 }
+.scene-extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
 .prompt-panel-order {
   display: inline-grid;
   place-items: center;

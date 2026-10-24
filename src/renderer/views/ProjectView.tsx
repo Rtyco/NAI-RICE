@@ -1,7 +1,7 @@
 import { Fragment, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Emotion, Preset, Project, ProjectMode } from '../../core/domain/types';
-import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
+import { composeRequestPrompts, sceneSize } from '../../core/jobs/JobBuilder';
 import {
   AID_MODEL_MISSING,
   INPAINT_MODEL_MISSING,
@@ -350,8 +350,29 @@ export function ProjectView({ projectId }: { projectId: string }) {
             aid,
           }
         : undefined;
-  const estimate = costJob && count ? estimateJobAnlas(costJob, token) * count : undefined;
-  const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
+  // 일반 생성은 씬 크기가 씬마다 다를 수 있다.
+  const sceneCosts = costJob
+    ? scenes.map((emotion) => {
+        const size = project.mode === 'txt2img' && generation && sceneSize(emotion, generation);
+        return {
+          job: size ? { ...costJob, canvasWidth: size.width, canvasHeight: size.height } : costJob,
+          images: comboCount(emotion) * (preset?.generation.variantsPerEmotion ?? 1),
+        };
+      })
+    : [];
+  const estimate =
+    costJob && count
+      ? sceneCosts.reduce(
+          (total, item) => total + estimateJobAnlas(item.job, token) * item.images,
+          0,
+        )
+      : undefined;
+  const costReasons = costJob
+    ? generationCostWarnings(
+        sceneCosts.length ? sceneCosts.map((item) => item.job) : [costJob],
+        token,
+      )
+    : [];
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
   const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
   const generateTitle = resolved.missing.length

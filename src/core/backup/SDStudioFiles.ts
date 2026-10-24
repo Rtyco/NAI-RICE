@@ -54,7 +54,14 @@ export function exportSDStudioScenes(set: EmotionSet, pieceSets: PieceSet[]): SD
     scenes[name] = {
       type: 'scene',
       name,
-      resolution: 'portrait',
+      ...(emotion.width && emotion.height
+        ? {
+            resolution: 'custom',
+            resolutionWidth: emotion.width,
+            resolutionHeight: emotion.height,
+          }
+        : { resolution: 'portrait' }),
+      ...(emotion.seed !== undefined ? { sceneSeed: emotion.seed } : {}),
       slots: [
         ...(fixed.some((text) => text.trim()) || !slots.length
           ? [[{ id: newId(), prompt: '', characterPrompts: fixed, enabled: true }]]

@@ -99,6 +99,9 @@ export const emotionSetSchema = z.object({
       augmentMood: z.string().trim().min(1).max(40).optional().catch(undefined),
       augmentDefry: z.number().int().min(0).max(5).optional().catch(undefined),
       slots: z.array(z.array(sceneOptionSchema)).optional(),
+      seed: z.number().int().min(0).max(4_294_967_295).optional().catch(undefined),
+      width: z.number().int().min(64).max(8192).optional().catch(undefined),
+      height: z.number().int().min(64).max(8192).optional().catch(undefined),
     }),
   ),
 });

@@ -4,7 +4,7 @@ import { scenePosition } from '../../core/jobs/JobBuilder';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
 import { comboCount, findCombo } from '../../core/model/sceneCombos';
-import { SceneSlotsEditor } from '../components/SceneSlotsEditor';
+import { SceneExtras, SceneSlotsEditor } from '../components/SceneSlotsEditor';
 import { usesMedium } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
@@ -198,6 +198,11 @@ export function EmotionDetail({
       <SceneSlotsEditor
         emotion={emotion}
         names={resolved.characters.map((item) => item.character.name)}
+        onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
+      />
+      <SceneExtras
+        emotion={emotion}
+        txt2img={project.mode === 'txt2img'}
         onChange={(patch) => patchEmotion(set.id, emotion.id, patch)}
       />
       {sharedCount > 1 && (

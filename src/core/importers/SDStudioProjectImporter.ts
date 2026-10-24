@@ -150,18 +150,119 @@ function convertOption(piece: Json): SceneOption {
   };
 }
 
+/** SDStudio `resolutionMap`(가로, 세로). 값은 SDStudio 그대로다. */
+const RESOLUTIONS: Record<string, [number, number]> = {
+  small_landscape: [768, 512],
+  small_portrait: [512, 768],
+  small_square: [640, 640],
+  landscape: [1216, 832],
+  portrait: [832, 1216],
+  square: [1024, 1024],
+  large_landscape: [1536, 1024],
+  large_portrait: [1024, 1536],
+  large_square: [1472, 1472],
+  wallpaper_portrait: [1920, 1088],
+  wallpaper_landscape: [1088, 1920],
+};
+
+const validSide = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 64 && value <= 8192;
+
+function sceneSize(scene: Json): { width: number; height: number } | undefined {
+  const value = scene.resolution;
+  const [width, height] = isObject(value)
+    ? [value.width, value.height]
+    : value === 'custom'
+      ? [scene.resolutionWidth, scene.resolutionHeight]
+      : typeof value === 'string'
+        ? (RESOLUTIONS[value] ?? [])
+        : [];
+  return validSide(width) && validSide(height) ? { width, height } : undefined;
+}
+
+/** 씬 seed, 없으면 씬 seed 묶음의 seed(SDStudio 우선순위). */
+function sceneSeed(scene: Json): number | undefined {
+  if (validSeed(scene.sceneSeed)) return scene.sceneSeed;
+  const group = isObject(scene.meta) ? scene.meta.__sdstudioSceneSeedGroupV1 : undefined;
+  return isObject(group) && validSeed(group.seed) ? group.seed : undefined;
+}
+
+type SceneRoles = { mode: 'base' | 'mix' | 'scene'; roles: Json[] };
+
+function sceneRoles(scene: Json): SceneRoles {
+  const mode =
+    scene.sceneCharacterPromptMode === 'base' ||
+    scene.sceneCharacterPromptMode === 'mix' ||
+    scene.sceneCharacterPromptMode === 'scene'
+      ? scene.sceneCharacterPromptMode
+      : scene.useSceneCharacterPrompts === true
+        ? 'scene'
+        : 'base';
+  return { mode, roles: objects(scene.sceneCharacterPrompts) };
+}
+
+/**
+ * 씬 캐릭터 역할은 같은 번호 캐릭터 프롬프트 뒤, 조합 후보보다 앞에 붙는다(역할 혼합). 그래서 맨 앞에 후보
+ * 하나짜리 칸으로 둔다. 역할 네거티브는 캐릭터마다 둘 곳이 없어 씬 네거티브에 합친다.
+ */
 function convertScene(name: string, scene: Json): Emotion {
-  const slots = (Array.isArray(scene.slots) ? scene.slots : []).map((slot) =>
-    objects(slot).map(convertOption),
+  const { mode, roles } = sceneRoles(scene);
+  const roleSlot: SceneOption[][] =
+    mode !== 'base' && roles.length
+      ? [
+          [
+            {
+              id: newId(),
+              name: '씬 캐릭터',
+              prompt: '',
+              characterPrompts: roles.map((role) =>
+                role.enabled === false ? '' : text(role.prompt),
+              ),
+              enabled: true,
+            },
+          ],
+        ]
+      : [];
+  const slots = [
+    ...roleSlot,
+    ...(Array.isArray(scene.slots) ? scene.slots : []).map((slot) =>
+      objects(slot).map(convertOption),
+    ),
+  ];
+  const negative = join(
+    text(scene.sceneUC),
+    ...(roleSlot.length
+      ? [text(scene.sceneCharacterUC), ...roles.map((role) => text(role.uc))]
+      : []),
   );
-  const negative = text(scene.sceneUC);
+  const seed = sceneSeed(scene);
+  const size = sceneSize(scene);
   return {
     id: newId(),
     name,
     prompt: '',
     ...(slots.length ? { slots } : {}),
     ...(negative ? { negative } : {}),
+    ...(seed !== undefined ? { seed } : {}),
+    ...size,
   };
+}
+
+/**
+ * SDStudio 씬은 모두 이름 붙은 해상도가 있다. 가장 많은 것은 생성 설정 크기로 올리고 그 씬에서는 지운다.
+ * `custom`은 일부러 고른 크기라(이 앱 내보내기도 `custom`) 그대로 둔다.
+ */
+function commonSize(emotions: Emotion[]): { width: number; height: number } | undefined {
+  const counts = new Map<string, number>();
+  for (const emotion of emotions)
+    if (emotion.width && emotion.height) {
+      const key = `${emotion.width}x${emotion.height}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!top) return undefined;
+  const [width, height] = top.split('x').map(Number);
+  return { width, height };
 }
 
 const optionHasText = (option: SceneOption) =>
@@ -199,9 +300,12 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   const extra = typeof root.extraPrompt === 'string' ? root.extraPrompt : '';
 
   const emotions: Emotion[] = [];
+  const named = new Set<Emotion>();
   for (const [sceneName, sceneValue] of Object.entries(root.scenes)) {
     if (!isObject(sceneValue)) continue;
     const emotion = convertScene(sceneName, sceneValue);
+    if (typeof sceneValue.resolution === 'string' && sceneValue.resolution !== 'custom')
+      named.add(emotion);
     const options = (emotion.slots ?? []).flat();
     // SDStudio가 새 프로젝트에 만들어 두는 빈 씬
     if (sceneName === 'default' && !options.some(optionHasText) && !emotion.negative) continue;
@@ -214,6 +318,25 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     }
     emotions.push(emotion);
   }
+  const size = commonSize([...named]);
+  for (const emotion of named)
+    if (size && emotion.width === size.width && emotion.height === size.height) {
+      delete emotion.width;
+      delete emotion.height;
+    }
+  const solo = Object.entries(root.scenes).filter(
+    ([, scene]) =>
+      isObject(scene) &&
+      sceneRoles(scene).mode === 'scene' &&
+      objects(scene.sceneCharacterPrompts).length,
+  );
+  if (solo.length) {
+    warnings.push({
+      code: 'scene-characters-mixed',
+      message: `씬 전용 캐릭터를 쓰는 씬 ${solo.length}개는 캐릭터마다 씬 캐릭터 프롬프트를 덧붙이는 방식(역할 혼합)으로 가져왔습니다.`,
+      path: 'scenes',
+    });
+  }
   const emotionSet: EmotionSet = { id: newId(), name: `${root.name} 씬`, emotions };
 
   const sources = WORKFLOWS.flatMap((type) =>
@@ -222,16 +345,17 @@ export function importSDStudioProject(raw: string): SDStudioImport {
   if (!sources.length) return { presets: [], characters: [], emotionSet, warnings };
 
   const several = sources.length > 1;
-  const presets = sources.map(({ type, source, index }) => {
+  const presets = sources.map(({ type, source, index }): Preset => {
     const label =
       typeof source.name === 'string' && source.name.trim() ? source.name.trim() : `${index + 1}`;
-    return convertPreset(
+    const preset = convertPreset(
       several ? `${root.name} · ${label}` : `${root.name} (SDStudio)`,
       type,
       source,
       sharedOf(type),
       extra,
     );
+    return size ? { ...preset, generation: { ...preset.generation, ...size } } : preset;
   });
   const chosenIndex = Math.max(
     0,

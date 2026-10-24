@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Reference } from '../../src/core/domain/types';
-import { buildJobs, composeRequestPrompts, seedForVariant } from '../../src/core/jobs/JobBuilder';
+import {
+  buildJobs,
+  buildTxt2ImgJobs,
+  composeRequestPrompts,
+  seedForVariant,
+} from '../../src/core/jobs/JobBuilder';
 import {
   createCharacter,
   createEmotion,
@@ -583,5 +588,31 @@ describe('조합 칸', () => {
       emotionPrompt: 'smile',
     });
     expect(build('b+c').map((job) => job.comboKey)).toEqual(['b+c', 'b+c']);
+  });
+});
+
+describe('씬별 seed와 크기', () => {
+  it('씬 seed는 생성 설정 seed보다, 이 seed로 다시는 씬 seed보다 먼저야. 일반 생성은 씬 크기를 써', () => {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 2);
+    const scene = emotionSet.emotions[0];
+    scene.seed = 500;
+    scene.width = 1024;
+    scene.height = 1536;
+    const base = {
+      project,
+      preset,
+      characters: [{ name: character.name, promptSet }],
+      emotionSet,
+      emotionIds: [scene.id],
+      settings: DEFAULT_SETTINGS,
+    };
+    const jobs = buildTxt2ImgJobs(base);
+    expect(jobs.map((job) => [job.seed, job.canvasWidth, job.canvasHeight])).toEqual([
+      [500, 1024, 1536],
+      [501, 1024, 1536],
+    ]);
+    expect(jobs[0].settings).toMatchObject({ width: 1024, height: 1536 });
+    expect(buildTxt2ImgJobs({ ...base, seedOverride: 9, variantsOverride: 1 })[0].seed).toBe(9);
+    expect(buildJobs({ ...base, reference, input })[0].canvasWidth).toBe(1216);
   });
 });

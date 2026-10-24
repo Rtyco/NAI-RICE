@@ -6,10 +6,12 @@ import type {
   CharacterCenter,
   CharacterPositionMode,
   CharacterPromptSet,
+  Emotion,
   EmotionPosition,
   EmotionSet,
   GenerationKind,
   GenerationRecord,
+  GenerationSettings,
   Img2ImgJobSnapshot,
   InpaintJobSnapshot,
   JobAid,
@@ -271,12 +273,12 @@ function buildEmotionJobs<T>(
     );
     for (const [comboIndex, combo] of combos.entries()) {
       for (let variantIndex = 1; variantIndex <= variants; variantIndex += 1) {
+        const fixedSeed =
+          input.seedOverride ??
+          emotion.seed ??
+          (settings.seedMode === 'fixed' ? (settings.fixedSeed ?? 0) : undefined);
         const seed =
-          input.seedOverride !== undefined
-            ? seedForVariant(input.seedOverride, variantIndex)
-            : settings.seedMode === 'fixed'
-              ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
-              : randomSeed();
+          fixedSeed !== undefined ? seedForVariant(fixedSeed, variantIndex) : randomSeed();
         const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
           input.preset,
           input.characters.map((character) => character.promptSet),
@@ -733,6 +735,28 @@ export function buildTxt2ImgJobs(input: Txt2ImgJobBuildInput): Txt2ImgJobSnapsho
     input,
     'txt2img',
     { referenceName: '', canvasWidth: settings.width, canvasHeight: settings.height },
-    (common) => ({ ...common, kind: 'txt2img' }),
+    (common) => {
+      const size = sceneSize(
+        input.emotionSet.emotions.find((emotion) => emotion.id === common.emotionId),
+        settings,
+      );
+      return {
+        ...common,
+        canvasWidth: size.width,
+        canvasHeight: size.height,
+        settings: { ...common.settings, ...size },
+        kind: 'txt2img',
+      };
+    },
   );
+}
+
+/** 씬 크기가 있으면 생성 설정 크기 대신 쓴다(일반 생성만). */
+export function sceneSize(
+  emotion: Pick<Emotion, 'width' | 'height'> | undefined,
+  settings: Pick<GenerationSettings, 'width' | 'height'>,
+): { width: number; height: number } {
+  return emotion?.width && emotion.height
+    ? { width: emotion.width, height: emotion.height }
+    : { width: settings.width, height: settings.height };
 }

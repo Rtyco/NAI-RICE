@@ -237,3 +237,57 @@ describe('SDStudio 씬만 담은 파일', () => {
     });
   });
 });
+
+describe('SDStudio 씬별 설정', () => {
+  function withScenes(scenes: Record<string, unknown>) {
+    return importSDStudioProject(JSON.stringify({ ...makeProject(), scenes }));
+  }
+  const slot = [[{ prompt: 'smile', characterPrompts: [] }]];
+
+  it('씬 seed, 없으면 씬 seed 묶음의 seed를 생성 설정 seed보다 먼저 써', () => {
+    const imported = withScenes({
+      a: { slots: slot, sceneSeed: 7 },
+      b: {
+        slots: slot,
+        meta: { __sdstudioSceneSeedGroupV1: { version: 1, id: 'g', order: 0, seed: 9 } },
+      },
+      c: { slots: slot, sceneSeed: -1 },
+    });
+    expect(imported.emotionSet.emotions.map((emotion) => emotion.seed)).toEqual([7, 9, undefined]);
+  });
+
+  it('가장 많은 씬 해상도는 생성 설정 크기가 되고 다른 씬만 따로 크기를 가져', () => {
+    const imported = withScenes({
+      a: { slots: slot, resolution: 'landscape' },
+      b: { slots: slot, resolution: 'landscape' },
+      c: { slots: slot, resolution: 'custom', resolutionWidth: 1024, resolutionHeight: 1536 },
+      d: { slots: slot, resolution: 'portrait' },
+    });
+    expect(imported.presets[0].generation).toMatchObject({ width: 1216, height: 832 });
+    expect(
+      imported.emotionSet.emotions.map(({ width, height }) => (width ? `${width}x${height}` : '')),
+    ).toEqual(['', '', '1024x1536', '832x1216']);
+  });
+
+  it('씬 캐릭터 역할은 같은 번호 캐릭터 뒤, 조합 후보 앞에 붙고 역할 네거티브는 씬 네거티브로 가', () => {
+    const imported = withScenes({
+      a: {
+        slots: [[{ prompt: 'cafe', characterPrompts: ['waving'] }]],
+        sceneCharacterPromptMode: 'mix',
+        sceneCharacterPrompts: [
+          { id: 'r', prompt: 'apron', uc: 'hat', position: { x: 0.5, y: 0.5 } },
+        ],
+        sceneCharacterUC: 'blur',
+      },
+      b: {
+        slots: slot,
+        useSceneCharacterPrompts: true,
+        sceneCharacterPrompts: [{ prompt: 'x', uc: '' }],
+      },
+    });
+    const [first] = prompts(imported);
+    expect(first.characterPrompt).toBe('girl, blue hair, apron, waving');
+    expect(first.negativePrompt).toBe('lowres, blur, hat');
+    expect(imported.warnings.map((warning) => warning.code)).toEqual(['scene-characters-mixed']);
+  });
+});
