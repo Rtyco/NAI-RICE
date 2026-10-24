@@ -366,6 +366,7 @@ export const appSettingsSchema = z.object({
       format: exportFormatSchema,
       quality: exportQualitySchema,
       target: z.enum(['favorite', 'latest']),
+      scope: z.enum(['scene', 'combo', 'all']).default('scene'),
       filenameTemplate: z.string().default(DEFAULT_EXPORT_FILENAME_TEMPLATE),
     })
     .default(() => ({ ...DEFAULT_SETTINGS.export })),

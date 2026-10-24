@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ExportFormat } from '../../core/domain/types';
+import type { ExportFormat, ExportScope } from '../../core/domain/types';
 import type { ResolvedProject } from '../../core/model/defaults';
 import {
   DEFAULT_EXPORT_FILENAME_TEMPLATE,
@@ -7,21 +7,19 @@ import {
   renderExportFilename,
   validateOutputFilenameTemplate,
 } from '../../core/output/OutputFilename';
-import {
-  coverRecord,
-  emotionRecords,
-  projectMedia,
-  run,
-  toast,
-  updateLibrary,
-  useLibrary,
-  useStore,
-} from '../store';
+import { exportPicks, type ExportPick } from '../exportPicks';
+import { projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
 import { fileApi } from '../desktop';
 
-/** RisuAI 감정 이미지 업로드용. 감정마다 대표(또는 최신) 이미지 하나. */
+const SCOPES: Array<{ id: ExportScope; label: string }> = [
+  { id: 'scene', label: '씬마다 한 장' },
+  { id: 'combo', label: '조합마다 한 장' },
+  { id: 'all', label: '모든 생성 이미지' },
+];
+
+/** RisuAI 감정 이미지 업로드용은 씬마다 한 장. 조합마다 한 장이나 모든 결과도 고른다. */
 export function ExportDialog({
   resolved,
   close,
@@ -36,6 +34,7 @@ export function ExportDialog({
   const [format, setFormat] = useState<ExportFormat>(settings.export.format);
   const [quality, setQuality] = useState(settings.export.quality);
   const [target, setTarget] = useState(settings.export.target);
+  const [scope, setScope] = useState<ExportScope>(settings.export.scope);
   const [mode, setMode] = useState<'folder' | 'zip'>('folder');
   const [filenameTemplate, setFilenameTemplate] = useState(settings.export.filenameTemplate);
   const templateError = validateOutputFilenameTemplate(
@@ -43,46 +42,53 @@ export function ExportDialog({
     Object.keys(EXPORT_FILENAME_TOKENS),
   );
 
-  const candidates = useMemo(
+  const counts = useMemo(
     () =>
-      emotions
-        .map((emotion, index) => ({
-          emotion,
-          number: index + 1,
-          record: coverRecord(
-            emotionRecords(records, emotion.id),
-            project.favorites[emotion.id],
-            target,
-          ),
-        }))
-        .filter((item) => item.record),
+      Object.fromEntries(
+        SCOPES.map((choice) => [
+          choice.id,
+          exportPicks(emotions, records, project.favorites, target, choice.id),
+        ]),
+      ) as Record<ExportScope, ExportPick[]>,
     [emotions, project.favorites, records, target],
   );
+  const candidates = counts[scope];
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const selected = candidates.filter((item) => !excluded.has(item.emotion.id));
-  const missing = emotions.length - candidates.length;
-  const fileName = (item: (typeof candidates)[number]) =>
-    renderExportFilename(filenameTemplate, {
+  const selected = candidates.filter((item) => !excluded.has(item.key));
+  const missing = emotions.filter(
+    (emotion) => !candidates.some((item) => item.emotion.id === emotion.id),
+  ).length;
+  // 씬 하나에서 여러 장이 나가면 이름이 겹치지 않게 조합 이름을 붙인다.
+  const template =
+    scope === 'scene' || filenameTemplate.includes('{combo}')
+      ? filenameTemplate
+      : `${filenameTemplate}_{combo}`;
+  const fileName = (item: ExportPick) =>
+    renderExportFilename(template, {
       emotion: item.emotion.name,
       number: item.number,
       total: emotions.length,
-      character: item.record!.characterName,
+      character: item.record.characterName,
       project: project.name,
-      seed: item.record!.seed,
-      model: item.record!.model,
-      createdAt: item.record!.createdAt,
+      seed: item.record.seed,
+      model: item.record.model,
+      createdAt: item.record.createdAt,
+      combo: scope === 'scene' ? undefined : item.record.comboName,
     });
 
   const submit = () =>
     void run('이미지를 내보내는 중', async () => {
       updateLibrary((current) => ({
         ...current,
-        settings: { ...current.settings, export: { format, quality, target, filenameTemplate } },
+        settings: {
+          ...current.settings,
+          export: { format, quality, target, scope, filenameTemplate },
+        },
       }));
       const result = await fileApi().exportImages({
         projectId: project.id,
         name: project.name,
-        items: selected.map((item) => ({ generationId: item.record!.id, name: fileName(item) })),
+        items: selected.map((item) => ({ generationId: item.record.id, name: fileName(item) })),
         format,
         quality,
         mode,
@@ -111,6 +117,18 @@ export function ExportDialog({
         </>
       }
     >
+      <div className="segmented full" role="group" aria-label="내보낼 이미지">
+        {SCOPES.map((choice) => (
+          <button
+            key={choice.id}
+            className={choice.id === scope ? 'active' : ''}
+            aria-pressed={choice.id === scope}
+            onClick={() => setScope(choice.id)}
+          >
+            {choice.label} <small>{counts[choice.id].length}</small>
+          </button>
+        ))}
+      </div>
       <div className="four-column-fields">
         <SelectField
           label="형식"
@@ -126,6 +144,7 @@ export function ExportDialog({
         <SelectField
           label="사용할 이미지"
           value={target}
+          disabled={scope === 'all'}
           options={[
             { value: 'favorite', label: '대표 (없으면 최신)' },
             { value: 'latest', label: '최신 생성본' },
@@ -171,6 +190,9 @@ export function ExportDialog({
           기본값
         </button>
       </div>
+      {scope !== 'scene' && !filenameTemplate.includes('{combo}') && (
+        <p className="hint">조합 칸이 있는 씬은 파일 이름 뒤에 조합 이름을 붙입니다.</p>
+      )}
       {templateError ? (
         <p className="field-error">{templateError}</p>
       ) : (
@@ -186,25 +208,27 @@ export function ExportDialog({
       )}
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">
-        {candidates.map(({ emotion, record }) => (
-          <label
-            key={emotion.id}
-            className={`export-item ${excluded.has(emotion.id) ? 'off' : ''}`}
-          >
+        {candidates.map(({ key, emotion, record }) => (
+          <label key={key} className={`export-item ${excluded.has(key) ? 'off' : ''}`}>
             <input
               type="checkbox"
-              checked={!excluded.has(emotion.id)}
+              checked={!excluded.has(key)}
               onChange={(event) =>
                 setExcluded((current) => {
                   const next = new Set(current);
-                  if (event.target.checked) next.delete(emotion.id);
-                  else next.add(emotion.id);
+                  if (event.target.checked) next.delete(key);
+                  else next.add(key);
                   return next;
                 })
               }
             />
-            <img src={projectMedia(project.id, record!.thumbFile ?? record!.file)} alt="" />
+            <img
+              src={projectMedia(project.id, record.thumbFile ?? record.file)}
+              alt=""
+              loading="lazy"
+            />
             <span>{emotion.name}</span>
+            {scope !== 'scene' && record.comboName && <small>{record.comboName}</small>}
           </label>
         ))}
       </div>

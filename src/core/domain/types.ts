@@ -354,6 +354,7 @@ export type RecordAid =
     };
 
 export type ExportFormat = 'png' | 'webp' | 'avif';
+export type ExportScope = 'scene' | 'combo' | 'all';
 
 export type NaiTagFamily =
   'v5' | 'v5-curated' | 'v4-5-full' | 'v4-5-curated' | 'v4-full' | 'v4-curated' | 'v3' | 'v3-furry';
@@ -379,6 +380,8 @@ export type AppSettings = {
     format: ExportFormat;
     quality: number;
     target: 'favorite' | 'latest';
+    /** 씬마다 한 장, 조합마다 한 장, 모든 생성 결과 */
+    scope: ExportScope;
     /** 씬 내보내기 파일 이름. 토큰은 `EXPORT_FILENAME_TOKENS`. */
     filenameTemplate: string;
   };

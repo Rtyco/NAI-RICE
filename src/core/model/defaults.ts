@@ -251,6 +251,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     format: 'png',
     quality: 90,
     target: 'favorite',
+    scope: 'scene',
     filenameTemplate: DEFAULT_EXPORT_FILENAME_TEMPLATE,
   },
   requestDelayMs: 300,

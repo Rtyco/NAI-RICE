@@ -27,6 +27,7 @@ export const DEFAULT_EXPORT_FILENAME_TEMPLATE = '{emotion}';
 export const EXPORT_FILENAME_TOKENS: Record<string, string> = {
   '{emotion}': '씬 이름',
   '{number}': '씬 모음 안 순서',
+  '{combo}': '조합 이름',
   '{character}': '캐릭터',
   '{project}': '작업 이름',
   '{seed}': 'Seed',
@@ -116,12 +117,15 @@ export function renderExportFilename(
     seed: number;
     model: string;
     createdAt: string;
+    /** 조합 칸이 없는 씬이면 비어 있고, 바로 앞의 구분 글자도 함께 빠진다. */
+    combo?: string;
   },
 ): string {
   const { date, time } = timestampParts(context.createdAt);
   const values: Record<string, string> = {
     '{emotion}': context.emotion,
     '{number}': String(context.number).padStart(String(context.total).length, '0'),
+    '{combo}': context.combo ?? '',
     '{character}': context.character,
     '{project}': context.project,
     '{seed}': String(context.seed),
@@ -130,7 +134,7 @@ export function renderExportFilename(
     '{time}': time,
   };
   // 한 번에 바꿔야 씬 이름 속 `{seed}` 같은 글자가 다시 바뀌지 않는다.
-  const rendered = template
+  const rendered = (context.combo ? template : template.replace(/[_\- ·]?\{combo\}/g, ''))
     .trim()
     .replace(/\.(png|webp|avif)$/i, '')
     .replace(/\{[^{}]*\}/g, (token) => values[token] ?? token);

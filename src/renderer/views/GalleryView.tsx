@@ -397,7 +397,7 @@ export function GalleryView({
           <button
             className="with-icon"
             disabled={!withResults}
-            title={`대표 이미지 ${withResults}장 내보내기 (Ctrl+E)`}
+            title="이미지 내보내기 (Ctrl+E)"
             onClick={openExport}
           >
             <Icon name="export" size={14} /> 내보내기

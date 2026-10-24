@@ -229,6 +229,16 @@
   border-radius: var(--radius);
   font-size: 12px;
 }
+.export-item span,
+.export-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.export-item small {
+  color: var(--text-2);
+  font-size: 11px;
+}
 .export-item.off {
   opacity: 0.4;
 }
