@@ -356,6 +356,10 @@
   padding: 2px 6px;
   border-radius: 6px;
 }
+.whats-new-lead {
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
 .whats-new-list {
   display: grid;
   gap: 4px;

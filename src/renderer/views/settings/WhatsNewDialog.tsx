@@ -23,40 +23,25 @@ const CHANGED_KEYS: Array<[string, string]> = [
   ['휠 클릭', '자동 스크롤'],
 ];
 
-const ADDED: Array<{ title: string; items: string[] }> = [
+const ADDED: Array<{ title: string; lead: string; items: string[] }> = [
   {
-    title: '프롬프트',
+    title: 'SD Studio 호환',
+    lead: 'SD Studio 프로젝트를 가져와 SD Studio와 같은 방식으로 생성할 수 있게 바꿨습니다.',
     items: [
-      '생성 설정의 프롬프트를 상위·하위로 나눴습니다. 씬 프롬프트는 그 사이나 캐릭터 프롬프트 끝에 들어갑니다.',
-      '기존 공통 포지티브는 상위 프롬프트가 되며, 생성 결과는 전과 같습니다.',
-      '작업마다 추가 프롬프트를 쓸 수 있습니다. 상위 프롬프트 뒤에 붙습니다.',
-      'SD Studio의 ##주석##, {a|b}, | 자리 문법을 지원합니다.',
+      'SD Studio 프로젝트 가져오기·씬 내보내기',
+      '상위·하위 프롬프트, 작업마다 추가 프롬프트',
+      '조합 프롬프트',
+      '##주석##, {a|b}, | 자리 문법',
     ],
   },
   {
-    title: '씬',
+    title: '씬과 갤러리',
+    lead: '씬이 많은 작업을 다루기 쉽게 바꿨습니다.',
     items: [
-      '조합 프롬프트를 지원합니다. 칸마다 후보를 두면 모든 조합을 생성합니다.',
-      '씬마다 seed와 크기를 따로 정할 수 있습니다.',
-      '씬 상세의 「n / m」에서 씬 목록을 열 수 있습니다.',
-      '추가한 캐릭터 칸을 지울 수 있습니다.',
-    ],
-  },
-  {
-    title: '갤러리',
-    items: [
-      '씬 이름으로 검색할 수 있습니다.',
-      '여러 씬을 고른 채 우클릭하면 고른 씬 모두에 적용할 수 있습니다.',
-      '이미지 내보내기에서 씬마다 한 장, 조합마다 한 장, 모든 생성 이미지 중에서 고를 수 있습니다.',
-      '씬 상세에서 돌아와도 스크롤 위치가 그대로입니다.',
-      '한 줄에 카드를 8장까지 놓을 수 있습니다.',
-    ],
-  },
-  {
-    title: 'SD Studio',
-    items: [
-      'SD Studio 프로젝트를 조합, seed, 캐릭터, 상위·하위·추가 프롬프트까지 SD Studio에서 생성하던 그대로 가져옵니다.',
-      '씬을 내보낼 때 조합 칸과 씬 네거티브도 함께 내보냅니다.',
+      '씬마다 seed와 크기',
+      '씬 이름 검색',
+      '고른 씬 여러 개에 한 번에 적용하는 우클릭 메뉴',
+      '조합마다 한 장, 모든 생성 이미지 내보내기',
     ],
   },
 ];
@@ -129,6 +114,7 @@ export function WhatsNewDialog({ version, close }: { version: string; close: () 
         {ADDED.map((group) => (
           <section key={group.title}>
             <h3>{group.title}</h3>
+            <p className="whats-new-lead">{group.lead}</p>
             <ul className="whats-new-list">
               {group.items.map((item) => (
                 <li key={item}>{item}</li>
