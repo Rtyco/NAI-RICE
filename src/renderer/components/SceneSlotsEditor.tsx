@@ -6,6 +6,7 @@ import { comboCount, MAX_COMBOS, optionLabel } from '../../core/model/sceneCombo
 import { confirmDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
+import { ExpandTextButton } from './TextEditorDialog';
 
 const newOption = (): SceneOption => ({
   id: newId(),
@@ -29,6 +30,8 @@ const slotsSummary = (slots: SceneOption[][]) =>
 
 type OptionProps = {
   option: SceneOption;
+  /** 크게 편집 창 제목 앞부분 */
+  title: string;
   names: string[];
   characterCount: number;
   patch: (patch: Partial<SceneOption>) => void;
@@ -37,6 +40,32 @@ type OptionProps = {
 };
 
 const characterName = (names: string[], index: number) => names[index] ?? `캐릭터 ${index + 1}`;
+
+function PromptCell(props: {
+  title: string;
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="prompt-cell">
+      <PromptTextarea
+        rows={2}
+        value={props.value}
+        aria-label={props.label}
+        placeholder={props.placeholder}
+        onChange={props.onChange}
+      />
+      <ExpandTextButton
+        title={props.title}
+        value={props.value}
+        placeholder={props.placeholder}
+        onApply={props.onChange}
+      />
+    </div>
+  );
+}
 
 function OptionCheck({ option, patch }: Pick<OptionProps, 'option' | 'patch'>) {
   return (
@@ -98,10 +127,10 @@ function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => voi
       </div>
       {open && (
         <>
-          <PromptTextarea
-            rows={2}
+          <PromptCell
+            title={`${props.title} · 씬 자리`}
+            label="후보 프롬프트"
             value={option.prompt}
-            aria-label="후보 프롬프트"
             placeholder="씬 프롬프트 자리에 붙음"
             onChange={(prompt) => props.patch({ prompt })}
           />
@@ -110,10 +139,10 @@ function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => voi
               {Array.from({ length: characterCount }, (_, index) => (
                 <div className="emotion-extra-prompt" key={index}>
                   <span>{characterName(names, index)}</span>
-                  <PromptTextarea
-                    rows={2}
+                  <PromptCell
+                    title={`${props.title} · ${characterName(names, index)}`}
+                    label={`${characterName(names, index)} 몫`}
                     value={option.characterPrompts[index] ?? ''}
-                    aria-label={`${characterName(names, index)} 몫`}
                     placeholder="이 캐릭터 프롬프트에 붙음"
                     onChange={(value) => props.setCharacterPrompt(index, value)}
                   />
@@ -170,19 +199,19 @@ function SceneOptionTable(props: {
                   <OptionName option={option} patch={row.patch} />
                 </td>
                 <td>
-                  <PromptTextarea
-                    rows={2}
+                  <PromptCell
+                    title={`${row.title} · 씬 자리`}
+                    label="후보 프롬프트"
                     value={option.prompt}
-                    aria-label="후보 프롬프트"
                     onChange={(prompt) => row.patch({ prompt })}
                   />
                 </td>
                 {characters.map((index) => (
                   <td key={index}>
-                    <PromptTextarea
-                      rows={2}
+                    <PromptCell
+                      title={`${row.title} · ${characterName(props.names, index)}`}
+                      label={`${characterName(props.names, index)} 몫`}
                       value={option.characterPrompts[index] ?? ''}
-                      aria-label={`${characterName(props.names, index)} 몫`}
                       onChange={(value) => row.setCharacterPrompt(index, value)}
                     />
                   </td>
@@ -239,6 +268,7 @@ export function SceneSlotsEditor(props: {
     save(slots.map((item, index) => (index === slotIndex ? recipe(item) : item)));
   const optionProps = (option: SceneOption): OptionProps => ({
     option,
+    title: `${emotion.name} · 칸 ${slotIndex + 1} · ${optionLabel(option)}`,
     names,
     characterCount,
     patch: (patch) =>
