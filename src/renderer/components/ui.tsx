@@ -128,6 +128,14 @@ export function PromptField(props: {
   );
 }
 
+export function ScenePlaceNote(props: { name: string; middle?: boolean }) {
+  return (
+    <p className="prompt-slot">
+      {props.middle ? `${props.name} (중간)` : `${props.name}는 캐릭터 프롬프트 뒤`}
+    </p>
+  );
+}
+
 export function Card({
   title,
   subtitle,

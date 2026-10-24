@@ -35,7 +35,7 @@ import { Icon } from './Icon';
 import { PanelResizer } from './PanelResizer';
 import { TokenMeter } from './TokenMeter';
 import { PromptTextarea } from './PromptTextarea';
-import { PromptField } from './ui';
+import { PromptField, ScenePlaceNote } from './ui';
 
 function editInPopup(section: 'presets' | 'characters', itemId: string) {
   void openDialog((close) => (
@@ -133,8 +133,8 @@ export function PromptPanel(props: {
   characters: ResolvedCharacter[];
   /** 자유 생성이면 없다. */
   projectId?: string;
-  /** 상위와 하위 사이에 들어가는 것. 캐릭터 뒤에 붙으면 없다. */
-  middle?: string;
+  /** 씬(자유 생성) 프롬프트가 상위와 하위 사이에 들어갈 때 */
+  middle?: boolean;
   /** 작업의 추가 프롬프트. 자유 생성이면 없다. */
   extraPrompt?: string;
   noCharacter: string;
@@ -222,11 +222,10 @@ export function PromptPanel(props: {
                   markers={Boolean(props.middle)}
                 />
               )}
-              <p className="prompt-slot">
-                {props.middle
-                  ? `${props.middle} (중간)`
-                  : `${props.projectId ? '씬 프롬프트' : '자유 생성 프롬프트'}는 캐릭터 프롬프트 뒤`}
-              </p>
+              <ScenePlaceNote
+                name={props.projectId ? '씬 프롬프트' : '자유 생성 프롬프트'}
+                middle={props.middle}
+              />
               <PromptField
                 label="하위 프롬프트"
                 value={preset.backPositive}
@@ -375,8 +374,6 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
         resolved.preset &&
         scenePosition(resolved.preset.generation.emotionPosition, resolved.characters.length) ===
           'middle'
-          ? '씬 프롬프트'
-          : undefined
       }
       extraPrompt={resolved.project.extraPrompt ?? ''}
       noCharacter="캐릭터 없이 생성합니다."
@@ -406,11 +403,7 @@ export function FreePromptPanel() {
     <PromptPanel
       preset={preset}
       characters={characters}
-      middle={
-        freePromptPosition(position, characters[0]?.promptSet.positive) === 'middle'
-          ? '자유 생성 프롬프트'
-          : undefined
-      }
+      middle={freePromptPosition(position, characters[0]?.promptSet.positive) === 'middle'}
       noCharacter="캐릭터 없이 생성합니다."
       meter={<TokenMeter model={presetModel(preset)} scenes={scenes} />}
     />

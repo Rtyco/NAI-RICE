@@ -36,7 +36,14 @@ import {
   ucPresetsFor,
   usesMedium,
 } from '../../../core/providers/NaiModels';
-import { Card, NumberField, PromptField, SelectField, Toggle } from '../../components/ui';
+import {
+  Card,
+  NumberField,
+  PromptField,
+  ScenePlaceNote,
+  SelectField,
+  Toggle,
+} from '../../components/ui';
 import { PROMPT_POSITIONS } from '../../promptPositions';
 import { toast, updateLibrary } from '../../store';
 
@@ -116,11 +123,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
               markers={g.emotionPosition === 'middle'}
               onChange={(commonPositive) => patch({ commonPositive })}
             />
-            <p className="prompt-slot">
-              {g.emotionPosition === 'middle'
-                ? '씬 프롬프트 (중간)'
-                : '씬 프롬프트는 캐릭터 프롬프트 뒤'}
-            </p>
+            <ScenePlaceNote name="씬 프롬프트" middle={g.emotionPosition === 'middle'} />
             <PromptField
               label="하위 프롬프트"
               hint={
