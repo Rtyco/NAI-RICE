@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
+import { withPromptAt } from '../../core/model/mutations';
 import { comboCount, MAX_COMBOS, optionLabel } from '../../core/model/sceneCombos';
 import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
@@ -11,15 +12,6 @@ const newOption = (): SceneOption => ({
   characterPrompts: [],
   enabled: true,
 });
-
-/** 끝의 빈 캐릭터 몫은 저장하지 않는다. */
-function withCharacterPrompt(option: SceneOption, index: number, value: string): SceneOption {
-  const prompts = [...option.characterPrompts];
-  while (prompts.length <= index) prompts.push('');
-  prompts[index] = value;
-  while (prompts.length && !prompts.at(-1)!.trim()) prompts.pop();
-  return { ...option, characterPrompts: prompts };
-}
 
 const enabledCount = (slot: SceneOption[]) => slot.filter((option) => option.enabled).length;
 
@@ -102,7 +94,10 @@ function SceneOptionRow({
                 placeholder="이 캐릭터 프롬프트에 붙음"
                 onChange={(value) => {
                   expand(true);
-                  replace(withCharacterPrompt(option, index, value));
+                  replace({
+                    ...option,
+                    characterPrompts: withPromptAt(option.characterPrompts, index, value),
+                  });
                 }}
               />
             </div>

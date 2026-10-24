@@ -1,4 +1,5 @@
 import type { Emotion, SceneOption } from '../domain/types';
+import { joinFragments } from '../prompts/PromptComposer';
 import { stripComments } from '../prompts/PromptPieces';
 
 export type SceneCombo = {
@@ -55,12 +56,6 @@ export function findCombo(emotion: Pick<Emotion, 'slots'>, key: string): SceneCo
   return options.every(Boolean) ? comboOf(options as SceneOption[]) : undefined;
 }
 
-const join = (texts: Array<string | undefined>) =>
-  texts
-    .map((text) => (text ?? '').trim().replace(/^[,\s]+|[,\s]+$/g, ''))
-    .filter(Boolean)
-    .join(', ');
-
 export type ComboPrompts = Pick<Emotion, 'prompt' | 'extraPrompts' | 'negative'> & {
   /** 첫 캐릭터 몫. 씬 위치와 관계없이 첫 캐릭터 프롬프트에 붙는다. */
   firstCharacter?: string;
@@ -80,11 +75,11 @@ export function comboPrompts(emotion: Emotion, combo: SceneCombo | undefined): C
     ...options.map((option) => option.characterPrompts.length),
   );
   const characterPart = (index: number) =>
-    join(options.map((option) => option.characterPrompts[index]));
+    joinFragments(...options.map((option) => option.characterPrompts[index]));
   return {
-    prompt: join([emotion.prompt, ...options.map((option) => option.prompt)]),
+    prompt: joinFragments(emotion.prompt, ...options.map((option) => option.prompt)),
     extraPrompts: Array.from({ length: characterCount - 1 }, (_, index) =>
-      join([emotion.extraPrompts?.[index], characterPart(index + 1)]),
+      joinFragments(emotion.extraPrompts?.[index], characterPart(index + 1)),
     ),
     negative: emotion.negative,
     firstCharacter: characterPart(0),

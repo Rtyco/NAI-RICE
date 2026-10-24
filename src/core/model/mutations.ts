@@ -198,17 +198,28 @@ export function updateEmotion(
   };
 }
 
-/** `index` 0이 두 번째 캐릭터. 끝의 빈 칸은 저장하지 않는다. */
+/** 끝의 빈 칸은 저장하지 않는다. */
+export function withPromptAt(prompts: readonly string[], index: number, value: string): string[] {
+  const next = [...prompts];
+  while (next.length <= index) next.push('');
+  next[index] = value;
+  while (next.length && !next.at(-1)!.trim()) next.pop();
+  return next;
+}
+
+/** `index` 0이 두 번째 캐릭터. */
 export function withExtraPrompt(
   emotion: Pick<Emotion, 'extraPrompts'>,
   index: number,
   value: string,
 ): Pick<Emotion, 'extraPrompts'> {
-  const prompts = [...(emotion.extraPrompts ?? [])];
-  while (prompts.length <= index) prompts.push('');
-  prompts[index] = value;
-  while (prompts.length && !prompts.at(-1)!.trim()) prompts.pop();
+  const prompts = withPromptAt(emotion.extraPrompts ?? [], index, value);
   return { extraPrompts: prompts.length ? prompts : undefined };
+}
+
+export function setEmotionsExcluded(project: Project, ids: string[], exclude: boolean): Project {
+  const others = project.excludedEmotionIds.filter((id) => !ids.includes(id));
+  return { ...project, excludedEmotionIds: exclude ? [...others, ...ids] : others };
 }
 
 export function removeEmotion(set: EmotionSet, id: string): EmotionSet {

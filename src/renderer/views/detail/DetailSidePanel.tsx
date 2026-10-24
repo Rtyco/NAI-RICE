@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Emotion } from '../../../core/domain/types';
 import { scenePosition } from '../../../core/jobs/JobBuilder';
 import { hasScenePrompt, type ResolvedProject } from '../../../core/model/defaults';
+import { setEmotionsExcluded } from '../../../core/model/mutations';
 import { comboCount } from '../../../core/model/sceneCombos';
 import { usesMedium } from '../../../core/providers/NaiModels';
 import { ScenePromptFields } from '../../components/ScenePromptFields';
@@ -19,6 +20,7 @@ export function DetailSidePanel({
   emotion,
   variants,
   setVariants,
+  images,
   canGenerate,
   generate,
 }: {
@@ -26,6 +28,8 @@ export function DetailSidePanel({
   emotion: Emotion;
   variants: number;
   setVariants: (value: number) => void;
+  /** 생성 수 × 조합 수 */
+  images: number;
   canGenerate: boolean;
   generate: () => void;
 }) {
@@ -104,12 +108,9 @@ export function DetailSidePanel({
           checked={!excluded}
           disabled={!hasScenePrompt(emotion)}
           onChange={(event) =>
-            updateProject(project.id, (current) => ({
-              ...current,
-              excludedEmotionIds: event.target.checked
-                ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
-                : [...current.excludedEmotionIds, emotion.id],
-            }))
+            updateProject(project.id, (current) =>
+              setEmotionsExcluded(current, [emotion.id], !event.target.checked),
+            )
           }
         />
         <span>일괄 생성에 포함 (이 작업만)</span>
@@ -125,7 +126,7 @@ export function DetailSidePanel({
           onChange={setVariants}
         />
         <button className="generate-button" disabled={!canGenerate} onClick={generate}>
-          ▶ {variants * comboCount(emotion)}장 생성
+          ▶ {images}장 생성
         </button>
       </div>
     </>

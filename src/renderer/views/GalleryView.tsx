@@ -11,7 +11,7 @@ import {
 } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
-import { moveEmotions } from '../../core/model/mutations';
+import { moveEmotions, setEmotionsExcluded } from '../../core/model/mutations';
 import { generateEmotions } from '../actions';
 import { showContextMenu } from '../components/contextMenuStore';
 import { openDialog } from '../components/dialogStack';
@@ -156,12 +156,9 @@ const EmotionCard = memo(function EmotionCard(props: {
           disabled={!hasScenePrompt(emotion)}
           title={hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트가 없습니다'}
           onChange={(event) =>
-            updateProject(projectId, (current) => ({
-              ...current,
-              excludedEmotionIds: event.target.checked
-                ? current.excludedEmotionIds.filter((id) => id !== emotion.id)
-                : [...current.excludedEmotionIds, emotion.id],
-            }))
+            updateProject(projectId, (current) =>
+              setEmotionsExcluded(current, [emotion.id], !event.target.checked),
+            )
           }
         />
         <button className="emotion-name" onClick={open}>

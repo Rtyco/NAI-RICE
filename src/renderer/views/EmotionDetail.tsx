@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
-import { findCombo } from '../../core/model/sceneCombos';
+import { comboCount, findCombo } from '../../core/model/sceneCombos';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
@@ -23,13 +23,12 @@ import {
   run,
   toast,
   updateProject,
-  sceneQueryOf,
   useStore,
 } from '../store';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { fileApi } from '../desktop';
-import { sceneOrder } from '../sceneSearch';
+import { useSceneOrder } from '../useSceneOrder';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
 
@@ -57,11 +56,7 @@ export function EmotionDetail({
 
   const browser = useResultBrowser(project.id, records, { preferredId: favoriteId, saveAs });
   const { selected, setSelectedId, picking } = browser;
-  const query = useStore(sceneQueryOf(project.id));
-  const order = sceneOrder(set.emotions, query, emotion.id);
-  const index = order.findIndex((item) => item.id === emotion.id);
-  const previous = order[index - 1];
-  const next = order[index + 1];
+  const { order, previous, next, title } = useSceneOrder(project.id, set.emotions, emotion.id);
   const sceneJobs = queue.jobs.filter(
     (job) => job.projectId === project.id && job.emotionId === emotion.id,
   );
@@ -88,6 +83,7 @@ export function EmotionDetail({
 
   const canGenerate = hasScenePrompt(emotion) && !resolved.missing.length;
   const generate = () => void generateEmotions(project.id, [emotion.id], { variants });
+  const images = variants * comboCount(emotion);
 
   const setFavorite = (generationId?: string) =>
     updateProject(project.id, (current) => {
@@ -162,6 +158,7 @@ export function EmotionDetail({
       emotion={emotion}
       variants={variants}
       setVariants={setVariants}
+      images={images}
       canGenerate={canGenerate}
       generate={generate}
     />
@@ -199,11 +196,7 @@ export function EmotionDetail({
         >
           ‹ {previous?.name ?? '이전'}
         </button>
-        <ScenePicker
-          emotions={order}
-          current={emotion.id}
-          title={order === set.emotions ? '씬 목록' : `씬 목록 (검색 「${query.trim()}」 결과)`}
-        />
+        <ScenePicker emotions={order} current={emotion.id} title={title} />
         <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
           {next?.name ?? '다음'} ›
         </button>
@@ -217,8 +210,8 @@ export function EmotionDetail({
           <PaletteButton
             className="generate-button"
             icon="play"
-            label={`이 씬 ${variants}장 생성`}
-            badge={variants}
+            label={`이 씬 ${images}장 생성`}
+            badge={images}
             disabled={!canGenerate}
             onClick={generate}
           />

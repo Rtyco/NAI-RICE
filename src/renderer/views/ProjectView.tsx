@@ -47,7 +47,6 @@ import { queueBarShownOf, topBarShownOf, useLayout } from '../layout';
 import {
   openEmotion,
   referenceMedia,
-  sceneQueryOf,
   updateLibrary,
   updateProject,
   useLibrary,
@@ -57,7 +56,7 @@ import {
 import { EmotionDetail } from './EmotionDetail';
 import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
-import { sceneOrder } from '../sceneSearch';
+import { useSceneOrder } from '../useSceneOrder';
 import { ScenePicker } from '../components/ScenePicker';
 
 const MODES: Record<ProjectMode, ModeInfo> = {
@@ -188,7 +187,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
 
 /** 설정 줄을 접은 씬 상세에서 씬 이동 줄 대신 쓴다. */
 function SceneNav({
-  emotions: all,
+  emotions,
   projectId,
   current,
 }: {
@@ -196,11 +195,7 @@ function SceneNav({
   projectId: string;
   current: string;
 }) {
-  const query = useStore(sceneQueryOf(projectId));
-  const emotions = sceneOrder(all, query, current);
-  const index = emotions.findIndex((item) => item.id === current);
-  const previous = emotions[index - 1];
-  const next = emotions[index + 1];
+  const { order, previous, next, title } = useSceneOrder(projectId, emotions, current);
   return (
     <div className="scene-nav">
       <button className="icon-button" title="갤러리로" onClick={() => openEmotion(undefined)}>
@@ -214,11 +209,7 @@ function SceneNav({
       >
         <Icon name="chevron-left" size={16} />
       </button>
-      <ScenePicker
-        emotions={emotions}
-        current={current}
-        title={emotions === all ? '씬 목록' : `씬 목록 (검색 「${query.trim()}」 결과)`}
-      />
+      <ScenePicker emotions={order} current={current} title={title} />
       <button
         className="icon-button"
         disabled={!next}

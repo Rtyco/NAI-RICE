@@ -5,6 +5,7 @@ import {
   duplicateEmotion,
   patchItem,
   removeEmotion,
+  setEmotionsExcluded,
   updateEmotion,
 } from '../core/model/mutations';
 import { confirmDialog, promptDialog } from './components/dialogStack';
@@ -201,12 +202,9 @@ export function emotionMenu(
     {
       label: excluded ? '일괄 생성에 포함' : '일괄 생성에서 제외',
       onSelect: () =>
-        updateProject(projectId, (project) => ({
-          ...project,
-          excludedEmotionIds: excluded
-            ? project.excludedEmotionIds.filter((id) => id !== emotion.id)
-            : [...project.excludedEmotionIds, emotion.id],
-        })),
+        updateProject(projectId, (project) =>
+          setEmotionsExcluded(project, [emotion.id], !excluded),
+        ),
     },
     'divider',
     { label: '이름 변경', onSelect: () => void renameEmotion(set.id, emotion) },
@@ -284,10 +282,7 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
     )
     .filter((record): record is GenerationSummary => Boolean(record));
   const setExcluded = (exclude: boolean) =>
-    updateProject(projectId, (current) => {
-      const others = current.excludedEmotionIds.filter((id) => !ids.includes(id));
-      return { ...current, excludedEmotionIds: exclude ? [...others, ...ids] : others };
-    });
+    updateProject(projectId, (current) => setEmotionsExcluded(current, ids, exclude));
   return [
     { heading: `고른 씬 ${emotions.length}개` },
     {

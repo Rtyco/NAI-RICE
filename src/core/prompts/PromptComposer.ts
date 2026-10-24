@@ -24,7 +24,7 @@ function cleanFragment(fragment: string | undefined): string {
   return fragment.trim().replace(/^[,\s]+|[,\s]+$/g, '');
 }
 
-function joinFragments(...fragments: Array<string | undefined>): string {
+export function joinFragments(...fragments: Array<string | undefined>): string {
   return fragments.map(cleanFragment).filter(Boolean).join(', ');
 }
 

@@ -16,7 +16,7 @@ import {
   createPromptSet,
   newId,
 } from '../model/defaults';
-import { hasMarker } from '../prompts/PromptComposer';
+import { hasMarker, joinFragments } from '../prompts/PromptComposer';
 import { sdStudioRootSchema } from '../validation/schemas';
 
 export class SDStudioImportError extends Error {
@@ -63,19 +63,15 @@ function text(value: unknown): string {
     : '';
 }
 
-function join(...values: string[]): string {
-  return values.filter(Boolean).join(', ');
-}
-
 const COUNT_TAG = /^(\d+(boy|girl|other)s?|multiple (girls|boys|others))$/;
 
 /** 이지 모드는 캐릭터 프롬프트를 상위 뒤에 붙이고 인원 태그를 맨 앞으로 옮긴다. */
 function easyFront(front: string, characterPrompt: string): string {
-  const tags = join(front, characterPrompt)
+  const tags = joinFragments(front, characterPrompt)
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean);
-  return join(
+  return joinFragments(
     ...tags.filter((tag) => COUNT_TAG.test(tag)),
     ...tags.filter((tag) => !COUNT_TAG.test(tag)),
   );
@@ -84,7 +80,7 @@ function easyFront(front: string, characterPrompt: string): string {
 /** 캐릭터 프롬프트에 `|`가 있으면 SDStudio는 남는 조각을 끝에 붙인다. 끝에 자리를 하나 더 두어 같게 만든다. */
 function characterPrompt(value: unknown): string {
   const prompt = text(value);
-  return hasMarker(prompt) ? join(prompt, '|') : prompt;
+  return hasMarker(prompt) ? joinFragments(prompt, '|') : prompt;
 }
 
 const validSeed = (value: unknown): value is number =>
@@ -114,7 +110,7 @@ function convertPreset(
   const front = easy
     ? easyFront(text(source.frontPrompt), text(shared.characterPrompt))
     : text(source.frontPrompt);
-  const back = join(easy ? text(shared.backgroundPrompt) : '', text(source.backPrompt));
+  const back = joinFragments(easy ? text(shared.backgroundPrompt) : '', text(source.backPrompt));
   const base = createPreset(name);
   const number = (key: string, fallback: number) =>
     typeof source[key] === 'number' ? source[key] : fallback;
@@ -123,8 +119,8 @@ function convertPreset(
   return {
     ...base,
     // SDStudio 순서: 상위 → 추가 프롬프트 → 씬 → 하위. 씬은 마지막 `|` 자리에 들어간다.
-    commonPositive: join(front, text(extra), '|', back),
-    commonNegative: join(easy ? text(shared.uc) : '', text(source.uc)),
+    commonPositive: joinFragments(front, text(extra), '|', back),
+    commonNegative: joinFragments(easy ? text(shared.uc) : '', text(source.uc)),
     generation: {
       ...base.generation,
       sampler: word('sampling', base.generation.sampler),
@@ -229,7 +225,7 @@ function convertScene(name: string, scene: Json): Emotion {
       objects(slot).map(convertOption),
     ),
   ];
-  const negative = join(
+  const negative = joinFragments(
     text(scene.sceneUC),
     ...(roleSlot.length
       ? [text(scene.sceneCharacterUC), ...roles.map((role) => text(role.uc))]

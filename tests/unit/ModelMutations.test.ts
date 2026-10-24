@@ -21,6 +21,9 @@ import {
   removeItemReassigning,
   removePromptSet,
   repairPromptSetRefs,
+  setEmotionsExcluded,
+  withExtraPrompt,
+  withPromptAt,
 } from '../../src/core/model/mutations';
 import { librarySchema } from '../../src/core/validation/schemas';
 
@@ -174,5 +177,26 @@ describe('removeItemReassigning', () => {
     expect(names(moveItems(full, 'characters', [a.id, c.id], a.id, d.id))).toBe('BDACE');
     expect(names(moveItems(full, 'characters', [b.id, e.id], e.id, a.id))).toBe('BEACD');
     expect(moveItems(full, 'characters', [a.id, b.id], a.id, b.id)).toBe(full);
+  });
+});
+
+describe('scene prompt lists', () => {
+  it('끝의 빈 칸은 지우고 사이의 빈 칸은 둔다', () => {
+    expect(withPromptAt([], 2, 'c')).toEqual(['', '', 'c']);
+    expect(withPromptAt(['a', '', 'c'], 2, ' ')).toEqual(['a']);
+    expect(withExtraPrompt({ extraPrompts: ['a'] }, 0, '')).toEqual({ extraPrompts: undefined });
+  });
+
+  it('일괄 생성 제외는 겹치지 않게 넣고 뺀다', () => {
+    const project = {
+      ...createProject('P', { presetId: '', emotionSetId: '', referenceId: '' }),
+      excludedEmotionIds: ['a', 'b'],
+    };
+    expect(setEmotionsExcluded(project, ['b', 'c'], true).excludedEmotionIds).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+    expect(setEmotionsExcluded(project, ['b', 'c'], false).excludedEmotionIds).toEqual(['a']);
   });
 });

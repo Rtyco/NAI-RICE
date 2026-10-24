@@ -32,6 +32,7 @@ import {
 import {
   composeSeparatedPrompts,
   fillMarkers,
+  joinFragments,
   referenceInsetCount,
   removeReferenceInset,
 } from '../prompts/PromptComposer';
@@ -112,12 +113,6 @@ export type RequestPrompts = {
 /** 자유 생성은 문자열 하나. */
 export type ScenePrompts = string | ComboPrompts;
 
-const joinPrompts = (texts: string[]) =>
-  texts
-    .map((text) => text.trim().replace(/^[,\s]+|[,\s]+$/g, ''))
-    .filter(Boolean)
-    .join(', ');
-
 /** 미리보기와 생성이 같이 쓴다. 조각을 먼저 펼치며 multi는 seed로 고른다(seed가 없으면 첫 줄). reference inset은 인페인트의 첫 캐릭터에만 붙는다. */
 export function composeRequestPrompts(
   rawPreset: Preset,
@@ -142,14 +137,14 @@ export function composeRequestPrompts(
   const sceneOnCommon = emotionPosition !== 'character-end';
   const commonNegative = medium
     ? ''
-    : joinPrompts([expand(rawPreset.commonNegative), sceneOnCommon ? sceneNegative : '']);
+    : joinFragments(expand(rawPreset.commonNegative), sceneOnCommon ? sceneNegative : '');
   const characters = rawCharacters.map((set, index) => {
     const negative = medium ? '' : expand(set.negative);
     return {
       positive: expand(set.positive),
       negative:
         index === 0 && !sceneOnCommon && sceneNegative
-          ? joinPrompts([negative, sceneNegative])
+          ? joinFragments(negative, sceneNegative)
           : negative,
     };
   });
