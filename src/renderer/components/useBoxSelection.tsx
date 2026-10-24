@@ -197,6 +197,8 @@ export function useBoxSelection<T extends HTMLElement>(
       };
       ref.current.setPointerCapture(event.pointerId);
       event.preventDefault();
+      // preventDefault로 포커스가 옮겨지지 않아 검색 칸 같은 입력에 커서가 남는다.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     },
     onPointerMove: (event: PointerEvent<T>) => {
       const current = drag.current;
