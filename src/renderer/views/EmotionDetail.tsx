@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Emotion, GenerationSummary } from '../../core/domain/types';
+import type { Emotion, GenerationRecord, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
-import { comboCount, findCombo } from '../../core/model/sceneCombos';
+import {
+  comboCount,
+  findCombo,
+  recordedScenePrompts,
+  sameScenePrompts,
+} from '../../core/model/sceneCombos';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
@@ -27,7 +32,7 @@ import {
 } from '../store';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
-import { fileApi } from '../desktop';
+import { fileApi, libraryApi } from '../desktop';
 import { useSceneOrder } from '../useSceneOrder';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
@@ -64,6 +69,22 @@ export function EmotionDetail({
   const running = sceneJobs.filter((job) => job.status === 'generating').map((job) => job.id);
 
   const pickedCount = picking.selected.size;
+
+  const [selectedRecord, setSelectedRecord] = useState<GenerationRecord>();
+  const selectedId = selected?.id;
+  useEffect(() => {
+    if (!selectedId) return;
+    let current = true;
+    libraryApi()
+      .getGeneration(project.id, selectedId)
+      .then(
+        (record) => current && setSelectedRecord(record),
+        () => undefined,
+      );
+    return () => {
+      current = false;
+    };
+  }, [project.id, selectedId]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -125,13 +146,14 @@ export function EmotionDetail({
         label: '프롬프트 복원',
         icon: 'undo',
         group: 'main',
+        // 고른 후보 내용은 요약에 없어, 보고 있는 결과만 미리 받아 비교한다.
         disabled:
-          record.emotionPrompt === emotion.prompt &&
-          (record.emotionNegative ?? '') === (emotion.negative ?? ''),
+          selectedRecord?.id === record.id &&
+          sameScenePrompts(emotion, recordedScenePrompts(emotion, selectedRecord)),
         onSelect: () =>
-          patchEmotion(set.id, emotion.id, {
-            prompt: record.emotionPrompt,
-            negative: record.emotionNegative,
+          void run('프롬프트를 복원하는 중', async () => {
+            const full = await libraryApi().getGeneration(project.id, record.id);
+            patchEmotion(set.id, emotion.id, recordedScenePrompts(emotion, full));
           }),
       },
       common.refine,

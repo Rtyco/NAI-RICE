@@ -153,7 +153,7 @@ function EmotionRow({
             rows={3}
             value={emotion.prompt}
             aria-label={`${emotion.name} 프롬프트`}
-            placeholder="씬 프롬프트"
+            placeholder={emotion.slots?.length ? '씬 프롬프트 · 모든 조합 공통' : '씬 프롬프트'}
             onChange={(prompt) => patch({ prompt })}
           />
           {Array.from({ length: extras }, (_, extra) => (

@@ -1,4 +1,5 @@
 import type { EmotionPosition, ReferenceInsetPosition } from '../domain/types';
+import { normalizeTagQuery } from './TagSearch';
 
 export const REFERENCE_INSET = 'reference inset';
 
@@ -128,4 +129,27 @@ export function removeReferenceInset(prompt: string): string {
 
 export function referenceInsetCount(prompt: string): number {
   return prompt.split(',').filter((piece) => piece.trim().toLowerCase() === REFERENCE_INSET).length;
+}
+
+/** 강조 괄호와 `1.2::태그::` 가중치를 뺀 태그. 밑줄·공백과 대소문자는 같게 본다. */
+export function tagKey(piece: string): string {
+  return normalizeTagQuery(
+    piece
+      .replace(/^\s*-?\d*\.?\d+::/, '')
+      .replace(/::\s*$/, '')
+      .replace(/[{}[\]()]/g, ''),
+  );
+}
+
+/** 한 프롬프트 안에서 두 번 이상 나온 태그(`tagKey`). */
+export function repeatedTags(prompt: string): Set<string> {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const piece of prompt.split(/[,\n]/)) {
+    const key = tagKey(piece);
+    if (!key || key === '|') continue;
+    if (seen.has(key)) repeated.add(key);
+    seen.add(key);
+  }
+  return repeated;
 }

@@ -109,6 +109,8 @@ const sceneOptionSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+const sceneOptionTextSchema = sceneOptionSchema.pick({ prompt: true, characterPrompts: true });
+
 export const emotionSetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
@@ -586,8 +588,10 @@ export const generationRecordSchema = z.object({
   characterCenters: z.array(centerSchema).optional(),
   emotionPrompt: z.string(),
   emotionNegative: z.string().optional(),
+  emotionExtraPrompts: z.array(z.string()).optional(),
   comboKey: z.string().optional(),
   comboName: z.string().optional(),
+  comboOptions: z.array(sceneOptionTextSchema).optional(),
   settings: generationSettingsSchema,
   anlasSpent: z.number().optional(),
   anlasEstimate: z.number().optional(),
@@ -621,8 +625,10 @@ const jobSnapshotCommonSchema = z.object({
   emotionName: z.string(),
   emotionPrompt: z.string(),
   emotionNegative: z.string().optional(),
+  emotionExtraPrompts: z.array(z.string()).max(100).optional(),
   comboKey: z.string().max(4000).optional(),
   comboName: z.string().max(4000).optional(),
+  comboOptions: z.array(sceneOptionTextSchema).max(200).optional(),
   presetName: z.string(),
   promptSetName: z.string(),
   emotionSetName: z.string(),

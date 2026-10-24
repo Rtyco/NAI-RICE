@@ -1,4 +1,4 @@
-import type { Emotion, SceneOption } from '../domain/types';
+import type { Emotion, GenerationRecord, SceneOption } from '../domain/types';
 import { joinFragments } from '../prompts/PromptComposer';
 import { stripComments } from '../prompts/PromptPieces';
 
@@ -83,5 +83,103 @@ export function comboPrompts(emotion: Emotion, combo: SceneCombo | undefined): C
     ),
     negative: emotion.negative,
     firstCharacter: characterPart(0),
+  };
+}
+
+export type ScenePrompts = Pick<Emotion, 'prompt' | 'negative' | 'extraPrompts' | 'slots'>;
+
+export type ScenePromptRecord = Pick<
+  GenerationRecord,
+  'emotionPrompt' | 'emotionNegative' | 'emotionExtraPrompts' | 'comboKey' | 'comboOptions'
+>;
+
+/** 기록 당시의 씬 프롬프트와 고른 후보 내용. 지운 후보와 예전 기록에 없는 값은 지금 것을 둔다. */
+export function recordedScenePrompts(emotion: Emotion, record: ScenePromptRecord): ScenePrompts {
+  const ids = record.comboKey ? record.comboKey.split('+') : [];
+  const texts = new Map(ids.map((id, index) => [id, record.comboOptions?.[index]]));
+  const extras = record.emotionExtraPrompts;
+  return {
+    prompt: record.emotionPrompt,
+    negative: record.emotionNegative,
+    extraPrompts: extras
+      ? extras.some((text) => text.trim())
+        ? extras
+        : undefined
+      : emotion.extraPrompts,
+    slots: emotion.slots?.map((slot) =>
+      slot.map((option) => {
+        const text = texts.get(option.id);
+        return text
+          ? { ...option, prompt: text.prompt, characterPrompts: text.characterPrompts }
+          : option;
+      }),
+    ),
+  };
+}
+
+/** 끝의 빈 칸은 없는 것과 같다. */
+const promptList = (list: string[] | undefined) => {
+  const items = [...(list ?? [])];
+  while (items.length && !items.at(-1)?.trim()) items.pop();
+  return items;
+};
+
+const slotTexts = (slots: Emotion['slots']) =>
+  JSON.stringify(
+    (slots ?? []).map((slot) =>
+      slot.map((option) => [option.id, option.prompt, promptList(option.characterPrompts)]),
+    ),
+  );
+
+export function sameScenePrompts(emotion: Emotion, prompts: ScenePrompts): boolean {
+  return (
+    emotion.prompt === prompts.prompt &&
+    (emotion.negative ?? '') === (prompts.negative ?? '') &&
+    JSON.stringify(promptList(emotion.extraPrompts)) ===
+      JSON.stringify(promptList(prompts.extraPrompts)) &&
+    slotTexts(emotion.slots) === slotTexts(prompts.slots)
+  );
+}
+
+export const hasFixedScenePrompt = (emotion: Emotion) =>
+  Boolean(emotion.prompt.trim() || emotion.extraPrompts?.some((text) => text.trim()));
+
+/** 고정 씬 프롬프트를 후보 하나짜리 맨 앞 칸으로 옮긴다. 만들어지는 프롬프트는 같다. */
+export function moveScenePromptToSlot(
+  emotion: Emotion,
+  id: string,
+): Pick<Emotion, 'prompt' | 'extraPrompts' | 'slots'> {
+  const extras = promptList(emotion.extraPrompts);
+  const option: SceneOption = {
+    id,
+    prompt: emotion.prompt,
+    // 고정 씬 프롬프트는 첫 캐릭터 몫이 아니라 씬 자리로 간다.
+    characterPrompts: extras.length ? ['', ...extras] : [],
+    enabled: true,
+  };
+  return { prompt: '', extraPrompts: undefined, slots: [[option], ...(emotion.slots ?? [])] };
+}
+
+/** 첫 칸이 켜진 후보 하나뿐이고 첫 캐릭터 몫이 없을 때만 합쳐도 프롬프트가 같다. */
+export function mergeableFirstSlot(emotion: Emotion): SceneOption | undefined {
+  const first = emotion.slots?.[0];
+  const option = first?.length === 1 ? first[0] : undefined;
+  return option?.enabled && !option.characterPrompts[0]?.trim() ? option : undefined;
+}
+
+export function mergeFirstSlot(
+  emotion: Emotion,
+): Pick<Emotion, 'prompt' | 'extraPrompts' | 'slots'> | undefined {
+  const option = mergeableFirstSlot(emotion);
+  if (!option) return undefined;
+  const count = Math.max(emotion.extraPrompts?.length ?? 0, option.characterPrompts.length - 1);
+  const extras = Array.from({ length: count }, (_, index) =>
+    joinFragments(emotion.extraPrompts?.[index], option.characterPrompts[index + 1]),
+  );
+  const rest = emotion.slots!.slice(1);
+  return {
+    prompt: joinFragments(emotion.prompt, option.prompt),
+    extraPrompts: extras.some(Boolean) ? extras : undefined,
+    slots: rest.length ? rest : undefined,
   };
 }

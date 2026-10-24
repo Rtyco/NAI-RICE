@@ -42,6 +42,7 @@ export function ScenePromptFields(props: {
           <PromptField
             key={index}
             label={label}
+            hint={emotion.slots?.length ? '모든 조합 공통' : undefined}
             title={
               index === 0
                 ? props.firstPlacement

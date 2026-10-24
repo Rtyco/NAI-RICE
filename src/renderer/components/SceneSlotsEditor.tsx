@@ -2,7 +2,15 @@ import { useState, type KeyboardEvent } from 'react';
 import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
 import { withPromptAt } from '../../core/model/mutations';
-import { comboCount, MAX_COMBOS, optionLabel } from '../../core/model/sceneCombos';
+import {
+  comboCount,
+  hasFixedScenePrompt,
+  MAX_COMBOS,
+  mergeableFirstSlot,
+  mergeFirstSlot,
+  moveScenePromptToSlot,
+  optionLabel,
+} from '../../core/model/sceneCombos';
 import { confirmDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
@@ -247,7 +255,7 @@ export function SceneSlotsEditor(props: {
   names: string[];
   /** 접힌 한 줄로 시작하고, 후보를 표로 보인다. */
   foldable?: boolean;
-  onChange: (patch: Pick<Emotion, 'slots'>) => void;
+  onChange: (patch: Partial<Pick<Emotion, 'slots' | 'prompt' | 'extraPrompts'>>) => void;
 }) {
   const { emotion, names } = props;
   const slots = emotion.slots ?? [];
@@ -295,6 +303,16 @@ export function SceneSlotsEditor(props: {
     setTab(slots.length);
     setOpenId(option.id);
     save([...slots, [option]]);
+  };
+  const moveScenePrompt = () => {
+    const id = newId();
+    setTab(0);
+    setOpenId(id);
+    props.onChange(moveScenePromptToSlot(emotion, id));
+  };
+  const mergeFirst = () => {
+    const merged = mergeFirstSlot(emotion);
+    if (merged) props.onChange(merged);
   };
   const removeCharacter = async () => {
     const index = characterCount - 1;
@@ -371,6 +389,15 @@ export function SceneSlotsEditor(props: {
             － 캐릭터
           </button>
         )}
+        {hasFixedScenePrompt(emotion) && (
+          <button
+            className="link-button"
+            title="씬 프롬프트를 조합 칸 1로 옮기기"
+            onClick={moveScenePrompt}
+          >
+            씬 프롬프트 → 칸 1
+          </button>
+        )}
       </div>
       <div className="scene-slot-tabs" role="tablist" aria-label="조합 칸">
         {slots.map((item, index) => (
@@ -399,6 +426,15 @@ export function SceneSlotsEditor(props: {
             </small>
           ) : (
             <em className="scene-slot-empty">켜진 후보가 없어 생성되지 않음</em>
+          )}
+          {slotIndex === 0 && mergeableFirstSlot(emotion) && (
+            <button
+              className="link-button"
+              title="칸 1을 씬 프롬프트에 합치기"
+              onClick={mergeFirst}
+            >
+              씬 프롬프트로 합치기
+            </button>
           )}
           <button
             className="icon-button danger row-remove"

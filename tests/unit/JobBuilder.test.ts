@@ -587,6 +587,11 @@ describe('조합 칸', () => {
       comboName: '공원 · waving',
       characterPrompt: 'silver hair, smile, park, waving',
       emotionPrompt: 'smile',
+      emotionExtraPrompts: [],
+      comboOptions: [
+        { prompt: 'park', characterPrompts: [] },
+        { prompt: '', characterPrompts: ['waving'] },
+      ],
     });
     expect(build('b+c').map((job) => job.comboKey)).toEqual(['b+c', 'b+c']);
   });

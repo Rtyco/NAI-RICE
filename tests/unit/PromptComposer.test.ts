@@ -2,8 +2,21 @@ import { describe, expect, it } from 'vitest';
 import {
   composeSeparatedPrompts,
   referenceInsetCount,
+  repeatedTags,
   splitAtLastMarker,
 } from '../../src/core/prompts/PromptComposer';
+
+describe('repeatedTags', () => {
+  it('강조·가중치·밑줄·대소문자가 달라도 같은 태그로 본다', () => {
+    expect([
+      ...repeatedTags('1girl, {Smile}, looking_at_viewer, 1.2::smile ::, looking at viewer'),
+    ]).toEqual(['smile', 'looking at viewer']);
+  });
+
+  it('한 번씩만 나오거나 자리 표시뿐이면 없다', () => {
+    expect(repeatedTags('1girl, |, smile, |').size).toBe(0);
+  });
+});
 
 describe('composeSeparatedPrompts', () => {
   it('직접 쓴 reference inset은 그 자리에 두고 하나 더 넣지 않아', () => {

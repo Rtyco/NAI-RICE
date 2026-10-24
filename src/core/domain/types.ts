@@ -130,6 +130,8 @@ export type SceneOption = {
   enabled: boolean;
 };
 
+export type SceneOptionText = Pick<SceneOption, 'prompt' | 'characterPrompts'>;
+
 export type EmotionSet = {
   id: string;
   name: string;
@@ -546,9 +548,13 @@ export type GenerationRecord = {
   emotionPrompt: string;
   /** 이 값 이전의 기록에는 없다. */
   emotionNegative?: string;
+  /** 두 번째 캐릭터부터의 씬 프롬프트. 1.1.2 이전 기록에는 없다. */
+  emotionExtraPrompts?: string[];
   /** 조합 칸이 있는 씬이면 고른 후보 ID(`comboKey`)와 이름. */
   comboKey?: string;
   comboName?: string;
+  /** 고른 후보의 내용(`comboKey` 순서). 1.1.2 이전 기록에는 없다. */
+  comboOptions?: SceneOptionText[];
   settings: GenerationSettings;
   /** 생성 전후 Anlas 차이. 조회할 수 없었으면 없다. */
   anlasSpent?: number;
@@ -569,8 +575,10 @@ export type JobSnapshotCommon = {
   emotionName: string;
   emotionPrompt: string;
   emotionNegative?: string;
+  emotionExtraPrompts?: string[];
   comboKey?: string;
   comboName?: string;
+  comboOptions?: SceneOptionText[];
   presetName: string;
   promptSetName: string;
   emotionSetName: string;
@@ -673,7 +681,13 @@ export type QueueSnapshot = {
 /** 무거운 프롬프트·설정을 뺀 기록(715장 기준 2.7MB → 0.9MB). 정보 패널은 전체 기록을 따로 받는다. */
 export type GenerationSummary = Omit<
   GenerationRecord,
-  'prompt' | 'negativePrompt' | 'characterPrompt' | 'characterNegativePrompt' | 'settings'
+  | 'prompt'
+  | 'negativePrompt'
+  | 'characterPrompt'
+  | 'characterNegativePrompt'
+  | 'emotionExtraPrompts'
+  | 'comboOptions'
+  | 'settings'
 > & { model: string };
 
 /** 프롬프트·설정·입력 경로를 뺀다. */

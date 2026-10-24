@@ -11,6 +11,7 @@ import {
   type ResolvedProject,
 } from '../../core/model/defaults';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
+import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
 import {
   estimateJobAnlas,
   generationCostWarnings,
@@ -222,6 +223,33 @@ function SceneNav({
   );
 }
 
+/** 한 프롬프트 안에서 두 번 이상 나온 태그를 칠한다. */
+function PromptPreview(props: { label: string; text: string; negative?: boolean }) {
+  const repeated = repeatedTags(props.text);
+  const marked = (piece: string, index: number) => {
+    if (!repeated.has(tagKey(piece))) return piece;
+    const [, lead, tag, tail] = /^(\s*)([\s\S]*?)(\s*)$/.exec(piece)!;
+    return (
+      <Fragment key={index}>
+        {lead}
+        <mark className="repeated-tag">{tag}</mark>
+        {tail}
+      </Fragment>
+    );
+  };
+  return (
+    <div className={`prompt-preview ${props.negative ? 'negative-preview' : ''}`}>
+      <span>
+        {props.label}
+        {repeated.size > 0 && <em className="repeated-count"> · 겹치는 태그 {repeated.size}개</em>}
+      </span>
+      <pre className="prompt-code">
+        {props.text ? props.text.split(/([,\n])/).map(marked) : '(비어 있음)'}
+      </pre>
+    </div>
+  );
+}
+
 export function PreviewDialog({
   resolved,
   close,
@@ -280,14 +308,12 @@ export function PreviewDialog({
         </label>
       )}
       <div className="two-column">
-        <div className="prompt-preview">
-          <span>공통 포지티브 (품질 태그 포함)</span>
-          <pre className="prompt-code">{prompts.prompt}</pre>
-        </div>
-        <div className="prompt-preview negative-preview">
-          <span>공통 네거티브 (UC 프리셋 포함)</span>
-          <pre className="prompt-code">{prompts.negativePrompt || '(비어 있음)'}</pre>
-        </div>
+        <PromptPreview label="공통 포지티브 (품질 태그 포함)" text={prompts.prompt} />
+        <PromptPreview
+          label="공통 네거티브 (UC 프리셋 포함)"
+          text={prompts.negativePrompt}
+          negative
+        />
         {[
           {
             prompt: prompts.characterPrompt,
@@ -299,14 +325,8 @@ export function PreviewDialog({
             resolved.characters.length > 1 ? ` · ${resolved.characters[index].character.name}` : '';
           return (
             <Fragment key={index}>
-              <div className="prompt-preview">
-                <span>캐릭터 포지티브 + 씬{name}</span>
-                <pre className="prompt-code">{character.prompt || '(비어 있음)'}</pre>
-              </div>
-              <div className="prompt-preview negative-preview">
-                <span>캐릭터 네거티브{name}</span>
-                <pre className="prompt-code">{character.negative || '(비어 있음)'}</pre>
-              </div>
+              <PromptPreview label={`캐릭터 포지티브 + 씬${name}`} text={character.prompt} />
+              <PromptPreview label={`캐릭터 네거티브${name}`} text={character.negative} negative />
             </Fragment>
           );
         })}

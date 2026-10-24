@@ -312,7 +312,17 @@ function buildEmotionJobs<T>(
             emotionName: emotion.name,
             emotionPrompt: emotion.prompt,
             ...(emotion.negative?.trim() ? { emotionNegative: emotion.negative } : {}),
-            ...(combo.key ? { comboKey: combo.key, comboName: combo.name } : {}),
+            emotionExtraPrompts: emotion.extraPrompts ?? [],
+            ...(combo.key
+              ? {
+                  comboKey: combo.key,
+                  comboName: combo.name,
+                  comboOptions: combo.options.map(({ prompt, characterPrompts }) => ({
+                    prompt,
+                    characterPrompts,
+                  })),
+                }
+              : {}),
             presetName: input.preset.name,
             emotionSetName: input.emotionSet.name,
             ...prompts,
