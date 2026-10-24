@@ -1,8 +1,9 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
 import { withPromptAt } from '../../core/model/mutations';
 import {
+  characterTagGroup,
   comboCount,
   hasFixedScenePrompt,
   MAX_COMBOS,
@@ -10,6 +11,7 @@ import {
   mergeFirstSlot,
   moveScenePromptToSlot,
   optionLabel,
+  sceneRepeatedTags,
 } from '../../core/model/sceneCombos';
 import { confirmDialog } from './dialogStack';
 import { Icon } from './Icon';
@@ -42,6 +44,8 @@ type OptionProps = {
   title: string;
   names: string[];
   characterCount: number;
+  /** 씬 자리(없음) 또는 캐릭터 몫에서 경고할 겹친 태그 */
+  repeated: (character?: number) => ReadonlySet<string>;
   patch: (patch: Partial<SceneOption>) => void;
   setCharacterPrompt: (index: number, value: string) => void;
   remove: () => void;
@@ -54,6 +58,7 @@ function PromptCell(props: {
   label: string;
   value: string;
   placeholder?: string;
+  repeated: ReadonlySet<string>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -63,6 +68,7 @@ function PromptCell(props: {
         value={props.value}
         aria-label={props.label}
         placeholder={props.placeholder}
+        repeated={props.repeated}
         onChange={props.onChange}
       />
       <ExpandTextButton
@@ -140,6 +146,7 @@ function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => voi
             label="후보 프롬프트"
             value={option.prompt}
             placeholder="씬 프롬프트 자리에 붙음"
+            repeated={props.repeated()}
             onChange={(prompt) => props.patch({ prompt })}
           />
           {characterCount > 0 && (
@@ -152,6 +159,7 @@ function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => voi
                     label={`${characterName(names, index)} 몫`}
                     value={option.characterPrompts[index] ?? ''}
                     placeholder="이 캐릭터 프롬프트에 붙음"
+                    repeated={props.repeated(index)}
                     onChange={(value) => props.setCharacterPrompt(index, value)}
                   />
                 </div>
@@ -211,6 +219,7 @@ function SceneOptionTable(props: {
                     title={`${row.title} · 씬 자리`}
                     label="후보 프롬프트"
                     value={option.prompt}
+                    repeated={row.repeated()}
                     onChange={(prompt) => row.patch({ prompt })}
                   />
                 </td>
@@ -220,6 +229,7 @@ function SceneOptionTable(props: {
                       title={`${row.title} · ${characterName(props.names, index)}`}
                       label={`${characterName(props.names, index)} 몫`}
                       value={option.characterPrompts[index] ?? ''}
+                      repeated={row.repeated(index)}
                       onChange={(value) => row.setCharacterPrompt(index, value)}
                     />
                   </td>
@@ -255,6 +265,8 @@ export function SceneSlotsEditor(props: {
   names: string[];
   /** 접힌 한 줄로 시작하고, 후보를 표로 보인다. */
   foldable?: boolean;
+  /** 씬 프롬프트가 첫 캐릭터가 아니라 공통 쪽에 붙을 때 */
+  firstOnCommon?: boolean;
   onChange: (patch: Partial<Pick<Emotion, 'slots' | 'prompt' | 'extraPrompts'>>) => void;
 }) {
   const { emotion, names } = props;
@@ -269,6 +281,10 @@ export function SceneSlotsEditor(props: {
   const used = Math.max(0, ...slots.flat().map((option) => option.characterPrompts.length));
   const characterCount = Math.max(names.length, used, opened);
   const count = comboCount(emotion);
+  const repeated = useMemo(
+    () => sceneRepeatedTags(emotion, props.firstOnCommon),
+    [emotion, props.firstOnCommon],
+  );
   const total = <b>조합 {count > MAX_COMBOS ? `${MAX_COMBOS}개 넘음` : `${count}개`}</b>;
 
   const save = (next: SceneOption[][]) => props.onChange({ slots: next.length ? next : undefined });
@@ -279,6 +295,8 @@ export function SceneSlotsEditor(props: {
     title: `${emotion.name} · 칸 ${slotIndex + 1} · ${optionLabel(option)}`,
     names,
     characterCount,
+    repeated: (character) =>
+      repeated(character === undefined ? 0 : characterTagGroup(character, !!props.firstOnCommon)),
     patch: (patch) =>
       saveSlot((item) =>
         item.map((entry) => (entry.id === option.id ? { ...entry, ...patch } : entry)),
@@ -306,6 +324,7 @@ export function SceneSlotsEditor(props: {
   };
   const moveScenePrompt = () => {
     const id = newId();
+    setOpen(true);
     setTab(0);
     setOpenId(id);
     props.onChange(moveScenePromptToSlot(emotion, id));
@@ -339,15 +358,21 @@ export function SceneSlotsEditor(props: {
 
   if (!slots.length)
     return (
-      <button
-        className="scene-slots-add"
-        onClick={() => {
-          setOpen(true);
-          addSlot();
-        }}
-      >
-        ＋ 조합 칸
-      </button>
+      <div className="scene-slots-start">
+        <button
+          onClick={() => {
+            setOpen(true);
+            addSlot();
+          }}
+        >
+          ＋ 조합 칸
+        </button>
+        {hasFixedScenePrompt(emotion) && (
+          <button title="씬 프롬프트를 조합 칸 1로 옮기기" onClick={moveScenePrompt}>
+            씬 프롬프트 → 칸 1
+          </button>
+        )}
+      </div>
     );
 
   if (!open)

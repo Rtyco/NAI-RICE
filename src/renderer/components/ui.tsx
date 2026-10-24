@@ -86,6 +86,7 @@ export function PromptField(props: {
   placeholder?: string;
   counter?: boolean;
   markers?: boolean;
+  repeated?: ReadonlySet<string>;
   onChange: (value: string) => void;
 }) {
   // for가 없으면 앞에 있는 크게 편집 버튼이 라벨의 대상이 되어 행 전체의 hover·클릭을 받는다.
@@ -115,6 +116,7 @@ export function PromptField(props: {
         value={props.value}
         placeholder={props.placeholder}
         markers={props.markers}
+        repeated={props.repeated}
         onChange={props.onChange}
       />
       {props.counter !== false && (

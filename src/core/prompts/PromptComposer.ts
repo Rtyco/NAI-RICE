@@ -1,4 +1,5 @@
 import type { EmotionPosition, ReferenceInsetPosition } from '../domain/types';
+import { blankComments } from './PromptPieces';
 import { normalizeTagQuery } from './TagSearch';
 
 export const REFERENCE_INSET = 'reference inset';
@@ -141,13 +142,26 @@ export function tagKey(piece: string): string {
   );
 }
 
+export type TagPiece = { key: string; text: string; start: number };
+
+/** 쉼표·줄바꿈으로 나눈 태그. 주석과 `|` 자리는 뺀다. */
+export function tagPieces(prompt: string): TagPiece[] {
+  const pieces: TagPiece[] = [];
+  let start = 0;
+  for (const piece of blankComments(prompt).split(/[,\n]/)) {
+    const key = tagKey(piece);
+    if (key && key !== '|')
+      pieces.push({ key, text: piece.trim(), start: start + piece.search(/\S/) });
+    start += piece.length + 1;
+  }
+  return pieces;
+}
+
 /** 한 프롬프트 안에서 두 번 이상 나온 태그(`tagKey`). */
 export function repeatedTags(prompt: string): Set<string> {
   const seen = new Set<string>();
   const repeated = new Set<string>();
-  for (const piece of prompt.split(/[,\n]/)) {
-    const key = tagKey(piece);
-    if (!key || key === '|') continue;
+  for (const { key } of tagPieces(prompt)) {
     if (seen.has(key)) repeated.add(key);
     seen.add(key);
   }

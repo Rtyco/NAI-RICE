@@ -35,6 +35,13 @@ export function stripComments(text: string): string {
   return text.includes('##') ? text.replace(COMMENT, '') : text;
 }
 
+/** 위치를 지키도록 주석을 같은 길이의 공백으로 바꾼다. */
+export function blankComments(text: string): string {
+  return text.includes('##')
+    ? text.replace(COMMENT, (comment) => ' '.repeat(comment.length))
+    : text;
+}
+
 /** 여러 줄이면 쉼표로 잇고, multi면 seed로 한 줄을 고른다(seed가 없으면 첫 줄). SDStudio처럼 빈 줄도 후보다. */
 export function pieceText(piece: PromptPiece, key: string, seed?: number): string {
   const options = lines(stripComments(piece.prompt));

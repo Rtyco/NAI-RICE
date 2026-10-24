@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import {
   analyzePrompt,
   weightAt,
+  type SyntaxIssue,
   type SyntaxReport,
   type SyntaxToken,
 } from '../../core/prompts/PromptSyntax';
@@ -17,6 +18,7 @@ import {
   type TagQuery,
 } from '../../core/prompts/TagSearch';
 import { findRanges, type TextRange } from '../../core/prompts/PromptFind';
+import { tagPieces, type TagPiece } from '../../core/prompts/PromptComposer';
 import { useFind } from '../find';
 import { useStore } from '../store';
 import { searchTags, warmTagIndex } from '../tagDictionary';
@@ -26,6 +28,8 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChan
   onChange: (value: string) => void;
   /** false면 `|` 자리를 채우지 않는 칸이라 보내지 않는 글자로 보인다. */
   markers?: boolean;
+  /** 경고할 겹친 태그(`tagKey`). 없으면 이 칸 안에서 겹친 것, false면 경고하지 않는다. */
+  repeated?: ReadonlySet<string> | false;
 };
 
 /** 배경 레이어가 따라 해야 하는 스타일 */
@@ -263,11 +267,29 @@ function matchedAt(report: SyntaxReport, caret: number | null): Set<number> {
   return matched;
 }
 
+/** 겹친 태그마다 하나. 이 칸 안에서 겹쳤으면 두 번째 자리로 간다. */
+function repeatedIssues(value: string, repeated: ReadonlySet<string> | undefined): SyntaxIssue[] {
+  const pieces = tagPieces(value);
+  const found = new Map<string, TagPiece[]>();
+  for (const piece of pieces) found.set(piece.key, [...(found.get(piece.key) ?? []), piece]);
+  return [...found.values()]
+    .filter((list) => (repeated ? repeated.has(list[0].key) : list.length > 1))
+    .map((list) => {
+      const piece = list[1] ?? list[0];
+      return {
+        level: 'warning' as const,
+        start: piece.start,
+        message: `겹치는 태그 ${piece.text}`,
+      };
+    });
+}
+
 /** 글자는 뒤의 레이어가 그리고 textarea는 글자를 투명하게 해 커서·선택만 보인다. */
 export function PromptTextarea({
   value,
   onChange,
   markers = true,
+  repeated,
   className,
   onScroll,
   onSelect,
@@ -370,12 +392,13 @@ export function PromptTextarea({
           set.pieces.some((piece) => piece.name.trim() === pieceName),
       ),
     );
+    if (repeated !== false) result.issues.push(...repeatedIssues(value, repeated));
     if (markers) return result;
     const tokens = result.tokens.map((token) =>
       token.kind === 'marker' ? { ...token, kind: 'comment' as const } : token,
     );
     return { ...result, tokens };
-  }, [value, pieceSets, markers]);
+  }, [value, pieceSets, markers, repeated]);
   const marks = useMemo(
     () => (findText ? findRanges(value, { text: findText, wholeTag }) : []),
     [value, findText, wholeTag],

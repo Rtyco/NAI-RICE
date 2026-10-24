@@ -100,6 +100,7 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
               <PromptTextarea
                 rows={piece.multi ? 3 : 2}
                 value={piece.prompt}
+                repeated={piece.multi ? false : undefined}
                 aria-label={`${piece.name} 내용`}
                 placeholder={piece.multi ? '한 줄에 후보 하나씩' : '예: red eyes, slit pupils'}
                 onChange={(prompt) => save((item) => updatePiece(item, piece.id, { prompt }))}

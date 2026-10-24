@@ -4,6 +4,7 @@ import {
   referenceInsetCount,
   repeatedTags,
   splitAtLastMarker,
+  tagPieces,
 } from '../../src/core/prompts/PromptComposer';
 
 describe('repeatedTags', () => {
@@ -15,6 +16,15 @@ describe('repeatedTags', () => {
 
   it('한 번씩만 나오거나 자리 표시뿐이면 없다', () => {
     expect(repeatedTags('1girl, |, smile, |').size).toBe(0);
+  });
+
+  it('주석 안의 태그는 세지 않고, 위치는 원래 글자 기준이다', () => {
+    const text = '##smile, blush## smile,\n  blush';
+    expect(repeatedTags(text).size).toBe(0);
+    expect(tagPieces(text).map((piece) => [piece.text, piece.start])).toEqual([
+      ['smile', 17],
+      ['blush', 26],
+    ]);
   });
 });
 

@@ -371,8 +371,12 @@ textarea.syntax-input::selection {
 }
 
 /* ── 씬 조합 칸 ─────────────────────────────── */
-.scene-slots-add {
-  align-self: flex-start;
+.scene-slots-start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.scene-slots-start button {
   font-size: 12px;
 }
 .scene-slots {

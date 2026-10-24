@@ -94,7 +94,12 @@ export function DetailSidePanel({
           <SceneExtras emotion={emotion} txt2img={project.mode === 'txt2img'} onChange={patch} />
         </>
       ) : (
-        <SceneSlotsEditor emotion={emotion} names={names} onChange={patch} />
+        <SceneSlotsEditor
+          emotion={emotion}
+          names={names}
+          firstOnCommon={!sceneSide}
+          onChange={patch}
+        />
       )}
       {sharedCount > 1 && (
         <p className="hint">다른 작업 {sharedCount - 1}개에도 함께 반영됩니다.</p>

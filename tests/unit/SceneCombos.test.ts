@@ -7,6 +7,7 @@ import {
   recordedScenePrompts,
   sameScenePrompts,
   sceneCombos,
+  sceneRepeatedTags,
 } from '../../src/core/model/sceneCombos';
 
 const option = (id: string, prompt: string, characterPrompts: string[] = []): SceneOption => ({
@@ -27,6 +28,43 @@ const scene = (patch: Partial<Emotion> = {}): Emotion => ({
 
 const allPrompts = (emotion: Emotion) =>
   sceneCombos(emotion).map((combo) => comboPrompts(emotion, combo));
+
+describe('sceneRepeatedTags', () => {
+  it('씬 프롬프트와 후보, 다른 칸의 후보끼리 겹친 태그만 센다', () => {
+    const repeated = sceneRepeatedTags(
+      scene({
+        prompt: 'sitting, smile',
+        slots: [
+          [option('a', 'smile'), option('b', 'night, chair')],
+          [option('c', 'chair'), option('d', 'night')],
+          [{ ...option('e', 'sitting'), enabled: false }],
+        ],
+      }),
+    );
+    expect([...repeated(0)].sort()).toEqual(['chair', 'night', 'smile']);
+  });
+
+  it('같은 칸의 후보끼리는 겹치지 않고, 캐릭터 몫은 그 캐릭터 칸과 센다', () => {
+    const repeated = sceneRepeatedTags(
+      scene({
+        prompt: 'smile',
+        extraPrompts: ['waving'],
+        slots: [[option('a', 'night', ['smile', 'waving']), option('b', 'night')]],
+      }),
+    );
+    expect([...repeated(0)]).toEqual(['smile']);
+    expect([...repeated(1)]).toEqual(['waving']);
+  });
+
+  it('씬 프롬프트가 공통 쪽이면 첫 캐릭터 몫은 따로 센다', () => {
+    const repeated = sceneRepeatedTags(
+      scene({ prompt: 'smile', slots: [[option('a', '', ['smile'])]] }),
+      true,
+    );
+    expect(repeated(0).size).toBe(0);
+    expect(repeated(-1).size).toBe(0);
+  });
+});
 
 describe('씬 프롬프트와 조합 칸 1', () => {
   it('칸 1로 옮겨도 만들어지는 프롬프트가 같다', () => {

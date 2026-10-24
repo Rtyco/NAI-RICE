@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Emotion, EmotionSet } from '../../../core/domain/types';
-import { comboCount, comboPrompts, sceneCombos } from '../../../core/model/sceneCombos';
+import {
+  comboCount,
+  comboPrompts,
+  sceneCombos,
+  sceneRepeatedTags,
+} from '../../../core/model/sceneCombos';
 import { stripComments } from '../../../core/prompts/PromptPieces';
 import {
   addEmotion,
@@ -60,6 +65,10 @@ function EmotionRow({
   const patch = (value: Partial<Omit<Emotion, 'id'>>) =>
     save((item) => updateEmotion(item, emotion.id, value));
   const extras = Math.max(emotion.extraPrompts?.length ?? 0, opened);
+  const repeated = useMemo(
+    () => (collapsed ? undefined : sceneRepeatedTags(emotion)),
+    [collapsed, emotion],
+  );
   const removeExtra = async () => {
     const last = extras - 1;
     const ok =
@@ -154,6 +163,7 @@ function EmotionRow({
             value={emotion.prompt}
             aria-label={`${emotion.name} 프롬프트`}
             placeholder={emotion.slots?.length ? '씬 프롬프트 · 모든 조합 공통' : '씬 프롬프트'}
+            repeated={repeated?.(0)}
             onChange={(prompt) => patch({ prompt })}
           />
           {Array.from({ length: extras }, (_, extra) => (
@@ -164,6 +174,7 @@ function EmotionRow({
                 value={emotion.extraPrompts?.[extra] ?? ''}
                 aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
                 placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
+                repeated={repeated?.(extra + 1)}
                 onChange={(prompt) => patch(withExtraPrompt(emotion, extra, prompt))}
               />
             </div>

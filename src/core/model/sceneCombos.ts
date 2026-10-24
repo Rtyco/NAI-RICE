@@ -1,5 +1,5 @@
 import type { Emotion, GenerationRecord, SceneOption } from '../domain/types';
-import { joinFragments } from '../prompts/PromptComposer';
+import { joinFragments, tagPieces } from '../prompts/PromptComposer';
 import { stripComments } from '../prompts/PromptPieces';
 
 export type SceneCombo = {
@@ -139,6 +139,53 @@ export function sameScenePrompts(emotion: Emotion, prompts: ScenePrompts): boole
       JSON.stringify(promptList(prompts.extraPrompts)) &&
     slotTexts(emotion.slots) === slotTexts(prompts.slots)
   );
+}
+
+const NO_TAGS: ReadonlySet<string> = new Set();
+
+/** 후보의 캐릭터 몫이 붙는 곳. 0은 씬 프롬프트와 같은 곳, -1은 씬 프롬프트가 공통 쪽일 때의 첫 캐릭터. */
+export const characterTagGroup = (index: number, firstOnCommon: boolean) =>
+  index === 0 && firstOnCommon ? -1 : index;
+
+/**
+ * 한 조합에서 함께 붙는 칸끼리 두 번 이상 나오는 태그. 붙는 곳(0은 씬 프롬프트, n은 n+1번째 캐릭터)별로 센다.
+ * 같은 칸의 후보끼리는 한 조합에 함께 붙지 않는다.
+ */
+export function sceneRepeatedTags(
+  emotion: Emotion,
+  firstOnCommon = false,
+): (group: number) => ReadonlySet<string> {
+  // 붙는 곳 → 태그 → 칸(-1은 고정 프롬프트) → 나온 수
+  const groups = new Map<number, Map<string, Map<number, number>>>();
+  const add = (group: number, slot: number, text: string) => {
+    const tags = groups.get(group) ?? new Map<string, Map<number, number>>();
+    groups.set(group, tags);
+    const counts = new Map<string, number>();
+    for (const { key } of tagPieces(text)) counts.set(key, (counts.get(key) ?? 0) + 1);
+    for (const [key, count] of counts) {
+      const slots = tags.get(key) ?? new Map<number, number>();
+      tags.set(key, slots);
+      slots.set(slot, Math.max(slots.get(slot) ?? 0, count));
+    }
+  };
+  add(0, -1, emotion.prompt);
+  emotion.extraPrompts?.forEach((text, index) => add(index + 1, -1, text));
+  emotion.slots?.forEach((slot, index) => {
+    for (const option of slot.filter((item) => item.enabled)) {
+      add(0, index, option.prompt);
+      option.characterPrompts.forEach((text, character) =>
+        add(characterTagGroup(character, firstOnCommon), index, text),
+      );
+    }
+  });
+  const sum = (slots: Map<number, number>) => [...slots.values()].reduce((a, b) => a + b, 0);
+  const repeated = new Map(
+    [...groups].map(([group, tags]) => [
+      group,
+      new Set([...tags].filter(([, slots]) => sum(slots) > 1).map(([key]) => key)),
+    ]),
+  );
+  return (group) => repeated.get(group) ?? NO_TAGS;
 }
 
 export const hasFixedScenePrompt = (emotion: Emotion) =>

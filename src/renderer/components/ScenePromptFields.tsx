@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import type { Emotion } from '../../core/domain/types';
 import { withExtraPrompt } from '../../core/model/mutations';
+import { sceneRepeatedTags } from '../../core/model/sceneCombos';
 import { confirmDialog } from './dialogStack';
 import { PromptField } from './ui';
 
@@ -17,6 +19,10 @@ export function ScenePromptFields(props: {
 }) {
   const { emotion, names } = props;
   const slots = Math.max(1, names.length);
+  const repeated = useMemo(
+    () => sceneRepeatedTags(emotion, props.firstOnCommon),
+    [emotion, props.firstOnCommon],
+  );
   const hidden = (emotion.extraPrompts ?? []).slice(slots - 1).filter((prompt) => prompt.trim());
   const dropHidden = async () => {
     const ok = await confirmDialog({
@@ -57,6 +63,7 @@ export function ScenePromptFields(props: {
                 : '비워 두면 이 캐릭터에는 붙이지 않습니다'
             }
             counter={false}
+            repeated={repeated(index)}
             onChange={(next) =>
               props.onChange(
                 index === 0 ? { prompt: next } : withExtraPrompt(emotion, index - 1, next),
