@@ -1,14 +1,22 @@
 import type { z } from 'zod';
-import type { Character, EmotionSet, ImportWarning, PieceSet, Preset } from '../domain/types';
+import type {
+  Character,
+  CharacterSlot,
+  Emotion,
+  EmotionSet,
+  ImportWarning,
+  Preset,
+  Project,
+  SceneOption,
+} from '../domain/types';
 import {
   createCharacter,
-  createEmotion,
-  createPieceSet,
   createPreset,
+  createProject,
   createPromptSet,
   newId,
 } from '../model/defaults';
-import { pieceRef } from '../prompts/PromptPieces';
+import { hasMarker } from '../prompts/PromptComposer';
 import { sdStudioRootSchema } from '../validation/schemas';
 
 export class SDStudioImportError extends Error {
@@ -21,105 +29,143 @@ export class SDStudioImportError extends Error {
   }
 }
 
-type PromptPiece = { prompt?: unknown; characterPrompts?: unknown; enabled?: unknown };
-type CharacterPromptPiece = {
-  id?: unknown;
-  name?: unknown;
-  prompt?: unknown;
-  uc?: unknown;
-  enabled?: unknown;
-};
+type Json = Record<string, unknown>;
 
 export type SDStudioImport = {
-  /** 프리셋이 없는 파일(씬만 담은 파일)이면 없다. */
-  character?: Character;
+  /** 이미지 생성(이지 모드 포함) 프리셋마다 하나. 씬만 담은 파일이면 비었다. */
+  presets: Preset[];
+  /** 고른 프리셋의 켜진 캐릭터 프롬프트 순서대로. */
+  characters: Character[];
   emotionSet: EmotionSet;
-  /** 공통 프롬프트가 있을 때만 */
-  preset?: Preset;
-  /** 감정 프롬프트가 부르는 multi 조각 세트 */
-  variantSet?: PieceSet;
+  /** 프리셋이 있으면 위 항목을 묶은 일반 생성 작업. */
+  project?: Project;
   warnings: ImportWarning[];
 };
+
+const WORKFLOWS = ['SDImageGen', 'SDImageGenEasy'] as const;
 
 function formatZodError(error: z.ZodError): string[] {
   return error.issues.map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`);
 }
 
-function cleanPrompt(value: unknown): string {
-  return typeof value === 'string' ? value.trim().replace(/^[,\s]+|[,\s]+$/g, '') : '';
+const isObject = (value: unknown): value is Json =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const objects = (value: unknown): Json[] => (Array.isArray(value) ? value.filter(isObject) : []);
+
+/** SDStudio는 줄바꿈을 쉼표로 읽는다(`toPARR`). NovelAI에는 줄바꿈이 그대로 가므로 쉼표로 바꿔 둔다. */
+function text(value: unknown): string {
+  return typeof value === 'string'
+    ? value
+        .replace(/[,\s]*\r?\n[,\s]*/g, ', ')
+        .trim()
+        .replace(/^[,\s]+|[,\s]+$/g, '')
+    : '';
 }
 
-function joinPrompts(...values: unknown[]): string {
-  return values.map(cleanPrompt).filter(Boolean).join(', ');
+function join(...values: string[]): string {
+  return values.filter(Boolean).join(', ');
 }
 
-function characterPromptArray(value: unknown): CharacterPromptPiece[] {
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is CharacterPromptPiece => typeof item === 'object' && item !== null,
-      )
-    : [];
+const COUNT_TAG = /^(\d+(boy|girl|other)s?|multiple (girls|boys|others))$/;
+
+/** 이지 모드는 캐릭터 프롬프트를 상위 뒤에 붙이고 인원 태그를 맨 앞으로 옮긴다. */
+function easyFront(front: string, characterPrompt: string): string {
+  const tags = join(front, characterPrompt)
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  return join(
+    ...tags.filter((tag) => COUNT_TAG.test(tag)),
+    ...tags.filter((tag) => !COUNT_TAG.test(tag)),
+  );
 }
 
-const MAX_COMBOS = 200;
-
-/** 조각 참조에 못 쓰는 점·꺾쇠·줄바꿈을 뺀다. */
-function refName(value: string): string {
-  return value
-    .replace(/[.<>\n]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+/** 캐릭터 프롬프트에 `|`가 있으면 SDStudio는 남는 조각을 끝에 붙인다. 끝에 자리를 하나 더 두어 같게 만든다. */
+function characterPrompt(value: unknown): string {
+  const prompt = text(value);
+  return hasMarker(prompt) ? join(prompt, '|') : prompt;
 }
 
-function uniqueName(name: string, taken: Array<{ name: string }>): string {
-  let candidate = name;
-  for (let index = 2; taken.some((item) => item.name === candidate); index += 1)
-    candidate = `${name} ${index}`;
-  return candidate;
+const validSeed = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffffffff;
+
+/** 직접 입력한 것, 적용한 캐릭터 프리셋 순. `order`가 있으면 그 순서(SDStudio와 같다). */
+function orderedCharacters(preset: Json, shared: Json): Json[] {
+  return [...objects(preset.characterPrompts), ...objects(shared.characterPrompts)]
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const order = (item: Json) =>
+        Number.isFinite(item.order) ? (item.order as number) : Infinity;
+      return order(a.item) - order(b.item) || a.index - b.index;
+    })
+    .map(({ item }) => item)
+    .filter((item) => item.enabled !== false);
 }
 
-/** `chars[j]`는 j번째 캐릭터 프롬프트 뒤에 붙는 부분(SDStudio `characterPrompts`). */
-type SceneCombo = { common: string; chars: string[] };
-
-const oneLine = (value: unknown) =>
-  cleanPrompt(typeof value === 'string' ? value.replace(/[,\s]*\n[,\s]*/g, ', ') : '');
-
-function joinCombo(head: SceneCombo, option: SceneCombo): SceneCombo {
-  const length = Math.max(head.chars.length, option.chars.length);
+function convertPreset(
+  name: string,
+  type: string,
+  source: Json,
+  shared: Json,
+  extra: string,
+): Preset {
+  const easy = type === 'SDImageGenEasy';
+  const front = easy
+    ? easyFront(text(source.frontPrompt), text(shared.characterPrompt))
+    : text(source.frontPrompt);
+  const back = join(easy ? text(shared.backgroundPrompt) : '', text(source.backPrompt));
+  const base = createPreset(name);
+  const number = (key: string, fallback: number) =>
+    typeof source[key] === 'number' ? source[key] : fallback;
+  const word = (key: string, fallback: string) =>
+    typeof source[key] === 'string' ? source[key] : fallback;
   return {
-    common: joinPrompts(head.common, option.common),
-    chars: Array.from({ length }, (_, index) =>
-      joinPrompts(head.chars[index], option.chars[index]),
-    ),
+    ...base,
+    // SDStudio 순서: 상위 → 추가 프롬프트 → 씬 → 하위. 씬은 마지막 `|` 자리에 들어간다.
+    commonPositive: join(front, text(extra), '|', back),
+    commonNegative: join(easy ? text(shared.uc) : '', text(source.uc)),
+    generation: {
+      ...base.generation,
+      sampler: word('sampling', base.generation.sampler),
+      steps: number('steps', base.generation.steps),
+      promptGuidance: number('promptGuidance', base.generation.promptGuidance),
+      cfgRescale: number('cfgRescale', base.generation.cfgRescale),
+      noiseSchedule: word('noiseSchedule', base.generation.noiseSchedule),
+      variety: source.varietyPlus === true,
+      emotionPosition: 'common-marker',
+      ...(validSeed(shared.seed) ? { seedMode: 'fixed' as const, fixedSeed: shared.seed } : {}),
+    },
   };
 }
 
-/** SDStudio처럼 슬롯마다 켜진 프롬프트 하나씩의 모든 조합. 한 조합이 한 줄이라 줄바꿈은 쉼표로 바꾼다. */
-function sceneCombos(slots: unknown): SceneCombo[] {
-  if (!Array.isArray(slots)) return [];
-  let combos: SceneCombo[] = [{ common: '', chars: [] }];
-  for (const slot of slots) {
-    const options = (Array.isArray(slot) ? (slot as PromptPiece[]) : [])
-      .filter((piece) => piece && piece.enabled !== false)
-      .map((piece) => ({
-        common: oneLine(piece.prompt),
-        chars: Array.isArray(piece.characterPrompts) ? piece.characterPrompts.map(oneLine) : [],
-      }))
-      .filter((option) => option.common || option.chars.some(Boolean));
-    if (!options.length) continue;
-    combos = combos.flatMap((head) => options.map((option) => joinCombo(head, option)));
-    if (combos.length > MAX_COMBOS) combos = combos.slice(0, MAX_COMBOS + 1);
-  }
-  return combos.filter((combo) => combo.common || combo.chars.some(Boolean));
+function convertOption(piece: Json): SceneOption {
+  const name = typeof piece.name === 'string' && piece.name.trim() ? piece.name.trim() : undefined;
+  return {
+    id: newId(),
+    ...(name ? { name } : {}),
+    prompt: text(piece.prompt),
+    characterPrompts: Array.isArray(piece.characterPrompts) ? piece.characterPrompts.map(text) : [],
+    enabled: piece.enabled !== false,
+  };
 }
 
-/** 공통 부분은 첫 캐릭터 칸에 합친다. 끝의 빈 칸은 버린다. */
-function scenePrompts(combo: SceneCombo | undefined): { prompt: string; extraPrompts: string[] } {
-  if (!combo) return { prompt: '', extraPrompts: [] };
-  const extraPrompts = combo.chars.slice(1);
-  while (extraPrompts.length && !extraPrompts[extraPrompts.length - 1]) extraPrompts.pop();
-  return { prompt: joinPrompts(combo.common, combo.chars[0]), extraPrompts };
+function convertScene(name: string, scene: Json): Emotion {
+  const slots = (Array.isArray(scene.slots) ? scene.slots : []).map((slot) =>
+    objects(slot).map(convertOption),
+  );
+  const negative = text(scene.sceneUC);
+  return {
+    id: newId(),
+    name,
+    prompt: '',
+    ...(slots.length ? { slots } : {}),
+    ...(negative ? { negative } : {}),
+  };
 }
+
+const optionHasText = (option: SceneOption) =>
+  Boolean(option.prompt || option.characterPrompts.some(Boolean));
 
 export function isSDStudioProject(value: unknown): boolean {
   return sdStudioRootSchema.safeParse(value).success;
@@ -142,145 +188,127 @@ export function importSDStudioProject(raw: string): SDStudioImport {
     );
   }
 
-  const root = validation.data;
-  const extendedRoot = root as typeof root & {
-    selectedWorkflow?: { presetName?: unknown };
-    presetShareds?: { SDImageGen?: { characterPrompts?: unknown } };
-  };
-  const selectedPresetName = cleanPrompt(extendedRoot.selectedWorkflow?.presetName);
-  const sources = root.presets.SDImageGen ?? [];
-  const source = sources.find((candidate) => candidate.name === selectedPresetName) ?? sources[0];
+  const root = validation.data as Json & { name: string; scenes: Json; presets: Json };
   const warnings: ImportWarning[] = [];
-  const emotions: EmotionSet['emotions'] = [];
+  const shareds = isObject(root.presetShareds) ? root.presetShareds : {};
+  const sharedOf = (type: string): Json => {
+    const shared = shareds[type];
+    return isObject(shared) ? shared : {};
+  };
+  const selected = isObject(root.selectedWorkflow) ? root.selectedWorkflow : {};
+  const extra = typeof root.extraPrompt === 'string' ? root.extraPrompt : '';
 
-  const variantSetName = refName(`${root.name} 변형`);
-  const variants: Array<{ name: string; prompt: string; multi: boolean }> = [];
-
+  const emotions: Emotion[] = [];
   for (const [sceneName, sceneValue] of Object.entries(root.scenes)) {
-    if (sceneName === 'default') continue;
-
-    const sourcePath = `scenes.${sceneName}.slots`;
-    const slots =
-      typeof sceneValue === 'object' && sceneValue !== null && 'slots' in sceneValue
-        ? (sceneValue as { slots?: unknown }).slots
-        : undefined;
-    const combos = sceneCombos(slots);
-    const first = scenePrompts(combos[0]);
-    let prompt = first.prompt;
-
-    if (combos.length > 1) {
-      // SDStudio는 조합마다 이미지를 만들지만, 여기서는 multi 조각으로 옮겨 이미지마다 하나를 고른다.
-      // 두 번째 캐릭터부터는 조각으로 캐릭터마다 고를 수 없어 첫 조합 것을 쓴다.
-      const pieceName = uniqueName(refName(sceneName) || '장면', variants);
-      const lines = combos.slice(0, MAX_COMBOS).map((combo) => scenePrompts(combo).prompt);
-      variants.push({ name: pieceName, prompt: lines.join('\n'), multi: true });
-      prompt = pieceRef(variantSetName, pieceName);
-    }
-    if (combos.length > MAX_COMBOS) {
-      warnings.push({
-        code: 'complex-slots',
-        message: `${sceneName}: 조합이 많아 앞의 ${MAX_COMBOS}개만 가져왔습니다.`,
-        path: sourcePath,
-      });
-    }
-    if (!prompt) {
+    if (!isObject(sceneValue)) continue;
+    const emotion = convertScene(sceneName, sceneValue);
+    const options = (emotion.slots ?? []).flat();
+    // SDStudio가 새 프로젝트에 만들어 두는 빈 씬
+    if (sceneName === 'default' && !options.some(optionHasText) && !emotion.negative) continue;
+    if ((emotion.slots ?? []).some((slot) => !slot.some((option) => option.enabled))) {
       warnings.push({
         code: 'empty-prompt',
-        message: `${sceneName}: 활성 프롬프트가 비어 있어 이 씬을 비활성화했습니다.`,
-        path: sourcePath,
+        message: `${sceneName}: 켜진 후보가 없는 칸이 있어 SD Studio처럼 생성하지 않습니다.`,
+        path: `scenes.${sceneName}.slots`,
       });
     }
-    emotions.push({
-      ...createEmotion(sceneName, prompt),
-      ...(first.extraPrompts.length ? { extraPrompts: first.extraPrompts } : {}),
-    });
+    emotions.push(emotion);
   }
-  if (variants.length) {
-    warnings.push({
-      code: 'complex-slots',
-      message: `변형이 여러 개인 씬 ${variants.length}개는 프롬프트 조각 "${variantSetName}"으로 가져왔습니다. 이미지마다 변형 하나를 고릅니다.`,
-      path: 'scenes',
-    });
-  }
-
   const emotionSet: EmotionSet = { id: newId(), name: `${root.name} 씬`, emotions };
-  const variantSet = variants.length ? createPieceSet(variantSetName, variants) : undefined;
-  if (!source) return { emotionSet, variantSet, warnings };
-  const presetPath = `presets.SDImageGen[${sources.indexOf(source)}]`;
 
-  const candidateCharacterPrompts = [
-    ...characterPromptArray(source.characterPrompts),
-    ...characterPromptArray(extendedRoot.presetShareds?.SDImageGen?.characterPrompts),
-  ].filter((candidate) => candidate.enabled !== false && cleanPrompt(candidate.prompt));
-  const keyOf = (item: CharacterPromptPiece) =>
-    `${cleanPrompt(item.prompt)}\u0000${cleanPrompt(item.uc)}`;
-  const uniqueCharacterPrompts = candidateCharacterPrompts.filter(
-    (candidate, index, items) =>
-      items.findIndex((item) => keyOf(item) === keyOf(candidate)) === index,
+  const sources = WORKFLOWS.flatMap((type) =>
+    objects(root.presets[type]).map((source, index) => ({ type, source, index })),
   );
-  const promptSets = uniqueCharacterPrompts.map((item, index) =>
-    createPromptSet(cleanPrompt(item.name) || (index === 0 ? '기본' : `프롬프트 ${index + 1}`), {
-      positive: cleanPrompt(item.prompt),
-      negative: cleanPrompt(item.uc),
-    }),
-  );
+  if (!sources.length) return { presets: [], characters: [], emotionSet, warnings };
 
-  const commonPositive = joinPrompts(source.frontPrompt, source.backPrompt);
-  if (!commonPositive) {
-    warnings.push({
-      code: 'missing-common-positive',
-      message: '공통 포지티브 프롬프트가 비어 있습니다.',
-      path: `${presetPath}.frontPrompt`,
-    });
-  }
-  if (!promptSets.length) {
+  const several = sources.length > 1;
+  const presets = sources.map(({ type, source, index }) => {
+    const label =
+      typeof source.name === 'string' && source.name.trim() ? source.name.trim() : `${index + 1}`;
+    return convertPreset(
+      several ? `${root.name} · ${label}` : `${root.name} (SDStudio)`,
+      type,
+      source,
+      sharedOf(type),
+      extra,
+    );
+  });
+  const chosenIndex = Math.max(
+    0,
+    sources.findIndex(
+      ({ type, source }) => type === selected.workflowType && source.name === selected.presetName,
+    ),
+  );
+  const chosen = sources[chosenIndex];
+  const shared = sharedOf(chosen.type);
+  const presetPath = `presets.${chosen.type}[${chosen.index}]`;
+
+  const castSources = orderedCharacters(chosen.source, shared).filter((item) => text(item.prompt));
+  const characters = castSources.map((item, index) => {
+    const name =
+      (typeof item.fromPreset === 'string' && item.fromPreset.trim()) ||
+      (typeof item.name === 'string' && item.name.trim()) ||
+      (castSources.length > 1 ? `${root.name} ${index + 1}` : root.name);
+    return createCharacter(name, [
+      createPromptSet('기본', { positive: characterPrompt(item.prompt), negative: text(item.uc) }),
+    ]);
+  });
+  const manual = chosen.source.useCoords === true;
+  const slots: CharacterSlot[] = characters.map((character, index) => {
+    const position = castSources[index].position;
+    const center =
+      manual &&
+      isObject(position) &&
+      typeof position.x === 'number' &&
+      typeof position.y === 'number'
+        ? { x: position.x, y: position.y }
+        : undefined;
+    return {
+      characterId: character.id,
+      promptSetId: character.promptSets[0].id,
+      ...(center ? { center } : {}),
+    };
+  });
+
+  if (!characters.length) {
     warnings.push({
       code: 'missing-character-positive',
-      message: '캐릭터 프롬프트가 비어 있습니다. 캐릭터 외형 태그를 입력하십시오.',
+      message: '켜진 캐릭터 프롬프트가 없어 캐릭터 없이 생성합니다.',
       path: `${presetPath}.characterPrompts`,
     });
   }
-  if (promptSets.length > 1) {
+  if (several) {
     warnings.push({
-      code: 'multiple-character-prompts',
-      message: `캐릭터 프롬프트 ${promptSets.length}개를 각각 프롬프트 세트로 가져왔습니다.`,
-      path: `${presetPath}.characterPrompts`,
+      code: 'multiple-presets',
+      message: `프리셋 ${sources.length}개를 생성 설정으로 가져왔습니다. 작업은 "${presets[chosenIndex].name}"을(를) 씁니다. 캐릭터는 이 프리셋 것만 가져왔습니다.`,
+      path: 'presets',
+    });
+  }
+  const inpaints = isObject(root.inpaints) ? Object.keys(root.inpaints).length : 0;
+  if (inpaints) {
+    warnings.push({
+      code: 'images-not-imported',
+      message: `인페인트·i2i 씬 ${inpaints}개는 그림이 JSON 밖에 있어 가져오지 않았습니다.`,
+      path: 'inpaints',
+    });
+  }
+  if (objects(shared.vibes).length || objects(shared.characterReferences).length) {
+    warnings.push({
+      code: 'images-not-imported',
+      message: '바이브와 캐릭터 레퍼런스는 그림이 JSON 밖에 있어 가져오지 않았습니다.',
+      path: `presetShareds.${chosen.type}`,
     });
   }
 
-  const base = createPreset(`${root.name} (SDStudio)`);
-  const preset: Preset | undefined =
-    commonPositive || cleanPrompt(source.uc)
-      ? {
-          ...base,
-          commonPositive,
-          commonNegative: cleanPrompt(source.uc),
-          generation: {
-            ...base.generation,
-            sampler:
-              typeof source.sampling === 'string' ? source.sampling : base.generation.sampler,
-            steps: typeof source.steps === 'number' ? source.steps : base.generation.steps,
-            promptGuidance:
-              typeof source.promptGuidance === 'number'
-                ? source.promptGuidance
-                : base.generation.promptGuidance,
-            cfgRescale:
-              typeof source.cfgRescale === 'number'
-                ? source.cfgRescale
-                : base.generation.cfgRescale,
-            noiseSchedule:
-              typeof source.noiseSchedule === 'string'
-                ? source.noiseSchedule
-                : base.generation.noiseSchedule,
-          },
-        }
-      : undefined;
-
-  return {
-    character: createCharacter(root.name, promptSets),
-    emotionSet,
-    preset,
-    variantSet,
-    warnings,
+  const project: Project = {
+    ...createProject(root.name, {
+      presetId: presets[chosenIndex].id,
+      emotionSetId: emotionSet.id,
+      referenceId: '',
+    }),
+    mode: 'txt2img',
+    characters: slots,
+    positionMode: manual ? 'manual' : 'ai',
   };
+  return { presets, characters, emotionSet, project, warnings };
 }

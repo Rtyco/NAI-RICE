@@ -288,14 +288,12 @@ export function parseImportFile(
   if (sdStudioRootSchema.safeParse(value).success) {
     const imported = importSDStudioProject(raw);
     const bundle = emptyBundle(`SDStudio "${String(value.name)}"`);
-    bundle.characters = imported.character ? [imported.character] : [];
+    bundle.characters = imported.characters;
     bundle.emotionSets = [imported.emotionSet];
-    bundle.presets = imported.preset ? [imported.preset] : [];
-    // 감정 프롬프트의 <세트.조각>이 이어지도록 조각도 가져온다.
-    bundle.pieceSets = [
-      ...sdStudioLibraryPieceSets(value.library),
-      ...(imported.variantSet ? [imported.variantSet] : []),
-    ];
+    bundle.presets = imported.presets;
+    bundle.projects = imported.project ? [imported.project] : [];
+    // 씬 프롬프트의 <세트.조각>이 이어지도록 조각도 가져온다.
+    bundle.pieceSets = sdStudioLibraryPieceSets(value.library);
     bundle.warnings = imported.warnings.map((warning) => warning.message);
     return bundle;
   }

@@ -77,6 +77,14 @@ export const characterSchema = z.object({
   createdAt: z.string(),
 });
 
+const sceneOptionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().optional(),
+  prompt: z.string(),
+  characterPrompts: z.array(z.string()).default([]),
+  enabled: z.boolean().default(true),
+});
+
 export const emotionSetSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
@@ -90,6 +98,7 @@ export const emotionSetSchema = z.object({
       negative: z.string().optional(),
       augmentMood: z.string().trim().min(1).max(40).optional().catch(undefined),
       augmentDefry: z.number().int().min(0).max(5).optional().catch(undefined),
+      slots: z.array(z.array(sceneOptionSchema)).optional(),
     }),
   ),
 });
@@ -550,6 +559,8 @@ export const generationRecordSchema = z.object({
   characterCenters: z.array(centerSchema).optional(),
   emotionPrompt: z.string(),
   emotionNegative: z.string().optional(),
+  comboKey: z.string().optional(),
+  comboName: z.string().optional(),
   settings: generationSettingsSchema,
   anlasSpent: z.number().optional(),
   anlasEstimate: z.number().optional(),
@@ -583,6 +594,8 @@ const jobSnapshotCommonSchema = z.object({
   emotionName: z.string(),
   emotionPrompt: z.string(),
   emotionNegative: z.string().optional(),
+  comboKey: z.string().max(4000).optional(),
+  comboName: z.string().max(4000).optional(),
   presetName: z.string(),
   promptSetName: z.string(),
   emotionSetName: z.string(),

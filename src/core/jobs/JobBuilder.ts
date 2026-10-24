@@ -6,7 +6,6 @@ import type {
   CharacterCenter,
   CharacterPositionMode,
   CharacterPromptSet,
-  Emotion,
   EmotionPosition,
   EmotionSet,
   GenerationKind,
@@ -35,6 +34,7 @@ import {
   removeReferenceInset,
 } from '../prompts/PromptComposer';
 import { expandPieces } from '../prompts/PromptPieces';
+import { comboPrompts, sceneCombos, type ComboPrompts } from '../model/sceneCombos';
 import { requestCenters } from '../model/characterPositions';
 import {
   applyNaiTags,
@@ -64,6 +64,8 @@ type EmotionJobBuildInput = {
   /** 설정의 Seed 방식보다 우선한다. */
   seedOverride?: number;
   variantsOverride?: number;
+  /** 조합 칸이 있는 씬에서 이 조합만 만든다(기록의 `comboKey`). */
+  comboKey?: string;
   aid?: JobAid;
   now?: () => Date;
   randomSeed?: () => number;
@@ -106,7 +108,7 @@ export type RequestPrompts = {
 };
 
 /** 자유 생성은 문자열 하나. */
-export type ScenePrompts = string | Pick<Emotion, 'prompt' | 'extraPrompts' | 'negative'>;
+export type ScenePrompts = string | ComboPrompts;
 
 const joinPrompts = (texts: string[]) =>
   texts
@@ -165,6 +167,10 @@ export function composeRequestPrompts(
     characterPositive: first.positive,
     emotion: emotionPrompt,
     emotionPosition,
+    characterScene:
+      typeof scene === 'object' && characters.length
+        ? expand(scene.firstCharacter ?? '')
+        : undefined,
     referenceInset: {
       enabled: settings.referenceInset && kind === 'inpaint' && !insetWritten,
       position: characters.length
@@ -260,66 +266,72 @@ function buildEmotionJobs<T>(
   const jobs: T[] = [];
 
   for (const emotion of selected) {
-    for (let variantIndex = 1; variantIndex <= variants; variantIndex += 1) {
-      const seed =
-        input.seedOverride !== undefined
-          ? seedForVariant(input.seedOverride, variantIndex)
-          : settings.seedMode === 'fixed'
-            ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
-            : randomSeed();
-      const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
-        input.preset,
-        input.characters.map((character) => character.promptSet),
-        emotion,
-        { sets: input.pieceSets ?? [], seed },
-        kind,
-      );
-      if (missingPieces.length) {
-        throw new Error(
-          `"${emotion.name}"에서 찾을 수 없는 프롬프트 조각: ${missingPieces.join(', ')}. 라이브러리의 프롬프트 조각에서 이름을 확인하십시오.`,
+    const combos = sceneCombos(emotion).filter(
+      (combo) => input.comboKey === undefined || combo.key === input.comboKey,
+    );
+    for (const [comboIndex, combo] of combos.entries()) {
+      for (let variantIndex = 1; variantIndex <= variants; variantIndex += 1) {
+        const seed =
+          input.seedOverride !== undefined
+            ? seedForVariant(input.seedOverride, variantIndex)
+            : settings.seedMode === 'fixed'
+              ? seedForVariant(settings.fixedSeed ?? 0, variantIndex)
+              : randomSeed();
+        const { missingPieces, extraCharacters, ...prompts } = composeRequestPrompts(
+          input.preset,
+          input.characters.map((character) => character.promptSet),
+          comboPrompts(emotion, combo),
+          { sets: input.pieceSets ?? [], seed },
+          kind,
+        );
+        if (missingPieces.length) {
+          throw new Error(
+            `"${emotion.name}"에서 찾을 수 없는 프롬프트 조각: ${missingPieces.join(', ')}. 라이브러리의 프롬프트 조각에서 이름을 확인하십시오.`,
+          );
+        }
+        const warnings: string[] = [];
+        if (first && !first.promptSet.positive.trim())
+          warnings.push('캐릭터 포지티브 프롬프트가 비어 있습니다.');
+        const insets =
+          referenceInsetCount(prompts.prompt) + referenceInsetCount(prompts.characterPrompt);
+        if (kind === 'inpaint' && insets > 1)
+          warnings.push(`reference inset 태그가 ${insets}번 들어 있습니다.`);
+        const createdAt = now().toISOString();
+        jobs.push(
+          make({
+            id: `${input.project.id}-${emotion.id}-${comboIndex ? `${comboIndex}-` : ''}${variantIndex}-${seed}-${createdAt}`,
+            createdAt,
+            projectId: input.project.id,
+            projectName: input.project.name,
+            ...castFields(
+              input.characters,
+              extraCharacters,
+              settings.model,
+              input.project.positionMode,
+            ),
+            emotionId: emotion.id,
+            emotionName: emotion.name,
+            emotionPrompt: emotion.prompt,
+            ...(emotion.negative?.trim() ? { emotionNegative: emotion.negative } : {}),
+            ...(combo.key ? { comboKey: combo.key, comboName: combo.name } : {}),
+            presetName: input.preset.name,
+            emotionSetName: input.emotionSet.name,
+            ...prompts,
+            source: {
+              commonPositive: input.preset.commonPositive,
+              commonNegative: input.preset.commonNegative,
+              characterPositive: first?.promptSet.positive ?? '',
+            },
+            seed,
+            variantIndex,
+            ...extra,
+            outputFilenameTemplate: input.settings.outputFilenameTemplate,
+            settings: { ...settings },
+            warnings,
+            ...(input.aid ? { aid: { ...input.aid } } : {}),
+          }),
         );
       }
-      const warnings: string[] = [];
-      if (first && !first.promptSet.positive.trim())
-        warnings.push('캐릭터 포지티브 프롬프트가 비어 있습니다.');
-      const insets =
-        referenceInsetCount(prompts.prompt) + referenceInsetCount(prompts.characterPrompt);
-      if (kind === 'inpaint' && insets > 1)
-        warnings.push(`reference inset 태그가 ${insets}번 들어 있습니다.`);
-      const createdAt = now().toISOString();
-      jobs.push(
-        make({
-          id: `${input.project.id}-${emotion.id}-${variantIndex}-${seed}-${createdAt}`,
-          createdAt,
-          projectId: input.project.id,
-          projectName: input.project.name,
-          ...castFields(
-            input.characters,
-            extraCharacters,
-            settings.model,
-            input.project.positionMode,
-          ),
-          emotionId: emotion.id,
-          emotionName: emotion.name,
-          emotionPrompt: emotion.prompt,
-          ...(emotion.negative?.trim() ? { emotionNegative: emotion.negative } : {}),
-          presetName: input.preset.name,
-          emotionSetName: input.emotionSet.name,
-          ...prompts,
-          source: {
-            commonPositive: input.preset.commonPositive,
-            commonNegative: input.preset.commonNegative,
-            characterPositive: first?.promptSet.positive ?? '',
-          },
-          seed,
-          variantIndex,
-          ...extra,
-          outputFilenameTemplate: input.settings.outputFilenameTemplate,
-          settings: { ...settings },
-          warnings,
-          ...(input.aid ? { aid: { ...input.aid } } : {}),
-        }),
-      );
     }
   }
   return jobs;

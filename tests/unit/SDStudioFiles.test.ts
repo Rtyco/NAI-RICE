@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { comboPrompts, sceneCombos } from '../../src/core/model/sceneCombos';
 import { exportCharacter, exportEmotionSet, parseImportFile } from '../../src/core/backup/Backups';
 import { createCharacter, createPieceSet, createPromptSet } from '../../src/core/model/defaults';
 import type { EmotionSet } from '../../src/core/domain/types';
@@ -45,10 +46,13 @@ describe('SDStudio 호환 내보내기', () => {
     expect(bundle.presets).toEqual([]);
     expect(bundle.pieceSets.map((item) => item.name)).toEqual(['포즈']);
     expect(
-      bundle.emotionSets[0].emotions.map(({ prompt, extraPrompts }) => [prompt, extraPrompts]),
+      bundle.emotionSets[0].emotions.map((emotion) => {
+        const scene = comboPrompts(emotion, sceneCombos(emotion)[0]);
+        return [scene.firstCharacter, scene.extraPrompts];
+      }),
     ).toEqual([
       ['smile, <포즈.손>', ['', 'wave']],
-      ['grin', undefined],
+      ['grin', []],
     ]);
   });
 

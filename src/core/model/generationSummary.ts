@@ -25,6 +25,8 @@ export function toGenerationSummary(record: GenerationRecord): GenerationSummary
     referenceName: record.referenceName,
     emotionPrompt: record.emotionPrompt,
     emotionNegative: record.emotionNegative,
+    comboKey: record.comboKey,
+    comboName: record.comboName,
     anlasSpent: record.anlasSpent,
     anlasEstimate: record.anlasEstimate,
     model: record.settings.model,

@@ -3,6 +3,7 @@ import type { Emotion, GenerationSummary } from '../../core/domain/types';
 import { scenePosition } from '../../core/jobs/JobBuilder';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
+import { comboCount, findCombo } from '../../core/model/sceneCombos';
 import { usesMedium } from '../../core/providers/NaiModels';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
@@ -126,8 +127,13 @@ export function EmotionDetail({
         icon: 'refresh',
         group: 'main',
         title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
+        disabled: record.comboKey !== undefined && !findCombo(emotion, record.comboKey),
         onSelect: () =>
-          void generateEmotions(project.id, [emotion.id], { seed: record.seed, variants: 1 }),
+          void generateEmotions(project.id, [emotion.id], {
+            seed: record.seed,
+            variants: 1,
+            comboKey: record.comboKey,
+          }),
       },
       {
         label: '프롬프트 복원',
@@ -217,7 +223,7 @@ export function EmotionDetail({
           onChange={setVariants}
         />
         <button className="generate-button" disabled={!canGenerate} onClick={generate}>
-          ▶ {variants}장 생성
+          ▶ {variants * comboCount(emotion)}장 생성
         </button>
       </div>
     </>

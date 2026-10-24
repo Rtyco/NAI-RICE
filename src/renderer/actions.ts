@@ -83,6 +83,7 @@ async function prepareAid(
 export type GenerateOptions = {
   seed?: number;
   variants?: number;
+  comboKey?: string;
 };
 
 export function generateEmotions(
@@ -118,6 +119,7 @@ export function generateEmotions(
       pieceSets: library.pieceSets,
       seedOverride: options.seed,
       variantsOverride: options.variants,
+      comboKey: options.comboKey,
       aid: aidInput,
     };
     let jobs: GenerationJobSnapshot[];

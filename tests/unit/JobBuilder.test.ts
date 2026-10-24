@@ -544,3 +544,44 @@ describe('SDStudio | 자리와 여러 캐릭터', () => {
     );
   });
 });
+
+describe('조합 칸', () => {
+  it('켜진 후보의 모든 조합 × 생성 수만큼 작업을 만들고 조합을 기록해', () => {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 2);
+    const scene = emotionSet.emotions[0];
+    scene.slots = [
+      [
+        { id: 'a', prompt: 'cafe', characterPrompts: [], enabled: true },
+        { id: 'b', name: '공원', prompt: 'park', characterPrompts: [], enabled: true },
+        { id: 'x', prompt: 'off', characterPrompts: [], enabled: false },
+      ],
+      [{ id: 'c', prompt: '', characterPrompts: ['waving'], enabled: true }],
+    ];
+    const build = (comboKey?: string) =>
+      buildJobs({
+        project,
+        preset,
+        characters: [{ name: character.name, promptSet }],
+        emotionSet,
+        reference,
+        emotionIds: [scene.id],
+        input,
+        settings: DEFAULT_SETTINGS,
+        comboKey,
+      });
+    const jobs = build();
+    expect(jobs.map((job) => [job.comboKey, job.seed])).toEqual([
+      ['a+c', 100],
+      ['a+c', 101],
+      ['b+c', 100],
+      ['b+c', 101],
+    ]);
+    expect(new Set(jobs.map((job) => job.id)).size).toBe(4);
+    expect(jobs[2]).toMatchObject({
+      comboName: '공원 · waving',
+      characterPrompt: 'silver hair, smile, park, waving',
+      emotionPrompt: 'smile',
+    });
+    expect(build('b+c').map((job) => job.comboKey)).toEqual(['b+c', 'b+c']);
+  });
+});

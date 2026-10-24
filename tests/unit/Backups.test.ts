@@ -183,9 +183,10 @@ describe('import files', () => {
       scenes: { 기쁨: { slots: [[{ prompt: 'smile' }]] } },
     };
     const bundle = parseImportFile(JSON.stringify(sd), 'sd.json', PRESET_ID);
-    expect(bundle.characters).toHaveLength(1);
-    expect(bundle.emotionSets[0].emotions[0].prompt).toBe('smile');
+    expect(bundle.characters).toHaveLength(0);
+    expect(bundle.emotionSets[0].emotions[0].slots?.[0][0].prompt).toBe('smile');
     expect(bundle.presets).toHaveLength(1);
+    expect(bundle.projects).toMatchObject([{ mode: 'txt2img', presetId: bundle.presets[0].id }]);
     expect(() => parseImportFile('{"hello":1}', 'x.json', PRESET_ID)).toThrow(BackupImportError);
     expect(() => parseImportFile('{', 'x.json', PRESET_ID)).toThrow(/JSON 문법/);
   });

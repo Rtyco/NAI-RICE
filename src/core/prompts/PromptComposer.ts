@@ -10,6 +10,8 @@ export type SeparatedPromptParts = {
   emotion?: string;
   /** 없으면 캐릭터 프롬프트 끝. */
   emotionPosition?: EmotionPosition;
+  /** 첫 캐릭터 몫(조합 후보). 위치 설정과 관계없이 캐릭터 쪽이다. */
+  characterScene?: string;
   /** 없으면 공통 포지티브 맨 앞. */
   referenceInset?: { enabled: boolean; position: ReferenceInsetPosition };
 };
@@ -85,7 +87,7 @@ export function composeSeparatedPrompts(parts: SeparatedPromptParts): {
   // 캐릭터 프롬프트의 `|` 자리는 위치 설정과 관계없이 쓴다(SDStudio 캐릭터 프롬프트와 같다).
   const character = fillMarkers(
     parts.characterPositive ?? '',
-    position === 'character-end' ? parts.emotion : undefined,
+    joinFragments(position === 'character-end' ? parts.emotion : undefined, parts.characterScene),
   );
   const quality = cleanFragment(parts.qualityTags);
   const written = referenceInsetCount(common) + referenceInsetCount(character) > 0;

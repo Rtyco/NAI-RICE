@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { importSDStudioProject } from '../../src/core/importers/SDStudioProjectImporter';
+import { hasScenePrompt } from '../../src/core/model/defaults';
 
 const fixtureDirectory = process.env.GREAT_OATH_NOTES;
 const suite = fixtureDirectory && existsSync(fixtureDirectory) ? describe : describe.skip;
@@ -16,10 +17,7 @@ suite('Great Oath owner fixtures', () => {
       const raw = readFileSync(path.join(fixtureDirectory!, name), 'utf8');
       const imported = importSDStudioProject(raw).emotionSet;
       expect(imported.emotions, name).toHaveLength(20);
-      expect(
-        imported.emotions.every((emotion: { prompt: string }) => emotion.prompt.length > 0),
-        name,
-      ).toBe(true);
+      expect(imported.emotions.every(hasScenePrompt), name).toBe(true);
     }
   });
 });

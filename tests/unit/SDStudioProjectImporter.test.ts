@@ -1,24 +1,29 @@
 import { describe, expect, it } from 'vitest';
+import { composeRequestPrompts } from '../../src/core/jobs/JobBuilder';
+import { comboPrompts, sceneCombos } from '../../src/core/model/sceneCombos';
 import {
   importSDStudioProject,
   SDStudioImportError,
 } from '../../src/core/importers/SDStudioProjectImporter';
 
-function makeProject(count = 20) {
+function makeProject() {
   return {
-    name: '테스트 캐릭터',
+    name: '테스트',
+    extraPrompt: 'outdoors',
+    selectedWorkflow: { workflowType: 'SDImageGen', presetName: '기본' },
     presets: {
       SDImageGen: [
         {
-          frontPrompt: '',
-          backPrompt: 'masterpiece',
+          name: '기본',
+          frontPrompt: 'masterpiece, |, 1girl',
+          backPrompt: 'best quality',
           uc: 'lowres',
           characterPrompts: [
             {
-              id: 'character-1',
-              prompt: 'blue hair, amber eyes',
+              id: 'c1',
+              prompt: 'girl, blue hair',
               uc: 'bad hands',
-              position: { x: 0.5, y: 0.5 },
+              position: { x: 0.3, y: 0.5 },
               enabled: true,
             },
           ],
@@ -27,74 +32,174 @@ function makeProject(count = 20) {
           cfgRescale: 0,
           sampling: 'k_euler_ancestral',
           noiseSchedule: 'karras',
+          varietyPlus: true,
         },
       ],
     },
-    scenes: Object.fromEntries([
-      ['default', { slots: [] }],
-      ...Array.from({ length: count }, (_, index) => [
-        `Emotion${index + 1}`,
-        { slots: [[{ prompt: `prompt-${index + 1}`, enabled: true }]] },
-      ]),
-    ]),
+    presetShareds: { SDImageGen: { seed: 1234, characterPrompts: [] } },
+    scenes: {
+      default: { type: 'scene', slots: [] },
+      기쁨: {
+        type: 'scene',
+        sceneUC: 'tears',
+        slots: [
+          [
+            { id: 'a', prompt: 'smile', characterPrompts: [] },
+            { id: 'b', name: '울음', prompt: 'cry', characterPrompts: [] },
+          ],
+          [{ id: 'c', prompt: 'sitting', characterPrompts: ['red dress'] }],
+        ],
+      },
+    },
   };
 }
 
+/** 같은 JSON으로 SDStudio가 만드는 프롬프트를 손으로 계산해 비교한다. */
+function prompts(imported: ReturnType<typeof importSDStudioProject>, sceneIndex = 0) {
+  const emotion = imported.emotionSet.emotions[sceneIndex];
+  const preset = imported.presets.find((item) => item.id === imported.project!.presetId)!;
+  return sceneCombos(emotion).map((combo) =>
+    composeRequestPrompts(
+      preset,
+      imported.characters.map((character) => character.promptSets[0]),
+      comboPrompts(emotion, combo),
+      { sets: [] },
+      'txt2img',
+    ),
+  );
+}
+
 describe('importSDStudioProject', () => {
-  it('default를 빼고 감정과 프롬프트를 새 캐릭터로 변환해', () => {
+  it('씬 조합마다 SDStudio와 같은 프롬프트를 만들어(상위 → 추가 → 씬 → 하위, | 자리)', () => {
     const imported = importSDStudioProject(JSON.stringify(makeProject()));
-    const { emotionSet, preset } = imported;
-    const character = imported.character!;
-    expect(character.name).toBe('테스트 캐릭터');
-    expect(emotionSet.emotions).toHaveLength(20);
-    expect(emotionSet.emotions[0]).toMatchObject({ name: 'Emotion1', prompt: 'prompt-1' });
-    expect(preset?.commonPositive).toBe('masterpiece');
-    expect(preset?.commonNegative).toBe('lowres');
-    expect(preset?.generation.steps).toBe(28);
-    expect(character.promptSets).toHaveLength(1);
-    expect(character.promptSets[0]).toMatchObject({
-      positive: 'blue hair, amber eyes',
-      negative: 'bad hands',
-    });
-  });
-
-  it('감정 수가 20개가 아니어도 경고 없이 가져와', () => {
-    const imported = importSDStudioProject(JSON.stringify(makeProject(3)));
-    expect(imported.emotionSet.emotions).toHaveLength(3);
-    expect(imported.warnings).toHaveLength(0);
-  });
-
-  it('여러 캐릭터 프롬프트를 각각 프롬프트 세트로 만들어', () => {
-    const fixture = makeProject();
-    (fixture.presets.SDImageGen[0].characterPrompts as any[]).push({
-      prompt: 'red dress',
-      uc: '',
-      enabled: true,
-    });
-    const imported = importSDStudioProject(JSON.stringify(fixture));
-    expect(imported.character!.promptSets.map((set) => set.positive)).toEqual([
-      'blue hair, amber eyes',
-      'red dress',
+    expect(imported.emotionSet.emotions.map((emotion) => emotion.name)).toEqual(['기쁨']);
+    // SDStudio: [masterpiece | 1girl outdoors] 와 [smile sitting] → masterpiece, smile, sitting, 1girl, outdoors → 하위
+    expect(prompts(imported).map((item) => item.prompt)).toEqual([
+      'masterpiece, smile, sitting, 1girl, outdoors, best quality',
+      'masterpiece, cry, sitting, 1girl, outdoors, best quality',
+    ]);
+    const [first] = prompts(imported);
+    expect(first.characterPrompt).toBe('girl, blue hair, red dress');
+    expect(first.characterNegativePrompt).toBe('bad hands');
+    expect(first.negativePrompt).toBe('lowres, tears');
+    expect(sceneCombos(imported.emotionSet.emotions[0]).map((combo) => combo.name)).toEqual([
+      'smile · sitting',
+      '울음 · sitting',
     ]);
   });
 
-  it('빈 프롬프트만 끄고 전체 import는 유지해', () => {
-    const fixture = makeProject();
-    fixture.scenes.Emotion3.slots[0][0].prompt = '';
-    const imported = importSDStudioProject(JSON.stringify(fixture));
-    expect(imported.emotionSet.emotions[2].prompt).toBe('');
-    expect(imported.warnings.some((warning) => warning.code === 'empty-prompt')).toBe(true);
+  it('생성 설정·캐릭터·위치·seed를 가져와 일반 생성 작업으로 묶어', () => {
+    const imported = importSDStudioProject(JSON.stringify(makeProject()));
+    const [preset] = imported.presets;
+    expect(preset.name).toBe('테스트 (SDStudio)');
+    expect(preset.commonPositive).toBe('masterpiece, |, 1girl, outdoors, |, best quality');
+    expect(preset.generation).toMatchObject({
+      emotionPosition: 'common-marker',
+      seedMode: 'fixed',
+      fixedSeed: 1234,
+      variety: true,
+      steps: 28,
+    });
+    expect(imported.project).toMatchObject({
+      mode: 'txt2img',
+      presetId: preset.id,
+      emotionSetId: imported.emotionSet.id,
+      positionMode: 'ai',
+    });
+    expect(imported.project!.characters).toHaveLength(1);
+    expect(imported.warnings).toEqual([]);
   });
 
-  it('꺼진 프롬프트는 건너뛰어', () => {
-    const fixture = makeProject();
-    fixture.scenes.Emotion1.slots = [
-      [{ prompt: 'disabled', enabled: false }],
-      [{ prompt: 'chosen', enabled: true }],
+  it('캐릭터 프롬프트 여럿은 한 그림의 여러 캐릭터이고, 좌표를 쓰면 위치도 가져와', () => {
+    const file = makeProject();
+    const preset = file.presets.SDImageGen[0] as Record<string, unknown>;
+    preset.useCoords = true;
+    preset.characterPrompts = [
+      ...(preset.characterPrompts as unknown[]),
+      { id: 'c2', prompt: 'boy, |, black hair', uc: '', position: { x: 0.7, y: 0.5 } },
+      { id: 'c3', prompt: 'cat', uc: '', position: { x: 0.5, y: 0.5 }, enabled: false },
     ];
-    const imported = importSDStudioProject(JSON.stringify(fixture));
-    expect(imported.emotionSet.emotions[0].prompt).toBe('chosen');
-    expect(imported.variantSet).toBeUndefined();
+    file.scenes.기쁨.slots[1][0].characterPrompts = ['red dress', 'waving, |, jacket'];
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.characters.map((character) => character.name)).toEqual([
+      '테스트 1',
+      '테스트 2',
+    ]);
+    expect(imported.project).toMatchObject({ positionMode: 'manual' });
+    expect(imported.project!.characters.map((slot) => slot.center)).toEqual([
+      { x: 0.3, y: 0.5 },
+      { x: 0.7, y: 0.5 },
+    ]);
+    // SDStudio: [boy | black hair]와 [waving | jacket] → boy, waving, black hair, jacket
+    expect(prompts(imported)[0].extraCharacters[0].prompt).toBe('boy, waving, black hair, jacket');
+  });
+
+  it('이지 모드는 캐릭터·배경 프롬프트를 상위·하위에 합치고 인원 태그를 앞으로 옮겨', () => {
+    const imported = importSDStudioProject(
+      JSON.stringify({
+        name: '이지',
+        presets: {
+          SDImageGenEasy: [
+            { name: 'e', frontPrompt: 'masterpiece', backPrompt: 'best', uc: 'lowres' },
+          ],
+        },
+        presetShareds: {
+          SDImageGenEasy: {
+            characterPrompt: 'blue hair, 1girl',
+            backgroundPrompt: 'park',
+            uc: 'bad hands',
+          },
+        },
+        scenes: { 기쁨: { slots: [[{ prompt: 'smile' }]] } },
+      }),
+    );
+    expect(imported.presets[0]).toMatchObject({
+      commonPositive: '1girl, masterpiece, blue hair, |, park, best',
+      commonNegative: 'bad hands, lowres',
+    });
+    expect(prompts(imported)[0].prompt).toBe('1girl, masterpiece, blue hair, smile, park, best');
+  });
+
+  it('프리셋 여럿은 모두 가져오고 고른 프리셋을 작업에 써', () => {
+    const file = makeProject();
+    file.presets.SDImageGen.push({ ...file.presets.SDImageGen[0], name: '둘째', frontPrompt: 'x' });
+    file.selectedWorkflow.presetName = '둘째';
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.presets.map((preset) => preset.name)).toEqual([
+      '테스트 · 기본',
+      '테스트 · 둘째',
+    ]);
+    expect(imported.project!.presetId).toBe(imported.presets[1].id);
+    expect(imported.warnings.map((warning) => warning.code)).toEqual(['multiple-presets']);
+  });
+
+  it('켜진 후보가 없는 칸이 있으면 SDStudio처럼 조합이 없고 알려', () => {
+    const file = makeProject();
+    file.scenes.기쁨.slots.push([
+      { id: 'd', prompt: 'off', characterPrompts: [], enabled: false },
+    ] as never);
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(sceneCombos(imported.emotionSet.emotions[0])).toEqual([]);
+    expect(imported.warnings.map((warning) => warning.code)).toEqual(['empty-prompt']);
+  });
+
+  it('여러 줄 프롬프트는 SDStudio처럼 쉼표로 읽어', () => {
+    const file = makeProject();
+    file.presets.SDImageGen[0].frontPrompt = 'masterpiece\n|\n1girl';
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.presets[0].commonPositive).toBe(
+      'masterpiece, |, 1girl, outdoors, |, best quality',
+    );
+  });
+
+  it('그림이 필요한 인페인트 씬·바이브는 가져오지 않았다고 알려', () => {
+    const file = { ...makeProject(), inpaints: { a: {} } } as Record<string, unknown>;
+    (file.presetShareds as { SDImageGen: Record<string, unknown> }).SDImageGen.vibes = [{}];
+    const imported = importSDStudioProject(JSON.stringify(file));
+    expect(imported.warnings.map((warning) => warning.code)).toEqual([
+      'images-not-imported',
+      'images-not-imported',
+    ]);
   });
 
   it('JSON 문법과 필수 경로 오류를 분리해', () => {
@@ -103,8 +208,8 @@ describe('importSDStudioProject', () => {
   });
 });
 
-describe('SDStudio 씬 조각의 캐릭터 프롬프트', () => {
-  it('프리셋이 없는 씬 파일은 씬 모음만 만들고 characterPrompts를 캐릭터 칸으로 읽어', () => {
+describe('SDStudio 씬만 담은 파일', () => {
+  it('씬 모음만 만들고 조합 칸과 캐릭터 칸을 그대로 옮겨', () => {
     const file = {
       version: 1,
       name: '표정',
@@ -114,21 +219,21 @@ describe('SDStudio 씬 조각의 캐릭터 프롬프트', () => {
       library: {},
       scenes: {
         기쁨: { slots: [[{ prompt: 'smile', characterPrompts: ['open mouth', '', 'wave'] }]] },
-        슬픔: { slots: [[{ prompt: '', characterPrompts: ['tears'] }]] },
       },
     };
     const imported = importSDStudioProject(JSON.stringify(file));
-    expect(imported.character).toBeUndefined();
-    expect(imported.preset).toBeUndefined();
-    expect(
-      imported.emotionSet.emotions.map(({ name, prompt, extraPrompts }) => ({
-        name,
-        prompt,
-        extraPrompts,
-      })),
-    ).toEqual([
-      { name: '기쁨', prompt: 'smile, open mouth', extraPrompts: ['', 'wave'] },
-      { name: '슬픔', prompt: 'tears', extraPrompts: undefined },
-    ]);
+    expect(imported.project).toBeUndefined();
+    expect(imported.presets).toEqual([]);
+    const [emotion] = imported.emotionSet.emotions;
+    expect(emotion.slots![0][0]).toMatchObject({
+      prompt: 'smile',
+      characterPrompts: ['open mouth', '', 'wave'],
+      enabled: true,
+    });
+    expect(comboPrompts(emotion, sceneCombos(emotion)[0])).toMatchObject({
+      prompt: 'smile',
+      firstCharacter: 'open mouth',
+      extraPrompts: ['', 'wave'],
+    });
   });
 });

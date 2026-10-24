@@ -104,6 +104,22 @@ export type Emotion = {
   augmentMood?: string;
   /** 0(강함)~5(약함) */
   augmentDefry?: number;
+  /**
+   * SDStudio 조합 칸. 칸마다 켜진 후보 하나씩 고른 모든 조합을 생성한다. 켜진 후보가 없는 칸이 있으면
+   * 조합이 0개다(SDStudio와 같다). 고른 후보는 위의 고정 프롬프트 뒤에 붙는다.
+   */
+  slots?: SceneOption[][];
+};
+
+export type SceneOption = {
+  id: string;
+  /** 비면 프롬프트로 보여 준다. */
+  name?: string;
+  /** 씬 프롬프트 자리 몫 */
+  prompt: string;
+  /** j번째 캐릭터 몫(0이 첫 캐릭터). 위치 설정과 관계없이 그 캐릭터 프롬프트에 붙는다. */
+  characterPrompts: string[];
+  enabled: boolean;
 };
 
 export type EmotionSet = {
@@ -517,6 +533,9 @@ export type GenerationRecord = {
   emotionPrompt: string;
   /** 이 값 이전의 기록에는 없다. */
   emotionNegative?: string;
+  /** 조합 칸이 있는 씬이면 고른 후보 ID(`comboKey`)와 이름. */
+  comboKey?: string;
+  comboName?: string;
   settings: GenerationSettings;
   /** 생성 전후 Anlas 차이. 조회할 수 없었으면 없다. */
   anlasSpent?: number;
@@ -537,6 +556,8 @@ export type JobSnapshotCommon = {
   emotionName: string;
   emotionPrompt: string;
   emotionNegative?: string;
+  comboKey?: string;
+  comboName?: string;
   presetName: string;
   promptSetName: string;
   emotionSetName: string;
@@ -672,12 +693,7 @@ export type QueueView = {
 };
 
 export type ImportWarning = {
-  code:
-    | 'empty-prompt'
-    | 'complex-slots'
-    | 'missing-common-positive'
-    | 'missing-character-positive'
-    | 'multiple-character-prompts';
+  code: 'empty-prompt' | 'missing-character-positive' | 'multiple-presets' | 'images-not-imported';
   message: string;
   path?: string;
 };

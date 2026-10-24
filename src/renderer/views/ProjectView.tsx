@@ -10,6 +10,7 @@ import {
   projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
+import { comboCount } from '../../core/model/sceneCombos';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
@@ -311,7 +312,9 @@ export function ProjectView({ projectId }: { projectId: string }) {
   if (!resolved) return null;
   const { project, preset, emotionSet, reference } = resolved;
   const batch = batchEmotionIds(project.id);
-  const count = batch.length * (preset?.generation.variantsPerEmotion ?? 1);
+  const scenes = emotionSet?.emotions.filter((emotion) => batch.includes(emotion.id)) ?? [];
+  const combos = scenes.reduce((total, emotion) => total + comboCount(emotion), 0);
+  const count = combos * (preset?.generation.variantsPerEmotion ?? 1);
   // 메인 프로세스가 큐에 넣을 때와 같은 식
   const generation = preset && effectiveGenerationSettings(preset.generation);
   const aid = projectAid(aidSources, project);
@@ -338,7 +341,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
   const generateTitle = resolved.missing.length
     ? `필요: ${resolved.missing.join(', ')}`
-    : `체크한 씬 ${batch.length}개 × ${preset?.generation.variantsPerEmotion ?? 1}장`;
+    : `체크한 씬 ${batch.length}개${combos === batch.length ? '' : `(조합 ${combos}개)`} × ${preset?.generation.variantsPerEmotion ?? 1}장`;
   const generate = () => void generateEmotions(project.id, batch);
   const bannerMissing = resolved.missing.filter(
     (item) => item !== AID_MODEL_MISSING && item !== INPAINT_MODEL_MISSING,

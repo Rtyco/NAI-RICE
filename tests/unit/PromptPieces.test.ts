@@ -12,6 +12,7 @@ import {
   projectsUsing,
 } from '../../src/core/model/defaults';
 import { renamePiece, renamePieceSet } from '../../src/core/model/mutations';
+import { comboPrompts, sceneCombos } from '../../src/core/model/sceneCombos';
 import { expandPieces, pieceRefsIn } from '../../src/core/prompts/PromptPieces';
 
 const sets: PieceSet[] = [
@@ -206,11 +207,11 @@ describe('SDStudio 프롬프트 조각 파일', () => {
     });
     const bundle = parseImportFile(project, '80종.json', 'preset');
     expect(bundle.pieceSets.map((set) => set.name)).toEqual(['에셋봇 프롬프트조각']);
-    const prompt = bundle.emotionSets[0].emotions[0].prompt;
+    const prompt = bundle.emotionSets[0].emotions[0].slots![0][0].prompt;
     expect(expandPieces(prompt, bundle.pieceSets).text).toBe('red eyes, {{angry}}');
   });
 
-  it('변형이 여러 개인 장면은 조합마다 한 줄인 multi 조각이 돼', () => {
+  it('변형이 여러 개인 장면은 조합 칸으로 가져와 조합마다 생성해', () => {
     const project = JSON.stringify({
       name: '80종',
       presets: { SDImageGen: [{ frontPrompt: '', backPrompt: '', uc: '' }] },
@@ -229,21 +230,13 @@ describe('SDStudio 프롬프트 조각 파일', () => {
       library: { '에셋봇 프롬프트조각': JSON.parse(file) },
     });
     const bundle = parseImportFile(project, '80종.json', 'preset');
-    const variants = bundle.pieceSets.find((set) => set.name === '80종 변형')!;
-    expect(variants.pieces[0]).toMatchObject({
-      name: 'shy v2',
-      multi: true,
-      prompt: '<에셋봇 프롬프트조각.eyes>, blush, hands up\nclosed eyes, blush, hands up',
-    });
-    const prompt = bundle.emotionSets[0].emotions[0].prompt;
-    expect(prompt).toBe('<80종 변형.shy v2>');
-    const picked = new Set<string>();
-    for (let seed = 0; seed < 20; seed += 1)
-      picked.add(expandPieces(prompt, bundle.pieceSets, seed).text);
-    expect([...picked].sort()).toEqual([
-      'closed eyes, blush, hands up',
-      'red eyes, blush, hands up',
-    ]);
+    const [scene] = bundle.emotionSets[0].emotions;
+    expect(scene.name).toBe('shy.v2');
+    expect(
+      sceneCombos(scene).map(
+        (combo) => expandPieces(comboPrompts(scene, combo).prompt, bundle.pieceSets).text,
+      ),
+    ).toEqual(['red eyes, blush, hands up', 'closed eyes, blush, hands up']);
   });
 
   it('SDStudio 옛 조각 형식도 읽어', () => {

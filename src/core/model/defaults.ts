@@ -31,6 +31,7 @@ import {
   supportsReferenceAid,
   usesMedium,
 } from '../providers/NaiModels';
+import { comboCount } from './sceneCombos';
 
 /** 작업 ID에는 무작위 접미사가 붙어 겹치지 않는다. */
 export const FREE_PROJECT_ID = 'free';
@@ -219,7 +220,7 @@ export function createVibe(name: string): Vibe {
 
 export function createProject(
   name: string,
-  parts: { presetId: string; character: Character; emotionSetId: string; referenceId: string },
+  parts: { presetId: string; character?: Character; emotionSetId: string; referenceId: string },
 ): Project {
   const now = new Date().toISOString();
   return {
@@ -227,9 +228,9 @@ export function createProject(
     name: name.trim() || '새 작업',
     mode: 'reference',
     presetId: parts.presetId,
-    characters: [
-      { characterId: parts.character.id, promptSetId: parts.character.promptSets[0].id },
-    ],
+    characters: parts.character
+      ? [{ characterId: parts.character.id, promptSetId: parts.character.promptSets[0].id }]
+      : [],
     positionMode: 'ai',
     emotionSetId: parts.emotionSetId,
     referenceId: parts.referenceId,
@@ -395,7 +396,11 @@ export const AID_MODEL_MISSING = 'V4.5 모델';
 /** 작업 화면 경고 띠는 모델 이름으로 따로 알린다. */
 export const INPAINT_MODEL_MISSING = '인페인트 모델';
 
-export function hasScenePrompt(emotion: Pick<Emotion, 'prompt' | 'extraPrompts'>): boolean {
+/** 조합 칸이 있으면 조합이 하나라도 있어야 한다(후보가 비어도 SDStudio처럼 생성한다). */
+export function hasScenePrompt(
+  emotion: Pick<Emotion, 'prompt' | 'extraPrompts' | 'slots'>,
+): boolean {
+  if (emotion.slots?.length) return comboCount(emotion) > 0;
   return [emotion.prompt, ...(emotion.extraPrompts ?? [])].some((prompt) => prompt.trim());
 }
 

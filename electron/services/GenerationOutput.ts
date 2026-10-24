@@ -176,6 +176,7 @@ export async function saveGenerationOutput(
     ...(job.characterCenters ? { characterCenters: job.characterCenters } : {}),
     emotionPrompt: job.emotionPrompt,
     ...(job.emotionNegative ? { emotionNegative: job.emotionNegative } : {}),
+    ...(job.comboKey ? { comboKey: job.comboKey, comboName: job.comboName } : {}),
     settings: job.settings,
     ...(job.aid ? { aid: recordAid(job.aid) } : {}),
     ...(part.index === 0 ? { anlasSpent, anlasEstimate: job.anlasEstimate } : {}),
