@@ -9,6 +9,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "npm run build:electron && concurrently -k \"vite --config vite.renderer.config.ts\" \"wait-on tcp:127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "dev:fresh": "npm run build:electron && concurrently -k \"vite --config vite.renderer.config.ts\" \"wait-on tcp:127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 NAI_RICE_FRESH=1 electron .\"",
     "build": "npm run typecheck && npm run build:electron && vite build --config vite.renderer.config.ts",
     "build:electron": "vite build --config vite.electron.config.ts",
     "typecheck": "tsc --noEmit",

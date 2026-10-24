@@ -7,6 +7,7 @@ import { AccountService } from './services/AccountService';
 import { AppCache } from './services/AppCache';
 import { TokenizerFiles } from './services/TokenizerFiles';
 import { Exporter } from './services/Exporter';
+import { createFreshRoot, removeFreshRoot } from './services/freshData';
 import { FilePicker } from './services/FilePicker';
 import { removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
 import { GenerationQueue } from './services/GenerationQueue';
@@ -25,10 +26,16 @@ import {
 } from './window';
 
 const APP_NAME = 'NAI RICE';
+const freshRoot = !app.isPackaged && process.env.NAI_RICE_FRESH ? createFreshRoot() : undefined;
 
 // 토큰·큐·화면 설정이 든 폴더. Chromium이 쓰기 시작하기 전에 옮겨야 한다.
 app.setName(APP_NAME);
-app.setPath('userData', renamedFolder(app.getPath('appData'), APP_NAME, 'reference-inpaint-desk'));
+app.setPath(
+  'userData',
+  freshRoot
+    ? path.join(freshRoot, 'userData')
+    : renamedFolder(app.getPath('appData'), APP_NAME, 'reference-inpaint-desk'),
+);
 const moduleDirectory = __dirname;
 registerMediaScheme();
 
@@ -36,7 +43,9 @@ async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
   const provider = new NovelAIProvider();
   const library = new Library(
-    renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk'),
+    freshRoot
+      ? path.join(freshRoot, 'library')
+      : renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk'),
     app.getVersion(),
   );
   const account = new AccountService(new TokenVault(userData), provider, (status) =>
@@ -135,6 +144,8 @@ app
     );
     app.quit();
   });
+
+if (freshRoot) app.on('will-quit', () => removeFreshRoot(freshRoot));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
