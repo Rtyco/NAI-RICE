@@ -77,7 +77,6 @@ function RemoveOption({ remove }: Pick<OptionProps, 'remove'>) {
   );
 }
 
-/** 한 번에 하나만 펼쳐, 접힌 후보는 한 줄 요약이다. */
 export function SceneOptionItem(props: OptionProps & { open: boolean; toggle: () => void }) {
   const { option, names, characterCount, open } = props;
   const filled = option.characterPrompts.filter((prompt) => prompt.trim()).length;
@@ -137,7 +136,6 @@ export function SceneOptionItem(props: OptionProps & { open: boolean; toggle: ()
   );
 }
 
-/** 넓은 화면: 후보는 행, 씬 자리와 캐릭터 몫은 열. */
 export function SceneOptionTable(props: {
   slot: SceneOption[];
   names: string[];

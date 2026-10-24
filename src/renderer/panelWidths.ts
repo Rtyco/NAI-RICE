@@ -166,7 +166,6 @@ function fitPanels(first?: PanelId): void {
   fitted = next;
 }
 
-/** 창 크기, 패널 단계, 화면이 바뀔 때마다 칸 폭을 다시 맞춘다. */
 export function watchPanelFit(): void {
   fitPanels();
   window.addEventListener('resize', () => fitPanels());

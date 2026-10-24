@@ -143,7 +143,7 @@ export function sameScenePrompts(emotion: Emotion, prompts: ScenePrompts): boole
 
 const NO_TAGS: ReadonlySet<string> = new Set();
 
-/** 후보의 캐릭터 몫이 붙는 곳. 0은 씬 프롬프트와 같은 곳, -1은 씬 프롬프트가 공통 쪽일 때의 첫 캐릭터. */
+/** 후보의 캐릭터 몫이 붙는 곳. 0은 씬 프롬프트와 같은 곳, -1은 씬 프롬프트가 상위·하위 사이일 때의 첫 캐릭터. */
 export const characterTagGroup = (index: number, firstOnCommon: boolean) =>
   index === 0 && firstOnCommon ? -1 : index;
 

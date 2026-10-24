@@ -23,7 +23,6 @@ const slotsSummary = (slots: SceneOption[][]) =>
     )
     .join('  ×  ');
 
-/** ↑↓로 접힌 후보 사이를 옮긴다. */
 function moveBetweenOptions(event: KeyboardEvent<HTMLElement>) {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
   const target = event.target as HTMLElement;
@@ -42,7 +41,7 @@ export function SceneSlotsEditor(props: {
   names: string[];
   /** 접힌 한 줄로 시작하고, 후보를 표로 보인다. */
   foldable?: boolean;
-  /** 씬 프롬프트가 첫 캐릭터가 아니라 공통 쪽에 붙을 때 */
+  /** 씬 프롬프트가 첫 캐릭터가 아니라 상위·하위 사이로 갈 때 */
   firstOnCommon?: boolean;
   onChange: (patch: SceneSlotsChange) => void;
 }) {
