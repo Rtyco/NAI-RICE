@@ -95,6 +95,38 @@ function PromptCard(props: {
   );
 }
 
+function ExtraPromptField(props: { projectId: string; value: string; markers: boolean }) {
+  const [folded, setFolded] = useState(true);
+  const revealing = useFind((state) => Boolean(state.reveal) && state.reveal === props.value);
+  const open = !folded || revealing;
+  return (
+    <>
+      <button className="prompt-extra-toggle" aria-expanded={open} onClick={() => setFolded(open)}>
+        <Icon name="chevron" size={12} className="section-chevron" />
+        추가 프롬프트
+        <small>이 작업만{!open && props.value.trim() ? ' · 작성됨' : ''}</small>
+      </button>
+      {open && (
+        <div className="prompt-field">
+          <PromptTextarea
+            rows={2}
+            value={props.value}
+            aria-label="추가 프롬프트"
+            placeholder="상위 프롬프트 뒤에 붙일 태그"
+            markers={props.markers}
+            onChange={(extraPrompt) =>
+              updateProject(props.projectId, (project) => ({
+                ...project,
+                extraPrompt: extraPrompt || undefined,
+              }))
+            }
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
 /** 고친 값은 라이브러리 항목에 바로 저장되어 같은 항목을 쓰는 곳이 모두 바뀐다. */
 export function PromptPanel(props: {
   preset?: Preset;
@@ -127,9 +159,6 @@ export function PromptPanel(props: {
   const unusedInMedium =
     preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
 
-  const [extraFolded, setExtraFolded] = useState(true);
-  const revealing = useFind((state) => Boolean(state.reveal) && state.reveal === props.extraPrompt);
-  const extraOpen = !extraFolded || revealing;
   const patchPreset = (
     value: Partial<Pick<Preset, 'commonPositive' | 'backPositive' | 'commonNegative'>>,
   ) =>
@@ -187,36 +216,11 @@ export function PromptPanel(props: {
                 onChange={(commonPositive) => patchPreset({ commonPositive })}
               />
               {props.projectId && props.extraPrompt !== undefined && (
-                <>
-                  <button
-                    className="prompt-extra-toggle"
-                    aria-expanded={extraOpen}
-                    onClick={() => setExtraFolded(extraOpen)}
-                  >
-                    <Icon name="chevron" size={12} className="section-chevron" />
-                    추가 프롬프트
-                    <small>
-                      이 작업만{!extraOpen && props.extraPrompt.trim() ? ' · 작성됨' : ''}
-                    </small>
-                  </button>
-                  {extraOpen && (
-                    <div className="prompt-field">
-                      <PromptTextarea
-                        rows={2}
-                        value={props.extraPrompt}
-                        aria-label="추가 프롬프트"
-                        placeholder="상위 프롬프트 뒤에 붙일 태그"
-                        markers={Boolean(props.middle)}
-                        onChange={(extraPrompt) =>
-                          updateProject(props.projectId!, (project) => ({
-                            ...project,
-                            extraPrompt: extraPrompt || undefined,
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
-                </>
+                <ExtraPromptField
+                  projectId={props.projectId}
+                  value={props.extraPrompt}
+                  markers={Boolean(props.middle)}
+                />
               )}
               <p className="prompt-slot">
                 {props.middle
