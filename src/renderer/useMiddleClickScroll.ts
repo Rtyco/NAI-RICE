@@ -62,28 +62,31 @@ function autoscroll(target: HTMLElement, from: MouseEvent): () => void {
     event.preventDefault();
     event.stopPropagation();
   };
-  const onMove = (event: MouseEvent) => {
+  const onMove = (event: PointerEvent) => {
     pointerY = event.clientY;
     if (Math.abs(pointerY - originY) > DEAD_ZONE) dragged = true;
   };
-  const onUp = (event: MouseEvent) => {
+  const onUp = (event: PointerEvent) => {
     if (event.button === 1 && dragged) stop();
   };
-  // 멈추려고 누른 클릭이 아래 버튼을 누르지 않게 한다.
-  const onDown = (event: MouseEvent) => {
+  // 멈추려고 누른 클릭이 아래 버튼을 누르거나 메뉴를 열지 않게 한다.
+  // pointerdown을 preventDefault하는 곳(끌어 고르기)에서는 mousedown이 오지 않는다.
+  const onDown = (event: PointerEvent) => {
     swallow(event);
     stop();
-    window.addEventListener('click', swallow, { capture: true, once: true });
-    window.addEventListener('auxclick', swallow, { capture: true, once: true });
-    window.addEventListener(
-      'mouseup',
-      () =>
-        setTimeout(() => {
-          window.removeEventListener('click', swallow, { capture: true });
-          window.removeEventListener('auxclick', swallow, { capture: true });
-        }),
-      { capture: true, once: true },
-    );
+    // Windows는 contextmenu를 버튼을 놓은 뒤 따로 보내 다음 누름까지 기다린다.
+    const after = event.button === 2 ? ['contextmenu'] : ['click', 'auxclick'];
+    const release = () => {
+      for (const type of after) window.removeEventListener(type, swallow, { capture: true });
+    };
+    for (const type of after) window.addEventListener(type, swallow, { capture: true, once: true });
+    if (event.button === 2)
+      window.addEventListener('pointerdown', release, { capture: true, once: true });
+    else
+      window.addEventListener('pointerup', () => setTimeout(release), {
+        capture: true,
+        once: true,
+      });
   };
   const onKey = (event: KeyboardEvent) => {
     if (event.key !== 'Escape') return;
@@ -95,17 +98,17 @@ function autoscroll(target: HTMLElement, from: MouseEvent): () => void {
     cancelAnimationFrame(frame);
     marker.remove();
     document.documentElement.classList.remove('autoscrolling');
-    window.removeEventListener('mousemove', onMove, true);
-    window.removeEventListener('mouseup', onUp, true);
-    window.removeEventListener('mousedown', onDown, true);
+    window.removeEventListener('pointermove', onMove, true);
+    window.removeEventListener('pointerup', onUp, true);
+    window.removeEventListener('pointerdown', onDown, true);
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('wheel', stop, true);
     window.removeEventListener('blur', stop);
   }
 
-  window.addEventListener('mousemove', onMove, true);
-  window.addEventListener('mouseup', onUp, true);
-  window.addEventListener('mousedown', onDown, true);
+  window.addEventListener('pointermove', onMove, true);
+  window.addEventListener('pointerup', onUp, true);
+  window.addEventListener('pointerdown', onDown, true);
   window.addEventListener('keydown', onKey, true);
   window.addEventListener('wheel', stop, true);
   window.addEventListener('blur', stop);
