@@ -169,6 +169,11 @@ textarea.syntax-input::selection {
 .syn-comment {
   color: var(--faint);
 }
+.syn-marker {
+  color: #fff;
+  background: var(--accent);
+  border-radius: 3px;
+}
 .syn-choice {
   color: var(--green-text);
   background: var(--accent-a12);

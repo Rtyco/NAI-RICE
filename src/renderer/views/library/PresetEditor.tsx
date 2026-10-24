@@ -144,10 +144,12 @@ export function PresetEditor({ preset }: { preset: Preset }) {
           <SelectField
             label="붙일 위치"
             value={g.emotionPosition}
-            options={(['character-end', 'common-end'] as EmotionPosition[]).map((value) => ({
-              value,
-              label: PROMPT_POSITIONS[value],
-            }))}
+            options={(['character-end', 'common-end', 'common-marker'] as EmotionPosition[]).map(
+              (value) => ({
+                value,
+                label: PROMPT_POSITIONS[value],
+              }),
+            )}
             onChange={(emotionPosition) => setting({ emotionPosition })}
           />
         </div>

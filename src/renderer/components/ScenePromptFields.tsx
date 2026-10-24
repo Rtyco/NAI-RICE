@@ -23,7 +23,11 @@ export function ScenePromptFields(props: {
           <PromptField
             key={index}
             label={label}
-            title={index === 0 ? props.firstPlacement : '이 캐릭터 프롬프트 뒤에 붙습니다'}
+            title={
+              index === 0
+                ? props.firstPlacement
+                : '이 캐릭터 프롬프트 뒤(| 자리가 있으면 그 자리)에 붙습니다'
+            }
             dialogTitle={`${emotion.name} ${label}`}
             rows={slots > 1 ? 3 : 5}
             value={index === 0 ? emotion.prompt : (emotion.extraPrompts?.[index - 1] ?? '')}

@@ -17,6 +17,8 @@ export type SyntaxKind =
   | 'pipe'
   | 'interaction'
   | 'comment'
+  /** 칸에 `|`만 있으면 씬 프롬프트가 들어갈 자리(SDStudio). */
+  | 'marker'
   /** `{a|b}`의 중괄호와 `|`. 강조가 아니다. */
   | 'choice';
 
@@ -46,6 +48,9 @@ export type SyntaxReport = {
 const WEIGHT = /^-?(?:\d+(?:\.\d*)?|\.\d+)::/;
 const PIECE = /^<([^<>.\n]+)\.([^<>\n]+)>/;
 const INTERACTION = /^(?:source|target|mutual)#/;
+/** PromptComposer의 `|` 자리와 같은 조건 */
+const MARKER_BEFORE = /(?:^|[,\n])[ \t]*$/;
+const MARKER_AFTER = /^[ \t]*(?:[,\n]|$)/;
 
 const OPENERS: Record<string, 'brace' | 'bracket'> = { '{': 'brace', '[': 'bracket' };
 const CLOSERS: Record<string, 'brace' | 'bracket'> = { '}': 'brace', ']': 'bracket' };
@@ -155,6 +160,16 @@ export function analyzePrompt(
     if (char === '|' && open !== undefined && ['brace', 'choice'].includes(tokens[open].kind)) {
       tokens[open].kind = 'choice';
       push({ kind: 'choice', start: i, end: i + 1 });
+      i += 1;
+      continue;
+    }
+
+    if (
+      char === '|' &&
+      MARKER_BEFORE.test(text.slice(0, i)) &&
+      MARKER_AFTER.test(text.slice(i + 1))
+    ) {
+      push({ kind: 'marker', start: i, end: i + 1 });
       i += 1;
       continue;
     }

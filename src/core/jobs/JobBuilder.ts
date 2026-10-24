@@ -30,6 +30,7 @@ import {
 } from '../model/defaults';
 import {
   composeSeparatedPrompts,
+  fillMarkers,
   referenceInsetCount,
   removeReferenceInset,
 } from '../prompts/PromptComposer';
@@ -134,7 +135,7 @@ export function composeRequestPrompts(
   const emotionPosition = scenePosition(settings.emotionPosition, rawCharacters.length);
   // 씬 네거티브는 씬 프롬프트와 같은 쪽(공통 또는 첫 캐릭터)에 붙는다.
   const sceneNegative = typeof scene === 'object' && !medium ? expand(scene.negative ?? '') : '';
-  const sceneOnCommon = emotionPosition === 'common-end';
+  const sceneOnCommon = emotionPosition !== 'character-end';
   const commonNegative = medium
     ? ''
     : joinPrompts([expand(rawPreset.commonNegative), sceneOnCommon ? sceneNegative : '']);
@@ -154,7 +155,7 @@ export function composeRequestPrompts(
   const extraScenes = typeof scene === 'object' ? (scene.extraPrompts ?? []) : [];
   const emotionPrompt = firstScene === undefined ? undefined : expand(firstScene);
   const extraCharacters = characters.slice(1).map((character, index) => ({
-    prompt: joinPrompts([character.positive, expand(extraScenes[index] ?? '')]),
+    prompt: fillMarkers(character.positive, expand(extraScenes[index] ?? '')),
     negative: character.negative,
   }));
   const insetWritten = extraCharacters.some((character) => referenceInsetCount(character.prompt));
@@ -376,7 +377,7 @@ export type FreeJobBuildInput = {
 
 /** 캐릭터가 없으면 V4 캐릭터 프롬프트에 씬만 들어가므로 공통 쪽에 붙인다. */
 export function scenePosition(position: EmotionPosition, characterCount: number): EmotionPosition {
-  return characterCount ? position : 'common-end';
+  return characterCount || position !== 'character-end' ? position : 'common-end';
 }
 
 /** 캐릭터 프롬프트가 없을 때 캐릭터 끝에 붙이면 V4 캐릭터 프롬프트에 입력만 들어간다. */
@@ -384,9 +385,8 @@ export function freePromptPosition(
   position: EmotionPosition | undefined,
   firstCharacterPositive: string | undefined,
 ): EmotionPosition {
-  return position === 'character-end' && firstCharacterPositive?.trim()
-    ? 'character-end'
-    : 'common-end';
+  if (position === 'character-end') return firstCharacterPositive?.trim() ? position : 'common-end';
+  return position ?? 'common-end';
 }
 
 /** 자유 생성의 입력 프롬프트 자리를 생성 설정의 씬 자리로 바꾼다. */

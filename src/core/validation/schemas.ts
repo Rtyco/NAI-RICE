@@ -37,7 +37,9 @@ export const generationSettingsSchema = z.object({
   referenceInsetPosition: z
     .enum(['common-start', 'common-end', 'character-start', 'character-end'])
     .default('common-start'),
-  emotionPosition: z.enum(['character-end', 'common-end']).default('character-end'),
+  emotionPosition: z
+    .enum(['character-end', 'common-end', 'common-marker'])
+    .default('character-end'),
   width: z.number().int().min(256).max(2048).multipleOf(64).default(832),
   height: z.number().int().min(256).max(2048).multipleOf(64).default(1216),
   img2imgStrength: z.number().min(0.01).max(0.99).default(0.4),
@@ -451,7 +453,9 @@ export const librarySchema = z.object({
           .catch(undefined),
         negative: z.string().default(''),
         // 예전에는 늘 공통 포지티브 끝이었다.
-        promptPosition: z.enum(['character-end', 'common-end']).catch('common-end'),
+        promptPosition: z
+          .enum(['character-end', 'common-end', 'common-marker'])
+          .catch('common-end'),
         aidMode: z.enum(['character', 'vibe']).optional().catch(undefined),
         characterReferenceIds: z.array(z.string().min(1)).catch([]),
         vibeIds: z.array(z.string().min(1)).catch([]),

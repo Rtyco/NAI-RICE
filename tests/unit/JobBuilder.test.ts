@@ -523,3 +523,24 @@ describe('여러 캐릭터', () => {
     expect(prompts.extraCharacters).toEqual([{ prompt: 'black hair', negative: '' }]);
   });
 });
+
+describe('SDStudio | 자리와 여러 캐릭터', () => {
+  it('공통 | 자리에 씬을 넣고 씬 네거티브는 공통 쪽, 둘째 캐릭터는 자기 | 자리에 받아', () => {
+    const preset = createPreset('p', {
+      commonPositive: '2girls, |, masterpiece',
+      commonNegative: 'lowres',
+    });
+    preset.generation = { ...preset.generation, emotionPosition: 'common-marker' };
+    const first = createPromptSet('a', { positive: 'girl, red hair', negative: '' });
+    const second = createPromptSet('b', { positive: 'girl, |, black hair', negative: '' });
+    const scene = { prompt: 'cafe', extraPrompts: ['waving'], negative: 'rain' };
+    const prompts = composeRequestPrompts(preset, [first, second], scene, { sets: [] }, 'txt2img');
+    expect(prompts.prompt).toBe('2girls, cafe, masterpiece');
+    expect(prompts.negativePrompt).toBe('lowres, rain');
+    expect(prompts.characterPrompt).toBe('girl, red hair');
+    expect(prompts.extraCharacters[0].prompt).toBe('girl, waving, black hair');
+    expect(composeRequestPrompts(preset, [], scene, { sets: [] }, 'txt2img').prompt).toBe(
+      '2girls, cafe, masterpiece',
+    );
+  });
+});

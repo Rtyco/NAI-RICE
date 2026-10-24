@@ -19,7 +19,8 @@ export type UcPresetId = 'none' | 'heavy' | 'light' | 'human' | 'furry';
 /** V5 전용. 다른 모델은 standard뿐이다. */
 export type QualityLevel = 'standard' | 'light';
 
-export type EmotionPosition = 'character-end' | 'common-end';
+/** `common-marker`: 공통 포지티브의 `|` 자리(SDStudio), 없으면 맨 끝. */
+export type EmotionPosition = 'character-end' | 'common-end' | 'common-marker';
 
 /** V5 Full 전용. NovelAI는 medium을 모델 ID `-medium`으로 보낸다. */
 export type Effort = 'high' | 'medium';

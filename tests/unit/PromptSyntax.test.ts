@@ -71,3 +71,11 @@ describe('weightAt', () => {
     expect(weightAt(report, text.indexOf('e'))).toBe(1);
   });
 });
+
+describe('| 자리', () => {
+  it('칸에 |만 있으면 자리로 표시하고 경고하지 않아', () => {
+    const report = analyzePrompt('1girl, |, smile\n|\n, a|b');
+    expect(report.tokens.map((token) => token.kind)).toEqual(['marker', 'marker', 'pipe']);
+    expect(report.issues).toHaveLength(1);
+  });
+});

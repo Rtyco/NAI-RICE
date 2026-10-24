@@ -91,3 +91,60 @@ describe('composeSeparatedPrompts', () => {
     });
   });
 });
+
+describe('SDStudio | 자리', () => {
+  const common = (commonPositive: string, emotion: string) =>
+    composeSeparatedPrompts({
+      commonPositive,
+      qualityTags: 'very aesthetic',
+      emotion,
+      emotionPosition: 'common-marker',
+      referenceInset: { enabled: false, position: 'common-end' },
+    }).commonPositive;
+
+  it('씬 프롬프트를 | 자리에 넣고, 씬의 |로 나눈 조각을 자리마다 차례로 넣어', () => {
+    expect(common('1girl, |, masterpiece', 'smile')).toBe(
+      '1girl, smile, masterpiece, very aesthetic',
+    );
+    expect(common('a, |, b, |, c', 'x, |, y')).toBe('a, x, b, y, c, very aesthetic');
+    expect(common('a, |, b, |, c', 'x')).toBe('a, x, b, c, very aesthetic');
+    expect(common('a\n|\nb', '')).toBe('a, b, very aesthetic');
+  });
+
+  it('남는 조각은 마지막 자리에, 자리가 없으면 품질 태그 앞 맨 끝에 넣어', () => {
+    expect(common('a, |, b', 'x, |, y, |, z')).toBe('a, x, y, z, b, very aesthetic');
+    expect(common('a, b', 'x, |, y')).toBe('a, b, x, y, very aesthetic');
+  });
+
+  it('SDStudio 상위·하위를 「상위, |, 하위」로 합치면 같은 순서가 나와', () => {
+    // SDStudio: 상위 a, |, b와 중간 x, |, y, |, z → a, x, b, y, z → 하위 c
+    expect(common('a, |, b, |, c', 'x, |, y, |, z')).toBe('a, x, b, y, z, c, very aesthetic');
+  });
+
+  it('{a|b}와 붙여 쓴 a|b는 자리가 아니야', () => {
+    expect(common('{a|b}, c|d', 'x')).toBe('{a|b}, c|d, x, very aesthetic');
+  });
+
+  it('다른 위치에서는 공통의 | 자리를 지우고, 캐릭터 프롬프트의 | 자리는 늘 써', () => {
+    const prompts = composeSeparatedPrompts({
+      commonPositive: 'a, |, b',
+      characterPositive: 'girl, |, silver hair',
+      emotion: 'smile',
+      emotionPosition: 'character-end',
+      referenceInset: { enabled: false, position: 'common-end' },
+    });
+    expect(prompts).toEqual({
+      commonPositive: 'a, b',
+      characterPositive: 'girl, smile, silver hair',
+    });
+    expect(
+      composeSeparatedPrompts({
+        commonPositive: 'a, |, b',
+        characterPositive: 'girl, |, silver hair',
+        emotion: 'smile',
+        emotionPosition: 'common-end',
+        referenceInset: { enabled: false, position: 'common-end' },
+      }),
+    ).toEqual({ commonPositive: 'a, b, smile', characterPositive: 'girl, silver hair' });
+  });
+});

@@ -1,9 +1,15 @@
-import type { FreeGeneration, Preset } from '../../../core/domain/types';
+import type { EmotionPosition, FreeGeneration, Preset } from '../../../core/domain/types';
 import { freePromptPosition } from '../../../core/jobs/JobBuilder';
 import { usesMedium } from '../../../core/providers/NaiModels';
 import { PromptField } from '../../components/ui';
 import { PROMPT_POSITIONS } from '../../promptPositions';
 import { updateFreeGeneration } from '../../store';
+
+const SHORT_LABELS: Record<EmotionPosition, string> = {
+  'common-end': '공통 끝',
+  'common-marker': '공통 | 자리',
+  'character-end': '캐릭터 끝',
+};
 
 export function FreePromptFields(props: {
   free: FreeGeneration;
@@ -47,7 +53,7 @@ export function FreePromptFields(props: {
       <div className="prompt-position">
         <span>붙일 위치</span>
         <span className="segmented" role="group" aria-label="프롬프트를 붙일 위치">
-          {(['common-end', 'character-end'] as const).map((value) => {
+          {(['common-end', 'common-marker', 'character-end'] as const).map((value) => {
             const blocked = value === 'character-end' && !hasCharacterPrompt;
             return (
               <button
@@ -60,11 +66,11 @@ export function FreePromptFields(props: {
                     ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
                     : value === 'character-end'
                       ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
-                      : undefined
+                      : PROMPT_POSITIONS[value]
                 }
                 onClick={() => updateFreeGeneration({ promptPosition: value })}
               >
-                {PROMPT_POSITIONS[value]}
+                {SHORT_LABELS[value]}
               </button>
             );
           })}

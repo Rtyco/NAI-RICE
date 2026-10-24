@@ -173,7 +173,11 @@ export function EmotionDetail({
         emotion={emotion}
         names={resolved.characters.map((item) => item.character.name)}
         firstPlacement={
-          sceneSide ? `${sceneSide} 프롬프트 뒤에 붙습니다` : '공통 포지티브 뒤에 붙습니다'
+          sceneSide
+            ? `${sceneSide} 프롬프트 뒤에 붙습니다`
+            : resolved.preset?.generation.emotionPosition === 'common-marker'
+              ? '공통 포지티브의 | 자리에 들어갑니다'
+              : '공통 포지티브 뒤에 붙습니다'
         }
         negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
         negativeHint={
