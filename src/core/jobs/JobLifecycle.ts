@@ -9,7 +9,7 @@ const TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   generating: ['completed', 'failed', 'retry_wait', 'cancelled', 'interrupted'],
   retry_wait: ['generating', 'queued', 'cancelled', 'interrupted'],
   // 취소 직후 이미 받은 응답이 저장되면 완료로 남긴다(Anlas는 이미 쓰였다).
-  cancelled: ['queued', 'completed'],
+  cancelled: ['completed'],
   failed: ['queued'],
   interrupted: ['queued'],
   completed: [],
@@ -23,8 +23,9 @@ export function isFinished(status: JobStatus): boolean {
   return !isActive(status);
 }
 
+/** 취소한 작업은 되살리지 않는다(지난 일괄 생성이 통째로 다시 돈다). */
 export function canRetry(status: JobStatus): boolean {
-  return TRANSITIONS[status].includes('queued') && status !== 'retry_wait';
+  return status === 'failed' || status === 'interrupted';
 }
 
 function move(

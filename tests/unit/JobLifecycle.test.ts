@@ -39,12 +39,23 @@ describe('JobLifecycle', () => {
     expect(job).toMatchObject({ status: 'failed', error: '서버 오류' });
   });
 
-  it('취소는 진행 중인 작업에만 적용하고 다시 시도로 되살려', () => {
+  it('취소는 진행 중인 작업에만 적용하고 실패 재시도로 되살리지 않아', () => {
     const job = queued();
     expect(cancel(job)).toBe(true);
     expect(cancel(job)).toBe(false);
+    expect(resetForRetry(job)).toBe(false);
+    expect(job.status).toBe('cancelled');
+  });
+
+  it('실패와 중단만 다시 시도해', () => {
+    const job = queued();
+    startAttempt(job);
+    fail(job, { message: '오류', kind: 'x', retryable: false }, 1_000);
     expect(resetForRetry(job)).toBe(true);
     expect(job).toMatchObject({ status: 'queued', attempts: 0, error: undefined });
+    startAttempt(job);
+    const stopped = interruptIfRunning(job);
+    expect(resetForRetry(stopped)).toBe(true);
   });
 
   it('일시 중지와 앱 종료를 처리해', () => {
