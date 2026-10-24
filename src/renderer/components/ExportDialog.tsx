@@ -19,7 +19,7 @@ const SCOPES: Array<{ id: ExportScope; label: string }> = [
   { id: 'all', label: '모든 생성 이미지' },
 ];
 
-/** RisuAI 감정 이미지 업로드용은 씬마다 한 장. 조합마다 한 장이나 모든 결과도 고른다. */
+/** 씬마다 한 장은 RisuAI 감정 이미지 업로드용이다. */
 export function ExportDialog({
   resolved,
   close,

@@ -268,7 +268,6 @@ export function emotionMenu(
   ];
 }
 
-/** 갤러리에서 고른 씬 여럿에 한꺼번에 */
 export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emotion[]): MenuItem[] {
   const state = useStore.getState();
   const project = state.library?.projects.find((item) => item.id === projectId);

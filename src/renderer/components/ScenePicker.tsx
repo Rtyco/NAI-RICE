@@ -4,7 +4,6 @@ import { matchesScene } from '../sceneSearch';
 import { openEmotion } from '../store';
 import { SceneSearch } from './SceneSearch';
 
-/** 씬 상세의 「n / m」. 누르면 씬 목록을 띄워 갤러리로 나가지 않고 갈아탄다. */
 export function ScenePicker({
   emotions,
   current,

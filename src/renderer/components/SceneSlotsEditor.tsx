@@ -122,7 +122,7 @@ export function SceneSlotsEditor(props: {
   const [open, setOpen] = useState(!props.foldable);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
-  // 캐릭터 몫은 내용이 있는 칸만 보인다. 펼친 후보는 모두 보이고, 고치는 중에 비워도 칸이 사라지지 않는다.
+  // 펼친 후보는 고치는 중에 몫을 비워도 그 칸이 남는다.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const expand = (id: string, open = true) =>
     setExpanded((current) => {

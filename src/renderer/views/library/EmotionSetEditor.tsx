@@ -21,7 +21,6 @@ import { revealRow } from '../../components/revealRow';
 import { SceneSearch } from '../../components/SceneSearch';
 import { matchesScene } from '../../sceneSearch';
 
-/** 접힌 줄에 보이는 요약. 펼치지 않아도 어떤 씬인지 알 수 있을 만큼만. */
 function EmotionSummary({ emotion, onOpen }: { emotion: Emotion; onOpen: () => void }) {
   // SD Studio에서 가져온 씬은 프롬프트가 조합 칸에만 있기도 해 첫 조합으로 보여 준다.
   const first = comboPrompts(emotion, sceneCombos(emotion, 1)[0]).prompt;
