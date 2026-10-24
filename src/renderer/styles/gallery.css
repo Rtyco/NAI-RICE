@@ -33,6 +33,16 @@
 .emotion-card.dragging {
   opacity: 0.35;
 }
+.emotion-card.returned {
+  animation: returned-flash 1.6s ease-out;
+}
+@keyframes returned-flash {
+  from,
+  40% {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-a33);
+  }
+}
 /* 인페인트 미리보기는 참고 영역까지 든 캔버스라 잘리지 않게 전체를 보인다. */
 .stream-preview {
   position: absolute;

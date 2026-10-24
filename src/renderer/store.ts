@@ -42,6 +42,8 @@ export type StoreState = {
   library: Library | null;
   view: View;
   detailEmotionId?: string;
+  /** 갤러리로 돌아왔을 때 보여 줄 씬. 작업·화면을 바꾸면 비운다. */
+  lastEmotionId?: string;
   settingsOpen: boolean;
   settingsTab?: string;
   /** 사이드바 전체 접기(Ctrl+B)와 따로 기억한다. */
@@ -377,13 +379,17 @@ export function currentProject(): Project | undefined {
 }
 
 export function openProject(projectId: string): void {
-  set({ view: { kind: 'project', projectId }, detailEmotionId: undefined });
+  set({
+    view: { kind: 'project', projectId },
+    detailEmotionId: undefined,
+    lastEmotionId: undefined,
+  });
   updateLibrary((library) => ({ ...library, lastProjectId: projectId }));
   if (!get().generations[projectId]) void loadGenerations(projectId);
 }
 
 export function openFree(): void {
-  set({ view: { kind: 'free' }, detailEmotionId: undefined });
+  set({ view: { kind: 'free' }, detailEmotionId: undefined, lastEmotionId: undefined });
   if (!get().generations[FREE_PROJECT_ID]) void loadGenerations(FREE_PROJECT_ID);
 }
 
@@ -409,11 +415,19 @@ export function resolveFreeGeneration(library: Library) {
 }
 
 export function openLibrary(section: LibrarySection, itemId?: string): void {
-  set({ view: { kind: 'library', section, itemId }, detailEmotionId: undefined });
+  set({
+    view: { kind: 'library', section, itemId },
+    detailEmotionId: undefined,
+    lastEmotionId: undefined,
+  });
 }
 
 export function openEmotion(emotionId?: string): void {
-  set({ detailEmotionId: emotionId });
+  set(
+    emotionId
+      ? { detailEmotionId: emotionId, lastEmotionId: emotionId }
+      : { detailEmotionId: undefined },
+  );
 }
 
 export function setSettingsOpen(open: boolean, tab?: string): void {

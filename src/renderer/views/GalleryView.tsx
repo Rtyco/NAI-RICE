@@ -1,6 +1,7 @@
 import {
   memo,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -55,6 +56,8 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
 const DRAG_TYPE = 'application/x-emotion';
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
+/** 작업 ID → scrollTop. 씬 상세를 열면 갤러리가 내려가 위치가 버려진다. */
+const scrollTops = new Map<string, number>();
 
 /** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
@@ -75,6 +78,8 @@ const EmotionCard = memo(function EmotionCard(props: {
   dropOn: (payload: DragPayload, targetId: string) => void;
   dragging: boolean;
   picked: boolean;
+  /** 방금 씬 상세에서 돌아온 씬 */
+  returned: boolean;
   /** Ctrl·Shift 클릭이면 true */
   onPick: (event: MouseEvent, id: string) => boolean;
 }) {
@@ -91,7 +96,7 @@ const EmotionCard = memo(function EmotionCard(props: {
 
   return (
     <article
-      className={`emotion-card ${included ? '' : 'disabled'} ${over ? 'drop-target' : ''} ${props.dragging ? 'dragging' : ''} ${props.picked ? 'picked' : ''}`}
+      className={`emotion-card ${included ? '' : 'disabled'} ${over ? 'drop-target' : ''} ${props.dragging ? 'dragging' : ''} ${props.picked ? 'picked' : ''} ${props.returned ? 'returned' : ''}`}
       data-select-id={emotion.id}
       draggable
       onContextMenu={menu}
@@ -187,6 +192,7 @@ export function GalleryView({
   const queue = useStore((state) => state.queue);
   const columns = useStore((state) => state.galleryColumns);
   const aspect = useStore((state) => state.galleryAspect);
+  const lastEmotionId = useStore((state) => state.lastEmotionId);
   const emotions = emotionSet?.emotions ?? [];
   const recordsByEmotion = useMemo(() => {
     const groups = new Map<string, GenerationSummary[]>();
@@ -249,6 +255,21 @@ export function GalleryView({
   const openExport = () =>
     void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
+
+  const scroller = selection.containerProps.ref;
+  // 씬 상세에서 PageDown으로 넘어갔으면 그 씬이 화면 밖일 수 있다.
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    element.scrollTop = scrollTops.get(project.id) ?? 0;
+    const last = useStore.getState().lastEmotionId;
+    if (last)
+      element
+        .querySelector(`[data-select-id="${CSS.escape(last)}"]`)
+        ?.scrollIntoView({ block: 'nearest' });
+    // 레이아웃 정리는 요소를 떼기 전에 돌아 아직 scrollTop을 읽을 수 있다.
+    return () => void scrollTops.set(project.id, element.scrollTop);
+  }, [project.id, scroller]);
 
   if (!emotionSet) {
     return (
@@ -426,6 +447,7 @@ export function GalleryView({
             dropOn={dropOn}
             dragging={dragging.includes(emotion.id)}
             picked={selection.isSelected(emotion.id)}
+            returned={emotion.id === lastEmotionId}
             onPick={selection.clickItem}
           />
         ))}
