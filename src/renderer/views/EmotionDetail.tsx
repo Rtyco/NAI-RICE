@@ -34,6 +34,7 @@ import { topBarShownOf, useLayout } from '../layout';
 import { fileApi } from '../desktop';
 import { ScenePromptFields } from '../components/ScenePromptFields';
 import { sceneOrder } from '../sceneSearch';
+import { ScenePicker } from '../components/ScenePicker';
 
 export function EmotionDetail({
   resolved,
@@ -277,12 +278,11 @@ export function EmotionDetail({
         >
           ‹ {previous?.name ?? '이전'}
         </button>
-        <span
-          className="detail-position"
-          title={order === set.emotions ? undefined : `씬 이름 검색 「${query.trim()}」 결과`}
-        >
-          {index + 1} / {order.length}
-        </span>
+        <ScenePicker
+          emotions={order}
+          current={emotion.id}
+          title={order === set.emotions ? '씬 목록' : `씬 목록 (검색 「${query.trim()}」 결과)`}
+        />
         <button disabled={!next} onClick={() => next && openEmotion(next.id)} title="PageDown">
           {next?.name ?? '다음'} ›
         </button>

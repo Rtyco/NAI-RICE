@@ -54,6 +54,7 @@ import { EmotionDetail } from './EmotionDetail';
 import { LibraryEditorDialog } from './library/LibraryEditorDialog';
 import { GalleryView } from './GalleryView';
 import { sceneOrder } from '../sceneSearch';
+import { ScenePicker } from '../components/ScenePicker';
 
 const MODES: Record<ProjectMode, ModeInfo> = {
   reference: { label: '인페인트', icon: 'reference' },
@@ -209,12 +210,11 @@ function SceneNav({
       >
         <Icon name="chevron-left" size={16} />
       </button>
-      <span
-        className="detail-position"
-        title={emotions === all ? undefined : `씬 이름 검색 「${query.trim()}」 결과`}
-      >
-        {index + 1} / {emotions.length}
-      </span>
+      <ScenePicker
+        emotions={emotions}
+        current={current}
+        title={emotions === all ? '씬 목록' : `씬 목록 (검색 「${query.trim()}」 결과)`}
+      />
       <button
         className="icon-button"
         disabled={!next}

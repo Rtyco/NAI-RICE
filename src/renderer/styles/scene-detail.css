@@ -16,6 +16,52 @@
   color: var(--muted);
   font-size: 12px;
 }
+button.detail-position {
+  padding: 3px 8px;
+  border-color: transparent;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+button.detail-position:hover:not(:disabled),
+button.detail-position[aria-expanded='true'] {
+  border-color: var(--line);
+  background: var(--bg-3);
+  color: var(--text);
+}
+.scene-picker .menu-popup {
+  left: 50%;
+  right: auto;
+  width: 260px;
+  margin-left: -130px;
+  gap: 6px;
+}
+.scene-picker-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.scene-picker .scene-picker-list button {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+}
+.scene-picker-list button.current {
+  background: var(--accent-a33);
+  color: var(--accent-text);
+}
+.scene-picker-list small {
+  min-width: 22px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.scene-picker-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .detail-body {
   position: relative;
   flex: 1;
