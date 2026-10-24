@@ -1,5 +1,6 @@
 import type { Emotion } from '../../core/domain/types';
 import { withExtraPrompt } from '../../core/model/mutations';
+import { confirmDialog } from './dialogStack';
 import { PromptField } from './ui';
 
 /** 씬 모음은 여러 작업이 함께 써서 칸은 캐릭터 이름이 아니라 순서로 저장된다. */
@@ -17,6 +18,17 @@ export function ScenePromptFields(props: {
   const { emotion, names } = props;
   const slots = Math.max(1, names.length);
   const hidden = (emotion.extraPrompts ?? []).slice(slots - 1).filter((prompt) => prompt.trim());
+  const dropHidden = async () => {
+    const ok = await confirmDialog({
+      title: '캐릭터 칸 삭제',
+      message: `${emotion.name}의 ${slots + 1}번째 이후 캐릭터 씬 프롬프트 ${hidden.length}개를 지웁니다. 이 씬 모음을 쓰는 다른 작업에도 반영됩니다.`,
+      confirmLabel: '삭제',
+      danger: true,
+    });
+    const kept = (emotion.extraPrompts ?? []).slice(0, slots - 1);
+    if (ok)
+      props.onChange({ extraPrompts: kept.some((prompt) => prompt.trim()) ? kept : undefined });
+  };
   return (
     <>
       {Array.from({ length: slots }, (_, index) => {
@@ -66,7 +78,10 @@ export function ScenePromptFields(props: {
       />
       {hidden.length > 0 && (
         <p className="hint">
-          {slots + 1}번째 이후 캐릭터 칸에 프롬프트 {hidden.length}개가 더 있습니다.
+          {slots + 1}번째 이후 캐릭터 칸에 프롬프트 {hidden.length}개가 더 있습니다.{' '}
+          <button className="link-button" onClick={() => void dropHidden()}>
+            지우기
+          </button>
         </p>
       )}
     </>

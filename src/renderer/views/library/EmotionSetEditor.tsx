@@ -12,6 +12,7 @@ import {
   withExtraPrompt,
 } from '../../../core/model/mutations';
 import { Card, Menu } from '../../components/ui';
+import { confirmDialog } from '../../components/dialogStack';
 import { Icon } from '../../components/Icon';
 import { toast, updateLibrary, useLibrary } from '../../store';
 import { PromptTextarea } from '../../components/PromptTextarea';
@@ -44,7 +45,7 @@ function EmotionRow({
   collapsed,
   opened,
   toggle,
-  openExtra,
+  setExtras,
   save,
 }: {
   emotion: Emotion;
@@ -53,11 +54,26 @@ function EmotionRow({
   collapsed: boolean;
   opened: number;
   toggle: (open?: boolean) => void;
-  openExtra: () => void;
+  setExtras: (count: number) => void;
   save: (recipe: (item: EmotionSet) => EmotionSet) => void;
 }) {
   const patch = (value: Partial<Omit<Emotion, 'id'>>) =>
     save((item) => updateEmotion(item, emotion.id, value));
+  const extras = Math.max(emotion.extraPrompts?.length ?? 0, opened);
+  const removeExtra = async () => {
+    const last = extras - 1;
+    const ok =
+      !emotion.extraPrompts?.[last]?.trim() ||
+      (await confirmDialog({
+        title: `캐릭터 ${last + 2} 칸 삭제`,
+        message: `${emotion.name}의 캐릭터 ${last + 2} 씬 프롬프트를 지웁니다.`,
+        confirmLabel: '삭제',
+        danger: true,
+      }));
+    if (!ok) return;
+    setExtras(last);
+    patch(withExtraPrompt(emotion, last, ''));
+  };
   return (
     <div
       className={`piece-row emotion-row ${collapsed ? 'collapsed' : ''}`}
@@ -86,11 +102,20 @@ function EmotionRow({
             title="다음 캐릭터의 씬 프롬프트 칸 추가"
             onClick={() => {
               toggle(true);
-              openExtra();
+              setExtras(extras + 1);
             }}
           >
             ＋
           </button>
+          {extras > 0 && (
+            <button
+              className="icon-button"
+              title={`캐릭터 ${extras + 1}의 씬 프롬프트 칸 삭제`}
+              onClick={() => void removeExtra()}
+            >
+              －
+            </button>
+          )}
           <ExpandTextButton
             title={`${emotion.name || '씬'} 프롬프트`}
             value={emotion.prompt}
@@ -131,21 +156,18 @@ function EmotionRow({
             placeholder="씬 프롬프트"
             onChange={(prompt) => patch({ prompt })}
           />
-          {Array.from(
-            { length: Math.max(emotion.extraPrompts?.length ?? 0, opened) },
-            (_, extra) => (
-              <div className="emotion-extra-prompt" key={extra}>
-                <span>캐릭터 {extra + 2}</span>
-                <PromptTextarea
-                  rows={2}
-                  value={emotion.extraPrompts?.[extra] ?? ''}
-                  aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
-                  placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
-                  onChange={(prompt) => patch(withExtraPrompt(emotion, extra, prompt))}
-                />
-              </div>
-            ),
-          )}
+          {Array.from({ length: extras }, (_, extra) => (
+            <div className="emotion-extra-prompt" key={extra}>
+              <span>캐릭터 {extra + 2}</span>
+              <PromptTextarea
+                rows={2}
+                value={emotion.extraPrompts?.[extra] ?? ''}
+                aria-label={`${emotion.name} 캐릭터 ${extra + 2} 프롬프트`}
+                placeholder="비워 두면 이 캐릭터에는 붙이지 않습니다"
+                onChange={(prompt) => patch(withExtraPrompt(emotion, extra, prompt))}
+              />
+            </div>
+          ))}
           <div className="emotion-extra-prompt negative-field">
             <span>네거티브</span>
             <PromptTextarea
@@ -242,13 +264,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                 collapsed={collapsed.has(emotion.id)}
                 opened={opened[emotion.id] ?? 0}
                 toggle={(open) => toggle(emotion.id, open)}
-                openExtra={() =>
-                  setOpened((current) => ({
-                    ...current,
-                    [emotion.id]:
-                      Math.max(emotion.extraPrompts?.length ?? 0, current[emotion.id] ?? 0) + 1,
-                  }))
-                }
+                setExtras={(count) => setOpened((current) => ({ ...current, [emotion.id]: count }))}
                 save={save}
               />
             ),

@@ -3,6 +3,7 @@ import type { Emotion, SceneOption } from '../../core/domain/types';
 import { newId } from '../../core/model/defaults';
 import { withPromptAt } from '../../core/model/mutations';
 import { comboCount, MAX_COMBOS, optionLabel } from '../../core/model/sceneCombos';
+import { confirmDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { PromptTextarea } from './PromptTextarea';
 
@@ -151,6 +152,28 @@ export function SceneSlotsEditor(props: {
         index === slotIndex ? slot.map((option) => (option.id === next.id ? next : option)) : slot,
       ),
     );
+  const removeCharacter = async () => {
+    const index = characterCount - 1;
+    const filled = slots.flat().filter((option) => option.characterPrompts[index]?.trim()).length;
+    const ok =
+      !filled ||
+      (await confirmDialog({
+        title: `캐릭터 ${index + 1} 몫 삭제`,
+        message: `후보 ${filled}개의 캐릭터 ${index + 1} 몫을 지웁니다.`,
+        confirmLabel: '삭제',
+        danger: true,
+      }));
+    if (!ok) return;
+    setOpened(index);
+    save(
+      slots.map((slot) =>
+        slot.map((option) => ({
+          ...option,
+          characterPrompts: withPromptAt(option.characterPrompts, index, ''),
+        })),
+      ),
+    );
+  };
 
   if (!slots.length)
     return (
@@ -198,6 +221,15 @@ export function SceneSlotsEditor(props: {
         >
           ＋ 캐릭터
         </button>
+        {characterCount > names.length && (
+          <button
+            className="link-button"
+            title={`캐릭터 ${characterCount} 몫 칸 삭제`}
+            onClick={() => void removeCharacter()}
+          >
+            － 캐릭터
+          </button>
+        )}
       </div>
       {slots.map((slot, slotIndex) => (
         <section className="scene-slot" key={slotIndex}>

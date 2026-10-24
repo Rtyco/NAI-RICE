@@ -358,6 +358,9 @@ textarea.syntax-input::selection {
   margin-left: auto;
   font-size: 12px;
 }
+.scene-slots-head .link-button ~ .link-button {
+  margin-left: 0;
+}
 .scene-slots-formula {
   color: var(--muted);
   font-size: 12px;
