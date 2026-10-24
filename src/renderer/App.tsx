@@ -22,7 +22,13 @@ import {
   subscribeToMain,
   useStore,
 } from './store';
-import { sidebarStageOf, useLayout } from './layout';
+import {
+  hasSidePanel,
+  historyShownOf,
+  sidebarStageOf,
+  sidePanelShownOf,
+  useLayout,
+} from './layout';
 import { LibraryView } from './views/LibraryView';
 import { FreeView } from './views/FreeView';
 import { ProjectView } from './views/ProjectView';
@@ -40,8 +46,19 @@ import { showWhatsNewOnce } from './whatsNew';
 function Toasts() {
   const toasts = useStore((state) => state.toasts);
   const busy = useStore((state) => state.busy);
+  const hasPanel = useStore(hasSidePanel);
+  const hasHistory = useStore(
+    (state) => state.view.kind === 'project' || state.view.kind === 'free',
+  );
+  const panelShown = useLayout(sidePanelShownOf);
+  const historyShown = useLayout(historyShownOf);
+  const besidePanel = hasPanel && panelShown;
+  const besideHistory = besidePanel && hasHistory && historyShown;
   return (
-    <div className="toast-stack" role="status">
+    <div
+      className={`toast-stack ${besidePanel ? 'beside-panel' : ''} ${besideHistory ? 'beside-history' : ''}`}
+      role="status"
+    >
       {busy && <div className="toast busy">{busy}…</div>}
       {toasts.map((item) => (
         <div key={item.id} className={`toast ${item.kind}`}>

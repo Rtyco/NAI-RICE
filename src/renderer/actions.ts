@@ -86,6 +86,20 @@ export type GenerateOptions = {
   comboKey?: string;
 };
 
+/** 씬 상세·자유 생성은 이미지 칸에 생성 대기 수가 보여, 알림이 생성 버튼만 가린다. */
+async function enqueue(jobs: GenerationJobSnapshot[], message: string): Promise<void> {
+  const result = await queueApi().enqueueGeneration({ jobs });
+  useStore.setState({ queue: result.snapshot });
+  const { view, detailEmotionId } = useStore.getState();
+  const onStage = (job: GenerationJobSnapshot) =>
+    view.kind === 'free'
+      ? job.projectId === FREE_PROJECT_ID
+      : view.kind === 'project' &&
+        job.projectId === view.projectId &&
+        job.emotionId === detailEmotionId;
+  if (!jobs.every(onStage)) toast(message);
+}
+
 export function generateEmotions(
   projectId: string,
   emotionIds: string[],
@@ -133,9 +147,7 @@ export function generateEmotions(
     }
     if (!jobs.length) throw new Error('생성할 씬이 없습니다. 프롬프트가 있는 씬을 선택하십시오.');
 
-    const result = await queueApi().enqueueGeneration({ jobs });
-    useStore.setState({ queue: result.snapshot });
-    toast(`${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
+    await enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -196,9 +208,7 @@ export function generateFree(
       image,
       aid: await prepareAid(library, free, FREE_PROJECT_ID),
     });
-    const result = await queueApi().enqueueGeneration({ jobs });
-    useStore.setState({ queue: result.snapshot });
-    toast(`${jobs.length}장을 생성 큐에 등록했습니다.`);
+    await enqueue(jobs, `${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -252,9 +262,7 @@ export function sendResultsToImg2Img(
       );
     }
     if (!jobs.length) throw new Error('다듬을 결과가 없습니다.');
-    const result = await queueApi().enqueueGeneration({ jobs });
-    useStore.setState({ queue: result.snapshot });
-    toast(`다듬기 ${jobs.length}장을 생성 큐에 등록했습니다.`);
+    await enqueue(jobs, `다듬기 ${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
 }
 
@@ -311,9 +319,10 @@ export function runDirectorTool(
       );
     }
     if (!jobs.length) throw new Error('디렉터 툴을 적용할 결과가 없습니다.');
-    const result = await queueApi().enqueueGeneration({ jobs });
-    useStore.setState({ queue: result.snapshot });
-    toast(`${augmentToolInfo(options.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`);
+    await enqueue(
+      jobs,
+      `${augmentToolInfo(options.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`,
+    );
   }).then(() => undefined);
 }
 
@@ -344,9 +353,10 @@ export function runFreeDirectorTool(shrink: boolean): Promise<void> {
           ? source.fromRecord.generationId
           : undefined,
     });
-    const result = await queueApi().enqueueGeneration({ jobs });
-    useStore.setState({ queue: result.snapshot });
-    toast(`${augmentToolInfo(settings.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`);
+    await enqueue(
+      jobs,
+      `${augmentToolInfo(settings.tool).label} ${jobs.length}건을 생성 큐에 등록했습니다.`,
+    );
   }).then(() => undefined);
 }
 

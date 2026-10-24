@@ -324,6 +324,13 @@
   width: 380px;
   pointer-events: none;
 }
+/* 오른쪽 패널 아래의 생성 버튼을 가리지 않게 */
+.toast-stack.beside-panel {
+  right: calc(var(--side-panel-column, 360px) + 16px);
+}
+.toast-stack.beside-history {
+  right: calc(var(--side-panel-column, 360px) + var(--history-panel-column, 220px) + 16px);
+}
 .toast {
   display: flex;
   align-items: flex-start;
