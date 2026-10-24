@@ -3,7 +3,7 @@
   "productName": "NAI RICE",
   "version": "1.1.1",
   "description": "Character emotion image studio using NovelAI Reference Inpainting",
-  "author": "NAI RICE contributors",
+  "author": "Rtyco",
   "main": "dist-electron/main.cjs",
   "type": "module",
   "license": "MIT",
