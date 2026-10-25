@@ -13,6 +13,8 @@ export type ResultAction = {
   active?: boolean;
   /** 결과 막대에서 아이콘만 보인다. 우클릭 메뉴에는 이름이 나온다. */
   iconOnly?: boolean;
+  /** 좁은 결과 막대에서도 이름을 둔다. 아이콘만으로는 다른 동작으로 읽혔다(2026-10-25 화면 테스트). */
+  keepLabel?: boolean;
 };
 
 export function resultGroups(actions: ResultAction[]): ResultAction[][] {

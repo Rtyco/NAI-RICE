@@ -146,6 +146,7 @@ export function EmotionDetail({
         label: '프롬프트 복원',
         icon: 'undo',
         group: 'main',
+        keepLabel: true,
         // 고른 후보 내용은 요약에 없어, 보고 있는 결과만 미리 받아 비교한다.
         disabled:
           selectedRecord?.id === record.id &&
@@ -161,12 +162,14 @@ export function EmotionDetail({
         label: '디렉터 툴',
         icon: 'wand',
         group: 'send',
+        keepLabel: true,
         onSelect: () => openDirectorToolDialog(project.id, [record]),
       },
       {
         label: '자유 생성으로 보내기',
         icon: 'sparkle',
         group: 'send',
+        keepLabel: true,
         onSelect: () => void sendToFreeImg2Img(project.id, record),
       },
       common.makeReference,

@@ -39,7 +39,7 @@ export function ResultBar(props: {
           {group.map((action) => (
             <button
               key={action.label}
-              className={`${action.iconOnly ? 'icon-button' : 'with-icon'} ${action.group === 'delete' ? 'danger-quiet' : action.active ? 'active' : ''}`}
+              className={`${action.iconOnly ? 'icon-button' : 'with-icon'} ${action.keepLabel ? 'keep-label' : ''} ${action.group === 'delete' ? 'danger-quiet' : action.active ? 'active' : ''}`}
               disabled={action.disabled}
               title={action.title ?? action.label}
               aria-label={action.label}

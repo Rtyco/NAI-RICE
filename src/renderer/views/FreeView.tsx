@@ -151,6 +151,7 @@ export function FreeView() {
             label: '프롬프트 복원',
             icon: 'undo',
             group: 'main',
+            keepLabel: true,
             disabled:
               record.emotionPrompt === free.prompt &&
               (record.emotionNegative ?? '') === free.negative,
@@ -175,6 +176,7 @@ export function FreeView() {
         label: '이 결과로 디렉터 툴',
         icon: 'wand',
         group: 'send',
+        keepLabel: true,
         onSelect: () =>
           void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },
@@ -182,6 +184,7 @@ export function FreeView() {
         label: '이 결과로 i2i',
         icon: 'sparkle',
         group: 'send',
+        keepLabel: true,
         onSelect: () =>
           void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },

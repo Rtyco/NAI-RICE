@@ -20,12 +20,14 @@ export function commonResultActions(
       label: '다듬기',
       icon: 'upscale',
       group: 'send',
+      keepLabel: true,
       onSelect: () => openImg2ImgDialog(projectId, [record]),
     },
     makeReference: {
       label: '인페인트 만들기',
       icon: 'reference',
       group: 'send',
+      keepLabel: true,
       onSelect: () => void makeReferenceFromRecord(projectId, record),
     },
     file: [
