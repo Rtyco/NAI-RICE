@@ -5,13 +5,16 @@ import {
   exportEmotionSet,
   exportLibrary,
   exportPreset,
+  exportProject,
   mergeBundle,
   parseImportFile,
+  projectLibrary,
 } from '../../src/core/backup/Backups';
 import { migrateV1 } from '../../src/core/backup/Migration';
 import {
   createCharacter,
   createDefaultLibrary,
+  createPieceSet,
   createProject,
   createReference,
   createCharacterReference,
@@ -153,6 +156,66 @@ describe('import files', () => {
     const merged = mergeBundle(full, bundle);
     expect(merged.characterReferences).toHaveLength(2);
     expect(librarySchema.safeParse(merged).success).toBe(true);
+  });
+
+  it('작업 파일은 그 작업이 쓰는 항목만 담고 다시 읽으면 연결이 맞아', () => {
+    const library = createDefaultLibrary();
+    const character = createCharacter('A');
+    character.promptSets[0].positive = '1girl, <옷.교복>';
+    const other = createCharacter('B');
+    const reference = createReference('R');
+    const file = `${'e'.repeat(24)}.png`;
+    const mood = {
+      ...createVibe('노을'),
+      image: { file, width: 4, height: 4, name: 'x.png' },
+    };
+    const project = {
+      ...createProject('P', {
+        presetId: library.presets[0].id,
+        character,
+        emotionSetId: library.emotionSets[0].id,
+        referenceId: reference.id,
+      }),
+      vibeIds: [mood.id],
+      favorites: { [library.emotionSets[0].emotions[0].id]: 'record' },
+    };
+    const full = {
+      ...library,
+      characters: [character, other],
+      references: [reference, createReference('안 씀')],
+      vibes: [mood, createVibe('안 씀')],
+      projects: [
+        project,
+        createProject('Q', {
+          presetId: library.presets[0].id,
+          character: other,
+          emotionSetId: library.emotionSets[0].id,
+          referenceId: '',
+        }),
+      ],
+      pieceSets: [
+        createPieceSet('옷', [{ name: '교복', prompt: '<색.파랑>, uniform' }]),
+        createPieceSet('색', [{ name: '파랑', prompt: 'blue' }]),
+        createPieceSet('안 씀'),
+      ],
+    };
+    const part = projectLibrary(full, project.id);
+    expect(part.characters.map((item) => item.name)).toEqual(['A']);
+    expect(part.references.map((item) => item.name)).toEqual(['R']);
+    expect(part.vibes.map((item) => item.name)).toEqual(['노을']);
+    expect(part.pieceSets.map((item) => item.name)).toEqual(['옷', '색']);
+    expect(part.projects.map((item) => item.name)).toEqual(['P']);
+    const exported = exportProject(part, {}, { [file]: 'data:image/png;base64,AAAA' });
+    expect(exported).not.toHaveProperty('library.settings');
+    const bundle = parseImportFile(JSON.stringify(exported), 'P.json', PRESET_ID);
+    expect(bundle.label).toBe('작업 "P"');
+    const restored = bundle.projects[0];
+    expect(restored.characters[0].characterId).toBe(bundle.characters[0].id);
+    expect(restored.referenceId).toBe(bundle.references[0].id);
+    expect(restored.vibeIds).toEqual([bundle.vibes[0].id]);
+    expect(restored.favorites).toEqual({});
+    expect(bundle.vibes[0].image).toMatchObject({ file });
+    expect(librarySchema.safeParse(mergeBundle(full, bundle)).success).toBe(true);
   });
 
   it('이전 형식 캐릭터 백업을 네 가지 항목과 작업으로 나눠', () => {

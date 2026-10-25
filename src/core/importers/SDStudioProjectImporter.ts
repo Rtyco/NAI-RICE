@@ -135,7 +135,7 @@ function convertOption(piece: Json): SceneOption {
 }
 
 /** SDStudio `resolutionMap`(가로, 세로). 값은 SDStudio 그대로다. */
-const RESOLUTIONS: Record<string, [number, number]> = {
+export const SD_STUDIO_RESOLUTIONS: Record<string, [number, number]> = {
   small_landscape: [768, 512],
   small_portrait: [512, 768],
   small_square: [640, 640],
@@ -159,7 +159,7 @@ function sceneSize(scene: Json): { width: number; height: number } | undefined {
     : value === 'custom'
       ? [scene.resolutionWidth, scene.resolutionHeight]
       : typeof value === 'string'
-        ? (RESOLUTIONS[value] ?? [])
+        ? (SD_STUDIO_RESOLUTIONS[value] ?? [])
         : [];
   return validSide(width) && validSide(height) ? { width, height } : undefined;
 }

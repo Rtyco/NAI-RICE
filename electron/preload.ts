@@ -58,6 +58,8 @@ const api: DesktopApi = {
   exportImages: (request) => ipcRenderer.invoke('file:export-images', request),
   exportReference: (reference) => ipcRenderer.invoke('file:export-reference', reference),
   exportLibrary: (library) => ipcRenderer.invoke('file:export-library', library),
+  exportProject: (library, projectId) =>
+    ipcRenderer.invoke('file:export-project', library, projectId),
   openVibeFile: () => ipcRenderer.invoke('file:open-vibe'),
   exportVibes: (vibes) => ipcRenderer.invoke('file:export-vibes', vibes),
 

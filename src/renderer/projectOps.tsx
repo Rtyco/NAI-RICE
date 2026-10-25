@@ -1,9 +1,10 @@
+import { exportSDStudioProject } from '../core/backup/SDStudioFiles';
 import type { Project } from '../core/domain/types';
 import { readableId } from '../core/model/defaults';
 import { uniqueName } from '../core/model/mutations';
 import { confirmDialog } from './components/dialogStack';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
-import { libraryApi } from './desktop';
+import { fileApi, libraryApi } from './desktop';
 
 /** 생성 결과와 대표 이미지는 가져오지 않는다. */
 export function duplicateProject(project: Project): void {
@@ -30,6 +31,24 @@ export function duplicateProject(project: Project): void {
 
 export function openProjectFolder(projectId: string): void {
   void run('폴더를 여는 중', () => libraryApi().openInExplorer({ kind: 'project', projectId }));
+}
+
+export function exportProjectFile(project: Project, format: 'sdstudio' | 'rice'): void {
+  void run('내보내는 중', async () => {
+    const library = useStore.getState().library!;
+    if (format === 'rice') {
+      const saved = await fileApi().exportProject(library, project.id);
+      if (saved) toast(`저장했습니다: ${saved}`);
+      return;
+    }
+    const { file, omitted } = exportSDStudioProject(project, library);
+    const saved = await fileApi().saveJsonFile(
+      file,
+      `${project.name} (SD Studio).json`,
+      'SD Studio 프로젝트로 내보내기',
+    );
+    if (saved) toast([`저장했습니다: ${saved}`, ...omitted].join(' '));
+  });
 }
 
 /** 라이브러리 항목은 그대로 둔다. */

@@ -4,7 +4,10 @@ import path from 'node:path';
 import type { Library as LibraryData, Reference } from '../../src/core/domain/types';
 import {
   exportLibrary,
+  exportProject,
   exportReference,
+  projectLibrary,
+  type ProjectLibrary,
   type ReferenceImagesData,
 } from '../../src/core/backup/Backups';
 import { exportFileNames, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
@@ -143,8 +146,7 @@ export class Exporter {
     );
   }
 
-  /** 레퍼런스 이미지는 포함하고 생성 결과는 뺀다. */
-  async exportLibrary(library: LibraryData): Promise<string | null> {
+  private async mediaOf(library: ProjectLibrary) {
     const images: Record<string, ReferenceImagesData> = {};
     for (const reference of library.references) {
       const data = await this.imagesOf(reference);
@@ -158,10 +160,26 @@ export class Exporter {
         .catch(() => undefined);
       if (data) pictures[item.image.file] = data;
     }
+    return { images, pictures };
+  }
+
+  /** 레퍼런스 이미지는 포함하고 생성 결과는 뺀다. */
+  async exportLibrary(library: LibraryData): Promise<string | null> {
+    const { images, pictures } = await this.mediaOf(library);
     return this.saveJson(
       exportLibrary(library, images, pictures),
       `전체백업_${dateStamp()}`,
       '전체 백업 저장',
+    );
+  }
+
+  async exportProject(library: LibraryData, projectId: string): Promise<string | null> {
+    const part = projectLibrary(library, projectId);
+    const { images, pictures } = await this.mediaOf(part);
+    return this.saveJson(
+      exportProject(part, images, pictures),
+      part.projects[0].name,
+      '작업 내보내기',
     );
   }
 }

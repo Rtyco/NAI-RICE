@@ -17,6 +17,8 @@ import {
   exportSDStudioScenes,
   importSDStudioCharacters,
   isSDStudioCharacterFile,
+  sceneTexts,
+  usedPieceSets,
 } from './SDStudioFiles';
 import { createPieceSet, newId, readableId } from '../model/defaults';
 import {
@@ -47,6 +49,20 @@ const envelope = <K extends string, T extends z.ZodTypeAny>(kind: K, body: T) =>
     .object({ kind: z.literal(kind), schemaVersion: z.number(), exportedAt: z.string().optional() })
     .and(body);
 
+const PROJECT_PARTS = {
+  presets: true,
+  characters: true,
+  emotionSets: true,
+  references: true,
+  characterReferences: true,
+  vibes: true,
+  projects: true,
+  pieceSets: true,
+} as const;
+
+/** 작업 파일에 담는 라이브러리 몫. 프로그램 설정과 자유 생성은 넣지 않는다. */
+export type ProjectLibrary = Pick<Library, keyof typeof PROJECT_PARTS>;
+
 const formats = {
   library: envelope(
     'reference-inpaint-library',
@@ -54,6 +70,14 @@ const formats = {
       library: librarySchema,
       images: z.record(z.string(), imagesSchema).default({}),
       // `pictures/` 파일 이름 → data URL. 예전 백업에는 없다.
+      pictures: z.record(z.string(), z.string()).default({}),
+    }),
+  ),
+  project: envelope(
+    'reference-inpaint-project',
+    z.object({
+      library: librarySchema.pick(PROJECT_PARTS),
+      images: z.record(z.string(), imagesSchema).default({}),
       pictures: z.record(z.string(), z.string()).default({}),
     }),
   ),
@@ -147,11 +171,12 @@ function parse<T>(schema: z.ZodType<T>, value: unknown, label: string): T {
 }
 
 function remapLibrary(
-  library: Library,
+  library: ProjectLibrary,
   images: Record<string, ReferenceImagesData>,
   pictures: Record<string, string>,
+  label = '전체 백업',
 ): ImportBundle {
-  const bundle = emptyBundle('전체 백업');
+  const bundle = emptyBundle(label);
   const ids = new Map<string, string>();
   const map = (old: string, next: string) => (ids.set(old, next), next);
   bundle.presets = library.presets.map((item) => ({ ...item, id: map(item.id, newId()) }));
@@ -201,6 +226,11 @@ export function parseImportFile(
   if (kind === 'reference-inpaint-library') {
     const data = parse(formats.library, value, '전체 백업');
     return remapLibrary(data.library, data.images, data.pictures);
+  }
+  if (kind === 'reference-inpaint-project') {
+    const data = parse(formats.project, value, '작업');
+    const name = data.library.projects[0]?.name ?? stem;
+    return remapLibrary(data.library, data.images, data.pictures, `작업 "${name}"`);
   }
   if (kind === 'reference-inpaint-preset') {
     const data = parse(formats.preset, value, '생성 설정');
@@ -350,6 +380,62 @@ export function exportLibrary(
     schemaVersion: 2,
     exportedAt: stamp(),
     library: copy,
+    images,
+    pictures,
+  };
+}
+
+/** 작업과 그 작업이 쓰는 항목만. */
+export function projectLibrary(library: Library, projectId: string): ProjectLibrary {
+  const project = library.projects.find((item) => item.id === projectId);
+  if (!project) throw new Error('작업을 찾을 수 없습니다.');
+  const ids = new Set([
+    project.presetId,
+    project.emotionSetId,
+    project.referenceId,
+    ...project.characters.map((slot) => slot.characterId),
+    ...project.characterReferenceIds,
+    ...project.vibeIds,
+  ]);
+  const pick = <T extends { id: string }>(items: T[]) => items.filter((item) => ids.has(item.id));
+  const presets = pick(library.presets);
+  const characters = pick(library.characters);
+  const emotionSets = pick(library.emotionSets);
+  const texts = [
+    project.extraPrompt ?? '',
+    ...presets.flatMap((preset) => [
+      preset.commonPositive,
+      preset.backPositive,
+      preset.commonNegative,
+    ]),
+    ...characters.flatMap((character) =>
+      character.promptSets.flatMap((set) => [set.positive, set.negative]),
+    ),
+    ...emotionSets.flatMap((set) => set.emotions.flatMap(sceneTexts)),
+  ];
+  return {
+    presets,
+    characters,
+    emotionSets,
+    references: pick(library.references),
+    characterReferences: pick(library.characterReferences),
+    vibes: pick(library.vibes),
+    projects: [{ ...project, favorites: {} }],
+    pieceSets: usedPieceSets(texts, library.pieceSets),
+  };
+}
+
+/** 생성 결과는 넣지 않는다. */
+export function exportProject(
+  library: ProjectLibrary,
+  images: Record<string, ReferenceImagesData>,
+  pictures: Record<string, string> = {},
+) {
+  return {
+    kind: 'reference-inpaint-project',
+    schemaVersion: 2,
+    exportedAt: stamp(),
+    library,
     images,
     pictures,
   };

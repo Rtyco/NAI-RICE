@@ -164,6 +164,9 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('file:export-library', (_event, data: LibraryData) =>
     exporter.exportLibrary(data),
   );
+  ipcMain.handle('file:export-project', (_event, data: LibraryData, projectId: string) =>
+    exporter.exportProject(data, projectId),
+  );
 
   ipcMain.handle('token:status', () => account.status());
   ipcMain.handle('token:save-and-validate', (_event, token: string) =>

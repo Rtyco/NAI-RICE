@@ -20,7 +20,13 @@ import {
   setFolder,
   ungroupFolder,
 } from '../../core/model/folders';
-import { deleteProject, deleteProjects, duplicateProject, openProjectFolder } from '../projectOps';
+import {
+  deleteProject,
+  deleteProjects,
+  duplicateProject,
+  exportProjectFile,
+  openProjectFolder,
+} from '../projectOps';
 import { SECTIONS } from '../sections';
 import { sidebarStageOf, useLayout } from '../layout';
 import {
@@ -326,6 +332,16 @@ export function Sidebar() {
         remove={() => void deleteProject(project)}
         menu={{
           duplicate: () => duplicateProject(project),
+          exports: [
+            {
+              label: 'SD Studio 프로젝트로 내보내기',
+              onSelect: () => exportProjectFile(project, 'sdstudio'),
+            },
+            {
+              label: 'NAI RICE 작업 파일로 내보내기',
+              onSelect: () => exportProjectFile(project, 'rice'),
+            },
+          ],
           folder: () => openProjectFolder(project.id),
           pickedCount: selection.selected.size,
           removePicked: () => removeMany([...selection.selected]),

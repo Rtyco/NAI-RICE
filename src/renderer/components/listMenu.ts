@@ -6,6 +6,8 @@ export type ListMenuActions = {
   rename?: () => void;
   duplicate: () => void;
   exportJson?: () => void;
+  /** 작업만 */
+  exports?: Array<{ label: string; onSelect: () => void }>;
   /** 바이브만 */
   exportVibes?: () => void;
   folder?: () => void;
@@ -25,6 +27,7 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
     { label: '이름 변경', disabled: !actions.rename, onSelect: () => actions.rename?.() },
     { label: '복제', onSelect: actions.duplicate },
     ...(actions.exportJson ? [{ label: 'JSON 내보내기', onSelect: actions.exportJson }] : []),
+    ...(actions.exports ?? []),
     ...(actions.exportVibes
       ? [
           {

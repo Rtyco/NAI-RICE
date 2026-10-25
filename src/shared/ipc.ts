@@ -217,6 +217,8 @@ export type FileApi = {
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
+  /** NAI RICE 작업 파일. 작업이 쓰는 라이브러리 항목과 그림을 함께 넣는다. */
+  exportProject: (library: Library, projectId: string) => Promise<string | null>;
   openVibeFile: () => Promise<OpenTextFileResult | null>;
   /** 하나면 `.naiv4vibe`, 여럿이면 `.naiv4vibeBundle`. */
   exportVibes: (vibes: Vibe[]) => Promise<string | null>;

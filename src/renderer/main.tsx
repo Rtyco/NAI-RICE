@@ -64,6 +64,7 @@ function createPreviewApi(): DesktopApi {
     exportImages: async () => null,
     exportReference: async () => null,
     exportLibrary: async () => null,
+    exportProject: async () => null,
     openVibeFile: async () => null,
     exportVibes: async () => null,
     tokenStatus: async () => token,
