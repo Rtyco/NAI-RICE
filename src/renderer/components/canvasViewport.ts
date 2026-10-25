@@ -11,6 +11,21 @@ type Offset = { x: number; y: number };
 const CENTER: Offset = { x: 0, y: 0 };
 const PAD = 16;
 
+export type Pinch = { distance: number; mid: Offset; scale: number; from: Offset };
+
+/** 처음 두 손가락 가운데 있던 지점이 지금 가운데로 따라오도록 배율과 위치를 정한다. `mid`는 뷰 가운데 기준. */
+export function pinchView(start: Pinch, now: { distance: number; mid: Offset }) {
+  const scale = clampZoom((start.scale * now.distance) / start.distance);
+  const ratio = scale / start.scale;
+  return {
+    scale,
+    offset: {
+      x: now.mid.x - (start.mid.x - start.from.x) * ratio,
+      y: now.mid.y - (start.mid.y - start.from.y) * ratio,
+    },
+  };
+}
+
 /** 스크롤로 옮기면 캔버스가 화면보다 작을 때 가운데에 고정되어, 가운데에서 `offset`만큼 민 자리에 그린다. */
 export function useCanvasViewport(width: number, height: number) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -94,6 +109,53 @@ export function useCanvasViewport(width: number, height: number) {
     },
   };
 
+  const fingers = useRef(new Map<number, Offset>());
+  const pinch = useRef<Pinch | null>(null);
+  const fromCenter = (point: Offset): Offset => {
+    const rect = viewport.current?.getBoundingClientRect();
+    return rect
+      ? { x: point.x - rect.left - rect.width / 2, y: point.y - rect.top - rect.height / 2 }
+      : point;
+  };
+  const twoFingers = () => {
+    const [a, b] = [...fingers.current.values()];
+    return {
+      distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+      mid: fromCenter({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }),
+    };
+  };
+
+  /** 두 손가락으로 확대·이동한다. true면 그리기 대신 이것이 받은 것이다. */
+  const touch = {
+    /** 두 번째 손가락이 닿으면 true. 그리던 획은 부른 쪽이 취소한다. */
+    down(event: ReactPointerEvent<HTMLElement>): boolean {
+      if (event.pointerType !== 'touch') return false;
+      fingers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (fingers.current.size !== 2) return Boolean(pinch.current);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      pinch.current = { ...twoFingers(), scale: scaleRef.current, from: offsetRef.current };
+      return true;
+    },
+    move(event: ReactPointerEvent<HTMLElement>): boolean {
+      if (!fingers.current.has(event.pointerId)) return false;
+      fingers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const start = pinch.current;
+      if (!start || fingers.current.size < 2) return Boolean(start);
+      const next = pinchView(start, twoFingers());
+      setOffset(next.offset);
+      scaleRef.current = next.scale;
+      setZoom(next.scale);
+      return true;
+    },
+    /** 확대·이동 중이던 손가락이면 true. 남은 손가락으로는 다시 그리지 않는다. */
+    up(event: ReactPointerEvent<HTMLElement>): boolean {
+      if (!fingers.current.delete(event.pointerId)) return false;
+      if (!pinch.current) return false;
+      if (!fingers.current.size) pinch.current = null;
+      return true;
+    },
+  };
+
   const stackStyle: CSSProperties = {
     width: width * scale,
     height: height * scale,
@@ -109,6 +171,7 @@ export function useCanvasViewport(width: number, height: number) {
       setZoom('fit');
     },
     pan,
+    touch,
     panning,
     stackStyle,
   };

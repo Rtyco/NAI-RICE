@@ -240,7 +240,26 @@ export function DrawCanvas(props: {
     cursor.style.transform = `translate(${event.clientX - bounds.left - diameter / 2}px, ${event.clientY - bounds.top - diameter / 2}px)`;
   };
 
+  /** 두 번째 손가락이 닿으면 첫 손가락으로 그리던 획을 되돌린다. */
+  const cancelStroke = () => {
+    if (!active.current) return;
+    active.current = null;
+    context2d(strokeRef.current!).clearRect(0, 0, width, height);
+    const before = undoStack.current.at(-1);
+    if (!before) return;
+    undoStack.current = undoStack.current.slice(0, -1);
+    const context = layer();
+    context.clearRect(0, 0, width, height);
+    context.drawImage(before, 0, 0);
+    setHistoryVersion((version) => version + 1);
+  };
+
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (view.touch.down(event)) {
+      cancelStroke();
+      moveCursor(null);
+      return;
+    }
     if (event.button === 1 || (event.button === 0 && spaceHeld)) {
       view.pan.begin(event);
       moveCursor(null);
@@ -265,7 +284,7 @@ export function DrawCanvas(props: {
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (view.pan.move(event)) return;
+    if (view.touch.move(event) || view.pan.move(event)) return;
     moveCursor(event);
     const brush = active.current;
     if (!brush) return;
@@ -282,7 +301,7 @@ export function DrawCanvas(props: {
   const finish = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
-    if (view.pan.end()) return;
+    if (view.touch.up(event) || view.pan.end()) return;
     const brush = active.current;
     if (!brush) return;
     active.current = null;

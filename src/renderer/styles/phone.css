@@ -58,6 +58,20 @@
   .settings-tabs button {
     flex: none;
   }
+  /* 캔버스 도구는 엄지가 닿는 아래쪽 한 줄, 넘치면 가로로 민다. */
+  .canvas-card > .canvas-toolbar {
+    order: 1;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 7px 0 0;
+    padding-bottom: 2px;
+  }
+  .canvas-card > .canvas-toolbar > * {
+    flex: none;
+  }
+  .canvas-card > .canvas-status {
+    order: 2;
+  }
 }
 
 /* 마우스를 올려야 보이던 버튼은 터치에서 늘 보인다. */

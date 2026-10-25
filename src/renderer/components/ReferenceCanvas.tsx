@@ -332,8 +332,31 @@ export function ReferenceCanvas(props: Props) {
     if (tool === 'transform' && !props.transform) setTool('reference');
   }, [tool, props.transform]);
 
+  /** 두 번째 손가락이 닿으면 첫 손가락으로 그리던 것을 되돌린다. */
+  const cancelDrag = () => {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    lastStampRef.current = null;
+    if (drag?.kind === 'rect' && drag.originalRect) {
+      if (tool === 'reference') props.onReferenceRectChange(drag.originalRect);
+      else props.onOutputRectChange(drag.originalRect);
+    }
+    if (!strokeRef.current) return;
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = 0;
+    strokeRef.current = null;
+    const before = undoStack.at(-1);
+    if (before) setOverrides(Int8Array.from(before));
+    setUndoStack((items) => items.slice(0, -1));
+  };
+
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (transforming) return;
+    if (view.touch.down(event)) {
+      cancelDrag();
+      moveCursor(null);
+      return;
+    }
     if (event.button === 1 || (event.button === 0 && spaceHeld)) {
       view.pan.begin(event);
       moveCursor(null);
@@ -351,7 +374,9 @@ export function ReferenceCanvas(props: Props) {
       return;
     }
     const rect = tool === 'reference' ? props.referenceRect : props.outputRect;
-    const handle = rectHandleAt(rect, point.x, point.y, Math.max(8, 12 * point.scale));
+    // 손가락은 마우스보다 크게 잡는다.
+    const reach = event.pointerType === 'touch' ? 24 : 12;
+    const handle = rectHandleAt(rect, point.x, point.y, Math.max(8, reach * point.scale));
     if (handle) {
       dragRef.current = {
         kind: 'rect',
@@ -365,7 +390,7 @@ export function ReferenceCanvas(props: Props) {
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (transforming) return;
-    if (view.pan.move(event)) return;
+    if (view.touch.move(event) || view.pan.move(event)) return;
     moveCursor(event);
     const drag = dragRef.current;
     if (!drag) return;
@@ -391,7 +416,7 @@ export function ReferenceCanvas(props: Props) {
     if (transforming) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
-    if (view.pan.end()) return;
+    if (view.touch.up(event) || view.pan.end()) return;
     dragRef.current = null;
     lastStampRef.current = null;
     const stroke = strokeRef.current;
