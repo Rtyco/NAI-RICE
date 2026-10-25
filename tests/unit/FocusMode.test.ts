@@ -167,3 +167,43 @@ describe('화면 배치 초기화', () => {
     }
   });
 });
+
+describe('좁은 창', () => {
+  it('확대 비율을 반영한 폭으로 단계를 나누고 히스토리부터 접어', () => {
+    expect([1600, 1280, 1279, 960, 959, 640, 639].map(layout.widthClassOf)).toEqual([
+      'wide',
+      'wide',
+      'medium',
+      'medium',
+      'narrow',
+      'narrow',
+      'phone',
+    ]);
+    expect(layout.widthFolds('medium')).toEqual({ hidden: ['history'], sidebar: 'icons' });
+    expect(layout.widthFolds('phone').sidebar).toBe('hidden');
+  });
+
+  it('저장한 상태는 그대로 두고 덮어 접으며, 다시 열면 그곳만 열리고 넓히면 원래대로', () => {
+    reset();
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(800);
+    expect(layout.sidebarStageOf(state())).toBe('icons');
+    expect(layout.promptPanelStageOf(state())).toBe('hidden');
+    expect(layout.historyShownOf(state())).toBe(false);
+    expect(state().sidebarStage).toBe('open');
+
+    layout.cyclePromptPanel();
+    expect(layout.promptPanelStageOf(state())).toBe('open');
+    expect(layout.historyShownOf(state())).toBe(false);
+    layout.cycleSidebar();
+    expect(layout.sidebarStageOf(state())).toBe('open');
+    expect(state().sidebarStage).toBe('open');
+
+    // 같은 단계 안에서 폭이 바뀌면 연 패널을 다시 접지 않는다.
+    layout.fitToWidth(900);
+    expect(layout.promptPanelStageOf(state())).toBe('open');
+    layout.fitToWidth(1400);
+    expect(layout.historyShownOf(state())).toBe(true);
+    expect(layout.sidebarStageOf(state())).toBe('open');
+  });
+});

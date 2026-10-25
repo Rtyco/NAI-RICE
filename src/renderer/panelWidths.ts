@@ -1,4 +1,5 @@
 import {
+  fitToWidth,
   hasSidePanel,
   historyShownOf,
   libraryListStageOf,
@@ -169,8 +170,12 @@ function fitPanels(first?: PanelId): void {
 }
 
 export function watchPanelFit(): void {
+  fitToWidth(window.innerWidth);
   fitPanels();
-  window.addEventListener('resize', () => fitPanels());
+  window.addEventListener('resize', () => {
+    fitToWidth(window.innerWidth);
+    fitPanels();
+  });
   useLayout.subscribe(() => fitPanels());
   useStore.subscribe((state, prev) => {
     if (state.view !== prev.view || state.detailEmotionId !== prev.detailEmotionId) fitPanels();

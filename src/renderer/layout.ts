@@ -54,11 +54,32 @@ export type LayoutState = {
   topBarCollapsed: boolean;
   /** 집중 모드가 덮어 숨긴 곳. 저장하지 않는다. */
   focusHidden: FocusPart[];
+  /** 창이 좁아 덮어 접은 곳(`widthFolds`). 저장하지 않고, 다시 열면 그곳만 빠진다. */
+  widthHidden: FocusPart[];
+  widthSidebar?: Exclude<PanelStage, 'open'>;
+  widthClass: WidthClass;
   peek?: 'left' | 'right';
   /** 아이콘 폭까지 줄인 패널 */
   compactPanels: PanelId[];
   palettePosition: PalettePosition;
 };
+
+export type WidthClass = 'wide' | 'medium' | 'narrow' | 'phone';
+
+/** CSS px라 확대 비율을 따른다(FHD 200%면 960). 패널 최소 폭과 이미지 칸 `CENTER_MIN`의 합에서 정했다. */
+export function widthClassOf(width: number): WidthClass {
+  return width >= 1280 ? 'wide' : width >= 960 ? 'medium' : width >= 640 ? 'narrow' : 'phone';
+}
+
+export function widthFolds(widthClass: WidthClass): {
+  hidden: FocusPart[];
+  sidebar?: Exclude<PanelStage, 'open'>;
+} {
+  if (widthClass === 'wide') return { hidden: [] };
+  if (widthClass === 'medium') return { hidden: ['history'], sidebar: 'icons' };
+  if (widthClass === 'narrow') return { hidden: ['history', 'leftPanel'], sidebar: 'icons' };
+  return { hidden: ['history', 'leftPanel', 'sidePanel'], sidebar: 'hidden' };
+}
 
 /** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
 export type PalettePosition = { x: number; y: number };
@@ -102,6 +123,8 @@ export const useLayout = create<LayoutState>(() => ({
   sidePanelCollapsed: readFold('sidePanelCollapsed'),
   topBarCollapsed: readFold('topBarCollapsed'),
   focusHidden: [],
+  widthHidden: [],
+  widthClass: 'wide',
   compactPanels: [],
   palettePosition: readPalettePosition(),
 }));
@@ -115,11 +138,18 @@ function nextStage(panel: StagePanel, stage: PanelStage): PanelStage {
 }
 
 const hiddenByFocus = (state: LayoutState, part?: FocusPart) =>
-  part !== undefined && state.focusHidden.includes(part);
+  part !== undefined && (state.focusHidden.includes(part) || state.widthHidden.includes(part));
 
-// 화면에 보이는 모습. 저장한 상태 위에 집중 모드가 덮어쓴다.
-const shownStage = (state: LayoutState, panel: StagePanel): PanelStage =>
-  hiddenByFocus(state, STAGES[panel].part) ? 'hidden' : state[panel];
+const FOLD_ORDER: PanelStage[] = ['open', 'icons', 'hidden'];
+
+// 화면에 보이는 모습. 저장한 상태 위에 집중 모드와 좁은 창이 덮어쓴다.
+function shownStage(state: LayoutState, panel: StagePanel): PanelStage {
+  if (hiddenByFocus(state, STAGES[panel].part)) return 'hidden';
+  const width = panel === 'sidebarStage' ? state.widthSidebar : undefined;
+  return width && FOLD_ORDER.indexOf(width) > FOLD_ORDER.indexOf(state[panel])
+    ? width
+    : state[panel];
+}
 const unfolded = (state: LayoutState, panel: FoldPanel) =>
   !state[panel] && !hiddenByFocus(state, FOLDS[panel].part);
 
@@ -151,11 +181,14 @@ export function stageTitle(
   return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
 }
 
-/** 집중 모드가 숨긴 곳을 열면 그곳만 돌아온다. */
+/** 집중 모드나 좁은 창이 숨긴 곳을 열면 그곳만 돌아온다. */
 function revealFromFocus(part?: FocusPart): boolean {
   const state = get();
   if (!hiddenByFocus(state, part)) return false;
-  set({ focusHidden: state.focusHidden.filter((item) => item !== part) });
+  set({
+    focusHidden: state.focusHidden.filter((item) => item !== part),
+    widthHidden: state.widthHidden.filter((item) => item !== part),
+  });
   return true;
 }
 
@@ -164,8 +197,14 @@ function setStage(panel: StagePanel, stage: PanelStage): void {
   saveUiState(STAGES[panel].key, stage);
 }
 
-/** 집중 모드에서 다시 열 때 저장한 단계가 숨김이면 펼친다. */
+/** 집중 모드에서 다시 열 때 저장한 단계가 숨김이면 펼친다. 좁은 창이 접은 사이드바는 저장한 단계로 돌아온다. */
 function cycleStage(panel: StagePanel): void {
+  const state = get();
+  const widthFolded =
+    panel === 'sidebarStage' &&
+    !hiddenByFocus(state, 'sidebar') &&
+    shownStage(state, panel) !== state[panel];
+  if (widthFolded) return set({ widthSidebar: undefined });
   if (revealFromFocus(STAGES[panel].part)) {
     if (get()[panel] === 'hidden') setStage(panel, 'open');
     return;
@@ -215,6 +254,18 @@ export function toggleFocusMode(): void {
   set({ focusHidden: FOCUS_PARTS[level] });
 }
 
+/** 창 크기 단계가 바뀔 때만 다시 접어, 같은 단계 안에서 연 패널은 그대로 둔다. */
+export function fitToWidth(width: number): void {
+  const widthClass = widthClassOf(width);
+  if (widthClass === get().widthClass) return;
+  set({ widthClass, ...widthState(widthClass) });
+}
+
+function widthState(widthClass: WidthClass) {
+  const folds = widthFolds(widthClass);
+  return { widthHidden: folds.hidden, widthSidebar: folds.sidebar };
+}
+
 export function setPeek(peek?: 'left' | 'right'): void {
   set({ peek });
 }
@@ -241,6 +292,7 @@ export function resetLayout(): void {
     topBarCollapsed: false,
     focusHidden: [],
     peek: undefined,
+    ...widthState(get().widthClass),
     palettePosition: DEFAULT_PALETTE_POSITION,
   });
 }

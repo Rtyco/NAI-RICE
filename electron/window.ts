@@ -69,8 +69,8 @@ export function createWindow(title: string, moduleDirectory: string): void {
   const window = new BrowserWindow({
     width: 1540,
     height: 980,
-    minWidth: 1120,
-    minHeight: 720,
+    minWidth: 480,
+    minHeight: 560,
     backgroundColor: '#0c1424',
     title,
     titleBarStyle: 'hidden',
