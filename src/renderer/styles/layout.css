@@ -153,6 +153,15 @@
 }
 .panel-resizing .app-shell,
 .panel-resizing .library-view,
-.panel-resizing .prompt-panel-view {
+.panel-resizing .prompt-panel-view,
+.panel-resizing .detail-body,
+.panel-resizing .canvas-view {
   transition: none;
+}
+/* 아이콘 폭으로 붙거나 떨어질 때는 끄는 중에도 움직인다. */
+.panel-resizing.panel-snapping .library-view {
+  transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.panel-resizing.panel-snapping .library-view > .panel-resizer {
+  transition: left 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }

@@ -1,6 +1,7 @@
 import type { KeyboardEvent, PointerEvent } from 'react';
 import {
   commitWidth,
+  compactWidth,
   currentWidth,
   lowestWidth,
   PANELS,
@@ -9,9 +10,20 @@ import {
   type PanelId,
 } from '../panelWidths';
 
+let snapTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** 아이콘 폭으로 붙거나 떨어지는 한 번은 grid 애니메이션을 켠다(motion 240ms). */
+function showSnap(): void {
+  const root = document.documentElement;
+  root.classList.add('panel-snapping');
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(() => root.classList.remove('panel-snapping'), 240);
+}
+
 /** 패널을 담은 grid(`position: relative`) 안에 두면 CSS 변수 폭에 맞춰 경계에 붙는다. */
 export function PanelResizer({ panel }: { panel: PanelId }) {
   const { side, max, initial, column } = PANELS[panel];
+  const compact = compactWidth(panel);
 
   const direction = side === 'left' ? 1 : -1;
 
@@ -26,7 +38,9 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
     document.documentElement.classList.add('panel-resizing');
     let width = startWidth;
     const move = (moveEvent: globalThis.PointerEvent) => {
-      width = setWidth(panel, startWidth + (moveEvent.clientX - startX) * direction);
+      const next = setWidth(panel, startWidth + (moveEvent.clientX - startX) * direction);
+      if (compact !== undefined && (next === compact) !== (width === compact)) showSnap();
+      width = next;
     };
     const end = () => {
       handle.removeEventListener('pointermove', move);

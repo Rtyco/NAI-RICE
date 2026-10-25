@@ -71,11 +71,6 @@
   padding: 4px 9px;
   font-size: 12px;
 }
-/* 가장 긴 이름(생성에서 제외)에 맞춘 같은 폭 */
-.toolbar-zone.active > button {
-  min-width: 9em;
-  justify-content: center;
-}
 .stepper {
   display: inline-flex;
   align-items: center;

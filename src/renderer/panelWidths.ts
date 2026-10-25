@@ -78,6 +78,8 @@ const storageKey = (panel: PanelId) => `panel-width:${panel}`;
 
 export const lowestWidth = (panel: PanelId) => spec(panel).compact ?? spec(panel).min;
 
+export const compactWidth = (panel: PanelId) => spec(panel).compact;
+
 /** 최소 폭과 아이콘 폭의 가운데보다 좁히면 아이콘 폭으로 붙고, 그 사이 폭은 없다. */
 export function snapWidth(panel: PanelId, width: number): number {
   const { min, max, compact } = spec(panel);

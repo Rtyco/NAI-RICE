@@ -1,7 +1,13 @@
 /* ── 움직임 ─────────────────────────────────── */
 .app-shell,
-.library-view {
+.library-view,
+.detail-body,
+.canvas-view {
   transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.detail-body > .detail-side,
+.canvas-view > .canvas-settings {
+  animation: fade-in 220ms ease 120ms both;
 }
 .library-list {
   overflow: hidden;

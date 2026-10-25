@@ -354,14 +354,13 @@ export function GalleryView({
         {selection.selected.size > 0 ? (
           <section className="toolbar-zone active" aria-label="고른 카드">
             <b className="zone-count">카드 {selection.selected.size}개</b>
-            <span className="zone-divider" />
             <button
               className="with-icon"
               title="고른 씬을 일괄 생성에 포함"
               disabled={pickedIds.every((id) => !excluded.has(id))}
               onClick={() => setPickedExcluded(false)}
             >
-              <Icon name="check-square" size={14} /> 생성에 포함
+              <Icon name="check-square" size={14} /> 생성 포함
             </button>
             <button
               className="with-icon"
@@ -369,9 +368,8 @@ export function GalleryView({
               disabled={pickedIds.every((id) => excluded.has(id))}
               onClick={() => setPickedExcluded(true)}
             >
-              <Icon name="square" size={14} /> 생성에서 제외
+              <Icon name="square" size={14} /> 생성 제외
             </button>
-            <span className="zone-divider" />
             <button
               className="with-icon"
               title="고른 씬의 대표 이미지 다듬기 (i2i)"
@@ -396,7 +394,7 @@ export function GalleryView({
                 )
               }
             >
-              <Icon name="eraser" size={14} /> 결과만 삭제
+              <Icon name="eraser" size={14} /> 결과 삭제
             </button>
             <button
               className="with-icon danger-quiet"
@@ -404,7 +402,6 @@ export function GalleryView({
             >
               <Icon name="trash" size={14} /> 씬 삭제
             </button>
-            <span className="zone-divider" />
             <button className="with-icon" title="고르기 취소 (Esc)" onClick={selection.clear}>
               <Icon name="close" size={14} /> 고르기 취소
             </button>
