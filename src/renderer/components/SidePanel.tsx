@@ -39,6 +39,7 @@ export function SidePanelToggle() {
       title={label}
       aria-label={label}
       aria-pressed={shown}
+      data-panel-toggle
       onClick={toggleSidePanel}
     >
       <Icon name="input-panel" size={18} />

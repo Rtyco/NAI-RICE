@@ -309,6 +309,7 @@
   top: 0;
   bottom: 0;
   z-index: 45;
+  max-width: calc(100vw - 40px);
   box-shadow: 0 0 28px #000a;
   animation: fade-in 120ms ease both;
 }

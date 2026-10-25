@@ -84,6 +84,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
       className="icon-button"
       title={listTitle}
       aria-label={listTitle}
+      data-panel-toggle
       onClick={cycleLibraryList}
     >
       <Icon name={info.icon} size={18} />

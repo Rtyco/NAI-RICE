@@ -53,16 +53,36 @@ export function EdgePeek() {
   const sidePanel = useStore(hasSidePanel);
   const { left, right } = useLayout(useShallow((state) => edges(kind, sidePanel, state)));
   const peek = useLayout((state) => state.peek);
+  const pinned = useLayout((state) => Boolean(state.peekPinned));
   const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
-    if (!enabled || (peek === 'left' && !left) || (peek === 'right' && !right)) setPeek();
-  }, [enabled, peek, left, right]);
+    if ((!enabled && !pinned) || (peek === 'left' && !left) || (peek === 'right' && !right))
+      setPeek();
+  }, [enabled, pinned, peek, left, right]);
 
   useEffect(() => () => clearTimeout(openTimer.current), []);
 
   useEffect(() => {
-    if (!peek) return;
+    if (!peek || !pinned) return;
+    const onDown = (event: PointerEvent) => {
+      // 패널 버튼은 눌렀을 때 직접 닫는다.
+      const target = event.target as Element | null;
+      if (!target?.closest?.(`${KEEP_OPEN}, [data-panel-toggle]`)) setPeek();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPeek();
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [peek, pinned]);
+
+  useEffect(() => {
+    if (!peek || pinned) return;
     let closeTimer: ReturnType<typeof setTimeout> | undefined;
     const onMove = (event: PointerEvent) => {
       clearTimeout(closeTimer);
@@ -74,7 +94,7 @@ export function EdgePeek() {
       document.removeEventListener('pointermove', onMove);
       clearTimeout(closeTimer);
     };
-  }, [peek]);
+  }, [peek, pinned]);
 
   if (!enabled) return null;
   const strip = (side: Side, offset: string) => (

@@ -192,18 +192,50 @@ describe('좁은 창', () => {
     expect(layout.historyShownOf(state())).toBe(false);
     expect(state().sidebarStage).toBe('open');
 
-    layout.cyclePromptPanel();
+    // 960~1279에서는 겹치지 않고 그 자리에 다시 연다.
+    layout.fitToWidth(1100);
     expect(layout.promptPanelStageOf(state())).toBe('open');
-    expect(layout.historyShownOf(state())).toBe(false);
+    layout.toggleHistory();
+    expect(layout.historyShownOf(state())).toBe(true);
+    expect(state().peek).toBeUndefined();
     layout.cycleSidebar();
     expect(layout.sidebarStageOf(state())).toBe('open');
     expect(state().sidebarStage).toBe('open');
 
     // 같은 단계 안에서 폭이 바뀌면 연 패널을 다시 접지 않는다.
-    layout.fitToWidth(900);
-    expect(layout.promptPanelStageOf(state())).toBe('open');
+    layout.fitToWidth(1000);
+    expect(layout.historyShownOf(state())).toBe(true);
     layout.fitToWidth(1400);
     expect(layout.historyShownOf(state())).toBe(true);
     expect(layout.sidebarStageOf(state())).toBe('open');
+  });
+});
+
+describe('좁은 창에서 겹쳐 열기', () => {
+  it('960px 아래에서 접힌 패널 버튼은 레이아웃을 밀지 않고 겹쳐 열고, 다시 누르면 닫아', () => {
+    reset();
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(800);
+    layout.cyclePromptPanel();
+    expect(state()).toMatchObject({ peek: 'left', peekPinned: true });
+    expect(layout.promptPanelStageOf(state())).toBe('hidden');
+    layout.cyclePromptPanel();
+    expect(state().peek).toBeUndefined();
+
+    layout.toggleHistory();
+    expect(state()).toMatchObject({ peek: 'right', peekPinned: true });
+    expect(state().historyCollapsed).toBe(false);
+    layout.fitToWidth(1400);
+    expect(state().peek).toBeUndefined();
+  });
+
+  it('휴대폰 폭에서는 숨은 사이드바도 겹쳐 열어', () => {
+    reset();
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(400);
+    expect(layout.sidebarStageOf(state())).toBe('hidden');
+    layout.cycleSidebar();
+    expect(state()).toMatchObject({ peek: 'left', peekPinned: true });
+    expect(state().sidebarStage).toBe('open');
   });
 });

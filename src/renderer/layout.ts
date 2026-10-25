@@ -59,6 +59,8 @@ export type LayoutState = {
   widthSidebar?: Exclude<PanelStage, 'open'>;
   widthClass: WidthClass;
   peek?: 'left' | 'right';
+  /** 좁은 창에서 버튼으로 연 겹친 패널. 마우스가 벗어나도 닫지 않고 바깥을 누르거나 Esc로 닫는다. */
+  peekPinned?: boolean;
   /** 아이콘 폭까지 줄인 패널 */
   compactPanels: PanelId[];
   palettePosition: PalettePosition;
@@ -197,8 +199,23 @@ function setStage(panel: StagePanel, stage: PanelStage): void {
   saveUiState(STAGES[panel].key, stage);
 }
 
+const overlaid = (state: LayoutState) =>
+  state.widthClass === 'narrow' || state.widthClass === 'phone';
+
+/** 좁은 창이 접은 곳은 레이아웃을 밀지 않도록 위에 겹쳐 연다. 다시 누르면 닫는다. */
+function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): boolean {
+  const state = get();
+  if (!part || !overlaid(state) || state.focusHidden.includes(part)) return false;
+  const sidebar = part === 'sidebar' && state.widthSidebar === 'hidden';
+  if (!sidebar && !state.widthHidden.includes(part)) return false;
+  const open = !(state.peek === side && state.peekPinned);
+  set({ peek: open ? side : undefined, peekPinned: open });
+  return true;
+}
+
 /** 집중 모드에서 다시 열 때 저장한 단계가 숨김이면 펼친다. 좁은 창이 접은 사이드바는 저장한 단계로 돌아온다. */
 function cycleStage(panel: StagePanel): void {
+  if (overlayFromWidth(STAGES[panel].part, 'left')) return;
   const state = get();
   const widthFolded =
     panel === 'sidebarStage' &&
@@ -213,6 +230,7 @@ function cycleStage(panel: StagePanel): void {
 }
 
 function toggleFold(panel: FoldPanel): void {
+  if (overlayFromWidth(FOLDS[panel].part, 'right')) return;
   if (revealFromFocus(FOLDS[panel].part) && !get()[panel]) return;
   const collapsed = !get()[panel];
   set({ [panel]: collapsed });
@@ -258,7 +276,7 @@ export function toggleFocusMode(): void {
 export function fitToWidth(width: number): void {
   const widthClass = widthClassOf(width);
   if (widthClass === get().widthClass) return;
-  set({ widthClass, ...widthState(widthClass) });
+  set({ widthClass, ...widthState(widthClass), peek: undefined, peekPinned: false });
 }
 
 function widthState(widthClass: WidthClass) {
@@ -267,7 +285,7 @@ function widthState(widthClass: WidthClass) {
 }
 
 export function setPeek(peek?: 'left' | 'right'): void {
-  set({ peek });
+  set({ peek, peekPinned: false });
 }
 
 export function movePalette(palettePosition: PalettePosition): void {
@@ -292,6 +310,7 @@ export function resetLayout(): void {
     topBarCollapsed: false,
     focusHidden: [],
     peek: undefined,
+    peekPinned: false,
     ...widthState(get().widthClass),
     palettePosition: DEFAULT_PALETTE_POSITION,
   });

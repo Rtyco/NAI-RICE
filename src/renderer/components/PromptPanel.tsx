@@ -350,6 +350,7 @@ export function PromptPanelToggle() {
       className="icon-button"
       title={stageTitle('프롬프트 패널', 'promptPanelStage', 'hidden', 'F7')}
       aria-label={stageTitle('프롬프트 패널', 'promptPanelStage', 'hidden')}
+      data-panel-toggle
       onClick={cyclePromptPanel}
     >
       <Icon name="prompt" size={18} />

@@ -127,6 +127,7 @@ export function HistoryToggle() {
       className="icon-button"
       aria-label="히스토리 열기"
       title="히스토리 열기 (F8)"
+      data-panel-toggle
       onClick={toggleHistory}
     >
       <Icon name="panel-right" size={18} />

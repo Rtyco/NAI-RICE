@@ -47,6 +47,7 @@ export function TitleBar() {
         className="icon-button titlebar-toggle"
         title={stageTitle('사이드바', 'sidebarStage', sidebar, 'Ctrl+B')}
         aria-label={stageTitle('사이드바', 'sidebarStage', sidebar)}
+        data-panel-toggle
         onClick={cycleSidebar}
       >
         <Icon name="sidebar" size={16} />
