@@ -5,8 +5,10 @@ import { AidChip } from '../../components/AidChip';
 import { ChecklistChip, SizeChip } from '../../components/ChainChip';
 import { CharacterChip } from '../../components/CharacterChip';
 import { PositionChip } from '../../components/CharacterPositions';
+import { RefineChip } from '../../components/RefineChip';
 import { TopBarToggle } from '../../components/TopBarToggle';
 import { useChipNames } from '../../components/useChipNames';
+import { freeRefineTarget } from '../../refineTargets';
 import { updateFreeGeneration } from '../../store';
 
 /** 접으면 같은 칩들을 화면 머리줄 안에 작게 둔다. */
@@ -45,6 +47,7 @@ export function FreeChainBar(props: {
         model={preset?.generation.model}
         inpaint={free.mode === 'img2img' && free.inpaint}
       />
+      {free.mode !== 'augment' && <RefineChip target={freeRefineTarget(free, preset)} />}
       <TopBarToggle collapsed={props.compact} />
     </div>
   );

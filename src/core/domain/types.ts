@@ -470,6 +470,9 @@ export type FreeGeneration = {
   characterReferenceIds: string[];
   vibeIds: string[];
   normalizeVibes?: boolean;
+  /** `Project`와 같다. 디렉터 툴에는 쓰지 않는다. */
+  refine?: RefineSettings;
+  autoRefine?: boolean;
 };
 
 /** 파일은 `sources/`. NovelAI는 64 배수 크기만 받아 오른쪽·아래에 여백을 넣고, 결과에서는 `outputRect`만 남긴다. */

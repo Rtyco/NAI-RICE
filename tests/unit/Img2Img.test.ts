@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import type { GenerationRecord } from '../../src/core/domain/types';
 import { buildResultImg2ImgJobs } from '../../src/core/jobs/JobBuilder';
-import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
+import { createDefaultLibrary, DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
 import {
   autoRefineCount,
   defaultRefineSettings,
+  freeAutoRefine,
+  freeRefineSettings,
+  freeRefineSource,
   projectRefineSettings,
   refineShortSummary,
   refineSummary,
   refineTarget,
 } from '../../src/core/model/refine';
-import { generationEnqueueRequestSchema, projectSchema } from '../../src/core/validation/schemas';
+import {
+  generationEnqueueRequestSchema,
+  librarySchema,
+  projectSchema,
+} from '../../src/core/validation/schemas';
 
 const image = { imagePath: `inputs/${'a'.repeat(64)}.png`, imageSha256: 'a'.repeat(64) };
 
@@ -140,6 +147,35 @@ describe('다듬기 설정', () => {
     expect(refineShortSummary(other)).toBe('V4.5F 0.30');
     expect(refineSummary(other)).toBe('V4.5 Full · 세기 0.30 · 프롬프트 없이');
     expect(refineShortSummary({ ...other, model: '' })).toBe('0.30');
+  });
+
+  it('자유 생성은 i2i 이미지 영역이나 생성 설정 크기로 시작하고, 디렉터 툴은 다듬지 않아', () => {
+    const preset = { generation: DEFAULT_GENERATION_SETTINGS };
+    const image = {
+      name: 'a',
+      file: 'a.png',
+      width: 640,
+      height: 960,
+      outputRect: { x: 0, y: 0, width: 600, height: 900 },
+    };
+    expect(freeRefineSource({ mode: 'img2img', image }, preset)).toEqual({
+      width: 600,
+      height: 900,
+    });
+    expect(freeRefineSource({ mode: 'txt2img', image }, preset)).toEqual({
+      width: DEFAULT_GENERATION_SETTINGS.width,
+      height: DEFAULT_GENERATION_SETTINGS.height,
+    });
+    expect(freeAutoRefine({ mode: 'txt2img', autoRefine: true }, preset)).toBeDefined();
+    expect(freeAutoRefine({ mode: 'augment', image, autoRefine: true }, preset)).toBeUndefined();
+    expect(freeAutoRefine({ mode: 'txt2img' }, preset)).toBeUndefined();
+    const library = createDefaultLibrary();
+    const refine = freeRefineSettings({ mode: 'txt2img' }, preset);
+    const parsed = librarySchema.parse({
+      ...library,
+      freeGeneration: { ...library.freeGeneration, refine, autoRefine: true },
+    });
+    expect(parsed.freeGeneration).toMatchObject({ refine, autoRefine: true });
   });
 
   it('자동 다듬기 장수는 켰을 때만 결과마다 장수를 곱해', () => {

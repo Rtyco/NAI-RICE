@@ -4,7 +4,14 @@ import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/d
 import { defaultRefineSettings, refineCostJob } from '../../core/model/refine';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { sendResultsToImg2Img } from '../actions';
-import { projectMedia, resolveFreeGeneration, updateProject, useLibrary, useStore } from '../store';
+import {
+  projectMedia,
+  resolveFreeGeneration,
+  updateFreeGeneration,
+  updateProject,
+  useLibrary,
+  useStore,
+} from '../store';
 import { Modal } from './Dialogs';
 import { RefineFields } from './RefineFields';
 
@@ -16,6 +23,8 @@ export function Img2ImgDialog(props: {
   const library = useLibrary();
   const token = useStore((state) => state.token);
   const project = library.projects.find((item) => item.id === props.projectId);
+  const free = props.projectId === FREE_PROJECT_ID ? library.freeGeneration : undefined;
+  const saved = project ?? free;
   const preset =
     props.projectId === FREE_PROJECT_ID
       ? resolveFreeGeneration(library).preset
@@ -25,9 +34,9 @@ export function Img2ImgDialog(props: {
   );
   const first = props.records[0];
   const [options, setOptions] = useState<RefineSettings>(
-    () => project?.refine ?? defaultRefineSettings(generation, first),
+    () => saved?.refine ?? defaultRefineSettings(generation, first),
   );
-  const [autoRefine, setAutoRefine] = useState(Boolean(project?.autoRefine));
+  const [autoRefine, setAutoRefine] = useState(Boolean(saved?.autoRefine));
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
   const costJobs = props.records.map((record) =>
@@ -41,6 +50,7 @@ export function Img2ImgDialog(props: {
     props.close();
     if (project)
       updateProject(project.id, (current) => ({ ...current, refine: options, autoRefine }));
+    else if (free) updateFreeGeneration({ refine: options, autoRefine });
     void sendResultsToImg2Img(props.projectId, props.records, options);
   };
 
@@ -76,7 +86,7 @@ export function Img2ImgDialog(props: {
         {props.records.length > 12 && <p className="hint">외 {props.records.length - 12}장</p>}
       </div>
       <RefineFields value={options} sources={props.records} onChange={setOptions} />
-      {project && (
+      {saved && (
         <>
           <label className="toggle-field">
             <input
@@ -84,9 +94,9 @@ export function Img2ImgDialog(props: {
               checked={autoRefine}
               onChange={(event) => setAutoRefine(event.target.checked)}
             />
-            <span>씬을 생성할 때마다 자동으로 다듬기</span>
+            <span>{project ? '씬을 생성할 때마다' : '생성할 때마다'} 자동으로 다듬기</span>
           </label>
-          <p className="hint">이 작업의 다듬기 설정으로 저장됩니다.</p>
+          <p className="hint">{project ? '이 작업' : '자유 생성'}의 다듬기 설정으로 저장됩니다.</p>
         </>
       )}
     </Modal>

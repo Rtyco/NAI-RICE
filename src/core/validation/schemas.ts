@@ -507,6 +507,8 @@ export const librarySchema = z.object({
           })
           .optional(),
         inpaint: z.boolean().default(false),
+        refine: refineSettingsSchema.optional().catch(undefined),
+        autoRefine: z.boolean().optional().catch(undefined),
         augment: z
           .object({
             tool: augmentToolSchema,

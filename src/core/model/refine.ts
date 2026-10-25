@@ -1,4 +1,5 @@
 import type {
+  FreeGeneration,
   GenerationSettings,
   Preset,
   Project,
@@ -100,6 +101,34 @@ export function autoRefineCount(
   reference: ProjectParts[2],
 ): number {
   return project.autoRefine ? images * projectRefineSettings(project, preset, reference).count : 0;
+}
+
+type FreeParts = [
+  free: Pick<FreeGeneration, 'mode' | 'image' | 'refine' | 'autoRefine'>,
+  preset: Pick<Preset, 'generation'> | undefined,
+];
+
+/** i2i는 여백을 잘라 낸 이미지 영역, 일반 생성은 생성 설정의 크기. */
+export function freeRefineSource(...[free, preset]: FreeParts): Size {
+  const { width, height } =
+    (free.mode === 'img2img' ? free.image?.outputRect : undefined) ??
+    normalizeGenerationSettings(preset?.generation ?? DEFAULT_GENERATION_SETTINGS);
+  return { width, height };
+}
+
+export function freeRefineSettings(...[free, preset]: FreeParts): RefineSettings {
+  return (
+    free.refine ??
+    defaultRefineSettings(
+      normalizeGenerationSettings(preset?.generation ?? DEFAULT_GENERATION_SETTINGS),
+      freeRefineSource(free, preset),
+    )
+  );
+}
+
+/** 디렉터 툴 결과는 다듬지 않는다. */
+export function freeAutoRefine(...[free, preset]: FreeParts): RefineSettings | undefined {
+  return free.autoRefine && free.mode !== 'augment' ? freeRefineSettings(free, preset) : undefined;
 }
 
 /** 예상 Anlas용. `generation`은 원본 결과의 설정. */

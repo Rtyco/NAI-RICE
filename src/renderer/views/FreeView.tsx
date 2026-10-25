@@ -7,6 +7,7 @@ import {
   FREE_PROJECT_ID,
   projectAid,
 } from '../../core/model/defaults';
+import { freeAutoRefine, freeRefineSource, refineCostJob } from '../../core/model/refine';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, noInpaintReason, supportsInpaint } from '../../core/providers/NaiModels';
@@ -19,6 +20,7 @@ import { HistoryToggle } from '../components/HistoryPanel';
 import { PaletteButton } from '../components/FloatingPalette';
 import { SidePanelLayout, SidePanelToggle } from '../components/SidePanel';
 import { PromptPanelToggle } from '../components/PromptPanel';
+import { AutoRefineToggle } from '../components/RefineChip';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
@@ -43,6 +45,7 @@ import {
   useLibrary,
   useStore,
 } from '../store';
+import { freeRefineTarget } from '../refineTargets';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { FreeChainBar } from './free/FreeChainBar';
@@ -124,15 +127,27 @@ export function FreeView() {
         canvasHeight: image?.height ?? generation.height,
         aid: projectAid(library, free),
       };
+  const refine = freeAutoRefine(free, preset);
+  const refineCost =
+    refine && generation && refineCostJob(refine, generation, freeRefineSource(free, preset));
   const runs = director ? augment.count : free.count;
   const sourceLabel = director ? '디렉터 툴 이미지' : 'i2i 이미지';
-  const estimate = costJob ? estimateJobAnlas(costJob, token) * runs : undefined;
-  const costReasons = costJob ? generationCostWarnings([costJob], token) : [];
+  const estimate = costJob
+    ? estimateJobAnlas(costJob, token) * runs +
+      (refineCost ? estimateJobAnlas(refineCost, token) * runs * refine.count : 0)
+    : undefined;
+  const costReasons = costJob
+    ? generationCostWarnings(refineCost ? [costJob, refineCost] : [costJob], token)
+    : [];
   const inpaintModelMissing = inpainting && preset && !supportsInpaint(preset.generation.model);
   const canGenerate = director
     ? Boolean(image)
     : Boolean(preset) && (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
-  const generateLabel = director ? `${runs}번 적용` : `${free.count}장 생성`;
+  const generateLabel = director
+    ? `${runs}번 적용`
+    : refine
+      ? `${free.count}장 + 다듬기 ${free.count * refine.count}장`
+      : `${free.count}장 생성`;
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
@@ -245,6 +260,7 @@ export function FreeView() {
       )}
 
       <div className="generate-dock">
+        {!director && <AutoRefineToggle target={freeRefineTarget(free, preset)} />}
         {!director && (
           <NumberField
             label="장수"

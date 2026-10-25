@@ -24,7 +24,7 @@ import {
 } from '../core/providers/NaiAugment';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
-import { projectRefineSettings, refineTarget } from '../core/model/refine';
+import { freeAutoRefine, projectRefineSettings, refineTarget } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
@@ -214,7 +214,11 @@ export function generateFree(
       image,
       aid: await prepareAid(library, free, FREE_PROJECT_ID),
     });
-    await enqueue(jobs, `${jobs.length}장을 생성 큐에 등록했습니다.`);
+    const refine = freeAutoRefine(free, preset);
+    await enqueue(
+      refine ? jobs.map((job) => ({ ...job, refine })) : jobs,
+      `${jobs.length}장을 생성 큐에 등록했습니다.`,
+    );
   }).then(() => undefined);
 }
 

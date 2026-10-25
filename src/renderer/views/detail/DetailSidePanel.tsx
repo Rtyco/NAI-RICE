@@ -11,6 +11,7 @@ import { SceneExtras } from '../../components/SceneExtras';
 import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
 import { NumberField } from '../../components/ui';
 import { patchEmotion } from '../../emotionOps';
+import { projectRefineTarget } from '../../refineTargets';
 import { setDetailSideView, updateProject, useStore } from '../../store';
 
 export function DetailSidePanel({
@@ -121,7 +122,7 @@ export function DetailSidePanel({
       </label>
 
       <div className="generate-dock">
-        <AutoRefineToggle resolved={resolved} />
+        <AutoRefineToggle target={projectRefineTarget(resolved)} />
         <NumberField
           label="생성 수"
           value={variants}

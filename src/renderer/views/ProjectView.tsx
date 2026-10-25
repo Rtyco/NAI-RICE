@@ -43,6 +43,7 @@ import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { RefineChip } from '../components/RefineChip';
 import { useChipNames } from '../components/useChipNames';
+import { projectRefineTarget } from '../refineTargets';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
@@ -186,7 +187,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
         onPick={(emotionSetId) => patch({ emotionSetId })}
         editSection="emotionSets"
       />
-      <RefineChip resolved={resolved} />
+      <RefineChip target={projectRefineTarget(resolved)} />
       <TopBarToggle collapsed={Boolean(compact)} />
     </div>
   );
