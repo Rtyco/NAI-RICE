@@ -1,0 +1,79 @@
+/* ── 휴대폰 폭·터치 ──────────────────────────── */
+/* 640px는 layout.ts의 widthClassOf 'phone'과 같다. 확대 비율을 따르는 CSS px다. */
+@media (max-width: 639px) {
+  .titlebar-version,
+  .titlebar-location {
+    display: none;
+  }
+  .queue-summary {
+    flex-wrap: wrap;
+  }
+  .bottom-slot {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .bottom-slot:not(:empty)::before {
+    display: none;
+  }
+  .queue-summary .bottom-slot .generate-button {
+    flex: 1;
+  }
+  .emotion-grid {
+    --gallery-columns: 2 !important;
+  }
+  .gallery-columns {
+    display: none;
+  }
+  .modal,
+  .modal.wide,
+  .modal.large {
+    width: 100vw;
+    max-height: calc(100vh - var(--titlebar-height));
+    margin-top: var(--titlebar-height);
+    border-radius: 0;
+  }
+  .modal.large {
+    height: calc(100vh - var(--titlebar-height));
+  }
+  .four-column-fields,
+  .four-column-fields.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .two-column-fields,
+  .account-cards,
+  .tag-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 설정 탭은 위쪽 가로 한 줄로 */
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100vh - var(--titlebar-height) - 120px);
+  }
+  .settings-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .settings-tabs button {
+    flex: none;
+  }
+}
+
+/* 마우스를 올려야 보이던 버튼은 터치에서 늘 보인다. */
+@media (hover: none) {
+  .chain-chip-edit,
+  .checklist-edit,
+  .prompt-cell > .expand-text-button,
+  .scene-slot-head .row-remove,
+  .scene-option-head .row-remove,
+  .scene-option-table .row-remove {
+    opacity: 1;
+  }
+}
+@media (pointer: coarse) {
+  .icon-button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

@@ -448,7 +448,11 @@ export function GalleryView({
               </button>
             ))}
           </span>
-          <span className="segmented" role="group" aria-label="한 줄에 보일 카드 수">
+          <span
+            className="segmented gallery-columns"
+            role="group"
+            aria-label="한 줄에 보일 카드 수"
+          >
             {GALLERY_COLUMN_CHOICES.map((choice) => (
               <button
                 key={choice}
@@ -497,7 +501,7 @@ export function GalleryView({
         className="emotion-grid"
         style={
           {
-            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            '--gallery-columns': columns,
             '--thumb-aspect': GALLERY_ASPECTS.find((item) => item.id === aspect)?.ratio,
           } as CSSProperties
         }

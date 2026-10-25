@@ -80,7 +80,7 @@ export function widthFolds(widthClass: WidthClass): {
   if (widthClass === 'wide') return { hidden: [] };
   if (widthClass === 'medium') return { hidden: ['history'], sidebar: 'icons' };
   if (widthClass === 'narrow') return { hidden: ['history', 'leftPanel'], sidebar: 'icons' };
-  return { hidden: ['history', 'leftPanel', 'sidePanel'], sidebar: 'hidden' };
+  return { hidden: ['history', 'leftPanel', 'sidePanel', 'topBar'], sidebar: 'hidden' };
 }
 
 /** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
@@ -205,7 +205,8 @@ const overlaid = (state: LayoutState) =>
 /** 좁은 창이 접은 곳은 레이아웃을 밀지 않도록 위에 겹쳐 연다. 다시 누르면 닫는다. */
 function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): boolean {
   const state = get();
-  if (!part || !overlaid(state) || state.focusHidden.includes(part)) return false;
+  if (!part || part === 'topBar' || !overlaid(state) || state.focusHidden.includes(part))
+    return false;
   const sidebar = part === 'sidebar' && state.widthSidebar === 'hidden';
   if (!sidebar && !state.widthHidden.includes(part)) return false;
   const open = !(state.peek === side && state.peekPinned);
