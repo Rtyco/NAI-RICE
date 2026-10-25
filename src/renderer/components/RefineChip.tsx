@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import type { RefineSettings } from '../../core/domain/types';
+import type { RefinePrompt, RefineSettings } from '../../core/domain/types';
 import type { ResolvedProject } from '../../core/model/defaults';
-import { projectRefineSettings, refineSource, refineSummary } from '../../core/model/refine';
+import {
+  projectRefineSettings,
+  refineShortSummary,
+  refineSource,
+  refineSummary,
+} from '../../core/model/refine';
 import { updateProject } from '../store';
 import { ChecklistChip } from './ChainChip';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
+import { Icon, type IconName } from './Icon';
 import { RefineFields } from './RefineFields';
 
 function RefineSettingsDialog(props: {
@@ -39,9 +45,17 @@ function RefineSettingsDialog(props: {
   );
 }
 
+const PROMPT_ICONS: Record<RefinePrompt, IconName | undefined> = {
+  source: undefined,
+  'negative-only': 'prompt-negative',
+  empty: 'empty',
+  custom: 'pen',
+};
+
 export function RefineChip({ resolved }: { resolved: ResolvedProject }) {
   const { project, preset, reference } = resolved;
   const settings = projectRefineSettings(project, preset, reference);
+  const promptIcon = PROMPT_ICONS[settings.prompt];
   const openSettings = () =>
     void openDialog((close) => (
       <RefineSettingsDialog
@@ -53,8 +67,16 @@ export function RefineChip({ resolved }: { resolved: ResolvedProject }) {
     ));
   return (
     <ChecklistChip
-      label={{ text: '생성 후 다듬기', icon: 'upscale', usage: '작업에 저장' }}
+      label={{ text: '자동 다듬기', icon: 'upscale', usage: '작업에 저장' }}
       value={project.autoRefine ? refineSummary(settings) : '끔'}
+      display={
+        project.autoRefine ? (
+          <>
+            {refineShortSummary(settings)}
+            {promptIcon && <Icon name={promptIcon} size={13} className="chain-value-icon" />}
+          </>
+        ) : undefined
+      }
       items={[
         { id: 'off', name: '끔' },
         { id: 'on', name: `켬 · ${refineSummary(settings)}` },

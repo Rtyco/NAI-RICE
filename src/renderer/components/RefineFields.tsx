@@ -23,7 +23,7 @@ function presetIdOf(size: Size): string | undefined {
     ?.id;
 }
 
-/** 다듬기 창과 생성 후 다듬기 설정이 함께 쓴다. `sources`는 다듬을 결과 크기(모르면 빈 배열). */
+/** 다듬기 창과 자동 다듬기 설정이 함께 쓴다. `sources`는 다듬을 결과 크기(모르면 빈 배열). */
 export function RefineFields(props: {
   value: RefineSettings;
   sources: Size[];

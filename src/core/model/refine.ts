@@ -8,7 +8,7 @@ import type {
 } from '../domain/types';
 import { RESOLUTION_PRESETS } from '../imaging/CanvasLayout';
 import { RATIO_SIZES, ratioError, type Size } from '../imaging/FreeSize';
-import { modelLabel } from '../providers/NaiModels';
+import { modelLabel, modelShortLabel } from '../providers/NaiModels';
 import {
   DEFAULT_GENERATION_SETTINGS,
   effectiveGenerationSettings,
@@ -51,7 +51,7 @@ const PROMPT_SUMMARY: Record<RefinePrompt, string> = {
   custom: '프롬프트 직접 입력',
 };
 
-/** 칩에 보이는 값. */
+/** 칩 툴팁과 고르기 창에 보이는 값. */
 export function refineSummary(settings: RefineSettings): string {
   return [
     settings.model ? modelLabel(settings.model).replace(/^NAI Diffusion /, '') : '같은 모델',
@@ -60,6 +60,13 @@ export function refineSummary(settings: RefineSettings): string {
   ]
     .filter(Boolean)
     .join(' · ');
+}
+
+/** 칩에 보이는 짧은 값. 원본과 같은 모델이면 모델을 뺀다. 프롬프트 방식은 아이콘으로 따로 보인다. */
+export function refineShortSummary(settings: RefineSettings): string {
+  return [settings.model ? modelShortLabel(settings.model) : '', settings.strength.toFixed(2)]
+    .filter(Boolean)
+    .join(' ');
 }
 
 type ProjectParts = [

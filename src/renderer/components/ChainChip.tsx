@@ -227,6 +227,8 @@ export function ChecklistChip(props: {
   edit?: ChainEdit;
   iconAction?: ChainIconAction;
   value: string;
+  /** 칩에 `value` 대신 보인다. `value`는 툴팁에 남는다. */
+  display?: ReactNode;
   thumb?: string;
   items: ChecklistItem[];
   checked: string[];
@@ -327,7 +329,7 @@ export function ChecklistChip(props: {
         onClick={() => (anchor ? close() : setAnchor(chip.current))}
       >
         {props.thumb && <img className="chain-thumb" src={props.thumb} alt="" />}
-        <span>{props.value}</span>
+        <span>{props.display ?? props.value}</span>
         <Icon name="chevron" size={12} className="rotate-down" />
       </button>
       {anchor && (

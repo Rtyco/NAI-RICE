@@ -87,6 +87,18 @@ const ICONS = {
       <path d="M7 9h10M7 13h10M7 17h5" />
     </>
   ),
+  'prompt-negative': (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M8 12h8" />
+    </>
+  ),
+  empty: (
+    <>
+      <circle cx="12" cy="12" r="7.5" />
+      <path d="M5 19 19 5" />
+    </>
+  ),
   keyboard: (
     <>
       <rect x="3" y="6" width="18" height="12" rx="2" />

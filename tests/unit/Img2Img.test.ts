@@ -5,6 +5,8 @@ import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
 import {
   defaultRefineSettings,
   projectRefineSettings,
+  refineShortSummary,
+  refineSummary,
   refineTarget,
 } from '../../src/core/model/refine';
 import { generationEnqueueRequestSchema, projectSchema } from '../../src/core/validation/schemas';
@@ -124,6 +126,19 @@ describe('다듬기 설정', () => {
     );
     expect(settings).toMatchObject({ size: { width: 832, height: 1216 }, strength: 0.45 });
     expect(refineTarget('closest-ratio', 608, 832).width).toBeLessThan(1024);
+  });
+
+  it('칩 값은 모델 약칭과 세기만, 원본과 같은 모델이면 세기만', () => {
+    const base = defaultRefineSettings(DEFAULT_GENERATION_SETTINGS, { width: 832, height: 1216 });
+    const other = {
+      ...base,
+      model: 'nai-diffusion-4-5-full-inpainting',
+      strength: 0.3,
+      prompt: 'empty' as const,
+    };
+    expect(refineShortSummary(other)).toBe('V4.5F 0.30');
+    expect(refineSummary(other)).toBe('V4.5 Full · 세기 0.30 · 프롬프트 없이');
+    expect(refineShortSummary({ ...other, model: '' })).toBe('0.30');
   });
 
   it('작업과 작업 큐가 다듬기 설정을 읽어', () => {

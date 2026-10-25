@@ -205,6 +205,11 @@
   flex: none;
   color: var(--faint);
 }
+.chain-chip-trigger .chain-value-icon {
+  margin-left: 5px;
+  color: var(--text-2);
+  vertical-align: -2px;
+}
 .chain-chip-trigger:hover,
 .chain-chip-trigger[aria-expanded='true'] {
   background: var(--bg-4);

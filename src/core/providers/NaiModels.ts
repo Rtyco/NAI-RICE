@@ -17,6 +17,8 @@ export type NaiModelInfo = {
   /** 없으면 Effort를 고를 수 없다. */
   mediumRequestIds?: { inpaint: string; generate: string };
   label: string;
+  /** 좁은 칩에 쓴다. */
+  short: string;
   family: NaiTagFamily;
   /** V3는 v4_prompt·캐릭터 프롬프트가 없어 하나로 합쳐 보낸다. */
   generation: 'v5' | 'v4' | 'v3';
@@ -41,6 +43,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
       generate: 'nai-diffusion-5-full-medium',
     },
     label: 'NAI Diffusion V5 Full',
+    short: 'V5F',
     family: 'v5',
     generation: 'v5',
     maxCharacters: 32,
@@ -53,6 +56,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     id: 'nai-diffusion-5-curated',
     requestIds: { generate: 'nai-diffusion-5-curated' },
     label: 'NAI Diffusion V5 Curated',
+    short: 'V5C',
     noInpaintReason: 'V5 Curated 전용 인페인트 모델이 아직 나오지 않았습니다.',
     family: 'v5-curated',
     generation: 'v5',
@@ -68,6 +72,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
       generate: 'nai-diffusion-4-5-full',
     },
     label: 'NAI Diffusion V4.5 Full',
+    short: 'V4.5F',
     family: 'v4-5-full',
     varietySigma: 58,
     generation: 'v4',
@@ -83,6 +88,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
       generate: 'nai-diffusion-4-5-curated',
     },
     label: 'NAI Diffusion V4.5 Curated',
+    short: 'V4.5C',
     family: 'v4-5-curated',
     varietySigma: 58,
     generation: 'v4',
@@ -95,6 +101,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     id: 'nai-diffusion-4-full-inpainting',
     requestIds: { inpaint: 'nai-diffusion-4-full-inpainting', generate: 'nai-diffusion-4-full' },
     label: 'NAI Diffusion V4 Full',
+    short: 'V4F',
     family: 'v4-full',
     varietySigma: 19,
     generation: 'v4',
@@ -110,6 +117,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
       generate: 'nai-diffusion-4-curated-preview',
     },
     label: 'NAI Diffusion V4 Curated',
+    short: 'V4C',
     family: 'v4-curated',
     varietySigma: 19,
     generation: 'v4',
@@ -122,6 +130,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     id: 'nai-diffusion-3-inpainting',
     requestIds: { inpaint: 'nai-diffusion-3-inpainting', generate: 'nai-diffusion-3' },
     label: 'NAI Diffusion Anime V3',
+    short: 'V3',
     family: 'v3',
     varietySigma: 19,
     generation: 'v3',
@@ -134,6 +143,7 @@ export const NAI_MODELS: NaiModelInfo[] = [
     id: 'nai-diffusion-furry-3-inpainting',
     requestIds: { inpaint: 'nai-diffusion-furry-3-inpainting', generate: 'nai-diffusion-furry-3' },
     label: 'NAI Diffusion Furry V3',
+    short: 'V3 Furry',
     family: 'v3-furry',
     varietySigma: 19,
     generation: 'v3',
@@ -250,6 +260,10 @@ export function requestModelId(
 
 export function modelLabel(id: string): string {
   return modelInfo(id)?.label ?? id;
+}
+
+export function modelShortLabel(id: string): string {
+  return modelInfo(id)?.short ?? id;
 }
 
 const V5_HEAVY =
