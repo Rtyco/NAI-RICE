@@ -62,6 +62,9 @@
   border-radius: 8px;
 }
 .toolbar-zone.active {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-block: 2px;
   background: var(--accent-bg);
 }
 .toolbar-zone > button {

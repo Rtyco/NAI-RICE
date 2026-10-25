@@ -91,6 +91,8 @@ const EmotionCard = memo(function EmotionCard(props: {
   /** Ctrl·Shift 클릭이면 true */
   onPick: (event: MouseEvent, id: string) => boolean;
   onMenu: (event: MouseEvent, emotion: Emotion, excluded: boolean) => void;
+  /** `range`면 앞에 누른 체크부터 이 카드까지 */
+  onCheck: (id: string, include: boolean, range: boolean) => void;
 }) {
   const { projectId, emotion, records, favoriteId, excluded } = props;
   const open = (event: MouseEvent) => {
@@ -155,8 +157,11 @@ const EmotionCard = memo(function EmotionCard(props: {
           disabled={!hasScenePrompt(emotion)}
           title={hasScenePrompt(emotion) ? '일괄 생성에 포함' : '프롬프트가 없습니다'}
           onChange={(event) =>
-            updateProject(projectId, (current) =>
-              setEmotionsExcluded(current, [emotion.id], !event.target.checked),
+            props.onCheck(
+              emotion.id,
+              event.target.checked,
+              // 체크 상자의 change는 click으로 오므로 Shift를 읽을 수 있다.
+              (event.nativeEvent as Partial<PointerEvent>).shiftKey === true,
             )
           }
         />
@@ -277,6 +282,19 @@ export function GalleryView({
     },
     [project.id],
   );
+  const checkAnchor = useRef<string>(undefined);
+  const check = useCallback(
+    (id: string, include: boolean, range: boolean) => {
+      const order = latest.current.emotions.map((emotion) => emotion.id);
+      const from = range && checkAnchor.current ? order.indexOf(checkAnchor.current) : -1;
+      const to = order.indexOf(id);
+      const ids =
+        from >= 0 && to >= 0 ? order.slice(Math.min(from, to), Math.max(from, to) + 1) : [id];
+      checkAnchor.current = id;
+      updateProject(project.id, (current) => setEmotionsExcluded(current, ids, !include));
+    },
+    [project.id],
+  );
   const openExport = () =>
     void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
@@ -317,6 +335,12 @@ export function GalleryView({
     if (id) openEmotion(id);
   };
 
+  const pickedIds = emotions
+    .filter((emotion) => selection.isSelected(emotion.id))
+    .map((emotion) => emotion.id);
+  const setPickedExcluded = (exclude: boolean) =>
+    updateProject(project.id, (current) => setEmotionsExcluded(current, pickedIds, exclude));
+
   const pickedCovers = () =>
     emotions
       .filter((emotion) => selection.isSelected(emotion.id))
@@ -325,11 +349,28 @@ export function GalleryView({
 
   return (
     <div className="gallery-view selectable" {...selection.containerProps}>
-      {/* 체크(일괄 생성 대상)는 아래 큐 막대, 카드 고르기(일괄 작업 대상)는 위 막대에 따로 둔다. */}
+      {/* 모든 씬의 체크(일괄 생성 대상)는 아래 큐 막대, 고른 카드에 할 일(체크 포함)은 위 막대에 둔다. */}
       <div className="toolbar gallery-toolbar">
         {selection.selected.size > 0 ? (
           <section className="toolbar-zone active" aria-label="고른 카드">
             <b className="zone-count">카드 {selection.selected.size}개</b>
+            <span className="zone-divider" />
+            <button
+              className="with-icon"
+              title="고른 씬을 일괄 생성에 포함"
+              disabled={pickedIds.every((id) => !excluded.has(id))}
+              onClick={() => setPickedExcluded(false)}
+            >
+              <Icon name="check-square" size={14} /> 생성에 포함
+            </button>
+            <button
+              className="with-icon"
+              title="고른 씬을 일괄 생성에서 제외"
+              disabled={pickedIds.every((id) => excluded.has(id))}
+              onClick={() => setPickedExcluded(true)}
+            >
+              <Icon name="square" size={14} /> 생성에서 제외
+            </button>
             <span className="zone-divider" />
             <button
               className="with-icon"
@@ -486,6 +527,7 @@ export function GalleryView({
             returned={emotion.id === lastEmotionId}
             onPick={selection.clickItem}
             onMenu={menuFor}
+            onCheck={check}
           />
         ))}
         <button className="emotion-card add-card" onClick={addAndOpen}>

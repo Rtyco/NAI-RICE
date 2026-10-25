@@ -59,6 +59,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     keys: [
       ['Ctrl+P', '최종 요청 미리보기'],
       ['Ctrl+E', '내보내기'],
+      ['씬 카드 체크 Shift+클릭', '앞에 누른 체크까지 같은 상태로'],
     ],
   },
   {
