@@ -5,6 +5,7 @@ import { setEmotionsExcluded } from '../../../core/model/mutations';
 import { comboCount } from '../../../core/model/sceneCombos';
 import { hasMarker } from '../../../core/prompts/PromptComposer';
 import { usesMedium } from '../../../core/providers/NaiModels';
+import { AutoRefineToggle } from '../../components/RefineChip';
 import { ScenePromptFields } from '../../components/ScenePromptFields';
 import { SceneExtras } from '../../components/SceneExtras';
 import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
@@ -17,7 +18,7 @@ export function DetailSidePanel({
   emotion,
   variants,
   setVariants,
-  images,
+  imagesLabel,
   canGenerate,
   generate,
 }: {
@@ -25,8 +26,8 @@ export function DetailSidePanel({
   emotion: Emotion;
   variants: number;
   setVariants: (value: number) => void;
-  /** 생성 수 × 조합 수 */
-  images: number;
+  /** 생성 수 × 조합 수, 자동 다듬기 장수 */
+  imagesLabel: string;
   canGenerate: boolean;
   generate: () => void;
 }) {
@@ -120,6 +121,7 @@ export function DetailSidePanel({
       </label>
 
       <div className="generate-dock">
+        <AutoRefineToggle resolved={resolved} />
         <NumberField
           label="생성 수"
           value={variants}
@@ -129,7 +131,7 @@ export function DetailSidePanel({
           onChange={setVariants}
         />
         <button className="generate-button" disabled={!canGenerate} onClick={generate}>
-          ▶ {images}장 생성
+          ▶ {imagesLabel}
         </button>
       </div>
     </>

@@ -92,6 +92,16 @@ export function projectRefineSettings(...parts: ProjectParts): RefineSettings {
   );
 }
 
+/** 자동 다듬기가 `images`장마다 더하는 장수. 꺼져 있으면 0. */
+export function autoRefineCount(
+  images: number,
+  project: ProjectParts[0] & Pick<Project, 'autoRefine'>,
+  preset: ProjectParts[1],
+  reference: ProjectParts[2],
+): number {
+  return project.autoRefine ? images * projectRefineSettings(project, preset, reference).count : 0;
+}
+
 /** 예상 Anlas용. `generation`은 원본 결과의 설정. */
 export function refineCostJob(
   settings: RefineSettings,

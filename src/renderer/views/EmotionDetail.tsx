@@ -8,6 +8,7 @@ import {
   recordedScenePrompts,
   sameScenePrompts,
 } from '../../core/model/sceneCombos';
+import { autoRefineCount } from '../../core/model/refine';
 import { generateEmotions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
@@ -105,6 +106,8 @@ export function EmotionDetail({
   const canGenerate = hasScenePrompt(emotion) && !resolved.missing.length;
   const generate = () => void generateEmotions(project.id, [emotion.id], { variants });
   const images = variants * comboCount(emotion);
+  const refineImages = autoRefineCount(images, project, resolved.preset, resolved.reference);
+  const imagesLabel = refineImages ? `${images}장 + 다듬기 ${refineImages}장` : `${images}장 생성`;
 
   const setFavorite = (generationId?: string) =>
     updateProject(project.id, (current) => {
@@ -183,7 +186,7 @@ export function EmotionDetail({
       emotion={emotion}
       variants={variants}
       setVariants={setVariants}
-      images={images}
+      imagesLabel={imagesLabel}
       canGenerate={canGenerate}
       generate={generate}
     />
@@ -235,7 +238,7 @@ export function EmotionDetail({
           <PaletteButton
             className="generate-button"
             icon="play"
-            label={`이 씬 ${images}장 생성`}
+            label={`이 씬 ${imagesLabel}`}
             badge={images}
             disabled={!canGenerate}
             onClick={generate}

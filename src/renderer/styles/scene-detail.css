@@ -360,6 +360,30 @@ button.detail-position[aria-expanded='true'] {
   flex-basis: 100%;
   margin: 0;
 }
+.auto-refine-row {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.auto-refine-row .toggle-field {
+  margin: 0;
+  white-space: nowrap;
+}
+.auto-refine-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auto-refine-icon {
+  margin-left: 5px;
+  vertical-align: -2px;
+}
 .prompt-position {
   display: flex;
   align-items: center;

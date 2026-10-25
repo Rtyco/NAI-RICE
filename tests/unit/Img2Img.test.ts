@@ -3,6 +3,7 @@ import type { GenerationRecord } from '../../src/core/domain/types';
 import { buildResultImg2ImgJobs } from '../../src/core/jobs/JobBuilder';
 import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
 import {
+  autoRefineCount,
   defaultRefineSettings,
   projectRefineSettings,
   refineShortSummary,
@@ -139,6 +140,16 @@ describe('다듬기 설정', () => {
     expect(refineShortSummary(other)).toBe('V4.5F 0.30');
     expect(refineSummary(other)).toBe('V4.5 Full · 세기 0.30 · 프롬프트 없이');
     expect(refineShortSummary({ ...other, model: '' })).toBe('0.30');
+  });
+
+  it('자동 다듬기 장수는 켰을 때만 결과마다 장수를 곱해', () => {
+    const refine = {
+      ...defaultRefineSettings(DEFAULT_GENERATION_SETTINGS, { width: 832, height: 1216 }),
+      count: 2,
+    };
+    const parts = [{ generation: DEFAULT_GENERATION_SETTINGS }, undefined] as const;
+    expect(autoRefineCount(3, { mode: 'txt2img', refine, autoRefine: true }, ...parts)).toBe(6);
+    expect(autoRefineCount(3, { mode: 'txt2img', refine }, ...parts)).toBe(0);
   });
 
   it('작업과 작업 큐가 다듬기 설정을 읽어', () => {

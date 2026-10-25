@@ -27,6 +27,7 @@ export function Img2ImgDialog(props: {
   const [options, setOptions] = useState<RefineSettings>(
     () => project?.refine ?? defaultRefineSettings(generation, first),
   );
+  const [autoRefine, setAutoRefine] = useState(Boolean(project?.autoRefine));
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 큐에 넣을 때 다시 계산된다.
   const costJobs = props.records.map((record) =>
@@ -38,7 +39,8 @@ export function Img2ImgDialog(props: {
 
   const submit = () => {
     props.close();
-    if (project) updateProject(project.id, (current) => ({ ...current, refine: options }));
+    if (project)
+      updateProject(project.id, (current) => ({ ...current, refine: options, autoRefine }));
     void sendResultsToImg2Img(props.projectId, props.records, options);
   };
 
@@ -74,7 +76,19 @@ export function Img2ImgDialog(props: {
         {props.records.length > 12 && <p className="hint">외 {props.records.length - 12}장</p>}
       </div>
       <RefineFields value={options} sources={props.records} onChange={setOptions} />
-      {project && <p className="hint">이 작업의 다듬기 설정으로 저장됩니다.</p>}
+      {project && (
+        <>
+          <label className="toggle-field">
+            <input
+              type="checkbox"
+              checked={autoRefine}
+              onChange={(event) => setAutoRefine(event.target.checked)}
+            />
+            <span>씬을 생성할 때마다 자동으로 다듬기</span>
+          </label>
+          <p className="hint">이 작업의 다듬기 설정으로 저장됩니다.</p>
+        </>
+      )}
     </Modal>
   );
 }

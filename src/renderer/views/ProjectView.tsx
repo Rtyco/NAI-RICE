@@ -10,7 +10,7 @@ import {
   projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
-import { projectRefineSettings, refineCostJob } from '../../core/model/refine';
+import { autoRefineCount, projectRefineSettings, refineCostJob } from '../../core/model/refine';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
 import {
@@ -425,9 +425,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const scenes = emotionSet?.emotions.filter((emotion) => batch.includes(emotion.id)) ?? [];
   const combos = scenes.reduce((total, emotion) => total + comboCount(emotion), 0);
   const count = combos * (preset?.generation.variantsPerEmotion ?? 1);
-  const refineCount = project.autoRefine
-    ? count * projectRefineSettings(project, preset, reference).count
-    : 0;
+  const refineCount = autoRefineCount(count, project, preset, reference);
   const countLabel = refineCount ? `${count}장 + 다듬기 ${refineCount}장` : `${count}장 생성`;
   const { estimate, reasons: costReasons } = batchCost(
     resolved,
