@@ -1,6 +1,9 @@
 import type { AppSettings, ThemeId, ThemeMode } from '../../../core/domain/types';
+import { confirmDialog } from '../../components/dialogStack';
 import { Card } from '../../components/ui';
-import { useLibrary } from '../../store';
+import { resetLayout } from '../../layout';
+import { resetPanelWidths } from '../../panelWidths';
+import { resetSidebarSections, toast, useLibrary } from '../../store';
 import { MODE_LABELS, THEMES, themeSwatch } from '../../theme';
 import { EdgePeekToggle, FocusLevelGrid } from './FocusSettings';
 import { patchSettings } from './patchSettings';
@@ -56,6 +59,29 @@ export function AppearanceTab() {
       <Card title="숨긴 패널">
         <EdgePeekToggle />
       </Card>
+      <Card title="화면 배치">
+        <div>
+          <button onClick={() => void resetScreenLayout()}>화면 배치 초기화</button>
+        </div>
+      </Card>
     </>
   );
+}
+
+async function resetScreenLayout(): Promise<void> {
+  const ok = await confirmDialog({
+    title: '화면 배치 초기화',
+    message: (
+      <p>
+        숨긴 패널과 설정 줄을 모두 펼치고, 패널 폭·사이드바 구역 접기·떠 있는 창 위치를 처음 상태로
+        되돌립니다.
+      </p>
+    ),
+    confirmLabel: '초기화',
+  });
+  if (!ok) return;
+  resetLayout();
+  resetPanelWidths();
+  resetSidebarSections();
+  toast('화면 배치를 초기화했습니다.');
 }

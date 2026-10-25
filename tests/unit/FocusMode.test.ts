@@ -19,6 +19,7 @@ beforeAll(async () => {
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => saved[key] ?? null,
     setItem: (key: string, value: string) => void (saved[key] = value),
+    removeItem: (key: string) => void delete saved[key],
   });
   store = await import('../../src/renderer/store');
   layout = await import('../../src/renderer/layout');
@@ -130,5 +131,39 @@ describe('집중 모드', () => {
     layout.toggleSidePanel();
     expect(layout.sidePanelShownOf(state())).toBe(true);
     expect(layout.queueBarShownOf(state())).toBe(false);
+  });
+});
+
+describe('화면 배치 초기화', () => {
+  it('숨기고 접은 곳과 떠 있는 창 위치를 처음으로 되돌리고 저장값도 지워', () => {
+    reset();
+    layout.cycleSidebar();
+    layout.toggleSidePanel();
+    layout.toggleFilmstrip();
+    layout.toggleFocusMode();
+    layout.movePalette({ x: 0.1, y: 0.2 });
+    layout.savePalettePosition();
+    store.toggleSidebarSection('library');
+
+    layout.resetLayout();
+    store.resetSidebarSections();
+
+    expect(state()).toMatchObject({
+      sidebarStage: 'open',
+      sidePanelCollapsed: false,
+      filmstripCollapsed: false,
+      focusHidden: [],
+      palettePosition: { x: 0.5, y: 0.9 },
+    });
+    expect(store.useStore.getState().sidebarSections).toEqual({ projects: false, library: false });
+    for (const key of [
+      'sidebar-collapsed',
+      'side-panel-collapsed',
+      'filmstrip-collapsed',
+      'palette-position',
+      'sidebar-sections-collapsed',
+    ]) {
+      expect(saved[key]).toBeUndefined();
+    }
   });
 });

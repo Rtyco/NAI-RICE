@@ -8,7 +8,7 @@ import {
   sidePanelShownOf,
   useLayout,
 } from './layout';
-import { readUiState, saveUiState, useStore } from './store';
+import { readUiState, removeUiState, saveUiState, useStore } from './store';
 
 type PanelSpec = {
   /** 사용자가 정한 폭 */
@@ -200,6 +200,13 @@ export function restorePanelWidths(): void {
   for (const panel of PANEL_IDS) {
     const saved = readUiState(storageKey(panel), (raw) => Number(raw), NaN);
     if (Number.isFinite(saved) && saved > 0) setWidth(panel, saved);
+  }
+}
+
+export function resetPanelWidths(): void {
+  for (const panel of PANEL_IDS) {
+    removeUiState(storageKey(panel));
+    setWidth(panel, spec(panel).initial);
   }
 }
 

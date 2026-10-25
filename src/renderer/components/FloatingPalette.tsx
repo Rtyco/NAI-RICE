@@ -9,9 +9,16 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { focusingOf, queueBarShownOf, toggleFocusMode, useLayout } from '../layout';
+import {
+  focusingOf,
+  movePalette,
+  queueBarShownOf,
+  savePalettePosition,
+  toggleFocusMode,
+  useLayout,
+} from '../layout';
 import { queueCommands, summarizeQueue } from '../queueSummary';
-import { readUiState, saveUiState, useStore } from '../store';
+import { useStore } from '../store';
 import { Icon, type IconName } from './Icon';
 import { setPaletteSlot, setPanelPopup, useHostUser, usePaletteHost } from './paletteHost';
 import { QueueJobs } from './QueueBar';
@@ -46,31 +53,10 @@ export function PaletteButton({
   );
 }
 
-const POSITION_KEY = 'palette-position';
-
-/** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
-type Position = { x: number; y: number };
-
-const DEFAULT_POSITION: Position = { x: 0.5, y: 0.9 };
-
 /** 위 줄(창 버튼)에 걸치지 않게 위쪽은 이만큼 비운다. */
 const TOP_MARGIN = 48;
 const MARGIN = 8;
 const POPUP_GAP = 6;
-
-const readPosition = () =>
-  readUiState<Position>(
-    POSITION_KEY,
-    (raw) => {
-      const saved = JSON.parse(raw ?? 'null') as Partial<Position> | null;
-      const valid = (value: unknown): value is number =>
-        typeof value === 'number' && value >= 0 && value <= 1;
-      return saved && valid(saved.x) && valid(saved.y)
-        ? { x: saved.x, y: saved.y }
-        : DEFAULT_POSITION;
-    },
-    DEFAULT_POSITION,
-  );
 
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -132,7 +118,7 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
 function Palette({ queueShown }: { queueShown: boolean }) {
   const hasPanel = usePaletteHost((state) => state.hiddenPanels > 0);
   const focusing = useLayout(focusingOf);
-  const [position, setPosition] = useState(readPosition);
+  const position = useLayout((state) => state.palettePosition);
   const [boxSize, setBoxSize] = useState({ width: 0, height: 0 });
   const [popup, setPopup] = useState<Popup>();
   const box = useRef<HTMLDivElement>(null);
@@ -169,19 +155,16 @@ function Palette({ queueShown }: { queueShown: boolean }) {
     handle.setPointerCapture(event.pointerId);
     const grabX = event.clientX - (left + boxSize.width / 2);
     const grabY = event.clientY - (top + boxSize.height / 2);
-    let next = position;
-    const move = (moveEvent: PointerEvent) => {
-      next = {
+    const move = (moveEvent: PointerEvent) =>
+      movePalette({
         x: Math.min(1, Math.max(0, (moveEvent.clientX - grabX) / window.innerWidth)),
         y: Math.min(1, Math.max(0, (moveEvent.clientY - grabY) / window.innerHeight)),
-      };
-      setPosition(next);
-    };
+      });
     const end = () => {
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', end);
       handle.removeEventListener('pointercancel', end);
-      saveUiState(POSITION_KEY, JSON.stringify(next));
+      savePalettePosition();
     };
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', end);

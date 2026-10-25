@@ -94,6 +94,14 @@ export function saveUiState(key: string, value: string): void {
   }
 }
 
+export function removeUiState(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // 이번 실행에서는 그대로 동작한다.
+  }
+}
+
 const SIDEBAR_SECTIONS_KEY = 'sidebar-sections-collapsed';
 
 export const GALLERY_COLUMN_CHOICES = [3, 4, 5, 6, 7, 8] as const;
@@ -449,6 +457,11 @@ export function toggleSidebarSection(section: SidebarSection): void {
   const sections = { ...get().sidebarSections, [section]: !get().sidebarSections[section] };
   set({ sidebarSections: sections });
   saveUiState(SIDEBAR_SECTIONS_KEY, JSON.stringify(sections));
+}
+
+export function resetSidebarSections(): void {
+  set({ sidebarSections: { projects: false, library: false } });
+  removeUiState(SIDEBAR_SECTIONS_KEY);
 }
 
 export function setGalleryColumns(columns: number): void {

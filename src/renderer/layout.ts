@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { FocusLevel } from '../core/domain/types';
 import type { PanelId } from './panelWidths';
-import { readUiState, saveUiState, useStore, type StoreState } from './store';
+import { readUiState, removeUiState, saveUiState, useStore, type StoreState } from './store';
 
 export type PanelStage = 'open' | 'icons' | 'hidden';
 
@@ -57,7 +57,29 @@ export type LayoutState = {
   peek?: 'left' | 'right';
   /** 아이콘 폭까지 줄인 패널 */
   compactPanels: PanelId[];
+  palettePosition: PalettePosition;
 };
+
+/** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
+export type PalettePosition = { x: number; y: number };
+
+const PALETTE_POSITION_KEY = 'palette-position';
+
+const DEFAULT_PALETTE_POSITION: PalettePosition = { x: 0.5, y: 0.9 };
+
+const readPalettePosition = () =>
+  readUiState<PalettePosition>(
+    PALETTE_POSITION_KEY,
+    (raw) => {
+      const saved = JSON.parse(raw ?? 'null') as Partial<PalettePosition> | null;
+      const valid = (value: unknown): value is number =>
+        typeof value === 'number' && value >= 0 && value <= 1;
+      return saved && valid(saved.x) && valid(saved.y)
+        ? { x: saved.x, y: saved.y }
+        : DEFAULT_PALETTE_POSITION;
+    },
+    DEFAULT_PALETTE_POSITION,
+  );
 
 function readStage(panel: StagePanel): PanelStage {
   const { key, order, iconsAs = 'open' } = STAGES[panel];
@@ -81,6 +103,7 @@ export const useLayout = create<LayoutState>(() => ({
   topBarCollapsed: readFold('topBarCollapsed'),
   focusHidden: [],
   compactPanels: [],
+  palettePosition: readPalettePosition(),
 }));
 
 const set = useLayout.setState;
@@ -194,6 +217,32 @@ export function toggleFocusMode(): void {
 
 export function setPeek(peek?: 'left' | 'right'): void {
   set({ peek });
+}
+
+export function movePalette(palettePosition: PalettePosition): void {
+  set({ palettePosition });
+}
+
+export function savePalettePosition(): void {
+  saveUiState(PALETTE_POSITION_KEY, JSON.stringify(get().palettePosition));
+}
+
+/** 폭(`resetPanelWidths`)과 사이드바 구역 접기는 따로 되돌린다. */
+export function resetLayout(): void {
+  for (const { key } of [...Object.values(STAGES), ...Object.values(FOLDS)]) removeUiState(key);
+  removeUiState(PALETTE_POSITION_KEY);
+  set({
+    sidebarStage: 'open',
+    libraryListStage: 'open',
+    promptPanelStage: 'open',
+    filmstripCollapsed: false,
+    historyCollapsed: false,
+    sidePanelCollapsed: false,
+    topBarCollapsed: false,
+    focusHidden: [],
+    peek: undefined,
+    palettePosition: DEFAULT_PALETTE_POSITION,
+  });
 }
 
 export function setPanelCompact(panel: PanelId, compact: boolean): void {
