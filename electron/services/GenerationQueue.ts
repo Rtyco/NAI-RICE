@@ -50,6 +50,11 @@ type QueueDependencies = {
   /** 요청마다 읽는다. */
   streaming?: () => boolean;
   onPreview?: (preview: GenerationPreview) => void;
+  /** 작업에 `refine`이 있을 때 끝난 뒤 이어 붙일 작업(생성 후 다듬기). */
+  followUps?: (
+    job: QueuedGenerationJob,
+    records: GenerationRecord[],
+  ) => Promise<{ jobs: GenerationJobSnapshot[]; estimates: number[] }>;
 };
 
 /** NovelAI 웹처럼 i2i·인페인트는 세기만큼만 돈다고 본다. 넘치면 화면이 100%로 자른다. */
@@ -108,16 +113,36 @@ export class GenerationQueue {
 
   /** `anlasEstimates`는 표시용. */
   async enqueue(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): Promise<QueueSnapshot> {
+    this.snapshot.jobs.push(...this.queued(jobs, anlasEstimates));
+    return this.run();
+  }
+
+  private queued(jobs: GenerationJobSnapshot[], anlasEstimates?: number[]): QueuedGenerationJob[] {
     const existing = new Set(this.snapshot.jobs.map((job) => job.id));
-    const queued = jobs.map((job, index) => {
+    return jobs.map((job, index) => {
       const id = existing.has(job.id) ? `${job.id}-${randomUUID()}` : job.id;
       existing.add(id);
       const item = createQueuedJob(job, id);
       if (anlasEstimates?.[index] !== undefined) item.anlasEstimate = anlasEstimates[index];
       return item;
     });
-    this.snapshot.jobs.push(...queued);
-    return this.run();
+  }
+
+  /** 원본 바로 뒤에 넣어 씬마다 원본과 다듬기가 짝으로 끝난다. 만들지 못해도 원본은 그대로 둔다. */
+  private async addFollowUps(job: QueuedGenerationJob, records: GenerationRecord[]): Promise<void> {
+    if (!job.refine || !this.dependencies.followUps) return;
+    try {
+      const { jobs, estimates } = await this.dependencies.followUps(job, records);
+      if (!jobs.length) return;
+      this.snapshot.jobs.splice(
+        this.snapshot.jobs.indexOf(job) + 1,
+        0,
+        ...this.queued(jobs, estimates),
+      );
+      await this.commit();
+    } catch (error) {
+      console.warn('다듬기 작업을 만들지 못했습니다.', error);
+    }
   }
 
   async pause(): Promise<QueueSnapshot> {
@@ -366,6 +391,7 @@ export class GenerationQueue {
         complete(job, { generationId: records[0].id, anlasSpent: records[0].anlasSpent });
         await this.commit();
         for (const record of records) this.dependencies.onRecord(record);
+        await this.addFollowUps(job, records);
         return;
       } catch (error) {
         // 진행 중 표시를 풀기 전에 기다려야 기다리는 동안에도 취소할 수 있다.

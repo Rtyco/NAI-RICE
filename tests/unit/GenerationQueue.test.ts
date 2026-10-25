@@ -3,11 +3,17 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { QueueSnapshot, QueueView, Txt2ImgJobSnapshot } from '../../src/core/domain/types';
+import type {
+  QueueSnapshot,
+  QueueView,
+  RefineSettings,
+  Txt2ImgJobSnapshot,
+} from '../../src/core/domain/types';
 import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
+import { refineJobs } from '../../electron/services/RefineJobs';
 
 let root: string;
 afterEach(() => rm(root, { recursive: true, force: true }));
@@ -137,7 +143,7 @@ describe('GenerationQueue 실패 처리', () => {
   });
 
   /** 실제 작업 폴더에 결과를 쓰는 큐. `outcomes`를 앞에서부터 하나씩 돌려준다(오류면 던진다). */
-  async function runningQueue(outcomes: Array<Error | 'ok'>) {
+  async function runningQueue(outcomes: Array<Error | 'ok'>, followUps?: 'refine' | 'broken') {
     root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
     const library = new Library(root);
     await library.load();
@@ -161,6 +167,12 @@ describe('GenerationQueue 실패 처리', () => {
       token: async () => 'token',
       emit: () => undefined,
       onRecord: () => undefined,
+      ...(followUps && {
+        followUps: async (job, records) => {
+          if (followUps === 'broken') throw new Error('입력을 만들지 못함');
+          return { jobs: await refineJobs(library, job, records), estimates: [] };
+        },
+      }),
     });
     await queue.initialize();
     const job = () => queue.getSnapshot().jobs[0];
@@ -215,4 +227,42 @@ describe('GenerationQueue 실패 처리', () => {
     await until(() => job().status === 'completed');
     expect(calls()).toBe(2);
   }, 10_000);
+
+  const refine: RefineSettings = {
+    model: 'nai-diffusion-4-5-full-inpainting',
+    prompt: 'empty',
+    size: { width: 128, height: 128 },
+    fit: 'crop',
+    strength: 0.3,
+    noise: 0,
+    count: 1,
+    seedMode: 'source',
+  };
+
+  it('다듬기 설정이 있는 작업은 끝난 결과를 다음 작업보다 먼저 다듬어', async () => {
+    const { queue } = await runningQueue(['ok'], 'refine');
+    await queue.enqueue([{ ...textJob('a'), refine }, textJob('b')]);
+    await until(() => queue.getSnapshot().jobs.every((item) => item.status === 'completed'));
+    // 마지막 저장이 끝나기 전에 임시 폴더를 지우지 않게 한다.
+    await queue.pause();
+    const jobs = queue.getSnapshot().jobs;
+    expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'img2img', 'txt2img']);
+    expect(jobs[1]).toMatchObject({
+      sourceRecordId: jobs[0].generationId,
+      prompt: '',
+      strength: 0.3,
+      canvasWidth: 128,
+      settings: { model: 'nai-diffusion-4-5-full-inpainting' },
+    });
+    expect(jobs[1]).not.toHaveProperty('refine');
+  });
+
+  it('다듬기 작업을 만들지 못해도 원본은 완료로 두고 다음 작업으로 넘어가', async () => {
+    const { queue } = await runningQueue(['ok'], 'broken');
+    await queue.enqueue([{ ...textJob('a'), refine }, textJob('b')]);
+    await until(() => queue.getSnapshot().jobs.every((item) => item.status === 'completed'));
+    // 마지막 저장이 끝나기 전에 임시 폴더를 지우지 않게 한다.
+    await queue.pause();
+    expect(queue.getSnapshot().jobs.map((item) => item.id)).toEqual(['a', 'b']);
+  });
 });

@@ -15,15 +15,16 @@ import type {
   GenerationSummary,
   JobAid,
   Library,
+  RefineSettings,
 } from '../core/domain/types';
 import {
   augmentToolInfo,
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
-import { RATIO_SIZES, type RatioSizeMode, type Size } from '../core/imaging/FreeSize';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
+import { projectRefineSettings, refineTarget } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
@@ -146,6 +147,10 @@ export function generateEmotions(
       });
     }
     if (!jobs.length) throw new Error('생성할 씬이 없습니다. 프롬프트가 있는 씬을 선택하십시오.');
+    if (project.autoRefine) {
+      const refine = projectRefineSettings(project, resolved.preset, reference);
+      jobs = jobs.map((job) => ({ ...job, refine }));
+    }
 
     await enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);
@@ -212,20 +217,11 @@ export function generateFree(
   }).then(() => undefined);
 }
 
-export type ResultImg2ImgOptions = {
-  size: Size | RatioSizeMode;
-  fit: 'crop' | 'pad';
-  strength: number;
-  noise: number;
-  count: number;
-  seedMode: 'source' | 'random';
-};
-
 /** 결과는 원래 감정(또는 자유 생성)에 쌓인다. */
 export function sendResultsToImg2Img(
   projectId: string,
   records: GenerationSummary[],
-  options: ResultImg2ImgOptions,
+  options: RefineSettings,
 ): Promise<void> {
   return run('다듬기 작업을 준비하는 중', async () => {
     await flushSaves();
@@ -240,8 +236,7 @@ export function sendResultsToImg2Img(
     const jobs: GenerationJobSnapshot[] = [];
     for (const summary of records) {
       const record = await libraryApi().getGeneration(projectId, summary.id);
-      const target =
-        typeof size === 'string' ? RATIO_SIZES[size](record.width, record.height) : size;
+      const target = refineTarget(size, record.width, record.height);
       const image = await libraryApi().prepareImageInput({
         projectId,
         source: { kind: 'record', projectId, generationId: record.id },

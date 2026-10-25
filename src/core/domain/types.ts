@@ -263,6 +263,10 @@ export type Project = {
   vibeIds: string[];
   /** 없으면 켬(NovelAI 웹 기본값). */
   normalizeVibes?: boolean;
+  /** 다듬기 창에서 마지막으로 쓴 값. 없으면 생성 설정의 i2i 값으로 시작한다. */
+  refine?: RefineSettings;
+  /** 켜면 이 작업의 씬 생성 결과마다 `refine`으로 다듬기를 이어 붙인다. */
+  autoRefine?: boolean;
   excludedEmotionIds: string[];
   /** 감정 ID → 생성 기록 ID */
   favorites: Record<string, string>;
@@ -271,6 +275,22 @@ export type Project = {
 };
 
 export type AidMode = 'character' | 'vibe';
+
+export type RefineSettings = {
+  /** 비면 원본 결과의 모델 */
+  model: string;
+  /** empty면 포지티브와 캐릭터 프롬프트를 비우고 네거티브만 보낸다. */
+  prompt: 'source' | 'empty';
+  /** 비율 방식이면 결과마다 크기를 정한다(`RATIO_SIZES`). */
+  size: { width: number; height: number } | 'exact-ratio' | 'closest-ratio';
+  fit: 'crop' | 'pad';
+  strength: number;
+  noise: number;
+  /** 결과 하나마다 */
+  count: number;
+  /** source: 원본 seed부터 장마다 +1 */
+  seedMode: 'source' | 'random';
+};
 
 /** NovelAI `base_caption` 값. */
 export type ReferenceTarget = 'character&style' | 'character' | 'style';
@@ -614,6 +634,8 @@ export type JobSnapshotCommon = {
   sourceRecordId?: string;
   /** 일반 생성·인페인트에만 쓴다. */
   aid?: JobAid;
+  /** 있으면 끝난 결과마다 이 값으로 다듬기를 큐에 이어 붙인다. */
+  refine?: RefineSettings;
 };
 
 /** 작업 폴더 기준 상대 경로. 해시 이름의 불변 파일이다. */

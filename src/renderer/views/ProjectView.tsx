@@ -10,6 +10,7 @@ import {
   projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
+import { projectRefineSettings, refineCostJob } from '../../core/model/refine';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
 import {
@@ -40,6 +41,7 @@ import { SidePanelToggle } from '../components/SidePanel';
 import { useHeaderFit } from '../components/useHeaderFit';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
+import { RefineChip } from '../components/RefineChip';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
@@ -181,6 +183,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
         onPick={(emotionSetId) => patch({ emotionSetId })}
         editSection="emotionSets"
       />
+      <RefineChip resolved={resolved} />
       <TopBarToggle collapsed={Boolean(compact)} />
     </div>
   );
@@ -372,15 +375,24 @@ function batchCost(
     };
   });
   const images = sceneCosts.reduce((total, item) => total + item.images, 0);
+  const refine = project.autoRefine && projectRefineSettings(project, preset, reference);
+  const area = project.mode === 'reference' ? reference?.image?.outputRect : undefined;
+  const refineCosts = refine
+    ? sceneCosts.map((item) => ({
+        job: refineCostJob(refine, costJob.settings, {
+          width: area?.width ?? item.job.canvasWidth,
+          height: area?.height ?? item.job.canvasHeight,
+        }),
+        images: item.images * refine.count,
+      }))
+    : [];
+  const costs = [...sceneCosts, ...refineCosts];
   return {
     estimate: images
-      ? sceneCosts.reduce(
-          (total, item) => total + estimateJobAnlas(item.job, token) * item.images,
-          0,
-        )
+      ? costs.reduce((total, item) => total + estimateJobAnlas(item.job, token) * item.images, 0)
       : undefined,
     reasons: generationCostWarnings(
-      sceneCosts.length ? sceneCosts.map((item) => item.job) : [costJob],
+      costs.length ? costs.map((item) => item.job) : [costJob],
       token,
     ),
   };
@@ -410,6 +422,10 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const scenes = emotionSet?.emotions.filter((emotion) => batch.includes(emotion.id)) ?? [];
   const combos = scenes.reduce((total, emotion) => total + comboCount(emotion), 0);
   const count = combos * (preset?.generation.variantsPerEmotion ?? 1);
+  const refineCount = project.autoRefine
+    ? count * projectRefineSettings(project, preset, reference).count
+    : 0;
+  const countLabel = refineCount ? `${count}장 + 다듬기 ${refineCount}장` : `${count}장 생성`;
   const { estimate, reasons: costReasons } = batchCost(
     resolved,
     scenes,
@@ -519,7 +535,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
                   title={generateTitle}
                   onClick={generate}
                 >
-                  ▶ {count ? `${count}장 생성` : '생성할 씬 없음'}
+                  ▶ {count ? countLabel : '생성할 씬 없음'}
                 </button>
               </>
             }
@@ -530,8 +546,8 @@ export function ProjectView({ projectId }: { projectId: string }) {
             <PaletteButton
               className="generate-button"
               icon="play"
-              label={`${count}장 생성`}
-              title={`${count}장 생성 · ${generateTitle}`}
+              label={countLabel}
+              title={`${countLabel} · ${generateTitle}`}
               badge={count}
               disabled={!canGenerate}
               onClick={generate}

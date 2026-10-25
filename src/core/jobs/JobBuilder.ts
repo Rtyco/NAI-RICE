@@ -20,6 +20,7 @@ import type {
   Preset,
   Project,
   Rect,
+  RefineSettings,
   Reference,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
@@ -529,6 +530,9 @@ export type ResultImg2ImgInput = {
   count: number;
   /** source: 원본 seed부터 차례로. */
   seedMode: 'source' | 'random';
+  /** 비면 원본 모델 */
+  model?: string;
+  prompt?: RefineSettings['prompt'];
   outputFilenameTemplate: string;
   projectName: string;
   now?: () => Date;
@@ -547,10 +551,13 @@ function resultJobCommon(
     variantIndex: number;
     width: number;
     height: number;
+    model?: string;
+    prompt?: RefineSettings['prompt'];
   },
 ): JobSnapshotCommon {
-  const prompt = removeReferenceInset(record.prompt);
-  const characterPrompt = removeReferenceInset(record.characterPrompt);
+  const empty = job.prompt === 'empty';
+  const prompt = empty ? '' : removeReferenceInset(record.prompt);
+  const characterPrompt = empty ? '' : removeReferenceInset(record.characterPrompt);
   return {
     id: job.id,
     createdAt: job.createdAt,
@@ -568,8 +575,8 @@ function resultJobCommon(
     prompt,
     negativePrompt: record.negativePrompt,
     characterPrompt,
-    characterNegativePrompt: record.characterNegativePrompt,
-    ...(record.extraCharacters
+    characterNegativePrompt: empty ? '' : record.characterNegativePrompt,
+    ...(record.extraCharacters && !empty
       ? {
           extraCharacters: record.extraCharacters.map((character) => ({
             ...character,
@@ -577,7 +584,7 @@ function resultJobCommon(
           })),
         }
       : {}),
-    ...(record.characterCenters ? { characterCenters: record.characterCenters } : {}),
+    ...(record.characterCenters && !empty ? { characterCenters: record.characterCenters } : {}),
     source: {
       commonPositive: prompt,
       commonNegative: record.negativePrompt,
@@ -588,7 +595,12 @@ function resultJobCommon(
     canvasWidth: job.width,
     canvasHeight: job.height,
     outputFilenameTemplate: job.outputFilenameTemplate,
-    settings: { ...effectiveGenerationSettings(record.settings) },
+    settings: effectiveGenerationSettings({
+      ...record.settings,
+      ...(job.model ? { model: job.model } : {}),
+      // 품질 태그는 이미 원본 프롬프트에 들어 있어 메타데이터 표시만 맞춘다.
+      ...(empty ? { qualityTags: false } : {}),
+    }),
     warnings: [],
     sourceRecordId: record.id,
   };

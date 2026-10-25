@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, Menu, net, session, shell } from 'electron';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
+import { estimateJobAnlas } from '../src/core/providers/NaiCost';
 import { NovelAIProvider } from '../src/core/providers/NovelAIProvider';
 import { registerIpc, type AppServices } from './ipc';
 import { AccountService } from './services/AccountService';
@@ -13,6 +14,7 @@ import { removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
 import { GenerationQueue } from './services/GenerationQueue';
 import { GenerationRequests } from './services/GenerationRequests';
 import { Library } from './services/Library';
+import { refineJobs } from './services/RefineJobs';
 import { TokenVault } from './services/TokenVault';
 import { UpdateChecker } from './services/UpdateChecker';
 import { VibeFiles } from './services/VibeFiles';
@@ -63,6 +65,10 @@ async function createServices(): Promise<AppServices> {
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
     streaming: () => library.settings?.streaming ?? false,
     onPreview: (preview) => broadcast('generation:preview', preview),
+    followUps: async (job, records) => {
+      const jobs = await refineJobs(library, job, records);
+      return { jobs, estimates: jobs.map((item) => estimateJobAnlas(item, account.latest)) };
+    },
   });
   await queue.initialize();
   return {

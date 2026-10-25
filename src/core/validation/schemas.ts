@@ -289,6 +289,20 @@ function readSingleCharacterReference(value: unknown): unknown {
   };
 }
 
+export const refineSettingsSchema = z.object({
+  model: z.string(),
+  prompt: z.enum(['source', 'empty']),
+  size: z.union([
+    z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+    z.enum(['exact-ratio', 'closest-ratio']),
+  ]),
+  fit: z.enum(['crop', 'pad']),
+  strength: z.number().min(0.01).max(0.99),
+  noise: z.number().min(0).max(0.99),
+  count: z.number().int().min(1).max(10),
+  seedMode: z.enum(['source', 'random']),
+});
+
 export const projectSchema = z.preprocess(
   (value) => readSingleCharacterReference(readSingleVibe(readSingleCharacter(value))),
   z.object({
@@ -307,6 +321,8 @@ export const projectSchema = z.preprocess(
     characterReferenceIds: z.array(z.string().min(1)).catch([]),
     vibeIds: z.array(z.string().min(1)).catch([]),
     normalizeVibes: z.boolean().optional().catch(undefined),
+    refine: refineSettingsSchema.optional().catch(undefined),
+    autoRefine: z.boolean().optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     createdAt: z.string(),
@@ -654,6 +670,7 @@ const jobSnapshotCommonSchema = z.object({
   settings: generationSettingsSchema,
   warnings: z.array(z.string()),
   sourceRecordId: z.string().min(1).optional(),
+  refine: refineSettingsSchema.optional(),
   aid: z
     .preprocess(
       readSingleAid,
