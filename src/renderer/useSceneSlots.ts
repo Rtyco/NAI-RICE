@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, SceneOption } from '../core/domain/types';
 import { newId } from '../core/model/defaults';
 import { withPromptAt } from '../core/model/mutations';
@@ -9,10 +9,12 @@ import {
   mergeFirstSlot,
   moveScenePromptToSlot,
   optionLabel,
+  optionWithText,
   sceneRepeatedTags,
 } from '../core/model/sceneCombos';
 import { confirmDialog } from './components/dialogStack';
 import type { OptionProps } from './components/SceneOptionRows';
+import { useFind } from './find';
 import { useStore } from './store';
 
 export type SceneSlotsChange = Partial<Pick<Emotion, 'slots' | 'prompt' | 'extraPrompts'>>;
@@ -52,6 +54,17 @@ export function useSceneSlots(props: {
     setChosen(undefined);
   };
   const openOnly = (ids: string[]) => setChosen(new Set(ids));
+  // 찾기 결과로 옮겨 오면 그 후보가 그려져야 입력칸이 찾은 곳까지 스크롤한다.
+  const reveal = useFind((state) => state.reveal);
+  const revealAt = reveal === undefined ? undefined : optionWithText(slots, reveal);
+  const revealSlot = revealAt?.slot;
+  const revealId = revealAt?.id;
+  useEffect(() => {
+    if (revealSlot === undefined || revealId === undefined) return;
+    setOpen(true);
+    setTabState(revealSlot);
+    setPicked({ emotionId: emotion.id, ids: new Set([revealId]) });
+  }, [revealSlot, revealId, emotion.id]);
   const toggleOption = (id: string) => {
     const next = new Set(openIds);
     if (!next.delete(id)) next.add(id);

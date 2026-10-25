@@ -80,6 +80,18 @@ describe('라이브러리 찾기·바꾸기', () => {
       ...createEmotion('기쁨', 'smile'),
       extraPrompts: ['smile'],
       negative: 'smile',
+      slots: [
+        [
+          { id: 'o1', prompt: 'laugh', characterPrompts: [], enabled: true },
+          {
+            id: 'o2',
+            name: '웃음',
+            prompt: 'smile',
+            characterPrompts: ['', 'smile'],
+            enabled: true,
+          },
+        ],
+      ],
     };
     const library = {
       ...base,
@@ -97,6 +109,8 @@ describe('라이브러리 찾기·바꾸기', () => {
       ['emotionSets', '씬', '기쁨', '프롬프트'],
       ['emotionSets', '씬', '기쁨', '캐릭터 2'],
       ['emotionSets', '씬', '기쁨', '네거티브'],
+      ['emotionSets', '씬', '기쁨', '칸 1 웃음', '씬 자리'],
+      ['emotionSets', '씬', '기쁨', '칸 1 웃음', '캐릭터 2'],
       ['free', '프롬프트'],
       ['free', '네거티브'],
     ]);

@@ -236,3 +236,24 @@ export function defaultOpenIds(slot: SceneOption[], rule: ComboOptionsOpen): Set
   if (rule === 'all') return new Set(slot.map((option) => option.id));
   return new Set(rule === 'first' && slot[0] ? [slot[0].id] : []);
 }
+
+/** 찾기 결과로 옮겨 갈 때 그 글이 든 후보. 결과는 칸의 글로만 가리킨다. */
+export function optionWithText(
+  slots: SceneOption[][],
+  text: string,
+): { slot: number; id: string } | undefined {
+  for (const [slot, options] of slots.entries()) {
+    const option = options.find(
+      (item) => item.prompt === text || item.characterPrompts.includes(text),
+    );
+    if (option) return { slot, id: option.id };
+  }
+  return undefined;
+}
+
+export function emotionHasText(emotion: Emotion, text: string): boolean {
+  return (
+    [emotion.prompt, emotion.negative, ...(emotion.extraPrompts ?? [])].includes(text) ||
+    Boolean(optionWithText(emotion.slots ?? [], text))
+  );
+}

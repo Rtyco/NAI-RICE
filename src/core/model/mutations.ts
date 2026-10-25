@@ -376,21 +376,35 @@ export function mapPromptTexts(
     emotionSets: library.emotionSets.map((set) => ({
       ...set,
       emotions: set.emotions.map((emotion) => {
-        const at = (label: string, text: string) =>
+        const at = (text: string, ...labels: string[]) =>
           map(text, {
             section: 'emotionSets',
             itemId: set.id,
-            path: [set.name, emotion.name, label],
+            path: [set.name, emotion.name, ...labels],
           });
         return {
           ...emotion,
-          prompt: at('프롬프트', emotion.prompt),
+          prompt: at(emotion.prompt, '프롬프트'),
           ...(emotion.extraPrompts && {
             extraPrompts: emotion.extraPrompts.map((prompt, index) =>
-              at(`캐릭터 ${index + 2}`, prompt),
+              at(prompt, `캐릭터 ${index + 2}`),
             ),
           }),
-          ...(emotion.negative !== undefined && { negative: at('네거티브', emotion.negative) }),
+          ...(emotion.negative !== undefined && { negative: at(emotion.negative, '네거티브') }),
+          ...(emotion.slots && {
+            slots: emotion.slots.map((slot, slotIndex) =>
+              slot.map((option, optionIndex) => {
+                const where = `칸 ${slotIndex + 1} ${option.name?.trim() || `후보 ${optionIndex + 1}`}`;
+                return {
+                  ...option,
+                  prompt: at(option.prompt, where, '씬 자리'),
+                  characterPrompts: option.characterPrompts.map((prompt, index) =>
+                    at(prompt, where, `캐릭터 ${index + 1}`),
+                  ),
+                };
+              }),
+            ),
+          }),
         };
       }),
     })),

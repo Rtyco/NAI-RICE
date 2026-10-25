@@ -435,57 +435,60 @@ function FindResults(props: {
   const { hits, records } = props;
   const recordHits = records && records !== 'loading' ? records.hits : [];
   return (
-    <fieldset className="find-results" disabled={props.disabled}>
-      {hits.slice(0, SHOWN_HITS).map((hit, index) => (
-        <button
-          key={`${hit.section}:${hit.itemId}:${hit.path.join('/')}:${index}`}
-          className={`find-hit ${props.picked === index ? 'picked' : ''}`}
-          onClick={() => props.onPick(index)}
-        >
-          <span className="find-hit-path">
-            {[sectionLabel(hit.section), ...hit.path].join(' › ')}
-            {hit.ranges.length > 1 && <small>{hit.ranges.length}개</small>}
-          </span>
-          <Snippet text={hit.text} range={hit.ranges[0]} />
-        </button>
-      ))}
-      {hits.length > SHOWN_HITS && <p className="hint">외 {hits.length - SHOWN_HITS}개 칸</p>}
-      {!hits.length && <p className="hint">{props.where}에서 찾은 곳이 없습니다.</p>}
-      {props.showRecords && (
-        <>
-          <div className="find-group">
-            생성 기록
-            {records && records !== 'loading' && <small>{records.total}개</small>}
-          </div>
-          {records === 'loading' && <p className="hint">찾는 중…</p>}
-          {recordHits.map((hit, index) => {
-            const order = hits.length + index;
-            const project =
-              hit.projectId === FREE_PROJECT_ID
-                ? '자유 생성'
-                : projects.find((item) => item.id === hit.projectId)?.name;
-            return (
-              <button
-                key={`${hit.projectId}:${hit.id}`}
-                className={`find-hit ${props.picked === order ? 'picked' : ''}`}
-                onClick={() => props.onPick(order)}
-              >
-                <span className="find-hit-path">
-                  {[project, hit.emotionName, hit.field].filter(Boolean).join(' › ')}
-                  <small>{new Date(hit.createdAt).toLocaleString()}</small>
-                </span>
-                <Snippet text={hit.text} range={hit.range} />
-              </button>
-            );
-          })}
-          {records && records !== 'loading' && records.total > recordHits.length && (
-            <p className="hint">최신 {recordHits.length}개</p>
-          )}
-          {records && records !== 'loading' && !records.total && (
-            <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>
-          )}
-        </>
-      )}
-    </fieldset>
+    // fieldset을 스크롤 상자로 쓰면 Chromium이 넘친 결과를 잘라 그리지 않는다.
+    <div className="find-results">
+      <fieldset disabled={props.disabled}>
+        {hits.slice(0, SHOWN_HITS).map((hit, index) => (
+          <button
+            key={`${hit.section}:${hit.itemId}:${hit.path.join('/')}:${index}`}
+            className={`find-hit ${props.picked === index ? 'picked' : ''}`}
+            onClick={() => props.onPick(index)}
+          >
+            <span className="find-hit-path">
+              {[sectionLabel(hit.section), ...hit.path].join(' › ')}
+              {hit.ranges.length > 1 && <small>{hit.ranges.length}개</small>}
+            </span>
+            <Snippet text={hit.text} range={hit.ranges[0]} />
+          </button>
+        ))}
+        {hits.length > SHOWN_HITS && <p className="hint">외 {hits.length - SHOWN_HITS}개 칸</p>}
+        {!hits.length && <p className="hint">{props.where}에서 찾은 곳이 없습니다.</p>}
+        {props.showRecords && (
+          <>
+            <div className="find-group">
+              생성 기록
+              {records && records !== 'loading' && <small>{records.total}개</small>}
+            </div>
+            {records === 'loading' && <p className="hint">찾는 중…</p>}
+            {recordHits.map((hit, index) => {
+              const order = hits.length + index;
+              const project =
+                hit.projectId === FREE_PROJECT_ID
+                  ? '자유 생성'
+                  : projects.find((item) => item.id === hit.projectId)?.name;
+              return (
+                <button
+                  key={`${hit.projectId}:${hit.id}`}
+                  className={`find-hit ${props.picked === order ? 'picked' : ''}`}
+                  onClick={() => props.onPick(order)}
+                >
+                  <span className="find-hit-path">
+                    {[project, hit.emotionName, hit.field].filter(Boolean).join(' › ')}
+                    <small>{new Date(hit.createdAt).toLocaleString()}</small>
+                  </span>
+                  <Snippet text={hit.text} range={hit.range} />
+                </button>
+              );
+            })}
+            {records && records !== 'loading' && records.total > recordHits.length && (
+              <p className="hint">최신 {recordHits.length}개</p>
+            )}
+            {records && records !== 'loading' && !records.total && (
+              <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>
+            )}
+          </>
+        )}
+      </fieldset>
+    </div>
   );
 }

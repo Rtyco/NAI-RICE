@@ -4,8 +4,10 @@ import { createDefaultLibrary } from '../../src/core/model/defaults';
 import {
   comboPrompts,
   defaultOpenIds,
+  emotionHasText,
   mergeFirstSlot,
   moveScenePromptToSlot,
+  optionWithText,
   recordedScenePrompts,
   sameScenePrompts,
   sceneCombos,
@@ -158,5 +160,16 @@ describe('씬 상세 조합 후보 펼침', () => {
       settings: { ...library.settings, layout: { focusLevel: 'panels', edgePeek: false } },
     });
     expect(parsed.settings.layout.comboOptions).toBe('first');
+  });
+});
+
+describe('찾기 결과로 옮겨 가기', () => {
+  it('글이 든 후보와 그 칸을 찾아', () => {
+    const emotion = scene({ slots: [[option('a', 'morning')], [option('b', 'x', ['', 'smile'])]] });
+    expect(optionWithText(emotion.slots!, 'smile')).toEqual({ slot: 1, id: 'b' });
+    expect(optionWithText(emotion.slots!, 'smil')).toBeUndefined();
+    expect(emotionHasText(emotion, 'waving')).toBe(true);
+    expect(emotionHasText(emotion, 'smile')).toBe(true);
+    expect(emotionHasText(emotion, 'night')).toBe(false);
   });
 });

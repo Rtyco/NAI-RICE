@@ -72,16 +72,19 @@
   color: var(--muted);
 }
 .find-results {
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding: 6px 0 0;
+}
+.find-results > fieldset {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  min-height: 0;
   margin: 0;
-  overflow-y: auto;
   border: 0;
-  border-top: 1px solid var(--line);
-  padding: 6px 0 0;
+  padding: 0;
 }
 .find-results .hint {
   margin: 4px 6px;

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, EmotionSet } from '../../../core/domain/types';
 import {
   comboCount,
   comboPrompts,
+  emotionHasText,
   sceneCombos,
   sceneRepeatedTags,
 } from '../../../core/model/sceneCombos';
@@ -26,6 +27,7 @@ import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
 import { revealRow } from '../../components/revealRow';
 import { SceneSearch } from '../../components/SceneSearch';
 import { matchesScene } from '../../sceneSearch';
+import { useFind } from '../../find';
 
 function EmotionSummary({ emotion, onOpen }: { emotion: Emotion; onOpen: () => void }) {
   // SD Studio에서 가져온 씬은 프롬프트가 조합 칸에만 있기도 해 첫 조합으로 보여 준다.
@@ -213,6 +215,23 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
       return next;
     });
   const visible = set.emotions.filter((emotion) => matchesScene(emotion, query));
+  // 찾기 결과가 접히거나 씬 검색에 가린 씬을 가리키면 연다.
+  const reveal = useFind((state) => state.reveal);
+  const revealId =
+    reveal === undefined
+      ? undefined
+      : set.emotions.find((emotion) => emotionHasText(emotion, reveal))?.id;
+  const revealHidden = Boolean(revealId) && !visible.some((emotion) => emotion.id === revealId);
+  useEffect(() => {
+    if (!revealId) return;
+    if (revealHidden) setQuery('');
+    setCollapsed((current) => {
+      if (!current.has(revealId)) return current;
+      const next = new Set(current);
+      next.delete(revealId);
+      return next;
+    });
+  }, [revealId, revealHidden]);
   const allOpen = visible.every((emotion) => !collapsed.has(emotion.id));
   const add = () => {
     // 새 씬 이름이 검색어와 맞지 않으면 보이지 않는다.
