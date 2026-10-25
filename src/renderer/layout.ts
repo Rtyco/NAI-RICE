@@ -80,7 +80,7 @@ export function widthFolds(widthClass: WidthClass): {
   if (widthClass === 'wide') return { hidden: [] };
   if (widthClass === 'medium') return { hidden: ['history'], sidebar: 'icons' };
   if (widthClass === 'narrow') return { hidden: ['history', 'leftPanel'], sidebar: 'icons' };
-  return { hidden: ['history', 'leftPanel', 'sidePanel', 'topBar'], sidebar: 'hidden' };
+  return { hidden: ['history', 'leftPanel', 'sidePanel', 'topBar'], sidebar: 'icons' };
 }
 
 /** 창 크기에 대한 가운데 위치(0~1)라 창 크기가 바뀌어도 비슷한 자리에 있다. */
@@ -148,6 +148,8 @@ const FOLD_ORDER: PanelStage[] = ['open', 'icons', 'hidden'];
 function shownStage(state: LayoutState, panel: StagePanel): PanelStage {
   if (hiddenByFocus(state, STAGES[panel].part)) return 'hidden';
   const width = panel === 'sidebarStage' ? state.widthSidebar : undefined;
+  // 휴대폰 폭은 펼친 사이드바(240px)가 프롬프트 칸을 덮어 아이콘만·숨김만 쓴다.
+  if (width && state.widthClass === 'phone') return width;
   return width && FOLD_ORDER.indexOf(width) > FOLD_ORDER.indexOf(state[panel])
     ? width
     : state[panel];
@@ -177,9 +179,13 @@ export function stageTitle(
   stage: PanelStage,
   shortcut?: string,
 ): string {
-  const action = { open: '펼치기', icons: '아이콘만 남기기', hidden: '숨기기' }[
-    nextStage(panel, stage)
-  ];
+  const next =
+    panel === 'sidebarStage' && get().widthClass === 'phone'
+      ? stage === 'icons'
+        ? 'hidden'
+        : 'icons'
+      : nextStage(panel, stage);
+  const action = { open: '펼치기', icons: '아이콘만 남기기', hidden: '숨기기' }[next];
   return `${name} ${action}${shortcut ? ` (${shortcut})` : ''}`;
 }
 
@@ -207,8 +213,7 @@ function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): 
   const state = get();
   if (!part || part === 'topBar' || !overlaid(state) || state.focusHidden.includes(part))
     return false;
-  const sidebar = part === 'sidebar' && state.widthSidebar === 'hidden';
-  if (!sidebar && !state.widthHidden.includes(part)) return false;
+  if (!state.widthHidden.includes(part)) return false;
   const open = !(state.peek === side && state.peekPinned);
   set({ peek: open ? side : undefined, peekPinned: open });
   return true;
@@ -218,6 +223,10 @@ function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): 
 function cycleStage(panel: StagePanel): void {
   if (overlayFromWidth(STAGES[panel].part, 'left')) return;
   const state = get();
+  if (panel === 'sidebarStage' && state.widthClass === 'phone' && state.widthSidebar) {
+    if (revealFromFocus('sidebar')) return;
+    return set({ widthSidebar: state.widthSidebar === 'icons' ? 'hidden' : 'icons' });
+  }
   const widthFolded =
     panel === 'sidebarStage' &&
     !hiddenByFocus(state, 'sidebar') &&

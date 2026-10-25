@@ -180,7 +180,7 @@ describe('좁은 창', () => {
       'phone',
     ]);
     expect(layout.widthFolds('medium')).toEqual({ hidden: ['history'], sidebar: 'icons' });
-    expect(layout.widthFolds('phone').sidebar).toBe('hidden');
+    expect(layout.widthFolds('phone').sidebar).toBe('icons');
   });
 
   it('저장한 상태는 그대로 두고 덮어 접으며, 다시 열면 그곳만 열리고 넓히면 원래대로', () => {
@@ -229,13 +229,22 @@ describe('좁은 창에서 겹쳐 열기', () => {
     expect(state().peek).toBeUndefined();
   });
 
-  it('휴대폰 폭에서는 숨은 사이드바도 겹쳐 열어', () => {
+  it('휴대폰 폭의 사이드바는 아이콘만으로 시작해 숨김과만 오가고 저장한 단계는 그대로야', () => {
     reset();
     layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
     layout.fitToWidth(400);
-    expect(layout.sidebarStageOf(state())).toBe('hidden');
+    expect(layout.sidebarStageOf(state())).toBe('icons');
+    expect(layout.stageTitle('사이드바', 'sidebarStage', 'icons')).toBe('사이드바 숨기기');
     layout.cycleSidebar();
-    expect(state()).toMatchObject({ peek: 'left', peekPinned: true });
+    expect(layout.sidebarStageOf(state())).toBe('hidden');
+    expect(layout.stageTitle('사이드바', 'sidebarStage', 'hidden')).toBe(
+      '사이드바 아이콘만 남기기',
+    );
+    layout.cycleSidebar();
+    expect(layout.sidebarStageOf(state())).toBe('icons');
+    expect(state().peek).toBeUndefined();
     expect(state().sidebarStage).toBe('open');
+    layout.fitToWidth(1400);
+    expect(layout.sidebarStageOf(state())).toBe('open');
   });
 });
