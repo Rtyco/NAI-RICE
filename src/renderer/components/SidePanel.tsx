@@ -41,7 +41,7 @@ export function SidePanelToggle() {
       aria-pressed={shown}
       onClick={toggleSidePanel}
     >
-      <Icon name="sliders" size={18} />
+      <Icon name="input-panel" size={18} />
     </button>
   );
 }

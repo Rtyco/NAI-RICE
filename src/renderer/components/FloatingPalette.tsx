@@ -189,7 +189,7 @@ function Palette({ queueShown }: { queueShown: boolean }) {
         )}
         {hasPanel && (
           <PaletteButton
-            icon="sliders"
+            icon="input-panel"
             label="입력 패널 열기"
             className={shownPopup === 'side' ? 'active' : ''}
             aria-expanded={shownPopup === 'side'}

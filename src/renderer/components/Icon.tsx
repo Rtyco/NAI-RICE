@@ -279,11 +279,11 @@ const ICONS = {
       <circle cx="15" cy="18" r="1" />
     </>
   ),
-  sliders: (
+  // 생성 설정(preset)의 조절 막대와 같아 보여 같은 기능으로 읽혔다(2026-10-25).
+  'input-panel': (
     <>
-      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
-      <circle cx="15" cy="7" r="2" />
-      <circle cx="9" cy="17" r="2" />
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M13 4v16M16 8.5h2M16 12h2M16 15.5h2" />
     </>
   ),
 } satisfies Record<string, ReactNode>;
