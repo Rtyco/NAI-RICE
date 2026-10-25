@@ -102,6 +102,9 @@ export function registerIpc(services: AppServices): void {
     library.addSourceImage(request),
   );
   ipcMain.handle('source:add-mask', (_event, dataUrl: string) => library.addSourceMask(dataUrl));
+  ipcMain.handle('source:add-reference', (_event, reference: Reference) =>
+    library.addSourceFromReference(reference),
+  );
   ipcMain.handle('source:delete', (_event, file: string) => library.deleteSource(file));
   ipcMain.handle('image:read-data-url', (_event, source: ImageDataSource) =>
     library.readImageDataUrl(source),

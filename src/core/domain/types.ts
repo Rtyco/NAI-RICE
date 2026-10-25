@@ -483,7 +483,11 @@ export type FreeImage = {
   maskFile?: string;
   /** 자유 생성 결과였으면 새 결과의 `sourceRecordId`가 된다. */
   fromRecord?: { projectId: string; generationId: string };
+  /** 라이브러리 인페인트에서 복사했으면 인페인팅에 reference inset을 붙이고 이 세기(0~1)를 쓴다. */
+  fromReference?: FreeImageReference;
 };
+
+export type FreeImageReference = { referenceId: string; name: string; inpaintStrength: number };
 
 export type Library = {
   schemaVersion: 2;

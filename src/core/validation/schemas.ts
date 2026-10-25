@@ -496,6 +496,14 @@ export const librarySchema = z.object({
             outputRect: rectSchema,
             maskFile: sourceFileSchema.optional(),
             fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
+            fromReference: z
+              .object({
+                referenceId: z.string(),
+                name: z.string(),
+                inpaintStrength: z.number().min(0).max(1),
+              })
+              .optional()
+              .catch(undefined),
           })
           .optional(),
         inpaint: z.boolean().default(false),

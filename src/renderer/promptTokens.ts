@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Library, PieceSet } from '../core/domain/types';
-import { composeRequestPrompts, freePromptPreset } from '../core/jobs/JobBuilder';
+import { composeRequestPrompts, freePromptKind, freePromptPreset } from '../core/jobs/JobBuilder';
 import { comboPrompts, sceneCombos } from '../core/model/sceneCombos';
 import {
   effectiveGenerationSettings,
@@ -148,7 +148,7 @@ export function freeTokenScenes(library: Library): TokenScene[] {
     promptSets,
     { prompt: free.prompt, negative: free.negative },
     { sets: library.pieceSets },
-    'txt2img',
+    freePromptKind(free),
   );
   return [
     { texts: requestPromptTexts(effectiveGenerationSettings(preset.generation).model, prompts) },

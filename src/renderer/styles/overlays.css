@@ -122,6 +122,33 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.reference-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.reference-picks button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  text-align: left;
+}
+.reference-picks img,
+.reference-pick-empty {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--bg-1);
+}
+.reference-picks span:last-child {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .director-tools {
   margin-bottom: 10px;
 }

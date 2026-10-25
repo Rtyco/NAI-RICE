@@ -99,6 +99,8 @@ export type PreparedImage = { imagePath: string; imageSha256: string };
 /** 크기는 64 배수. 같은 이미지는 같은 이름. `outputRect`는 여백을 뺀 원래 영역. */
 export type StoredSource = { file: string; width: number; height: number; outputRect: Rect };
 
+export type ReferenceSource = StoredSource & { maskFile: string };
+
 export type SourceInputRequest = {
   projectId: string;
   file: string;
@@ -182,6 +184,8 @@ export type LibraryApi = {
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
   addSourceMask: (dataUrl: string) => Promise<string>;
+  /** 인페인트의 캔버스와 마스크를 복사한다. 결과 영역은 인페인트의 것. */
+  addSourceFromReference: (reference: Reference) => Promise<ReferenceSource>;
   /** 앱이 만든 사본이라 휴지통을 거치지 않는다. */
   deleteSourceImage: (file: string) => Promise<void>;
   prepareSourceInput: (request: SourceInputRequest) => Promise<PreparedSourceInput>;

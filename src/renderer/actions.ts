@@ -194,6 +194,7 @@ export function generateFree(
         width: source.width,
         height: source.height,
         outputRect: source.outputRect,
+        ...(free.inpaint && source.fromReference ? { reference: source.fromReference } : {}),
         sourceRecordId:
           source.fromRecord?.projectId === FREE_PROJECT_ID
             ? source.fromRecord.generationId

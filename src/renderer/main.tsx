@@ -46,6 +46,7 @@ function createPreviewApi(): DesktopApi {
     prepareImageInput: unsupported,
     addSourceImage: unsupported,
     addSourceMask: unsupported,
+    addSourceFromReference: unsupported,
     deleteSourceImage: async () => undefined,
     prepareSourceInput: unsupported,
     readImageDataUrl: unsupported,

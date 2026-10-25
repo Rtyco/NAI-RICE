@@ -18,6 +18,7 @@ import type {
   PreparedSourceInput,
   ProjectInspection,
   ReferenceImages,
+  ReferenceSource,
   SourceImageAdd,
   SourceInputRequest,
   StorageUsage,
@@ -159,6 +160,10 @@ export class Library
 
   addSourceMask(dataUrl: string): Promise<string> {
     return this.files.addSourceMask(dataUrl);
+  }
+
+  addSourceFromReference(reference: Reference): Promise<ReferenceSource> {
+    return this.files.addSourceFromReference(reference);
   }
 
   deleteSource(file: string): Promise<void> {

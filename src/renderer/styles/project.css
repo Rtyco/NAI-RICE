@@ -81,6 +81,16 @@
   gap: 8px;
   margin-bottom: 12px;
 }
+.free-source-loads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.free-source-loads button {
+  flex: 1;
+  justify-content: center;
+  white-space: nowrap;
+}
 .free-source-body {
   display: flex;
   gap: 10px;

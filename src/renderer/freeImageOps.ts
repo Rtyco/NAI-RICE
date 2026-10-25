@@ -1,4 +1,4 @@
-import type { FreeImage, GenerationSummary } from '../core/domain/types';
+import type { FreeImage, GenerationSummary, Reference } from '../core/domain/types';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
 import { createReference, FREE_PROJECT_ID } from '../core/model/defaults';
 import { fileApi, libraryApi } from './desktop';
@@ -92,6 +92,31 @@ export function loadFreeImageFromFile(): Promise<void> {
     const mode =
       useStore.getState().library?.freeGeneration.mode === 'augment' ? 'augment' : 'img2img';
     setFreeImage(stored, file.name.replace(/\.[^.]+$/, ''), mode);
+  }).then(() => undefined);
+}
+
+/** 복사본이라 자유 생성에서 마스크를 고쳐도 라이브러리의 인페인트는 그대로다. */
+export function loadFreeImageFromReference(reference: Reference): Promise<void> {
+  return run('인페인트를 불러오는 중', async () => {
+    const stored = await libraryApi().addSourceFromReference(reference);
+    const previous = useStore.getState().library?.freeGeneration.image;
+    pendingMask = undefined;
+    // 캔버스가 같으면 마스크 칸이 key로 다시 만들어지지 않아 화면에 옛 마스크가 남는다.
+    if (previous?.file === stored.file) {
+      updateFreeGeneration({ image: undefined });
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    const image: FreeImage = {
+      name: reference.name,
+      ...stored,
+      fromReference: {
+        referenceId: reference.id,
+        name: reference.name,
+        inpaintStrength: reference.inpaintStrength,
+      },
+    };
+    updateFreeGeneration({ mode: 'img2img', inpaint: true, image });
+    dropSourceFiles(previous, image);
   }).then(() => undefined);
 }
 

@@ -26,6 +26,7 @@ const api: DesktopApi = {
   prepareImageInput: (request) => ipcRenderer.invoke('project:prepare-image-input', request),
   addSourceImage: (request) => ipcRenderer.invoke('source:add', request),
   addSourceMask: (dataUrl) => ipcRenderer.invoke('source:add-mask', dataUrl),
+  addSourceFromReference: (reference) => ipcRenderer.invoke('source:add-reference', reference),
   deleteSourceImage: (file) => ipcRenderer.invoke('source:delete', file),
   prepareSourceInput: (request) => ipcRenderer.invoke('source:prepare-input', request),
   readImageDataUrl: (source) => ipcRenderer.invoke('image:read-data-url', source),

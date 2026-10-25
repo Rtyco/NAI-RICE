@@ -7,6 +7,7 @@ import type {
   ImageInputSource,
   ReferenceImages,
   ReferenceImageSave,
+  ReferenceSource,
   SourceImageAdd,
   StoredSource,
 } from '../../src/shared/ipc';
@@ -149,6 +150,22 @@ export class StoredFiles {
 
   async addSourceMask(dataUrl: string): Promise<string> {
     return this.writeSource(await sharp(decodeDataUrl(dataUrl).buffer).png().toBuffer());
+  }
+
+  /** 인페인트 캔버스는 이미 64 배수라 여백을 넣지 않는다. 마스크는 작업 인페인트가 보내는 그대로다. */
+  async addSourceFromReference(reference: Reference): Promise<ReferenceSource> {
+    const image = reference.image;
+    if (!image) throw new Error('인페인트에 참고 이미지가 없습니다.');
+    const read = async (relative: string) =>
+      fs.readFile(await this.paths.resolveReferenceReal(reference.id, relative));
+    const [canvas, mask] = await Promise.all([read(image.canvasFile), read(image.maskFile)]);
+    const [size, maskSize] = await Promise.all([imageSize(canvas), imageSize(mask)]);
+    if (size.width !== maskSize.width || size.height !== maskSize.height)
+      throw new Error(
+        '인페인트의 마스크 크기가 캔버스와 다릅니다. 인페인트 편집에서 다시 저장하십시오.',
+      );
+    const [file, maskFile] = await Promise.all([this.writeSource(canvas), this.writeSource(mask)]);
+    return { file, maskFile, ...size, outputRect: { ...image.outputRect } };
   }
 
   async deleteSource(file: string): Promise<void> {

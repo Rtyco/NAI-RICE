@@ -12,6 +12,7 @@ import {
   createPreset,
   createProject,
   createPromptSet,
+  createReference,
 } from '../../src/core/model/defaults';
 import { generationEnqueueRequestSchema, librarySchema } from '../../src/core/validation/schemas';
 
@@ -71,6 +72,49 @@ describe('자유 생성 i2i 작업', () => {
     });
     expect(jobs[0].prompt).toBe('masterpiece, smile');
     expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+  });
+
+  it('인페인트에서 불러온 이미지는 작업처럼 reference inset과 그 세기로 인페인트해', () => {
+    const reference = { name: '참고', inpaintStrength: 0.7 };
+    const [job] = buildFreeJobs({
+      preset,
+      prompt: 'smile',
+      count: 1,
+      image: { image, mask, width: 640, height: 960, outputRect, reference },
+    });
+    expect(job).toMatchObject({ kind: 'inpaint', referenceName: '참고' });
+    expect(job.prompt).toContain('reference inset');
+    expect(job.settings.inpaintStrength).toBe(0.7);
+    expect(generationEnqueueRequestSchema.safeParse({ jobs: [job] }).success).toBe(true);
+
+    const [whole] = buildFreeJobs({
+      preset,
+      prompt: 'smile',
+      count: 1,
+      image: { image, width: 640, height: 960, outputRect, reference },
+    });
+    expect(whole.kind).toBe('img2img');
+    expect(whole.prompt).toBe('masterpiece, smile');
+  });
+
+  it('예전 자유 생성 이미지와 잘못된 fromReference를 읽어', () => {
+    const library = createDefaultLibrary();
+    const freeImage = {
+      name: 'a',
+      file: `${'c'.repeat(24)}.png`,
+      width: 64,
+      height: 64,
+      outputRect: { x: 0, y: 0, width: 64, height: 64 },
+    };
+    const read = (image: object) =>
+      librarySchema.parse({ ...library, freeGeneration: { ...library.freeGeneration, image } })
+        .freeGeneration.image;
+    expect(read(freeImage)?.fromReference).toBeUndefined();
+    expect(
+      read({ ...freeImage, fromReference: { referenceId: 1 } })?.fromReference,
+    ).toBeUndefined();
+    const fromReference = { referenceId: 'r', name: 'n', inpaintStrength: 0.5 };
+    expect(read({ ...freeImage, fromReference })?.fromReference).toEqual(fromReference);
   });
 
   it('마스크가 없으면 생성 설정의 세기로 이미지 전체를 i2i하고 여백은 결과에서 잘라', () => {
@@ -198,6 +242,49 @@ describe('자유 인페인팅 입력', () => {
 
     await library.deleteSource(blank);
     await expect(readFile(library.sourceFile(blank))).rejects.toThrow();
+  });
+
+  it('인페인트의 캔버스와 마스크를 여백 없이 그대로 복사하고 결과 영역도 가져와', async () => {
+    const { library } = await openLibrary();
+    const canvas = await sharp({
+      create: { width: 256, height: 128, channels: 3, background: '#336699' },
+    })
+      .png()
+      .toBuffer();
+    const mask = await maskPng(256, 128, true);
+    const outputRect = { x: 128, y: 0, width: 128, height: 128 };
+    const reference = {
+      ...createReference('참고'),
+      image: {
+        originalFile: 'original.png',
+        canvasFile: 'canvas.png',
+        maskFile: 'mask.png',
+        originalName: 'a.png',
+        canvasWidth: 256,
+        canvasHeight: 128,
+        referenceRect: { x: 0, y: 0, width: 128, height: 128 },
+        outputRect,
+      },
+    };
+    await library.saveReferenceImages(reference.id, {
+      originalDataUrl: pngUrl(canvas),
+      canvasDataUrl: pngUrl(canvas),
+      maskDataUrl: pngUrl(mask),
+    });
+    const stored = await library.addSourceFromReference(reference);
+    expect(stored).toMatchObject({ width: 256, height: 128, outputRect });
+    expect(await readFile(library.sourceFile(stored.file))).toEqual(canvas);
+    expect(await readFile(library.sourceFile(stored.maskFile))).toEqual(mask);
+    await expect(
+      library.prepareSourceInput({
+        projectId: 'free',
+        file: stored.file,
+        maskFile: stored.maskFile,
+      }),
+    ).resolves.toHaveProperty('mask');
+    await expect(
+      library.addSourceFromReference({ ...reference, image: undefined }),
+    ).rejects.toThrow('참고 이미지');
   });
 });
 

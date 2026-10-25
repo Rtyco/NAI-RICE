@@ -9,6 +9,8 @@ import type {
   Emotion,
   EmotionPosition,
   EmotionSet,
+  FreeGeneration,
+  FreeImageReference,
   GenerationKind,
   GenerationRecord,
   GenerationSettings,
@@ -391,6 +393,8 @@ export type FreeJobBuildInput = {
     height: number;
     outputRect: Rect;
     sourceRecordId?: string;
+    /** 마스크와 함께 오면 인페인트 작업처럼 reference inset과 이 세기를 쓴다. */
+    reference?: Pick<FreeImageReference, 'name' | 'inpaintStrength'>;
   };
   pieceSets?: PieceSet[];
   seedOverride?: number;
@@ -423,6 +427,15 @@ export function freePromptPreset(
   return { ...preset, generation: { ...preset.generation, emotionPosition } };
 }
 
+/** 인페인트에서 불러온 이미지에 인페인팅할 때만 reference inset이 붙는다. */
+export function freePromptKind(
+  free: Pick<FreeGeneration, 'mode' | 'inpaint' | 'image'>,
+): GenerationKind {
+  return free.mode === 'img2img' && free.inpaint && free.image?.fromReference
+    ? 'inpaint'
+    : 'txt2img';
+}
+
 export function buildFreeJobs(
   input: FreeJobBuildInput,
 ): Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> {
@@ -436,6 +449,7 @@ export function buildFreeJobs(
   );
   const now = input.now ?? (() => new Date());
   const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
+  const reference = input.image?.mask ? input.image.reference : undefined;
   const jobs: Array<Txt2ImgJobSnapshot | InpaintJobSnapshot | Img2ImgJobSnapshot> = [];
   for (let variantIndex = 1; variantIndex <= input.count; variantIndex += 1) {
     const seed =
@@ -449,7 +463,7 @@ export function buildFreeJobs(
       characters.map((character) => character.promptSet),
       { prompt: input.prompt, negative: input.negative },
       { sets: input.pieceSets ?? [], seed },
-      'txt2img',
+      reference ? 'inpaint' : 'txt2img',
     );
     if (missingPieces.length) {
       throw new Error(
@@ -469,7 +483,7 @@ export function buildFreeJobs(
       ...(input.negative?.trim() ? { emotionNegative: input.negative } : {}),
       presetName: input.preset.name,
       emotionSetName: '',
-      referenceName: '',
+      referenceName: reference?.name ?? '',
       ...prompts,
       source: {
         commonPositive: input.preset.commonPositive,
@@ -503,6 +517,9 @@ export function buildFreeJobs(
             ...fromImage,
             kind: 'inpaint',
             ...image.mask,
+            ...(reference
+              ? { settings: { ...common.settings, inpaintStrength: reference.inpaintStrength } }
+              : {}),
             // 캔버스가 원본과 거의 같다.
             keepDiagnosticCanvas: false,
           }
