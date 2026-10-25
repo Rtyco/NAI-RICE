@@ -88,6 +88,7 @@ export function ChainChip(props: {
           <Icon name={label.icon} size={15} />
         </span>
       )}
+      <span className="chain-chip-name">{label.text}</span>
       {props.children}
       {edit && (
         <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>

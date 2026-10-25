@@ -120,6 +120,16 @@
 .chain-chip-label .icon {
   color: var(--accent-text);
 }
+/* 자리가 있을 때만 useChipNames가 .named를 붙인다. */
+.chain-chip-name {
+  display: none;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.chain-bar.named .chain-chip-name {
+  display: inline;
+}
 .chain-chip-icon-button {
   justify-content: center;
   width: 22px;

@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { FreeGeneration, Preset } from '../../../core/domain/types';
 import { maxCharactersFor } from '../../../core/providers/NaiModels';
 import { AidChip } from '../../components/AidChip';
@@ -5,6 +6,7 @@ import { ChecklistChip, SizeChip } from '../../components/ChainChip';
 import { CharacterChip } from '../../components/CharacterChip';
 import { PositionChip } from '../../components/CharacterPositions';
 import { TopBarToggle } from '../../components/TopBarToggle';
+import { useChipNames } from '../../components/useChipNames';
 import { updateFreeGeneration } from '../../store';
 
 /** 접으면 같은 칩들을 화면 머리줄 안에 작게 둔다. */
@@ -15,8 +17,10 @@ export function FreeChainBar(props: {
   compact: boolean;
 }) {
   const { free, preset } = props;
+  const bar = useRef<HTMLDivElement>(null);
+  useChipNames(bar, props.compact);
   return (
-    <div className={`chain-bar ${props.compact ? 'compact' : ''}`}>
+    <div ref={bar} className={`chain-bar ${props.compact ? 'compact' : ''}`}>
       <ChecklistChip
         section="presets"
         itemId={preset?.id}

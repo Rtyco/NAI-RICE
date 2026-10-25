@@ -42,6 +42,7 @@ import { useHeaderFit } from '../components/useHeaderFit';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { RefineChip } from '../components/RefineChip';
+import { useChipNames } from '../components/useChipNames';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
 import { Menu } from '../components/ui';
@@ -111,6 +112,8 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
   const references = useStore((state) => state.library!.references);
   const emotionSets = useStore((state) => state.library!.emotionSets);
   const { project } = resolved;
+  const bar = useRef<HTMLDivElement>(null);
+  useChipNames(bar, Boolean(compact));
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
   const thumb = resolved.reference?.image
@@ -122,7 +125,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
     : undefined;
 
   return (
-    <div className={`chain-bar ${compact ? 'compact' : ''}`}>
+    <div ref={bar} className={`chain-bar ${compact ? 'compact' : ''}`}>
       <ChecklistChip
         section="presets"
         itemId={resolved.preset?.id}
