@@ -429,6 +429,8 @@ export type AppSettings = {
   layout: {
     focusLevel: FocusLevel;
     edgePeek: boolean;
+    /** 씬 상세에서 조합 칸을 열 때 펼쳐 둘 후보 */
+    comboOptions: ComboOptionsOpen;
   };
   update: {
     autoCheck: boolean;
@@ -438,6 +440,8 @@ export type AppSettings = {
     seenVersion: string;
   };
 };
+
+export type ComboOptionsOpen = 'first' | 'all' | 'none';
 
 /** 집중 모드(Tab)가 숨기는 범위 */
 export type FocusLevel = 'panels' | 'inputs' | 'all';

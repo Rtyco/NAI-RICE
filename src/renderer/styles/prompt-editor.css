@@ -602,17 +602,16 @@ textarea.syntax-input::selection {
   field-sizing: content;
 }
 /* 크게 편집은 입력칸 오른쪽 위에, 올렸을 때만 */
+/* 크게 편집 버튼은 입력칸 오른쪽 옆 칸에 두어 글을 가리지 않는다. */
 .prompt-cell {
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2px;
   min-width: 0;
 }
 .prompt-cell > .expand-text-button {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  z-index: 1;
   opacity: 0;
-  background: var(--bg-3);
 }
 .prompt-cell:is(:hover, :focus-within) > .expand-text-button {
   opacity: 1;
@@ -627,11 +626,11 @@ textarea.syntax-input::selection {
 .scene-option-chars .emotion-extra-prompt > span {
   padding-top: 5px;
 }
-/* 지우기는 그 줄에 올렸을 때만 보인다. */
+/* 지우기는 늘 보이되, 그 줄에 올리기 전에는 흐리게 둔다. */
 .scene-slot-head .row-remove,
 .scene-option-head .row-remove,
 .scene-option-table .row-remove {
-  opacity: 0;
+  opacity: 0.55;
 }
 .scene-slot-head:is(:hover, :focus-within) .row-remove,
 .scene-option:is(:hover, :focus-within) .row-remove,

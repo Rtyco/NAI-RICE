@@ -5,6 +5,7 @@ import { withPromptAt } from '../core/model/mutations';
 import {
   characterTagGroup,
   comboCount,
+  defaultOpenIds,
   mergeFirstSlot,
   moveScenePromptToSlot,
   optionLabel,
@@ -12,6 +13,7 @@ import {
 } from '../core/model/sceneCombos';
 import { confirmDialog } from './components/dialogStack';
 import type { OptionProps } from './components/SceneOptionRows';
+import { useStore } from './store';
 
 export type SceneSlotsChange = Partial<Pick<Emotion, 'slots' | 'prompt' | 'extraPrompts'>>;
 
@@ -34,9 +36,30 @@ export function useSceneSlots(props: {
   const [open, setOpen] = useState(!props.foldable);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
-  const [tab, setTab] = useState(0);
-  const [openId, setOpenId] = useState<string>();
+  const [tab, setTabState] = useState(0);
+  const rule = useStore((state) => state.library?.settings.layout.comboOptions ?? 'first');
+  // 비면 칸을 연 그대로(설정의 기본 펼침). 하나라도 접거나 펴면 그때부터 후보마다 기억한다.
+  // 씬을 넘기면 같은 편집기가 그대로 남아 씬 ID로 구분한다.
+  const [picked, setPicked] = useState<{ emotionId: string; ids: Set<string> }>();
+  const chosen = picked?.emotionId === emotion.id ? picked.ids : undefined;
+  const setChosen = (ids: Set<string> | undefined) =>
+    setPicked(ids && { emotionId: emotion.id, ids });
   const slotIndex = Math.min(tab, slots.length - 1);
+  const currentSlot = slots[slotIndex] ?? [];
+  const openIds = chosen ?? defaultOpenIds(currentSlot, rule);
+  const setTab = (index: number) => {
+    setTabState(index);
+    setChosen(undefined);
+  };
+  const openOnly = (ids: string[]) => setChosen(new Set(ids));
+  const toggleOption = (id: string) => {
+    const next = new Set(openIds);
+    if (!next.delete(id)) next.add(id);
+    setChosen(next);
+  };
+  const allOpen = currentSlot.length > 0 && currentSlot.every((option) => openIds.has(option.id));
+  const setAllOpen = (open: boolean) =>
+    setChosen(new Set(open ? currentSlot.map((option) => option.id) : []));
   const used = Math.max(0, ...slots.flat().map((option) => option.characterPrompts.length));
   const characterCount = Math.max(names.length, used, opened);
   const repeated = useMemo(
@@ -70,22 +93,22 @@ export function useSceneSlots(props: {
   });
   const addOption = () => {
     const option = newOption();
-    setOpenId(option.id);
+    setChosen(new Set([...openIds, option.id]));
     saveSlot((item) => [...item, option]);
   };
   const addSlot = () => {
     const option = newOption();
     setOpen(true);
-    setTab(slots.length);
-    setOpenId(option.id);
+    setTabState(slots.length);
+    openOnly([option.id]);
     save([...slots, [option]]);
   };
   const removeSlot = () => save(slots.filter((_, index) => index !== slotIndex));
   const moveScenePrompt = () => {
     const id = newId();
     setOpen(true);
-    setTab(0);
-    setOpenId(id);
+    setTabState(0);
+    openOnly([id]);
     props.onChange(moveScenePromptToSlot(emotion, id));
   };
   const mergeFirst = () => {
@@ -119,14 +142,16 @@ export function useSceneSlots(props: {
   return {
     slots,
     slotIndex,
-    slot: slots[slotIndex] ?? [],
+    slot: currentSlot,
     count: comboCount(emotion),
     characterCount,
     open,
     setOpen,
     setTab,
-    openId,
-    setOpenId,
+    openIds,
+    toggleOption,
+    allOpen,
+    setAllOpen,
     optionProps,
     addOption,
     addSlot,

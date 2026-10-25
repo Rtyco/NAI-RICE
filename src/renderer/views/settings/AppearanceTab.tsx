@@ -1,6 +1,6 @@
 import type { AppSettings, ThemeId, ThemeMode } from '../../../core/domain/types';
 import { confirmDialog } from '../../components/dialogStack';
-import { Card } from '../../components/ui';
+import { Card, SelectField } from '../../components/ui';
 import { resetLayout } from '../../layout';
 import { resetPanelWidths } from '../../panelWidths';
 import { resetSidebarSections, toast, useLibrary } from '../../store';
@@ -9,7 +9,7 @@ import { EdgePeekToggle, FocusLevelGrid } from './FocusSettings';
 import { patchSettings } from './patchSettings';
 
 export function AppearanceTab() {
-  const { appearance } = useLibrary().settings;
+  const { appearance, layout } = useLibrary().settings;
   const set = (value: Partial<AppSettings['appearance']>) =>
     patchSettings((current) => ({ ...current, appearance: { ...current.appearance, ...value } }));
   const preview =
@@ -58,6 +58,23 @@ export function AppearanceTab() {
       </Card>
       <Card title="숨긴 패널">
         <EdgePeekToggle />
+      </Card>
+      <Card title="씬 상세 조합 프롬프트">
+        <SelectField
+          label="칸을 열 때 펼쳐 둘 후보"
+          value={layout.comboOptions}
+          options={[
+            { value: 'first', label: '첫 후보만' },
+            { value: 'all', label: '모두' },
+            { value: 'none', label: '모두 접기' },
+          ]}
+          onChange={(comboOptions) =>
+            patchSettings((current) => ({
+              ...current,
+              layout: { ...current.layout, comboOptions },
+            }))
+          }
+        />
       </Card>
       <Card title="화면 배치">
         <div>

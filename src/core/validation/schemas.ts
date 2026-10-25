@@ -429,8 +429,9 @@ export const appSettingsSchema = z.object({
     .object({
       focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels'),
       edgePeek: z.boolean().default(false),
+      comboOptions: z.enum(['first', 'all', 'none']).catch('first'),
     })
-    .default({ focusLevel: 'panels', edgePeek: false }),
+    .default({ focusLevel: 'panels', edgePeek: false, comboOptions: 'first' }),
   update: z
     .object({
       autoCheck: z.boolean().default(true),

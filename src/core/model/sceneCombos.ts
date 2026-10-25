@@ -1,4 +1,4 @@
-import type { Emotion, GenerationRecord, SceneOption } from '../domain/types';
+import type { ComboOptionsOpen, Emotion, GenerationRecord, SceneOption } from '../domain/types';
 import { joinFragments, tagPieces } from '../prompts/PromptComposer';
 import { stripComments } from '../prompts/PromptPieces';
 
@@ -229,4 +229,10 @@ export function mergeFirstSlot(
     extraPrompts: extras.some(Boolean) ? extras : undefined,
     slots: rest.length ? rest : undefined,
   };
+}
+
+/** 씬 상세에서 칸을 열었을 때 펼쳐 둘 후보 */
+export function defaultOpenIds(slot: SceneOption[], rule: ComboOptionsOpen): Set<string> {
+  if (rule === 'all') return new Set(slot.map((option) => option.id));
+  return new Set(rule === 'first' && slot[0] ? [slot[0].id] : []);
 }

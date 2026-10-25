@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Emotion, SceneOption } from '../../src/core/domain/types';
+import { createDefaultLibrary } from '../../src/core/model/defaults';
 import {
   comboPrompts,
+  defaultOpenIds,
   mergeFirstSlot,
   moveScenePromptToSlot,
   recordedScenePrompts,
@@ -9,6 +11,7 @@ import {
   sceneCombos,
   sceneRepeatedTags,
 } from '../../src/core/model/sceneCombos';
+import { librarySchema } from '../../src/core/validation/schemas';
 
 const option = (id: string, prompt: string, characterPrompts: string[] = []): SceneOption => ({
   id,
@@ -130,5 +133,30 @@ describe('프롬프트 복원', () => {
   it('끝의 빈 캐릭터 칸은 없는 것과 같다', () => {
     const emotion = scene({ extraPrompts: ['waving', ''] });
     expect(sameScenePrompts(emotion, { ...emotion, extraPrompts: ['waving'] })).toBe(true);
+  });
+});
+
+describe('씬 상세 조합 후보 펼침', () => {
+  const slot = ['a', 'b', 'c'].map((id) => ({
+    id,
+    prompt: id,
+    characterPrompts: [],
+    enabled: true,
+  }));
+
+  it('설정에 따라 첫 후보만, 모두, 하나도 펼치지 않아', () => {
+    expect([...defaultOpenIds(slot, 'first')]).toEqual(['a']);
+    expect([...defaultOpenIds(slot, 'all')]).toEqual(['a', 'b', 'c']);
+    expect(defaultOpenIds(slot, 'none').size).toBe(0);
+    expect(defaultOpenIds([], 'first').size).toBe(0);
+  });
+
+  it('예전 설정에는 첫 후보만 펼침이 들어가', () => {
+    const library = createDefaultLibrary();
+    const parsed = librarySchema.parse({
+      ...library,
+      settings: { ...library.settings, layout: { focusLevel: 'panels', edgePeek: false } },
+    });
+    expect(parsed.settings.layout.comboOptions).toBe('first');
   });
 });

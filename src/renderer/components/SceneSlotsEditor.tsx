@@ -137,6 +137,11 @@ export function SceneSlotsEditor(props: {
           ) : (
             <em className="scene-slot-empty">켜진 후보가 없어 생성되지 않음</em>
           )}
+          {!props.foldable && slot.length > 1 && (
+            <button className="link-button" onClick={() => state.setAllOpen(!state.allOpen)}>
+              {state.allOpen ? '모두 접기' : '모두 펴기'}
+            </button>
+          )}
           {slotIndex === 0 && mergeableFirstSlot(emotion) && (
             <button
               className="link-button"
@@ -167,8 +172,8 @@ export function SceneSlotsEditor(props: {
               <SceneOptionItem
                 key={option.id}
                 {...state.optionProps(option)}
-                open={state.openId === option.id}
-                toggle={() => state.setOpenId(state.openId === option.id ? undefined : option.id)}
+                open={state.openIds.has(option.id)}
+                toggle={() => state.toggleOption(option.id)}
               />
             ))}
           </div>
