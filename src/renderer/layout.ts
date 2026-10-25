@@ -61,6 +61,8 @@ export type LayoutState = {
   peek?: 'left' | 'right';
   /** 좁은 창에서 버튼으로 연 겹친 패널. 마우스가 벗어나도 닫지 않고 바깥을 누르거나 Esc로 닫는다. */
   peekPinned?: boolean;
+  /** 버튼으로 연 곳. 오른쪽 겹침에서 히스토리와 입력 패널 중 그것만 띄운다. 마우스로 연 겹침은 둘 다다. */
+  peekPart?: FocusPart;
   /** 아이콘 폭까지 줄인 패널 */
   compactPanels: PanelId[];
   palettePosition: PalettePosition;
@@ -214,8 +216,8 @@ function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): 
   if (!part || part === 'topBar' || !overlaid(state) || state.focusHidden.includes(part))
     return false;
   if (!state.widthHidden.includes(part)) return false;
-  const open = !(state.peek === side && state.peekPinned);
-  set({ peek: open ? side : undefined, peekPinned: open });
+  const open = !(state.peek === side && state.peekPinned && state.peekPart === part);
+  set({ peek: open ? side : undefined, peekPinned: open, peekPart: open ? part : undefined });
   return true;
 }
 
@@ -286,7 +288,13 @@ export function toggleFocusMode(): void {
 export function fitToWidth(width: number): void {
   const widthClass = widthClassOf(width);
   if (widthClass === get().widthClass) return;
-  set({ widthClass, ...widthState(widthClass), peek: undefined, peekPinned: false });
+  set({
+    widthClass,
+    ...widthState(widthClass),
+    peek: undefined,
+    peekPinned: false,
+    peekPart: undefined,
+  });
 }
 
 function widthState(widthClass: WidthClass) {
@@ -295,7 +303,7 @@ function widthState(widthClass: WidthClass) {
 }
 
 export function setPeek(peek?: 'left' | 'right'): void {
-  set({ peek, peekPinned: false });
+  set({ peek, peekPinned: false, peekPart: undefined });
 }
 
 export function movePalette(palettePosition: PalettePosition): void {
@@ -321,6 +329,7 @@ export function resetLayout(): void {
     focusHidden: [],
     peek: undefined,
     peekPinned: false,
+    peekPart: undefined,
     ...widthState(get().widthClass),
     palettePosition: DEFAULT_PALETTE_POSITION,
   });

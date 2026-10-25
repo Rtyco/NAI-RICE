@@ -229,6 +229,19 @@ describe('좁은 창에서 겹쳐 열기', () => {
     expect(state().peek).toBeUndefined();
   });
 
+  it('오른쪽 겹침은 누른 패널만 띄우고, 다른 패널 버튼을 누르면 그쪽으로 바꿔', () => {
+    reset();
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(400);
+    layout.toggleSidePanel();
+    expect(state()).toMatchObject({ peek: 'right', peekPart: 'sidePanel' });
+    layout.toggleHistory();
+    expect(state()).toMatchObject({ peek: 'right', peekPart: 'history' });
+    layout.toggleHistory();
+    expect(state().peek).toBeUndefined();
+    expect(state().peekPart).toBeUndefined();
+  });
+
   it('휴대폰 폭의 사이드바는 아이콘만으로 시작해 숨김과만 오가고 저장한 단계는 그대로야', () => {
     reset();
     layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });

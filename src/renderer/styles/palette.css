@@ -12,6 +12,10 @@
   background: var(--bg-3);
   box-shadow: 0 10px 28px #0009;
 }
+/* 버튼으로 겹쳐 연 입력 패널에 생성 버튼이 있어 가리지 않게 비킨다. */
+body:has(.app-shell.peek-only-sidePanel) .floating-palette {
+  display: none;
+}
 .palette-grip {
   display: grid;
   place-items: center;

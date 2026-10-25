@@ -336,6 +336,14 @@
   right: var(--peek-right, 0px);
   width: var(--side-panel-width, 360px);
 }
+/* 버튼으로 연 겹침은 누른 패널만 띄운다. */
+.app-shell.peek-only-sidePanel .prompt-panel-view {
+  --peek-right: 0px;
+}
+.app-shell.peek-only-history .detail-body.side-hidden > .detail-side,
+.app-shell.peek-only-history .canvas-view.side-hidden > .canvas-settings {
+  display: none;
+}
 
 /* ── 바뀐 점 안내 ─────────────────────────────── */
 .whats-new {

@@ -106,8 +106,13 @@ function Welcome() {
 function AppShell({ children }: { children: ReactNode }) {
   const sidebar = useLayout(sidebarStageOf);
   const peek = useLayout((state) => state.peek);
+  const peekPart = useLayout((state) => state.peekPart);
   return (
-    <main className={`app-shell sidebar-${sidebar} ${peek ? `peek-${peek}` : ''}`}>{children}</main>
+    <main
+      className={`app-shell sidebar-${sidebar} ${peek ? `peek-${peek}` : ''} ${peekPart ? `peek-only-${peekPart}` : ''}`}
+    >
+      {children}
+    </main>
   );
 }
 

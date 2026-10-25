@@ -26,7 +26,9 @@ function describe(record: GenerationSummary): string {
 
 export function HistoryPanel({ projectId }: { projectId: string }) {
   const collapsed = useLayout((state) => !historyShownOf(state));
-  const peeking = useLayout((state) => state.peek === 'right');
+  const peeking = useLayout(
+    (state) => state.peek === 'right' && (!state.peekPart || state.peekPart === 'history'),
+  );
   const allRecords = useStore((state) => state.generations[projectId]) ?? NO_RECORDS;
   const shownId = useStore((state) =>
     state.shownResult?.projectId === projectId ? state.shownResult.id : undefined,
