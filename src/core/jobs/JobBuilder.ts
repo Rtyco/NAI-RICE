@@ -20,8 +20,8 @@ import type {
   Preset,
   Project,
   Rect,
-  RefineSettings,
   Reference,
+  RefinePrompt,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
 import {
@@ -532,7 +532,9 @@ export type ResultImg2ImgInput = {
   seedMode: 'source' | 'random';
   /** 비면 원본 모델 */
   model?: string;
-  prompt?: RefineSettings['prompt'];
+  prompt?: RefinePrompt;
+  customPositive?: string;
+  customNegative?: string;
   outputFilenameTemplate: string;
   projectName: string;
   now?: () => Date;
@@ -552,11 +554,25 @@ function resultJobCommon(
     width: number;
     height: number;
     model?: string;
-    prompt?: RefineSettings['prompt'];
+    prompt?: RefinePrompt;
+    customPositive?: string;
+    customNegative?: string;
   },
 ): JobSnapshotCommon {
-  const empty = job.prompt === 'empty';
-  const prompt = empty ? '' : removeReferenceInset(record.prompt);
+  const mode = job.prompt ?? 'source';
+  const empty = mode !== 'source';
+  const prompt =
+    mode === 'source'
+      ? removeReferenceInset(record.prompt)
+      : mode === 'custom'
+        ? (job.customPositive ?? '').trim()
+        : '';
+  const negativePrompt =
+    mode === 'source' || mode === 'negative-only'
+      ? record.negativePrompt
+      : mode === 'custom'
+        ? (job.customNegative ?? '').trim()
+        : '';
   const characterPrompt = empty ? '' : removeReferenceInset(record.characterPrompt);
   return {
     id: job.id,
@@ -573,7 +589,7 @@ function resultJobCommon(
     emotionSetName: record.emotionSetName,
     referenceName: record.referenceName,
     prompt,
-    negativePrompt: record.negativePrompt,
+    negativePrompt,
     characterPrompt,
     characterNegativePrompt: empty ? '' : record.characterNegativePrompt,
     ...(record.extraCharacters && !empty
@@ -587,7 +603,7 @@ function resultJobCommon(
     ...(record.characterCenters && !empty ? { characterCenters: record.characterCenters } : {}),
     source: {
       commonPositive: prompt,
-      commonNegative: record.negativePrompt,
+      commonNegative: negativePrompt,
       characterPositive: characterPrompt,
     },
     seed: job.seed,

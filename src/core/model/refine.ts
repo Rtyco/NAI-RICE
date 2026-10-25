@@ -3,6 +3,7 @@ import type {
   Preset,
   Project,
   Reference,
+  RefinePrompt,
   RefineSettings,
 } from '../domain/types';
 import { RESOLUTION_PRESETS } from '../imaging/CanvasLayout';
@@ -43,12 +44,19 @@ export function refineTarget(size: RefineSettings['size'], width: number, height
   return typeof size === 'string' ? RATIO_SIZES[size](width, height) : size;
 }
 
+const PROMPT_SUMMARY: Record<RefinePrompt, string> = {
+  source: '',
+  'negative-only': '네거티브만',
+  empty: '프롬프트 없이',
+  custom: '프롬프트 직접 입력',
+};
+
 /** 칩에 보이는 값. */
 export function refineSummary(settings: RefineSettings): string {
   return [
     settings.model ? modelLabel(settings.model).replace(/^NAI Diffusion /, '') : '같은 모델',
     `세기 ${settings.strength.toFixed(2)}`,
-    settings.prompt === 'empty' ? '프롬프트 없이' : '',
+    PROMPT_SUMMARY[settings.prompt],
   ]
     .filter(Boolean)
     .join(' · ');

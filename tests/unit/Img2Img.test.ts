@@ -63,35 +63,45 @@ describe('i2i 작업', () => {
     expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
   });
 
-  it('모델을 바꾸고 프롬프트를 비우면 네거티브만 남기고 캐릭터도 빼', () => {
-    const [job] = buildResultImg2ImgJobs({
-      record: {
-        ...record,
-        extraCharacters: [{ name: 'B', prompt: '1boy', negative: 'hat' }],
-        characterCenters: [{ x: 0.3, y: 0.5 }],
-        settings: { ...DEFAULT_GENERATION_SETTINGS, model: 'nai-diffusion-5-full-inpainting' },
-      },
-      image,
-      width: 832,
-      height: 1216,
-      strength: 0.3,
-      noise: 0,
-      count: 1,
-      seedMode: 'source',
-      model: 'nai-diffusion-4-5-full-inpainting',
-      prompt: 'empty',
-      outputFilenameTemplate: '{emotion}__{seed}',
-      projectName: '작업',
-    });
-    expect(job).toMatchObject({
-      prompt: '',
-      characterPrompt: '',
-      negativePrompt: 'lowres',
-      settings: { model: 'nai-diffusion-4-5-full-inpainting', qualityTags: false },
-    });
-    expect(job).not.toHaveProperty('extraCharacters');
-    expect(job).not.toHaveProperty('characterCenters');
-  });
+  it.each([
+    ['negative-only', '', 'lowres'],
+    ['empty', '', ''],
+    ['custom', 'masterpiece, sharp', 'blurry'],
+  ] as const)(
+    '모델을 바꾸고 프롬프트를 %s로 하면 캐릭터를 빼고 정한 문구만 보내',
+    (prompt, positive, negative) => {
+      const [job] = buildResultImg2ImgJobs({
+        record: {
+          ...record,
+          extraCharacters: [{ name: 'B', prompt: '1boy', negative: 'hat' }],
+          characterCenters: [{ x: 0.3, y: 0.5 }],
+          settings: { ...DEFAULT_GENERATION_SETTINGS, model: 'nai-diffusion-5-full-inpainting' },
+        },
+        image,
+        width: 832,
+        height: 1216,
+        strength: 0.3,
+        noise: 0,
+        count: 1,
+        seedMode: 'source',
+        model: 'nai-diffusion-4-5-full-inpainting',
+        prompt,
+        customPositive: ' masterpiece, sharp ',
+        customNegative: 'blurry',
+        outputFilenameTemplate: '{emotion}__{seed}',
+        projectName: '작업',
+      });
+      expect(job).toMatchObject({
+        prompt: positive,
+        characterPrompt: '',
+        negativePrompt: negative,
+        source: { commonPositive: positive, commonNegative: negative },
+        settings: { model: 'nai-diffusion-4-5-full-inpainting', qualityTags: false },
+      });
+      expect(job).not.toHaveProperty('extraCharacters');
+      expect(job).not.toHaveProperty('characterCenters');
+    },
+  );
 });
 
 describe('다듬기 설정', () => {

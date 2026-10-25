@@ -16,7 +16,7 @@ import {
 } from '../../core/imaging/FreeSize';
 import { FREE_MAX_PIXELS } from '../../core/providers/NaiCost';
 import { NAI_MODELS } from '../../core/providers/NaiModels';
-import { NumberField, SelectField } from './ui';
+import { NumberField, PromptField, SelectField } from './ui';
 
 function presetIdOf(size: Size): string | undefined {
   return RESOLUTION_PRESETS.find((item) => item.width === size.width && item.height === size.height)
@@ -80,7 +80,9 @@ export function RefineFields(props: {
           value={value.prompt}
           options={[
             { value: 'source', label: '원본 프롬프트' },
-            { value: 'empty', label: '비우기 (네거티브만)' },
+            { value: 'negative-only', label: '네거티브만 남기기' },
+            { value: 'empty', label: '비우기 (네거티브도)' },
+            { value: 'custom', label: '직접 입력' },
           ]}
           onChange={(prompt) => patch({ prompt })}
         />
@@ -101,6 +103,25 @@ export function RefineFields(props: {
           onChange={(noise) => patch({ noise })}
         />
       </div>
+      {value.prompt === 'custom' && (
+        <div className="two-column-fields">
+          <PromptField
+            label="포지티브"
+            dialogTitle="다듬기 포지티브"
+            rows={3}
+            value={value.customPositive ?? ''}
+            onChange={(customPositive) => patch({ customPositive })}
+          />
+          <PromptField
+            label="네거티브"
+            dialogTitle="다듬기 네거티브"
+            tone="negative"
+            rows={3}
+            value={value.customNegative ?? ''}
+            onChange={(customNegative) => patch({ customNegative })}
+          />
+        </div>
+      )}
       <div className="four-column-fields">
         <SelectField
           label="목표 크기"

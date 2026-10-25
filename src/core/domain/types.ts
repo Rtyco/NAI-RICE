@@ -276,11 +276,16 @@ export type Project = {
 
 export type AidMode = 'character' | 'vibe';
 
+export type RefinePrompt = 'source' | 'negative-only' | 'empty' | 'custom';
+
 export type RefineSettings = {
   /** 비면 원본 결과의 모델 */
   model: string;
-  /** empty면 포지티브와 캐릭터 프롬프트를 비우고 네거티브만 보낸다. */
-  prompt: 'source' | 'empty';
+  /** source 말고는 캐릭터 프롬프트와 위치를 뺀다. empty는 네거티브까지 비운다. */
+  prompt: RefinePrompt;
+  /** prompt가 custom일 때 그대로 보낸다(조각·품질 태그를 펼치지 않는다). */
+  customPositive?: string;
+  customNegative?: string;
   /** 비율 방식이면 결과마다 크기를 정한다(`RATIO_SIZES`). */
   size: { width: number; height: number } | 'exact-ratio' | 'closest-ratio';
   fit: 'crop' | 'pad';

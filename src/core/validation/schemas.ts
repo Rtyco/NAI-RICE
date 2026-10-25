@@ -291,7 +291,9 @@ function readSingleCharacterReference(value: unknown): unknown {
 
 export const refineSettingsSchema = z.object({
   model: z.string(),
-  prompt: z.enum(['source', 'empty']),
+  prompt: z.enum(['source', 'negative-only', 'empty', 'custom']),
+  customPositive: z.string().max(20000).optional(),
+  customNegative: z.string().max(20000).optional(),
   size: z.union([
     z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
     z.enum(['exact-ratio', 'closest-ratio']),
