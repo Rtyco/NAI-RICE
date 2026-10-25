@@ -12,6 +12,14 @@ import { edgeScrollStep } from './edgeScroll';
 /** 컨테이너 안쪽(스크롤 포함) 좌표라 스크롤해도 다시 잴 필요가 없다. */
 type ItemRect = { id: string; left: number; top: number; right: number; bottom: number };
 
+/** Shift 클릭 범위. 기준이 목록에 없으면 undefined. */
+export function rangeBetween(ids: string[], anchor: string | undefined, id: string) {
+  const from = anchor === undefined ? -1 : ids.indexOf(anchor);
+  const to = ids.indexOf(id);
+  if (from < 0 || to < 0) return undefined;
+  return ids.slice(Math.min(from, to), Math.max(from, to) + 1);
+}
+
 function isCtrl(event: KeyboardEvent, key: string): boolean {
   return event.ctrlKey && !event.shiftKey && !event.altKey && event.key.toLowerCase() === key;
 }
@@ -233,9 +241,9 @@ export function useBoxSelection<T extends HTMLElement>(
       anchor.current = id;
       return true;
     }
-    if (event.shiftKey && anchor.current && ids.includes(anchor.current)) {
-      const [from, to] = [ids.indexOf(anchor.current), ids.indexOf(id)].sort((a, b) => a - b);
-      setSelected(new Set(ids.slice(from, to + 1)));
+    const range = event.shiftKey ? rangeBetween(ids, anchor.current, id) : undefined;
+    if (range) {
+      setSelected(new Set(range));
       return true;
     }
     anchor.current = id;

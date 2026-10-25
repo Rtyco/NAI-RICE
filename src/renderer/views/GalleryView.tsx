@@ -20,7 +20,7 @@ import { ExportDialog } from '../components/ExportDialog';
 import { useShortcut } from '../useShortcut';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { useBoxSelection } from '../components/useBoxSelection';
+import { rangeBetween, useBoxSelection } from '../components/useBoxSelection';
 import {
   dragPayload,
   readDragPayload,
@@ -286,10 +286,7 @@ export function GalleryView({
   const check = useCallback(
     (id: string, include: boolean, range: boolean) => {
       const order = latest.current.emotions.map((emotion) => emotion.id);
-      const from = range && checkAnchor.current ? order.indexOf(checkAnchor.current) : -1;
-      const to = order.indexOf(id);
-      const ids =
-        from >= 0 && to >= 0 ? order.slice(Math.min(from, to), Math.max(from, to) + 1) : [id];
+      const ids = (range && rangeBetween(order, checkAnchor.current, id)) || [id];
       checkAnchor.current = id;
       updateProject(project.id, (current) => setEmotionsExcluded(current, ids, !include));
     },
