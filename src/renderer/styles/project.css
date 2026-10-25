@@ -20,6 +20,38 @@
 .project-header {
   container-type: inline-size;
 }
+/* 버튼 글자 폭은 섹션마다 달라(인페인트·바이브가 가장 넓다) 그 폭에 맞춰 덜어 낸다. */
+.library-editor-head {
+  container-type: inline-size;
+}
+.library-editor-head > :not(.project-name-input, .header-spacer, .account-meter) {
+  flex: none;
+}
+.library-editor-head .project-name-input {
+  flex: 0 1 auto;
+  min-width: 64px;
+}
+.library-editor-head .account-meter {
+  flex-shrink: 0.01;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+@container (max-width: 1000px) {
+  .library-editor-head :is(.account-meter .checked, .quota-track) {
+    display: none;
+  }
+}
+@container (max-width: 860px) {
+  .library-editor-head .account-meter {
+    display: none;
+  }
+}
+@container (max-width: 700px) {
+  .library-editor-head .head-label {
+    display: none;
+  }
+}
 .project-header > :not(.project-name-input, .header-spacer, .account-meter, .chain-bar) {
   flex: none;
 }

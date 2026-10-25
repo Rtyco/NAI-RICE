@@ -378,14 +378,22 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               <AccountMeter />
               <span className="zone-divider" />
               {section === 'references' && (
-                <button className="with-icon" onClick={() => openReferenceFolder(selected)}>
-                  <Icon name="folder" /> 폴더 열기
+                <button
+                  className="with-icon"
+                  title="폴더 열기"
+                  onClick={() => openReferenceFolder(selected)}
+                >
+                  <Icon name="folder" /> <span className="head-label">폴더 열기</span>
                 </button>
               )}
               {exportable(section) && (
                 <>
-                  <button className="with-icon" onClick={() => exportItem(section, selected)}>
-                    <Icon name="export" /> JSON 내보내기
+                  <button
+                    className="with-icon"
+                    title="JSON 내보내기"
+                    onClick={() => exportItem(section, selected)}
+                  >
+                    <Icon name="export" /> <span className="head-label">JSON 내보내기</span>
                   </button>
                   <span className="zone-divider" />
                 </>
@@ -397,20 +405,26 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                     title=".naiv4vibe로 내보내기"
                     onClick={() => exportVibeItems([selected.id])}
                   >
-                    <Icon name="export" /> 바이브 파일로 내보내기
+                    <Icon name="export" />{' '}
+                    <span className="head-label">바이브 파일로 내보내기</span>
                   </button>
                   <span className="zone-divider" />
                 </>
               )}
-              <button className="with-icon" onClick={() => void duplicateItem(section, selected)}>
-                <Icon name="copy" /> 복제
+              <button
+                className="with-icon"
+                title="복제"
+                onClick={() => void duplicateItem(section, selected)}
+              >
+                <Icon name="copy" /> <span className="head-label">복제</span>
               </button>
               <span className="zone-divider" />
               <button
                 className="with-icon danger-quiet"
+                title="삭제"
                 onClick={() => void deleteItem(section, selected)}
               >
-                <Icon name="trash" /> 삭제
+                <Icon name="trash" /> <span className="head-label">삭제</span>
               </button>
               {section === 'references' && <SidePanelToggle />}
             </header>

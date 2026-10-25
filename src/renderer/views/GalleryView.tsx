@@ -470,15 +470,19 @@ export function GalleryView({
       <BottomSlot>
         <span className="zone-field">
           <span>
-            생성할 씬 <b>{included}</b>/{emotionSet.emotions.length}
+            <span className="slot-long">생성할 </span>씬 <b>{included}</b>/
+            {emotionSet.emotions.length}
           </span>
         </span>
         <button
+          className="slot-icon-button"
+          title="모두 체크"
           onClick={() =>
             updateProject(project.id, (current) => ({ ...current, excludedEmotionIds: [] }))
           }
         >
-          모두 체크
+          <Icon name="check-square" size={15} />
+          <span>모두 체크</span>
         </button>
         <button
           onClick={() =>
@@ -487,8 +491,11 @@ export function GalleryView({
               excludedEmotionIds: emotionSet.emotions.map((emotion) => emotion.id),
             }))
           }
+          className="slot-icon-button"
+          title="모두 해제"
         >
-          모두 해제
+          <Icon name="square" size={15} />
+          <span>모두 해제</span>
         </button>
         {countControl}
         {generate}

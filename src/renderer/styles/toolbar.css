@@ -15,8 +15,19 @@
   background: var(--line);
 }
 .bottom-slot {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 6px;
+  margin-left: auto;
   gap: 10px;
   font-size: 13px;
+}
+.slot-icon-button {
+  display: inline-flex;
+  align-items: center;
+}
+.slot-icon-button .icon {
+  display: none;
 }
 .queue-summary .bottom-slot button {
   padding: 7px 12px;

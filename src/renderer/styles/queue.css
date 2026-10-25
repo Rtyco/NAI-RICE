@@ -4,11 +4,22 @@
   border-top: 1px solid var(--line);
   background: var(--bg-2);
 }
+/* 좁으면 글자 단위가 아니라 묶음 단위로 다음 줄로 넘긴다. */
 .queue-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding: 7px 12px;
+}
+.queue-summary > :not(.header-spacer, .bottom-slot),
+.bottom-slot > * {
+  flex: none;
+  white-space: nowrap;
+}
+.queue-summary > .bottom-slot {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 .queue-summary button {
   padding: 5px 9px;

@@ -522,7 +522,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
               <>
                 {estimate !== undefined && (
                   <span
-                    className={`pill ${estimate ? 'warn' : ''}`}
+                    className={`pill ${estimate ? 'warn' : 'zero-cost'}`}
                     title={[
                       ...(estimate ? costReasons : ['Opus 무료 생성 기준 안입니다.']),
                       '예상값이며 실제 차감량과 다를 수 있습니다.',

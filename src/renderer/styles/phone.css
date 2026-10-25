@@ -5,19 +5,45 @@
   .titlebar-location {
     display: none;
   }
-  .queue-summary {
-    flex-wrap: wrap;
-  }
-  .bottom-slot {
+  .queue-summary > .bottom-slot {
     flex: 1 1 100%;
-    flex-wrap: wrap;
+    justify-content: flex-start;
     gap: 6px;
+    margin-left: 0;
   }
   .bottom-slot:not(:empty)::before {
     display: none;
   }
   .queue-summary .bottom-slot .generate-button {
-    flex: 1;
+    flex: 1 1 auto;
+    padding: 9px 14px;
+  }
+  .bottom-slot .slot-long,
+  .bottom-slot .pill.zero-cost {
+    display: none;
+  }
+  .queue-summary .bottom-slot .slot-icon-button {
+    padding: 7px 9px;
+  }
+  .slot-icon-button .icon {
+    display: block;
+  }
+  .slot-icon-button > span {
+    display: none;
+  }
+  .project-header,
+  .library-editor-head {
+    gap: 6px;
+    padding: 0 8px;
+  }
+  /* 머리줄에 접은 칩을 줄이지 않고 가로로 밀어 본다. */
+  .project-header .chain-bar.compact {
+    flex: 1 1 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .project-header .chain-bar.compact .chain-chip {
+    max-width: none;
   }
   .emotion-grid {
     --gallery-columns: 2 !important;
