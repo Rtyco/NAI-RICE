@@ -206,9 +206,16 @@ function SectionTitle(props: {
   return (
     <div className="sidebar-section-title">
       {props.narrow ? (
-        <span title={props.title}>
+        <button
+          className="sidebar-section-toggle narrow"
+          aria-expanded={!props.folded}
+          aria-label={props.label}
+          title={`${props.title} · ${props.folded ? '펼치기' : '접기'}`}
+          onClick={() => toggleSidebarSection(props.section)}
+        >
           <Icon name={props.icon} />
-        </span>
+          <Icon name="chevron" size={10} className="section-chevron" />
+        </button>
       ) : (
         <button
           className="sidebar-section-toggle"
@@ -240,9 +247,8 @@ export function Sidebar() {
   // 숨김 단계에서도 펼친 모습으로 그려 둬야 가장자리 보기가 그대로 보여 준다.
   const collapsed = useLayout((state) => sidebarStageOf(state) === 'icons');
   const sections = useStore((state) => state.sidebarSections);
-  // 좁은 막대에서는 카드 접기를 무시한다.
-  const projectsFolded = !collapsed && sections.projects;
-  const libraryFolded = !collapsed && sections.library;
+  const projectsFolded = sections.projects;
+  const libraryFolded = sections.library;
 
   const active = new Map<string, number>();
   for (const job of queue.jobs) {
@@ -397,9 +403,29 @@ export function Sidebar() {
             onPointerDownCapture={touch}
           >
             {collapsed
-              ? rows
-                  .flatMap((row) => (row.kind === 'item' ? [row.item] : row.items))
-                  .map(renderProject)
+              ? rows.map((row) =>
+                  row.kind === 'item' ? (
+                    renderProject(row.item)
+                  ) : (
+                    <div
+                      key={`folder:${row.name}`}
+                      className={`icon-folder ${isFolded(row.name) ? 'folded' : ''}`}
+                    >
+                      <button
+                        className="project-item icon-folder-toggle"
+                        aria-expanded={!isFolded(row.name)}
+                        title={`${row.name} · 작업 ${row.items.length}개 · ${isFolded(row.name) ? '펼치기' : '접기'}`}
+                        onClick={() => toggleFolder(folderKey('projects', row.name))}
+                      >
+                        <span className="avatar">
+                          <Icon name="folder" />
+                        </span>
+                        <span className="pill">{row.items.length}</span>
+                      </button>
+                      {!isFolded(row.name) && row.items.map(renderProject)}
+                    </div>
+                  ),
+                )
               : rows.map((row) =>
                   row.kind === 'item' ? (
                     renderProject(row.item)

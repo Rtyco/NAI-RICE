@@ -286,7 +286,21 @@
 .sidebar-card.grow.folded {
   flex-grow: 0;
 }
+/* 창이 낮으면 라이브러리 칸이 스크롤로 줄어 작업 목록이 아바타 네 개쯤은 남긴다. */
 .sidebar-card:not(.grow) {
+  flex-shrink: 1;
+}
+.sidebar-card.free-card {
+  flex-shrink: 0;
+}
+.sidebar-card.grow:not(.folded) {
+  min-height: min(180px, 40%);
+}
+.sidebar-card:not(.grow) .library-nav {
+  min-height: 0;
+  overflow-y: auto;
+}
+.library-nav > button {
   flex-shrink: 0;
 }
 .sidebar-section-title {
@@ -414,13 +428,37 @@
 .sidebar.collapsed .project-list {
   padding: 0;
 }
+/* 아이콘만 남은 막대에서는 아이콘 아래 작은 꺾쇠로 접힘을 보인다. */
+.sidebar-section-toggle.narrow {
+  flex: none;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 8px 1px;
+}
+.sidebar.collapsed .sidebar-section-title:has(> .sidebar-section-toggle) {
+  padding: 4px 0 2px;
+}
+.sidebar.collapsed .sidebar-card.folded .sidebar-section-title {
+  padding-bottom: 4px;
+}
+.icon-folder:not(.folded) {
+  margin-bottom: 3px;
+  border-radius: 10px;
+  background: var(--bg-4);
+}
+.sidebar.collapsed .icon-folder-toggle .avatar {
+  background: transparent;
+  color: var(--text-2);
+}
 /* 스크롤 막대(10px)가 생기면 아바타를 밀어내 잘린다. 휠로만 스크롤한다. */
 .sidebar.collapsed .project-list,
+.sidebar.collapsed .library-nav,
 .library-list.collapsed nav {
   overflow-x: hidden;
   scrollbar-width: none;
 }
 .sidebar.collapsed .project-list::-webkit-scrollbar,
+.sidebar.collapsed .library-nav::-webkit-scrollbar,
 .library-list.collapsed nav::-webkit-scrollbar {
   display: none;
 }
