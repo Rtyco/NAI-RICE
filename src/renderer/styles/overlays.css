@@ -399,12 +399,14 @@
 .drop-overlay b {
   font-size: 18px;
 }
+/* 내용이 높이보다 길면 위가 잘리지 않고 스크롤된다(safe). */
 .empty-state {
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
   padding: 40px;
   color: var(--muted);
   text-align: center;

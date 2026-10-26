@@ -6,7 +6,7 @@ import { openDialog } from './components/dialogStack';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { DropZone } from './components/DropImport';
 import { HistoryPanel } from './components/HistoryPanel';
-import { Icon } from './components/Icon';
+import { Icon, type IconName } from './components/Icon';
 import { QueueBar } from './components/QueueBar';
 import { NewProjectDialog, Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
@@ -72,6 +72,18 @@ function Toasts() {
   );
 }
 
+/** 작업 화면 설정 줄의 칩. 줄이 좁아지면 아이콘만 남아 여기서 아이콘을 익힌다. */
+const CHAIN_CHIPS: Array<{ icons: IconName[]; label: string; role: string }> = [
+  { icons: ['preset'], label: '생성 설정', role: '모델 · 공통 프롬프트 · Steps' },
+  { icons: ['character'], label: '캐릭터', role: '외형 · 의상 프롬프트' },
+  { icons: ['pin'], label: '위치', role: '캐릭터 위치 (AI · 직접 지정)' },
+  { icons: ['expand'], label: '해상도', role: '이미지 크기 (일반 생성)' },
+  { icons: ['reference'], label: '인페인트', role: '참고 이미지 · 캔버스 (인페인트 모드)' },
+  { icons: ['portrait', 'vibe'], label: '참고', role: '캐릭터 레퍼런스 ⇄ 바이브 (V4.5)' },
+  { icons: ['emotion'], label: '씬 모음', role: '씬 프롬프트' },
+  { icons: ['upscale'], label: '자동 다듬기', role: '생성할 때마다 다듬기' },
+];
+
 function Welcome() {
   return (
     <EmptyState title="작업을 만들어 시작하십시오">
@@ -98,6 +110,22 @@ function Welcome() {
           <Icon name="settings" /> 프로그램 설정 (NovelAI 토큰)
         </button>
       </div>
+      <section className="welcome-chips" aria-label="설정 줄 칩">
+        <h3>설정 줄 칩</h3>
+        <div>
+          {CHAIN_CHIPS.map((chip) => (
+            <div key={chip.label} className="welcome-chip">
+              <span>
+                {chip.icons.map((icon) => (
+                  <Icon key={icon} name={icon} size={15} />
+                ))}
+                <b>{chip.label}</b>
+              </span>
+              <small>{chip.role}</small>
+            </div>
+          ))}
+        </div>
+      </section>
     </EmptyState>
   );
 }
