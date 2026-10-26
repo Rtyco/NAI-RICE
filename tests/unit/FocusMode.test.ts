@@ -229,6 +229,22 @@ describe('좁은 창에서 겹쳐 열기', () => {
     expect(state().peek).toBeUndefined();
   });
 
+  it('1280px 아래 접기를 끄면 960~1280px에서는 접지 않고, 더 좁으면 접어', () => {
+    reset();
+    store.useStore.getState().library!.settings.layout.mediumFold = false;
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(1100);
+    expect(layout.historyShownOf(state())).toBe(true);
+    expect(layout.sidebarStageOf(state())).toBe('open');
+    layout.fitToWidth(800);
+    expect(layout.historyShownOf(state())).toBe(false);
+    store.useStore.getState().library!.settings.layout.mediumFold = true;
+    layout.fitToWidth(1100);
+    expect(layout.historyShownOf(state())).toBe(false);
+    expect(layout.sidebarStageOf(state())).toBe('icons');
+    layout.fitToWidth(1400);
+  });
+
   it('겹쳐 열기를 끄면 960px 아래에서도 패널을 레이아웃에 다시 열지만 휴대폰 폭은 겹쳐', () => {
     reset();
     store.useStore.getState().library!.settings.layout.narrowOverlay = false;

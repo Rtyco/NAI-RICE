@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { FolderColor } from '../../core/domain/types';
 import { FOLDER_COLORS, setFolderColor, type FolderCollection } from '../../core/model/folders';
 import { toggleFolder, updateLibrary, useStore } from '../store';
-import { useUiOption } from '../uiOptions';
 import { folderColorClass, folderKey, useFolderColor } from './listFolders';
 import { showContextMenu, type MenuItem } from './contextMenuStore';
 import { focusAndSelect } from './focusAndSelect';
@@ -161,10 +160,8 @@ export function IconFolder(props: {
   itemClass: string;
   children: ReactNode;
 }) {
-  const grouped = useUiOption('iconFolders');
   const color = useFolderColor(props.scope, props.name);
   const toggle = () => toggleFolder(folderKey(props.scope, props.name));
-  if (!grouped) return props.children;
   return (
     <div className={`icon-folder ${props.folded ? 'folded' : ''} ${folderColorClass(color)}`}>
       <button

@@ -59,7 +59,17 @@ export function useQueueBarFit(ref: RefObject<HTMLElement | null>): void {
   useFitLevels(ref, 9, clipped, useSimpleUi() ? 2 : 0);
 }
 
-/** 펼친 설정 줄을 한 줄로 둔다(chips.css의 .fit-1 … .fit-6). 머리줄에 접은 칩은 useHeaderFit이 맡는다. */
-export function useChainBarFit(ref: RefObject<HTMLElement | null>, compact: boolean): void {
-  useFitLevels(ref, 6, (bar) => !compact && clipped(bar), useSimpleUi() && !compact ? 5 : 0);
+/**
+ * 펼친 설정 줄을 한 줄로 둔다(chips.css의 .fit-1 … .fit-6). 머리줄에 접은 칩은 useHeaderFit이 맡는다.
+ * 줄바꿈을 고른 사용자면 줄이지 않고 true를 돌려준다(.wrap).
+ */
+export function useChainBarFit(ref: RefObject<HTMLElement | null>, compact: boolean): boolean {
+  const wrap = useUiOption('chipWrap') && !compact;
+  useFitLevels(
+    ref,
+    6,
+    (bar) => !compact && !wrap && clipped(bar),
+    useSimpleUi() && !compact ? 5 : 0,
+  );
+  return wrap;
 }

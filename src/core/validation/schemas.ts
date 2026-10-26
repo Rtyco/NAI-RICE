@@ -432,10 +432,9 @@ export const appSettingsSchema = z.object({
       simpleUi: z.boolean().catch(false),
       chipEdit: z.boolean().catch(false),
       chipNames: z.boolean().catch(true),
-      refineChip: z.boolean().catch(true),
-      welcomeChips: z.boolean().catch(true),
+      chipWrap: z.boolean().catch(false),
+      mediumFold: z.boolean().catch(true),
       narrowOverlay: z.boolean().catch(true),
-      iconFolders: z.boolean().catch(true),
       comboOptions: z.enum(['first', 'all', 'none']).catch('first'),
     })
     .default({
@@ -444,10 +443,9 @@ export const appSettingsSchema = z.object({
       simpleUi: false,
       chipEdit: false,
       chipNames: true,
-      refineChip: true,
-      welcomeChips: true,
+      chipWrap: false,
+      mediumFold: true,
       narrowOverlay: true,
-      iconFolders: true,
       comboOptions: 'first',
     }),
   update: z

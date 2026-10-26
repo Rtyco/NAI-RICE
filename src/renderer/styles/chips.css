@@ -33,6 +33,10 @@
 .chain-bar > * {
   flex: none;
 }
+/* 설정의 「다음 줄로 넘기기」: 1.1.2처럼 줄이지 않고 줄을 늘린다. */
+.chain-bar.wrap {
+  flex-wrap: wrap;
+}
 .chain-bar.fit-1 .chain-chip-name {
   display: none;
 }

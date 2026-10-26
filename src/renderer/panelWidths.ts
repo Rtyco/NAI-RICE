@@ -1,5 +1,6 @@
 import {
   fitToWidth,
+  refitWidth,
   hasSidePanel,
   historyShownOf,
   libraryListStageOf,
@@ -179,6 +180,8 @@ export function watchPanelFit(): void {
   useLayout.subscribe(() => fitPanels());
   useStore.subscribe((state, prev) => {
     if (state.view !== prev.view || state.detailEmotionId !== prev.detailEmotionId) fitPanels();
+    if (state.library?.settings.layout.mediumFold !== prev.library?.settings.layout.mediumFold)
+      refitWidth();
   });
 }
 

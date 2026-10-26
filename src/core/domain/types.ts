@@ -431,15 +431,15 @@ export type AppSettings = {
     edgePeek: boolean;
     /** 설정 줄·큐 막대·머리줄을 넓은 창에서도 아이콘 위주로 줄인다. */
     simpleUi: boolean;
-    /** 아래는 1.1.2 뒤에 바뀐 화면을 끌 수 있게 한 것. 끄면 1.1.2처럼 보인다(chipEdit만 기본이 꺼짐). */
+    /** 아래는 1.1.2 뒤에 쓰는 느낌이 바뀐 곳을 고르게 한 것. 1.1.2처럼 쓰려면 chipEdit·chipWrap을 켜고 나머지는 끈다. */
     chipEdit: boolean;
     chipNames: boolean;
-    refineChip: boolean;
-    welcomeChips: boolean;
+    /** 설정 줄이 넘치면 한 줄로 줄이지 않고 다음 줄로 넘긴다. */
+    chipWrap: boolean;
+    /** 960~1280px에서 히스토리를 접고 사이드바를 아이콘만 남긴다. 더 좁은 창은 늘 접는다. */
+    mediumFold: boolean;
     /** 640~960px에서 좁은 창이 접은 패널을 다시 열 때 이미지 칸 위에 겹친다. 휴대폰 폭은 늘 겹친다. */
     narrowOverlay: boolean;
-    /** 아이콘만 남은 사이드바·라이브러리 목록에서 폴더를 아이콘으로 묶는다. */
-    iconFolders: boolean;
     /** 씬 상세에서 조합 칸을 열 때 펼쳐 둘 후보 */
     comboOptions: ComboOptionsOpen;
   };

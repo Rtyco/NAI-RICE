@@ -298,8 +298,14 @@ export function fitToWidth(width: number): void {
   });
 }
 
+/** 설정에서 접기 범위를 바꾸면 지금 폭 단계를 다시 접는다. 연 겹침은 닫는다. */
+export function refitWidth(): void {
+  set({ ...widthState(get().widthClass), peek: undefined, peekPinned: false, peekPart: undefined });
+}
+
 function widthState(widthClass: WidthClass) {
-  const folds = widthFolds(widthClass);
+  const folds =
+    widthClass === 'medium' && !uiOption('mediumFold') ? { hidden: [] } : widthFolds(widthClass);
   return { widthHidden: folds.hidden, widthSidebar: folds.sidebar };
 }
 

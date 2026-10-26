@@ -20,9 +20,9 @@ export function FreeChainBar(props: {
 }) {
   const { free, preset } = props;
   const bar = useRef<HTMLDivElement>(null);
-  useChainBarFit(bar, props.compact);
+  const wrap = useChainBarFit(bar, props.compact);
   return (
-    <div ref={bar} className={`chain-bar ${props.compact ? 'compact' : ''}`}>
+    <div ref={bar} className={`chain-bar ${props.compact ? 'compact' : ''} ${wrap ? 'wrap' : ''}`}>
       <ChecklistChip
         section="presets"
         itemId={preset?.id}

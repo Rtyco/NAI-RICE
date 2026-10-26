@@ -4,13 +4,7 @@ import { useStore } from './store';
 
 export type UiOption = keyof Pick<
   AppSettings['layout'],
-  | 'simpleUi'
-  | 'chipEdit'
-  | 'chipNames'
-  | 'refineChip'
-  | 'welcomeChips'
-  | 'narrowOverlay'
-  | 'iconFolders'
+  'simpleUi' | 'chipEdit' | 'chipNames' | 'chipWrap' | 'mediumFold' | 'narrowOverlay'
 >;
 
 const fallback = DEFAULT_SETTINGS.layout;

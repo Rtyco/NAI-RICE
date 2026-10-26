@@ -119,7 +119,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
   const emotionSets = useStore((state) => state.library!.emotionSets);
   const { project } = resolved;
   const bar = useRef<HTMLDivElement>(null);
-  useChainBarFit(bar, Boolean(compact));
+  const wrap = useChainBarFit(bar, Boolean(compact));
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
   const thumb = resolved.reference?.image
@@ -131,7 +131,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
     : undefined;
 
   return (
-    <div ref={bar} className={`chain-bar ${compact ? 'compact' : ''}`}>
+    <div ref={bar} className={`chain-bar ${compact ? 'compact' : ''} ${wrap ? 'wrap' : ''}`}>
       <ChecklistChip
         section="presets"
         itemId={resolved.preset?.id}
