@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Emotion, GenerationRecord, GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
+import { hasScenePrompt, img2imgMissing, type ResolvedProject } from '../../core/model/defaults';
 import {
   comboCount,
   findCombo,
@@ -9,7 +9,8 @@ import {
   sameScenePrompts,
 } from '../../core/model/sceneCombos';
 import { autoRefineCount, generateCountLabel } from '../../core/model/refine';
-import { generateEmotions } from '../actions';
+import { supportsInpaint } from '../../core/providers/NaiModels';
+import { generateEmotions, generateSceneImg2Img, type GenerateOptions } from '../actions';
 import { ImageStage } from '../components/ImageStage';
 import { StreamPreview } from '../components/StreamPreview';
 import { Filmstrip } from '../components/Filmstrip';
@@ -21,7 +22,7 @@ import { useResultBrowser } from '../components/useResultBrowser';
 import { Menu } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { openDirectorToolDialog } from '../generationOps';
-import { sendToFreeImg2Img } from '../freeImageOps';
+import { sendToFreeImg2Img, sendToSceneImg2Img, type ImageTarget } from '../freeImageOps';
 import {
   emotionRecords,
   openEmotion,
@@ -37,6 +38,8 @@ import { fileApi, libraryApi } from '../desktop';
 import { useSceneOrder } from '../useSceneOrder';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
+import { FreeSourceStage, InpaintModelBanner } from './free/FreeSourceStage';
+import { FreeStageTabs, type FreeStage } from './free/FreeStageTabs';
 
 export function EmotionDetail({
   resolved,
@@ -60,7 +63,25 @@ export function EmotionDetail({
       if (saved) toast(`저장했습니다: ${saved}`);
     });
 
-  const browser = useResultBrowser(project.id, records, { preferredId: favoriteId, saveAs });
+  const img2img = project.sceneImg2Img?.[emotion.id];
+  const img2imgOn = Boolean(img2img?.on);
+  const image = img2imgOn ? img2img?.image : undefined;
+  const inpainting = img2imgOn && Boolean(img2img?.inpaint);
+  const img2imgTarget = useMemo<ImageTarget>(
+    () => ({ kind: 'scene', projectId: project.id, emotionId: emotion.id }),
+    [project.id, emotion.id],
+  );
+  const [stage, setStage] = useState<FreeStage>('source');
+  const drawing = img2imgOn && stage === 'draw';
+  const showSource = Boolean(image) && stage === 'source';
+
+  const browser = useResultBrowser(project.id, records, {
+    preferredId: favoriteId,
+    saveAs,
+    onNewResult: () => setStage('result'),
+    onRequested: () => setStage('result'),
+    canDeleteShown: !showSource && !drawing,
+  });
   const { selected, setSelectedId, picking } = browser;
   const { order, previous, next, title } = useSceneOrder(project.id, set.emotions, emotion.id);
   const sceneJobs = queue.jobs.filter(
@@ -103,8 +124,18 @@ export function EmotionDetail({
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const canGenerate = hasScenePrompt(emotion) && !resolved.missing.length;
-  const generate = () => void generateEmotions(project.id, [emotion.id], { variants });
+  const inpaintModelMissing =
+    inpainting && resolved.preset && !supportsInpaint(resolved.preset.generation.model);
+  const canGenerate =
+    hasScenePrompt(emotion) &&
+    (img2imgOn
+      ? !img2imgMissing(resolved.missing).length && Boolean(image) && !inpaintModelMissing
+      : !resolved.missing.length);
+  const generateWith = (options: GenerateOptions) =>
+    void (img2imgOn
+      ? generateSceneImg2Img(project.id, emotion.id, options)
+      : generateEmotions(project.id, [emotion.id], options));
+  const generate = () => generateWith({ variants });
   const images = variants * comboCount(emotion);
   const imagesLabel = generateCountLabel(
     images,
@@ -140,12 +171,7 @@ export function EmotionDetail({
         group: 'main',
         title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
         disabled: record.comboKey !== undefined && !findCombo(emotion, record.comboKey),
-        onSelect: () =>
-          void generateEmotions(project.id, [emotion.id], {
-            seed: record.seed,
-            variants: 1,
-            comboKey: record.comboKey,
-          }),
+        onSelect: () => generateWith({ seed: record.seed, variants: 1, comboKey: record.comboKey }),
       },
       {
         label: '프롬프트 복원',
@@ -171,8 +197,16 @@ export function EmotionDetail({
         onSelect: () => openDirectorToolDialog(project.id, [record]),
       },
       {
-        label: '자유 생성으로 보내기',
+        label: '이 결과로 i2i',
         icon: 'i2i',
+        group: 'send',
+        keepLabel: true,
+        onSelect: () =>
+          void sendToSceneImg2Img(project.id, emotion.id, record).then(() => setStage('source')),
+      },
+      {
+        label: '자유 생성으로 보내기',
+        icon: 'sparkle',
         group: 'send',
         keepLabel: true,
         onSelect: () => void sendToFreeImg2Img(project.id, record),
@@ -186,6 +220,8 @@ export function EmotionDetail({
     <DetailSidePanel
       resolved={resolved}
       emotion={emotion}
+      img2img={img2img}
+      img2imgTarget={img2imgTarget}
       variants={variants}
       setVariants={setVariants}
       imagesLabel={imagesLabel}
@@ -194,8 +230,32 @@ export function EmotionDetail({
     />
   );
 
+  const resultStage = (
+    <ImageStage
+      src={selected && projectMedia(project.id, selected.file)}
+      alt={emotion.name}
+      filmstrip={records.length > 0}
+      empty={
+        <div className="stage-empty">
+          <p>아직 생성된 이미지가 없습니다.</p>
+        </div>
+      }
+      overlay={
+        <>
+          <StreamPreview jobIds={running} className="stage-preview" />
+          {image && <span className="stage-label">결과</span>}
+          {pending > 0 && (
+            <span className="card-status busy stage-status">생성 대기 {pending}</span>
+          )}
+        </>
+      }
+      onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
+    />
+  );
+
   return (
     <div className="emotion-detail">
+      {inpaintModelMissing && <InpaintModelBanner model={resolved.preset!.generation.model} />}
       <div className={`detail-nav ${topShown ? '' : 'top-hidden'}`}>
         <button onClick={() => openEmotion(undefined)}>← 갤러리</button>
         {/* 결과 막대의 결과 삭제와 헷갈리지 않게 메뉴 안에 둔다. */}
@@ -248,26 +308,33 @@ export function EmotionDetail({
         }
       >
         <section className="detail-stage">
-          <ImageStage
-            src={selected && projectMedia(project.id, selected.file)}
-            alt={emotion.name}
+          {img2imgOn && (
+            <FreeStageTabs
+              stage={stage}
+              onStage={setStage}
+              hasImage={Boolean(image)}
+              source={{
+                label: inpainting ? '마스크 칠하기' : 'i2i 이미지',
+                icon: inpainting ? 'brush' : 'i2i',
+              }}
+              drawable
+            />
+          )}
+          <FreeSourceStage
+            target={img2imgTarget}
+            image={image}
+            drawing={drawing}
+            showSource={showSource}
+            inpainting={inpainting}
+            sourceLabel="i2i 이미지"
             filmstrip={records.length > 0}
-            empty={
-              <div className="stage-empty">
-                <p>아직 생성된 이미지가 없습니다.</p>
-              </div>
-            }
-            overlay={
-              <>
-                <StreamPreview jobIds={running} className="stage-preview" />
-                {pending > 0 && (
-                  <span className="card-status busy stage-status">생성 대기 {pending}</span>
-                )}
-              </>
-            }
-            onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
+            blank={{
+              width: resolved.preset?.generation.width ?? 832,
+              height: resolved.preset?.generation.height ?? 1216,
+            }}
+            result={resultStage}
           />
-          {selected && (
+          {!showSource && !drawing && selected && (
             <ResultBar projectId={project.id} record={selected} actions={resultActions(selected)} />
           )}
           <Filmstrip
@@ -276,6 +343,7 @@ export function EmotionDetail({
             browser={browser}
             menu={resultActions}
             favoriteId={favoriteId}
+            onOpen={() => setStage('result')}
             tools={
               <>
                 <div className="header-spacer" />

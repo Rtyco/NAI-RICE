@@ -3,6 +3,7 @@ import {
   buildFreeJobs,
   buildJobs,
   buildResultAugmentJobs,
+  buildSceneImg2ImgJobs,
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
   type AugmentTarget,
@@ -22,13 +23,19 @@ import {
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
-import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
+import {
+  hasScenePrompt,
+  img2imgMissing,
+  resolveProject,
+  type ResolvedCharacter,
+  type ResolvedProject,
+} from '../core/model/defaults';
 import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
-import { applyPendingDrawing, saveFreeMask } from './freeImageOps';
+import { applyPendingDrawing, saveMask } from './freeImageOps';
 import type { AidValue } from './components/AidChip';
 
 function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
@@ -100,30 +107,33 @@ async function enqueue(jobs: GenerationJobSnapshot[], message: string): Promise<
   if (!jobs.every(onStage)) toast(message);
 }
 
-export function generateEmotions(
+/** 씬 i2i는 작업의 인페인트를 쓰지 않는다. */
+async function projectJobInput(
   projectId: string,
   emotionIds: string[],
-  options: GenerateOptions = {},
-): Promise<void> {
-  return run('생성 작업을 준비하는 중', async () => {
-    await flushSaves();
-    const state = useStore.getState();
-    const library = state.library;
-    const project = library?.projects.find((item) => item.id === projectId);
-    if (!library || !project) throw new Error('작업을 찾을 수 없습니다.');
-    const resolved = resolveProject(library, project);
-    if (resolved.missing.length) {
-      throw new Error(
-        `이 작업에 ${resolved.missing.join(', ')}이(가) 없습니다. 상단에서 선택하거나 만들어 주십시오.`,
-      );
-    }
-    if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
-    const templateError = validateOutputFilenameTemplate(library.settings.outputFilenameTemplate);
-    if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
+  options: GenerateOptions,
+  img2img: boolean,
+) {
+  await flushSaves();
+  const state = useStore.getState();
+  const library = state.library;
+  const project = library?.projects.find((item) => item.id === projectId);
+  if (!library || !project) throw new Error('작업을 찾을 수 없습니다.');
+  const resolved = resolveProject(library, project);
+  const missing = img2img ? img2imgMissing(resolved.missing) : resolved.missing;
+  if (missing.length) {
+    throw new Error(
+      `이 작업에 ${missing.join(', ')}이(가) 없습니다. 상단에서 선택하거나 만들어 주십시오.`,
+    );
+  }
+  if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
+  const templateError = validateOutputFilenameTemplate(library.settings.outputFilenameTemplate);
+  if (templateError) throw new Error(`결과 파일명 규칙 오류: ${templateError}`);
 
-    const reference = resolved.reference!;
-    const aidInput = await prepareAid(library, project, project.id);
-    const common = {
+  return {
+    library,
+    resolved,
+    common: {
       project,
       preset: resolved.preset!,
       characters: jobCharacters(resolved.characters),
@@ -134,25 +144,86 @@ export function generateEmotions(
       seedOverride: options.seed,
       variantsOverride: options.variants,
       comboKey: options.comboKey,
-      aid: aidInput,
-    };
-    let jobs: GenerationJobSnapshot[];
-    if (project.mode === 'txt2img') jobs = buildTxt2ImgJobs(common);
-    else {
-      jobs = buildJobs({
-        ...common,
-        reference,
-        input: await libraryApi().prepareInputs(project.id, reference),
-      });
-    }
-    if (!jobs.length) throw new Error('생성할 씬이 없습니다. 프롬프트가 있는 씬을 선택하십시오.');
-    if (project.autoRefine) {
-      const refine = projectRefineSettings(project, resolved.preset, reference);
-      jobs = jobs.map((job) => ({ ...job, refine }));
-    }
+      aid: await prepareAid(library, project, project.id),
+    },
+  };
+}
 
-    await enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
+function enqueueProjectJobs(
+  resolved: ResolvedProject,
+  jobs: GenerationJobSnapshot[],
+): Promise<void> {
+  if (!jobs.length) throw new Error('생성할 씬이 없습니다. 프롬프트가 있는 씬을 선택하십시오.');
+  const { project } = resolved;
+  if (project.autoRefine) {
+    const refine = projectRefineSettings(project, resolved.preset, resolved.reference);
+    jobs = jobs.map((job) => ({ ...job, refine }));
+  }
+  return enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
+}
+
+export function generateEmotions(
+  projectId: string,
+  emotionIds: string[],
+  options: GenerateOptions = {},
+): Promise<void> {
+  return run('생성 작업을 준비하는 중', async () => {
+    const { resolved, common } = await projectJobInput(projectId, emotionIds, options, false);
+    const reference = resolved.reference!;
+    const jobs =
+      common.project.mode === 'txt2img'
+        ? buildTxt2ImgJobs(common)
+        : buildJobs({
+            ...common,
+            reference,
+            input: await libraryApi().prepareInputs(projectId, reference),
+          });
+    await enqueueProjectJobs(resolved, jobs);
   }).then(() => undefined);
+}
+
+/** 씬 상세의 i2i 이미지로 만든다. 결과는 그 씬에 쌓인다. */
+export function generateSceneImg2Img(
+  projectId: string,
+  emotionId: string,
+  options: GenerateOptions = {},
+): Promise<void> {
+  return run('생성 작업을 준비하는 중', async () => {
+    await applyPendingDrawing();
+    await saveMask();
+    const { resolved, common } = await projectJobInput(projectId, [emotionId], options, true);
+    const scene = common.project.sceneImg2Img?.[emotionId];
+    const source = scene?.image;
+    if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+    if (scene.inpaint) assertInpaintable(source.maskFile, common.preset.generation.model);
+    const { mask, ...prepared } = await libraryApi().prepareSourceInput({
+      projectId,
+      file: source.file,
+      ...(scene.inpaint ? { maskFile: source.maskFile } : {}),
+    });
+    const jobs = buildSceneImg2ImgJobs({
+      ...common,
+      image: {
+        image: prepared,
+        mask,
+        width: source.width,
+        height: source.height,
+        outputRect: source.outputRect,
+        ...(scene.inpaint && source.fromReference ? { reference: source.fromReference } : {}),
+        sourceRecordId:
+          source.fromRecord?.projectId === projectId ? source.fromRecord.generationId : undefined,
+      },
+    });
+    await enqueueProjectJobs(resolved, jobs);
+  }).then(() => undefined);
+}
+
+function assertInpaintable(maskFile: string | undefined, model: string): void {
+  if (!maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
+  if (!supportsInpaint(model))
+    throw new Error(
+      `${modelLabel(model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서 모델을 바꾸거나 인페인팅을 끄십시오.`,
+    );
 }
 
 /** `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
@@ -161,7 +232,7 @@ export function generateFree(
 ): Promise<void> {
   return run('생성 작업을 준비하는 중', async () => {
     await applyPendingDrawing();
-    await saveFreeMask();
+    await saveMask();
     await flushSaves();
     const state = useStore.getState();
     const library = state.library;
@@ -175,13 +246,7 @@ export function generateFree(
     if (free.mode === 'img2img') {
       const source = free.image;
       if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
-      if (free.inpaint) {
-        if (!source.maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
-        if (!supportsInpaint(preset.generation.model))
-          throw new Error(
-            `${modelLabel(preset.generation.model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서 모델을 바꾸거나 인페인팅을 끄십시오.`,
-          );
-      }
+      if (free.inpaint) assertInpaintable(source.maskFile, preset.generation.model);
       const { mask, ...prepared } = await libraryApi().prepareSourceInput({
         projectId: FREE_PROJECT_ID,
         file: source.file,

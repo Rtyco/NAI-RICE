@@ -270,8 +270,19 @@ export type Project = {
   excludedEmotionIds: string[];
   /** 감정 ID → 생성 기록 ID */
   favorites: Record<string, string>;
+  /** 감정 ID → 씬 상세의 i2i */
+  sceneImg2Img?: Record<string, SceneImg2Img>;
   createdAt: string;
   updatedAt: string;
+};
+
+/** 결과는 그 씬에 쌓인다. */
+export type SceneImg2Img = {
+  /** 끄면 이미지는 남기고 작업의 생성 방식으로 돌아간다. */
+  on: boolean;
+  image?: FreeImage;
+  /** 끄면 이미지 전체를 i2i한다. */
+  inpaint: boolean;
 };
 
 export type AidMode = 'character' | 'vibe';

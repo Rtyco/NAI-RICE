@@ -23,7 +23,12 @@ import {
   useStore,
 } from './store';
 import { libraryApi } from './desktop';
-import { makeReferenceFromRecord, sendToFreeImg2Img } from './freeImageOps';
+import {
+  forgetSceneImages,
+  makeReferenceFromRecord,
+  sendToFreeImg2Img,
+  sendToSceneImg2Img,
+} from './freeImageOps';
 import {
   clearEmotionResults,
   openDirectorToolDialog,
@@ -111,6 +116,7 @@ export async function deleteEmotion(
       );
     if (useStore.getState().detailEmotionId === emotion.id) openEmotion(undefined);
     updateEmotionSet(setId, (set) => removeEmotion(set, emotion.id));
+    forgetSceneImages([emotion.id]);
   });
   return true;
 }
@@ -155,6 +161,7 @@ export async function deleteEmotions(
       ...set,
       emotions: set.emotions.filter((emotion) => !ids.has(emotion.id)),
     }));
+    forgetSceneImages(ids);
   });
   return true;
 }
@@ -230,6 +237,11 @@ export function emotionMenu(
       label: '다듬기',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
+    },
+    {
+      label: '이 이미지로 i2i',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => void sendToSceneImg2Img(projectId, emotion.id, cover)),
     },
     {
       label: '디렉터 툴',

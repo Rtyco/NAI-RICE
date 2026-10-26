@@ -117,6 +117,32 @@ describe('자유 생성 i2i 작업', () => {
     expect(read({ ...freeImage, fromReference })?.fromReference).toEqual(fromReference);
   });
 
+  it('씬 i2i는 작업에 씬별로 저장되고, 잘못된 이미지는 비운 채 읽어', () => {
+    const library = createDefaultLibrary();
+    const project = createProject('작업', {
+      presetId: library.presets[0].id,
+      emotionSetId: 'set',
+      referenceId: '',
+    });
+    const image = {
+      name: 'a',
+      file: `${'c'.repeat(24)}.png`,
+      width: 64,
+      height: 64,
+      outputRect: { x: 0, y: 0, width: 64, height: 64 },
+    };
+    const read = (sceneImg2Img: unknown) =>
+      librarySchema.parse({ ...library, projects: [{ ...project, sceneImg2Img }] }).projects[0]
+        .sceneImg2Img;
+    expect(read({ joy: { on: true, inpaint: false, image } })).toEqual({
+      joy: { on: true, inpaint: false, image },
+    });
+    expect(
+      read({ joy: { on: true, inpaint: true, image: { ...image, file: '../a.png' } } }),
+    ).toEqual({ joy: { on: true, inpaint: true } });
+    expect(read('broken')).toBeUndefined();
+  });
+
   it('마스크가 없으면 생성 설정의 세기로 이미지 전체를 i2i하고 여백은 결과에서 잘라', () => {
     const [job] = buildFreeJobs({
       preset,

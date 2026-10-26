@@ -1,22 +1,27 @@
-import type { Emotion } from '../../../core/domain/types';
+import type { Emotion, SceneImg2Img } from '../../../core/domain/types';
 import { scenePosition } from '../../../core/jobs/JobBuilder';
 import { hasScenePrompt, type ResolvedProject } from '../../../core/model/defaults';
 import { setEmotionsExcluded } from '../../../core/model/mutations';
 import { comboCount } from '../../../core/model/sceneCombos';
 import { hasMarker } from '../../../core/prompts/PromptComposer';
 import { usesMedium } from '../../../core/providers/NaiModels';
+import { Icon } from '../../components/Icon';
 import { AutoRefineToggle } from '../../components/RefineChip';
 import { ScenePromptFields } from '../../components/ScenePromptFields';
 import { SceneExtras } from '../../components/SceneExtras';
 import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
 import { NumberField } from '../../components/ui';
 import { patchEmotion } from '../../emotionOps';
+import { updateImageTarget, type ImageTarget } from '../../freeImageOps';
 import { projectRefineTarget } from '../../refineTargets';
 import { setDetailSideView, updateProject, useStore } from '../../store';
+import { FreeImagePanel } from '../free/FreeImagePanel';
 
 export function DetailSidePanel({
   resolved,
   emotion,
+  img2img,
+  img2imgTarget,
   variants,
   setVariants,
   imagesLabel,
@@ -25,6 +30,8 @@ export function DetailSidePanel({
 }: {
   resolved: ResolvedProject;
   emotion: Emotion;
+  img2img?: SceneImg2Img;
+  img2imgTarget: ImageTarget;
   variants: number;
   setVariants: (value: number) => void;
   /** 생성 수 × 조합 수, 자동 다듬기 장수 */
@@ -51,8 +58,36 @@ export function DetailSidePanel({
   const excluded = project.excludedEmotionIds.includes(emotion.id);
   const patch = (value: Partial<Omit<Emotion, 'id'>>) => patchEmotion(set.id, emotion.id, value);
 
+  const img2imgOn = Boolean(img2img?.on);
+  const txt2img = project.mode === 'txt2img';
+
   return (
     <>
+      <div className="segmented full free-source-mode" role="group" aria-label="생성 방식">
+        <button
+          className={img2imgOn ? '' : 'active'}
+          aria-pressed={!img2imgOn}
+          onClick={() => updateImageTarget(img2imgTarget, { on: false })}
+        >
+          <Icon name={txt2img ? 'sparkle' : 'reference'} size={14} />
+          {txt2img ? '일반 생성' : '인페인트'}
+        </button>
+        <button
+          className={img2imgOn ? 'active' : ''}
+          aria-pressed={img2imgOn}
+          onClick={() => updateImageTarget(img2imgTarget, { on: true })}
+        >
+          <Icon name="i2i" size={14} /> i2i
+        </button>
+      </div>
+      {img2img?.on && (
+        <FreeImagePanel
+          target={img2imgTarget}
+          image={img2img.image}
+          inpaint={img2img.inpaint}
+          preset={resolved.preset}
+        />
+      )}
       <label className="stack-field">
         씬 이름
         <input value={emotion.name} onChange={(event) => patch({ name: event.target.value })} />
@@ -94,7 +129,7 @@ export function DetailSidePanel({
             }
             onChange={patch}
           />
-          <SceneExtras emotion={emotion} txt2img={project.mode === 'txt2img'} onChange={patch} />
+          <SceneExtras emotion={emotion} txt2img={txt2img && !img2imgOn} onChange={patch} />
         </>
       ) : (
         <SceneSlotsEditor

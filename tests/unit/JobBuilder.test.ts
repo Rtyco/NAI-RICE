@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Reference } from '../../src/core/domain/types';
 import {
   buildJobs,
+  buildSceneImg2ImgJobs,
   buildTxt2ImgJobs,
   composeRequestPrompts,
   seedForVariant,
@@ -620,5 +621,68 @@ describe('씬별 seed와 크기', () => {
     expect(jobs[0].settings).toMatchObject({ width: 1024, height: 1536 });
     expect(buildTxt2ImgJobs({ ...base, seedOverride: 9, variantsOverride: 1 })[0].seed).toBe(9);
     expect(buildJobs({ ...base, reference, input })[0].canvasWidth).toBe(1216);
+  });
+});
+
+describe('씬 i2i', () => {
+  const hashed = { imagePath: 'inputs/a.png', imageSha256: 'a'.repeat(64) };
+  const image = {
+    image: hashed,
+    width: 832,
+    height: 1216,
+    outputRect: { x: 0, y: 0, width: 800, height: 1200 },
+    sourceRecordId: 'rec-1',
+  };
+
+  function base() {
+    const { character, promptSet, emotionSet, preset, project } = setup('fixed', 2);
+    preset.generation = { ...preset.generation, img2imgStrength: 0.45, img2imgNoise: 0.1 };
+    return {
+      project,
+      preset,
+      characters: [{ name: character.name, promptSet }],
+      emotionSet,
+      emotionIds: [emotionSet.emotions[0].id],
+      settings: DEFAULT_SETTINGS,
+    };
+  }
+
+  it('씬 프롬프트로 고른 이미지를 i2i하고 결과는 그 씬에 쌓여', () => {
+    const input = base();
+    const jobs = buildSceneImg2ImgJobs({ ...input, image });
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      kind: 'img2img',
+      projectId: input.project.id,
+      emotionId: input.emotionSet.emotions[0].id,
+      prompt: 'masterpiece',
+      characterPrompt: 'silver hair, smile',
+      canvasWidth: 832,
+      canvasHeight: 1216,
+      outputRect: image.outputRect,
+      strength: 0.45,
+      noise: 0.1,
+      sourceRecordId: 'rec-1',
+      referenceName: '',
+    });
+    expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+  });
+
+  it('마스크가 있으면 인페인팅이고, 인페인트에서 불러온 이미지만 reference inset과 그 세기를 써', () => {
+    const input = base();
+    const mask = { maskPath: 'inputs/m.png', maskSha256: 'b'.repeat(64) };
+    const [plain] = buildSceneImg2ImgJobs({ ...input, image: { ...image, mask } });
+    expect(plain).toMatchObject({ kind: 'inpaint', prompt: 'masterpiece' });
+    expect(plain.settings.inpaintStrength).toBe(input.preset.generation.inpaintStrength);
+    const [fromReference] = buildSceneImg2ImgJobs({
+      ...input,
+      image: { ...image, mask, reference: { name: '레퍼런스', inpaintStrength: 0.7 } },
+    });
+    expect(fromReference).toMatchObject({
+      kind: 'inpaint',
+      prompt: 'reference inset, masterpiece',
+      referenceName: '레퍼런스',
+    });
+    expect(fromReference.settings.inpaintStrength).toBe(0.7);
   });
 });

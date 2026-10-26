@@ -500,38 +500,60 @@ export function buildFreeJobs(
       warnings: [],
       ...(input.aid ? { aid: { ...input.aid } } : {}),
     };
-    const { image } = input;
-    if (!image) {
-      jobs.push({ ...common, kind: 'txt2img' });
-      continue;
-    }
-    const fromImage = {
-      ...common,
-      ...image.image,
-      ...(image.sourceRecordId ? { sourceRecordId: image.sourceRecordId } : {}),
-      outputRect: { ...image.outputRect },
-    };
-    jobs.push(
-      image.mask
-        ? {
-            ...fromImage,
-            kind: 'inpaint',
-            ...image.mask,
-            ...(reference
-              ? { settings: { ...common.settings, inpaintStrength: reference.inpaintStrength } }
-              : {}),
-            // 캔버스가 원본과 거의 같다.
-            keepDiagnosticCanvas: false,
-          }
-        : {
-            ...fromImage,
-            kind: 'img2img',
-            strength: settings.img2imgStrength,
-            noise: settings.img2imgNoise,
-          },
-    );
+    jobs.push(input.image ? imageJob(common, input.image) : { ...common, kind: 'txt2img' });
   }
   return jobs;
+}
+
+type ImageJobInput = NonNullable<FreeJobBuildInput['image']>;
+
+function imageJob(
+  common: JobSnapshotCommon,
+  image: ImageJobInput,
+): InpaintJobSnapshot | Img2ImgJobSnapshot {
+  const reference = image.mask ? image.reference : undefined;
+  const fromImage = {
+    ...common,
+    ...image.image,
+    ...(image.sourceRecordId ? { sourceRecordId: image.sourceRecordId } : {}),
+    outputRect: { ...image.outputRect },
+  };
+  return image.mask
+    ? {
+        ...fromImage,
+        kind: 'inpaint',
+        ...image.mask,
+        ...(reference
+          ? { settings: { ...common.settings, inpaintStrength: reference.inpaintStrength } }
+          : {}),
+        // 캔버스가 원본과 거의 같다.
+        keepDiagnosticCanvas: false,
+      }
+    : {
+        ...fromImage,
+        kind: 'img2img',
+        strength: common.settings.img2imgStrength,
+        noise: common.settings.img2imgNoise,
+      };
+}
+
+export type SceneImg2ImgJobBuildInput = EmotionJobBuildInput & { image: ImageJobInput };
+
+/** 작업의 인페인트 대신 씬에 고른 이미지를 쓴다. 자유 생성 i2i와 같다. */
+export function buildSceneImg2ImgJobs(
+  input: SceneImg2ImgJobBuildInput,
+): Array<InpaintJobSnapshot | Img2ImgJobSnapshot> {
+  const reference = input.image.mask ? input.image.reference : undefined;
+  return buildEmotionJobs(
+    input,
+    reference ? 'inpaint' : 'img2img',
+    {
+      referenceName: reference?.name ?? '',
+      canvasWidth: input.image.width,
+      canvasHeight: input.image.height,
+    },
+    (common) => imageJob(common, input.image),
+  );
 }
 
 /** 자유 생성은 씬이 없어 설정의 파일명 규칙을 쓰지 않는다. */

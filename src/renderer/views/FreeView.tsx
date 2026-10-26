@@ -15,7 +15,7 @@ import {
 } from '../../core/model/refine';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
-import { modelLabel, noInpaintReason, supportsInpaint } from '../../core/providers/NaiModels';
+import { supportsInpaint } from '../../core/providers/NaiModels';
 import { directorToolSize, generateFree, runFreeDirectorTool } from '../actions';
 import { AccountMeter } from '../components/AccountMeter';
 import { useHeaderFit } from '../components/useHeaderFit';
@@ -34,13 +34,7 @@ import { ImageStage } from '../components/ImageStage';
 import { NumberField, Toggle } from '../components/ui';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
-import {
-  loadFreeImageFromFile,
-  newBlankFreeImage,
-  sendToFreeDirector,
-  sendToFreeImg2Img,
-  sourceMedia,
-} from '../freeImageOps';
+import { FREE_TARGET, sendToFreeDirector, sendToFreeImg2Img } from '../freeImageOps';
 import {
   projectMedia,
   resolveFreeGeneration,
@@ -54,11 +48,10 @@ import { freeRefineTarget } from '../refineTargets';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { FreeChainBar } from './free/FreeChainBar';
-import { FreeDrawStage } from './free/FreeDrawStage';
 import { FreeImagePanel } from './free/FreeImagePanel';
-import { FreeMaskCanvas } from './free/FreeMaskCanvas';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
 import { FreePromptFields } from './free/FreePromptFields';
+import { FreeSourceStage, InpaintModelBanner } from './free/FreeSourceStage';
 import { FreeStageTabs, type FreeStage } from './free/FreeStageTabs';
 
 const NO_RECORDS: GenerationSummary[] = [];
@@ -235,7 +228,15 @@ export function FreeView() {
 
   const sidePanel = (
     <>
-      {free.mode !== 'txt2img' && <FreeImagePanel free={free} preset={preset} />}
+      {free.mode !== 'txt2img' && (
+        <FreeImagePanel
+          target={FREE_TARGET}
+          image={free.image}
+          inpaint={free.inpaint}
+          director={director}
+          preset={preset}
+        />
+      )}
       {director ? (
         <section className="detail-card">
           <div className="detail-card-head">
@@ -321,18 +322,7 @@ export function FreeView() {
         <HistoryToggle />
       </header>
       {!director && topShown && chainBar}
-      {inpaintModelMissing && (
-        <div className="missing-banner">
-          ⚠{' '}
-          {[
-            `${modelLabel(preset.generation.model)}는 인페인팅을 지원하지 않습니다.`,
-            noInpaintReason(preset.generation.model),
-            '생성 설정에서 모델을 바꾸거나 「전체 다시 그리기」로 바꾸십시오.',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        </div>
-      )}
+      {inpaintModelMissing && <InpaintModelBanner model={preset.generation.model} />}
 
       <div className="project-body animate-in">
         <div className="emotion-detail">
@@ -364,53 +354,20 @@ export function FreeView() {
                   drawable={free.mode === 'img2img'}
                 />
               )}
-              {drawing ? (
-                <div className="free-mask-stage">
-                  {image ? (
-                    <FreeDrawStage key={image.file} image={image} />
-                  ) : (
-                    <div className="stage-empty">
-                      <p>그릴 이미지가 없습니다.</p>
-                      <div className="stage-empty-actions">
-                        <button
-                          className="accent"
-                          onClick={() =>
-                            void newBlankFreeImage(
-                              preset?.generation.width ?? 832,
-                              preset?.generation.height ?? 1216,
-                            )
-                          }
-                        >
-                          빈 캔버스 만들기 ({preset?.generation.width ?? 832}×
-                          {preset?.generation.height ?? 1216})
-                        </button>
-                        <button onClick={() => void loadFreeImageFromFile()}>
-                          파일에서 불러오기
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : showSource && image ? (
-                inpainting ? (
-                  <div className="free-mask-stage">
-                    <FreeMaskCanvas key={image.file} image={image} />
-                  </div>
-                ) : (
-                  <ImageStage src={sourceMedia(image.file)} filmstrip={records.length > 0} />
-                )
-              ) : image ? (
-                <div className="compare-stage">
-                  <ImageStage
-                    src={sourceMedia(image.file)}
-                    alt={sourceLabel}
-                    overlay={<span className="stage-label">{sourceLabel}</span>}
-                  />
-                  {resultStage}
-                </div>
-              ) : (
-                resultStage
-              )}
+              <FreeSourceStage
+                target={FREE_TARGET}
+                image={image}
+                drawing={drawing}
+                showSource={showSource}
+                inpainting={inpainting}
+                sourceLabel={sourceLabel}
+                filmstrip={records.length > 0}
+                blank={{
+                  width: preset?.generation.width ?? 832,
+                  height: preset?.generation.height ?? 1216,
+                }}
+                result={resultStage}
+              />
               {!showSource && !drawing && selected && (
                 <ResultBar
                   projectId={FREE_PROJECT_ID}

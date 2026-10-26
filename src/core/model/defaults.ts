@@ -393,8 +393,8 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     // 캐릭터 없이도 생성할 수 있고, 고른 캐릭터가 지워졌을 때만 막는다.
     characters.length < project.characters.length && '캐릭터',
     !emotionSet && '씬 모음',
-    inpaint && !reference && '인페인트',
-    inpaint && reference && !reference.image && '참고 이미지',
+    inpaint && !reference && REFERENCE_MISSING,
+    inpaint && reference && !reference.image && REFERENCE_IMAGE_MISSING,
     items.some((item) => !item) && aidLabel,
     items.some((item) => item && !item.image) && `${aidLabel} 그림`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && INPAINT_MODEL_MISSING,
@@ -407,6 +407,18 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
 export const AID_MODEL_MISSING = 'V4.5 모델';
 /** 작업 화면 경고 띠는 모델 이름으로 따로 알린다. */
 export const INPAINT_MODEL_MISSING = '인페인트 모델';
+const REFERENCE_MISSING = '인페인트';
+const REFERENCE_IMAGE_MISSING = '참고 이미지';
+
+/** 씬 i2i는 작업의 인페인트를 쓰지 않는다. */
+export function img2imgMissing(missing: string[]): string[] {
+  return missing.filter(
+    (item) =>
+      item !== REFERENCE_MISSING &&
+      item !== REFERENCE_IMAGE_MISSING &&
+      item !== INPAINT_MODEL_MISSING,
+  );
+}
 
 /** 조합 칸이 있으면 조합이 하나라도 있어야 한다(후보가 비어도 SDStudio처럼 생성한다). */
 export function hasScenePrompt(

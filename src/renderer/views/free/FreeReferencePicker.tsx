@@ -1,8 +1,8 @@
 import { Modal } from '../../components/Dialogs';
-import { loadFreeImageFromReference } from '../../freeImageOps';
+import { loadImageFromReference, type ImageTarget } from '../../freeImageOps';
 import { referenceMedia, useStore } from '../../store';
 
-export function FreeReferencePicker({ close }: { close: () => void }) {
+export function FreeReferencePicker({ target, close }: { target: ImageTarget; close: () => void }) {
   const references = useStore((state) => state.library!.references);
   return (
     <Modal title="인페인트에서 불러오기" onClose={close} wide>
@@ -15,7 +15,7 @@ export function FreeReferencePicker({ close }: { close: () => void }) {
               title={reference.image ? reference.name : '이미지 없음'}
               onClick={() => {
                 close();
-                void loadFreeImageFromReference(reference);
+                void loadImageFromReference(target, reference);
               }}
             >
               {reference.image ? (

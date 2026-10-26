@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FreeImage } from '../../../core/domain/types';
 import { ReferenceCanvas } from '../../components/ReferenceCanvas';
-import { saveFreeMask, setFreeMask, sourceDataUrl } from '../../freeImageOps';
+import { saveMask, setMask, sourceDataUrl, type ImageTarget } from '../../freeImageOps';
 import { decodeMask, loadHtmlImage } from '../../lib/image';
 
 const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
@@ -9,7 +9,7 @@ const NO_RECT = { x: 0, y: 0, width: 0, height: 0 };
 const ignore = () => undefined;
 
 /** 이미지가 바뀌면 `key`로 새로 만들어 마스크와 실행 취소 기록이 섞이지 않는다. */
-export function FreeMaskCanvas({ image }: { image: FreeImage }) {
+export function FreeMaskCanvas({ target, image }: { target: ImageTarget; image: FreeImage }) {
   const { file, width, height } = image;
   const [initialMaskFile] = useState(image.maskFile);
   const [loaded, setLoaded] = useState<{ image: HTMLImageElement; mask?: Uint8Array }>();
@@ -37,11 +37,11 @@ export function FreeMaskCanvas({ image }: { image: FreeImage }) {
     };
   }, [file, width, height, initialMaskFile]);
 
-  useEffect(() => () => void saveFreeMask(), []);
+  useEffect(() => () => void saveMask(), []);
 
   const onMaskChange = useCallback(
-    (mask: Uint8Array) => setFreeMask(file, mask, width, height),
-    [file, width, height],
+    (mask: Uint8Array) => setMask(target, file, mask, width, height),
+    [target, file, width, height],
   );
 
   if (failed)

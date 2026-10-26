@@ -305,6 +305,27 @@ export const refineSettingsSchema = z.object({
   seedMode: z.enum(['source', 'random']),
 });
 
+/** 해시 이름이라 경로 문자가 없다. */
+const sourceFileSchema = z.string().regex(/^[0-9a-f]+\.png$/);
+
+const freeImageSchema = z.object({
+  name: z.string(),
+  file: sourceFileSchema,
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  outputRect: rectSchema,
+  maskFile: sourceFileSchema.optional(),
+  fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
+  fromReference: z
+    .object({
+      referenceId: z.string(),
+      name: z.string(),
+      inpaintStrength: z.number().min(0).max(1),
+    })
+    .optional()
+    .catch(undefined),
+});
+
 export const projectSchema = z.preprocess(
   (value) => readSingleCharacterReference(readSingleVibe(readSingleCharacter(value))),
   z.object({
@@ -327,6 +348,17 @@ export const projectSchema = z.preprocess(
     autoRefine: z.boolean().optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
+    sceneImg2Img: z
+      .record(
+        z.string(),
+        z.object({
+          on: z.boolean(),
+          image: freeImageSchema.optional().catch(undefined),
+          inpaint: z.boolean(),
+        }),
+      )
+      .optional()
+      .catch(undefined),
     createdAt: z.string(),
     updatedAt: z.string(),
   }),
@@ -457,9 +489,6 @@ export const appSettingsSchema = z.object({
     .default({ autoCheck: true, skippedVersion: '', seenVersion: '' }),
 });
 
-/** 해시 이름이라 경로 문자가 없다. */
-const sourceFileSchema = z.string().regex(/^[0-9a-f]+\.png$/);
-
 /** 예전 「자유 인페인팅」 모드(mode 'inpaint', 이미지는 `inpaint`)를 i2i 인페인팅으로 읽는다. */
 function readFreeInpaintMode(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
@@ -504,25 +533,7 @@ export const librarySchema = z.object({
         prompt: z.string(),
         count: z.number().int().min(1).max(20),
         mode: z.enum(['txt2img', 'img2img', 'augment']).catch('txt2img'),
-        image: z
-          .object({
-            name: z.string(),
-            file: sourceFileSchema,
-            width: z.number().int().positive(),
-            height: z.number().int().positive(),
-            outputRect: rectSchema,
-            maskFile: sourceFileSchema.optional(),
-            fromRecord: z.object({ projectId: z.string(), generationId: z.string() }).optional(),
-            fromReference: z
-              .object({
-                referenceId: z.string(),
-                name: z.string(),
-                inpaintStrength: z.number().min(0).max(1),
-              })
-              .optional()
-              .catch(undefined),
-          })
-          .optional(),
+        image: freeImageSchema.optional(),
         inpaint: z.boolean().default(false),
         refine: refineSettingsSchema.optional().catch(undefined),
         autoRefine: z.boolean().optional().catch(undefined),

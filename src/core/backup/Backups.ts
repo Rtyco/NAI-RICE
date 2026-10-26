@@ -208,6 +208,8 @@ function remapLibrary(
     emotionSetId: ids.get(project.emotionSetId) ?? project.emotionSetId,
     referenceId: ids.get(project.referenceId) ?? project.referenceId,
     favorites: {},
+    // 씬 i2i 이미지(`sources/`)는 백업에 들어 있지 않다.
+    sceneImg2Img: undefined,
   }));
   return bundle;
 }
@@ -419,7 +421,7 @@ export function projectLibrary(library: Library, projectId: string): ProjectLibr
     references: pick(library.references),
     characterReferences: pick(library.characterReferences),
     vibes: pick(library.vibes),
-    projects: [{ ...project, favorites: {} }],
+    projects: [{ ...project, favorites: {}, sceneImg2Img: undefined }],
     pieceSets: usedPieceSets(texts, library.pieceSets),
   };
 }

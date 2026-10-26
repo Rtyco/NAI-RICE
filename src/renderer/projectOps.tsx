@@ -5,6 +5,7 @@ import { uniqueName } from '../core/model/mutations';
 import { confirmDialog } from './components/dialogStack';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { fileApi, libraryApi } from './desktop';
+import { dropSourceFiles } from './freeImageOps';
 
 /** 생성 결과와 대표 이미지는 가져오지 않는다. */
 export function duplicateProject(project: Project): void {
@@ -51,6 +52,11 @@ export function exportProjectFile(project: Project, format: 'sdstudio' | 'rice')
   });
 }
 
+function sceneImages(projectId: string) {
+  const project = useStore.getState().library?.projects.find((item) => item.id === projectId);
+  return Object.values(project?.sceneImg2Img ?? {}).map((scene) => scene.image);
+}
+
 /** 라이브러리 항목은 그대로 둔다. */
 export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Promise<void> {
   const ok = await confirmDialog({
@@ -69,10 +75,12 @@ export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Prom
   if (!ok) return;
   await run('작업을 삭제하는 중', async () => {
     await libraryApi().deleteProjectFiles(project.id);
+    const images = sceneImages(project.id);
     updateLibrary((current) => ({
       ...current,
       projects: current.projects.filter((item) => item.id !== project.id),
     }));
+    dropSourceFiles(...images);
     const { view, library } = useStore.getState();
     if (view.kind !== 'project' || view.projectId !== project.id) return;
     const next = library?.projects[0];
@@ -110,10 +118,12 @@ export async function deleteProjects(projects: Array<Pick<Project, 'id' | 'name'
       }
     } finally {
       // 중간에 실패해도 이미 지운 작업은 목록에서 뺀다.
+      const images = [...removed].flatMap(sceneImages);
       updateLibrary((current) => ({
         ...current,
         projects: current.projects.filter((item) => !removed.has(item.id)),
       }));
+      dropSourceFiles(...images);
       const { view, library } = useStore.getState();
       if (view.kind === 'project' && removed.has(view.projectId)) {
         const next = library?.projects[0];
