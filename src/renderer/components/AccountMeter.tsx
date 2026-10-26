@@ -36,7 +36,7 @@ export function AccountMeter() {
     return () => clearTimeout(timer);
   }, [token.anlas, quota, token.checkedAt]);
 
-  if (!token.stored) return <span className="pill">NovelAI 토큰 미설정</span>;
+  if (!token.stored) return <span className="pill token-missing">NovelAI 토큰 미설정</span>;
   const signed = (value: number) =>
     value > 0 ? `+${value.toLocaleString()}` : value.toLocaleString();
   return (

@@ -24,14 +24,14 @@
 .library-editor-head {
   container-type: inline-size;
 }
-.library-editor-head > :not(.project-name-input, .header-spacer, .account-meter) {
+.library-editor-head > :not(.project-name-input, .header-spacer, .account-meter, .token-missing) {
   flex: none;
 }
 .library-editor-head .project-name-input {
   flex: 0 1 auto;
   min-width: 64px;
 }
-.library-editor-head .account-meter {
+.library-editor-head :is(.account-meter, .token-missing) {
   flex-shrink: 0.01;
   min-width: 0;
   overflow: hidden;
@@ -43,7 +43,7 @@
   }
 }
 @container (max-width: 860px) {
-  .library-editor-head .account-meter {
+  .library-editor-head :is(.account-meter, .token-missing) {
     display: none;
   }
 }
@@ -52,10 +52,11 @@
     display: none;
   }
 }
-.project-header > :not(.project-name-input, .header-spacer, .account-meter, .chain-bar) {
+.project-header
+  > :not(.project-name-input, .header-spacer, .account-meter, .token-missing, .chain-bar) {
   flex: none;
 }
-.project-header .account-meter {
+.project-header :is(.account-meter, .token-missing) {
   flex-shrink: 0.01;
   min-width: 0;
   overflow: hidden;
@@ -68,7 +69,7 @@
   }
 }
 @container (max-width: 680px) {
-  .project-header:not(:has(.chain-bar.compact)) .account-meter {
+  .project-header:not(:has(.chain-bar.compact)) :is(.account-meter, .token-missing) {
     display: none;
   }
 }

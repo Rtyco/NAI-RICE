@@ -111,7 +111,8 @@
 .project-header.fit-3 .chain-bar.compact .chain-chip-trigger > .icon {
   display: none;
 }
-.project-header.fit-4 .account-meter {
+/* 계정 칸은 토큰이 없으면 「토큰 미설정」 알림이다. 칩이 먼저다(설정은 제목 줄 버튼). */
+.project-header.fit-4 :is(.account-meter, .token-missing) {
   display: none;
 }
 /* 작업 이름은 제목 표시줄에도 있다. */

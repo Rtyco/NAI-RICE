@@ -48,7 +48,10 @@ export function useHeaderFit(ref: RefObject<HTMLElement | null>): void {
     6,
     (header) => {
       const bar = header.querySelector('.chain-bar.compact');
-      return Boolean(bar) && (clipped(bar) || clipped(header.querySelector('.account-meter')));
+      return (
+        Boolean(bar) &&
+        (clipped(bar) || clipped(header.querySelector(':is(.account-meter, .token-missing)')))
+      );
     },
     simple ? 1 : 0,
   );
