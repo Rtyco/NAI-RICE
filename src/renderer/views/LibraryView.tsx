@@ -20,7 +20,7 @@ import { SidePanelToggle } from '../components/SidePanel';
 import { importJsonFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';
-import { ListFolder } from '../components/ListFolder';
+import { IconFolder, ListFolder } from '../components/ListFolder';
 import { ListRow } from '../components/ListRow';
 import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listFolders';
 import { cycleLibraryList, libraryListStageOf, stageTitle, useLayout } from '../layout';
@@ -244,14 +244,21 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           {...(collapsed ? {} : selection.containerProps)}
           onPointerDownCapture={touch}
         >
-          {(collapsed
-            ? rows.flatMap((row) =>
-                row.kind === 'item'
-                  ? [row]
-                  : row.items.map((item) => ({ kind: 'item' as const, item })),
-              )
-            : rows
-          ).map((row) => {
+          {rows.map((row) => {
+            if (row.kind === 'folder' && collapsed)
+              return (
+                <IconFolder
+                  key={`folder:${row.name}`}
+                  scope={section}
+                  name={row.name}
+                  count={row.items.length}
+                  unit={info.label}
+                  folded={isFolded(row.name)}
+                  itemClass="library-item-main"
+                >
+                  {row.items.map(renderItem)}
+                </IconFolder>
+              );
             if (row.kind === 'folder')
               return (
                 <ListFolder

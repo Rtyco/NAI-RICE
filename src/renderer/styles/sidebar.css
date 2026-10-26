@@ -435,9 +435,18 @@
   border-radius: 10px;
   background: var(--bg-4);
 }
-.sidebar.collapsed .icon-folder-toggle .avatar {
+.icon-folder-toggle {
+  position: relative;
+}
+.icon-folder-toggle .avatar {
   background: transparent;
   color: var(--text-2);
+}
+.icon-folder-toggle .pill {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  padding: 0 5px;
 }
 /* 스크롤 막대(10px)가 생기면 아바타를 밀어내 잘린다. 휠로만 스크롤한다. */
 .sidebar.collapsed .project-list,

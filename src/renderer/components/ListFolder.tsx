@@ -107,3 +107,32 @@ export function ListFolder(props: {
     </div>
   );
 }
+
+/** 아이콘 폭까지 줄인 목록의 폴더. 이름 대신 폴더 아이콘과 항목 수를 보인다. `itemClass`는 그 목록의 항목 버튼 모양. */
+export function IconFolder(props: {
+  scope: string;
+  name: string;
+  count: number;
+  /** 툴팁의 항목 이름(작업, 생성 설정 …) */
+  unit: string;
+  folded: boolean;
+  itemClass: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`icon-folder ${props.folded ? 'folded' : ''}`}>
+      <button
+        className={`${props.itemClass} icon-folder-toggle`}
+        aria-expanded={!props.folded}
+        title={`${props.name} · ${props.unit} ${props.count}개 · ${props.folded ? '펼치기' : '접기'}`}
+        onClick={() => toggleFolder(folderKey(props.scope, props.name))}
+      >
+        <span className="avatar">
+          <Icon name="folder" />
+        </span>
+        <span className="pill">{props.count}</span>
+      </button>
+      {!props.folded && props.children}
+    </div>
+  );
+}
