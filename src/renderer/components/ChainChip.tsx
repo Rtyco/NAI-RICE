@@ -110,6 +110,8 @@ export type ChecklistItem = {
   noEdit?: boolean;
   /** 여러 칸을 섞어 보일 때. 없으면 칩의 `editSection`. */
   editSection?: LibrarySection;
+  /** 라이브러리 항목이 아닌 값의 편집 */
+  edit?: NonNullable<ChainEdit>;
 };
 
 /** 바깥 클릭, Esc, 창 크기 변경에 닫힌다. */
@@ -262,6 +264,13 @@ export function ChecklistChip(props: {
     const order = props.checked.indexOf(item.id) + 1;
     const on = order > 0;
     const editSection = item.noEdit ? undefined : (item.editSection ?? props.editSection);
+    const edit =
+      item.edit ??
+      (editSection && {
+        title: '편집',
+        label: `${item.name} 편집`,
+        open: () => editItem(editSection, item.id),
+      });
     return (
       <div key={item.id} className={`checklist-row ${on ? 'checked' : ''}`}>
         <button
@@ -293,14 +302,14 @@ export function ChecklistChip(props: {
           </span>
         </button>
         {on && props.rowTools?.(item.id, order)}
-        {editSection && (
+        {edit && (
           <button
             className="icon-button checklist-edit"
-            title="편집"
-            aria-label={`${item.name} 편집`}
+            title={edit.title}
+            aria-label={'label' in edit ? edit.label : edit.title}
             onClick={() => {
               close();
-              editItem(editSection, item.id);
+              edit.open();
             }}
           >
             <Icon name="edit" size={14} />

@@ -64,7 +64,11 @@ export function RefineChip({ target }: { target: RefineTarget }) {
       display={on ? <RefineValue settings={settings} iconClass="chain-value-icon" /> : undefined}
       items={[
         { id: 'off', name: '끔' },
-        { id: 'on', name: `켬 · ${refineSummary(settings)}` },
+        {
+          id: 'on',
+          name: `켬 · ${refineSummary(settings)}`,
+          edit: { title: '다듬기 설정', open: () => openRefineSettings(target) },
+        },
       ]}
       checked={[on ? 'on' : 'off']}
       onPick={(id) => target.setOn(id === 'on')}
