@@ -43,11 +43,11 @@ import { Icon } from '../components/Icon';
 import { ModeToggle, type ModeInfo } from '../components/ModeToggle';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { SidePanelToggle } from '../components/SidePanel';
-import { useHeaderFit } from '../components/useHeaderFit';
+import { useChainBarFit, useHeaderFit } from '../components/useHeaderFit';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
 import { RefineChip } from '../components/RefineChip';
-import { useChipNames } from '../components/useChipNames';
+
 import { projectRefineTarget } from '../refineTargets';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
@@ -119,7 +119,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
   const emotionSets = useStore((state) => state.library!.emotionSets);
   const { project } = resolved;
   const bar = useRef<HTMLDivElement>(null);
-  useChipNames(bar, Boolean(compact));
+  useChainBarFit(bar, Boolean(compact));
   const patch = (value: Partial<Project>) =>
     updateProject(project.id, (current) => ({ ...current, ...value }));
   const thumb = resolved.reference?.image

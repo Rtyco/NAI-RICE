@@ -7,7 +7,7 @@ import { CharacterChip } from '../../components/CharacterChip';
 import { PositionChip } from '../../components/CharacterPositions';
 import { RefineChip } from '../../components/RefineChip';
 import { TopBarToggle } from '../../components/TopBarToggle';
-import { useChipNames } from '../../components/useChipNames';
+import { useChainBarFit } from '../../components/useHeaderFit';
 import { freeRefineTarget } from '../../refineTargets';
 import { updateFreeGeneration } from '../../store';
 
@@ -20,7 +20,7 @@ export function FreeChainBar(props: {
 }) {
   const { free, preset } = props;
   const bar = useRef<HTMLDivElement>(null);
-  useChipNames(bar, props.compact);
+  useChainBarFit(bar, props.compact);
   return (
     <div ref={bar} className={`chain-bar ${props.compact ? 'compact' : ''}`}>
       <ChecklistChip

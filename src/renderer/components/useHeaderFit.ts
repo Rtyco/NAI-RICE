@@ -47,3 +47,8 @@ export function useHeaderFit(ref: RefObject<HTMLElement | null>): void {
 export function useQueueBarFit(ref: RefObject<HTMLElement | null>): void {
   useFitLevels(ref, 9, clipped);
 }
+
+/** 펼친 설정 줄을 한 줄로 둔다(chips.css의 .fit-1 … .fit-6). 머리줄에 접은 칩은 useHeaderFit이 맡는다. */
+export function useChainBarFit(ref: RefObject<HTMLElement | null>, compact: boolean): void {
+  useFitLevels(ref, 6, (bar) => !compact && clipped(bar));
+}
