@@ -53,6 +53,20 @@ describe('exportPicks', () => {
   it('모든 생성 이미지', () => {
     expect(ids('all')).toEqual(['a-night', 'a-day-2', 'a-day-1', 'b-1']);
   });
+
+  it('조합 번호는 지금 조합 순서이고, 지운 조합은 그 뒤, 조합 칸이 없는 씬은 없다', () => {
+    const withGone = [...records, record('a-gone', 'a', 5, 'gone')];
+    const numbers = picks
+      .exportPicks(emotions, withGone, {}, 'favorite', 'all')
+      .map((item) => [item.record.id, item.comboNumber]);
+    expect(numbers).toEqual([
+      ['a-gone', { number: 3, total: 3 }],
+      ['a-night', { number: 2, total: 3 }],
+      ['a-day-2', { number: 1, total: 3 }],
+      ['a-day-1', { number: 1, total: 3 }],
+      ['b-1', undefined],
+    ]);
+  });
 });
 
 describe('조합 이름 토큰', () => {
@@ -72,5 +86,13 @@ describe('조합 이름 토큰', () => {
       '기쁨_day · smile',
     );
     expect(renderExportFilename('{emotion}_{combo}_{seed}', scene)).toBe('기쁨_1');
+  });
+
+  it('조합 번호는 조합 수 자릿수만큼 0을 채우고, 없으면 같이 빠진다', () => {
+    const comboNumber = { number: 3, total: 12 };
+    expect(renderExportFilename('{emotion}_{comboNumber}', { ...scene, comboNumber })).toBe(
+      '기쁨_03',
+    );
+    expect(renderExportFilename('{emotion}_{comboNumber}_{seed}', scene)).toBe('기쁨_1');
   });
 });

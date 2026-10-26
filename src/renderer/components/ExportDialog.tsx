@@ -58,11 +58,11 @@ export function ExportDialog({
   const missing = emotions.filter(
     (emotion) => !candidates.some((item) => item.emotion.id === emotion.id),
   ).length;
+  const namesCombo =
+    filenameTemplate.includes('{combo}') || filenameTemplate.includes('{comboNumber}');
   // 씬 하나에서 여러 장이 나가면 이름이 겹치지 않게 조합 이름을 붙인다.
   const template =
-    scope === 'scene' || filenameTemplate.includes('{combo}')
-      ? filenameTemplate
-      : `${filenameTemplate}_{combo}`;
+    scope === 'scene' || namesCombo ? filenameTemplate : `${filenameTemplate}_{combo}`;
   const fileName = (item: ExportPick) =>
     renderExportFilename(template, {
       emotion: item.emotion.name,
@@ -74,6 +74,7 @@ export function ExportDialog({
       model: item.record.model,
       createdAt: item.record.createdAt,
       combo: scope === 'scene' ? undefined : item.record.comboName,
+      comboNumber: scope === 'scene' ? undefined : item.comboNumber,
     });
 
   const submit = () =>
@@ -190,7 +191,7 @@ export function ExportDialog({
           기본값
         </button>
       </div>
-      {scope !== 'scene' && !filenameTemplate.includes('{combo}') && (
+      {scope !== 'scene' && !namesCombo && (
         <p className="hint">조합 칸이 있는 씬은 파일 이름 뒤에 조합 이름을 붙입니다.</p>
       )}
       {templateError ? (

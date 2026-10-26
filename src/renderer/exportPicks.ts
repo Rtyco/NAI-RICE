@@ -9,7 +9,15 @@ export type ExportPick = {
   /** 씬 모음 안 순서, 1부터 */
   number: number;
   record: GenerationSummary;
+  /** 조합 칸이 있는 씬의 결과만. 지금 조합 순서이고, 후보를 지운 조합은 그 뒤다. */
+  comboNumber?: { number: number; total: number };
 };
+
+function comboOrder(emotion: Emotion, records: GenerationSummary[]): string[] {
+  const keys = new Set(sceneCombos(emotion).map((combo) => combo.key));
+  for (const record of records) keys.add(record.comboKey ?? '');
+  return [...keys].filter(Boolean);
+}
 
 export function exportPicks(
   emotions: Emotion[],
@@ -20,8 +28,18 @@ export function exportPicks(
 ): ExportPick[] {
   return emotions.flatMap((emotion, index) => {
     const own = emotionRecords(records, emotion.id);
-    const base = { emotion, number: index + 1 };
-    if (scope === 'all') return own.map((record) => ({ ...base, key: record.id, record }));
+    const order = comboOrder(emotion, own);
+    const pick = (key: string, record: GenerationSummary): ExportPick => {
+      const at = record.comboKey ? order.indexOf(record.comboKey) : -1;
+      return {
+        key,
+        emotion,
+        number: index + 1,
+        record,
+        ...(at >= 0 && { comboNumber: { number: at + 1, total: order.length } }),
+      };
+    };
+    if (scope === 'all') return own.map((record) => pick(record.id, record));
     const groups = new Map<string, GenerationSummary[]>();
     if (scope === 'scene') groups.set('', own);
     else {
@@ -34,7 +52,7 @@ export function exportPicks(
     }
     return [...groups].flatMap(([comboKey, group]) => {
       const record = coverRecord(group, favorites[emotion.id], target);
-      return record ? [{ ...base, key: `${emotion.id}\n${comboKey}`, record }] : [];
+      return record ? [pick(`${emotion.id}\n${comboKey}`, record)] : [];
     });
   });
 }
