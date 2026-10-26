@@ -263,74 +263,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
   update: { autoCheck: true, skippedVersion: '', seenVersion: '' },
 };
 
-/** 처음 실행할 때 칩마다 고를 것이 있게 넣는 예시. 지워도 다시 생기지 않는다. */
-const SAMPLE_FOLDER = '예시';
-
-const SAMPLE_POSES: Array<{ name: string; prompt: string }> = [
-  { name: '서기', prompt: 'standing' },
-  { name: '앉기', prompt: 'sitting' },
-  { name: '손 흔들기', prompt: 'waving, smile' },
-  { name: '팔짱', prompt: 'crossed arms' },
-  { name: '브이', prompt: 'v, smile' },
-  { name: '뒤돌아보기', prompt: 'looking back' },
-];
-
-function sampleCharacter(name: string, sets: Array<[string, string]>): Character {
-  return {
-    ...createCharacter(
-      name,
-      sets.map(([setName, positive]) => createPromptSet(setName, { positive })),
-    ),
-    folder: SAMPLE_FOLDER,
-  };
-}
-
 export function createDefaultLibrary(): Library {
   return {
     schemaVersion: 2,
     settings: structuredClone(DEFAULT_SETTINGS),
-    presets: [
-      createPreset(),
-      createPreset('가로 구도', {
-        folder: SAMPLE_FOLDER,
-        generation: { ...DEFAULT_GENERATION_SETTINGS, width: 1216, height: 832 },
-      }),
-      createPreset('정사각형', {
-        folder: SAMPLE_FOLDER,
-        generation: { ...DEFAULT_GENERATION_SETTINGS, width: 1024, height: 1024 },
-      }),
-    ],
-    characters: [
-      sampleCharacter('소녀', [
-        ['기본', 'girl, long hair, blue eyes, school uniform'],
-        ['사복', 'girl, long hair, blue eyes, hoodie, jeans'],
-      ]),
-      sampleCharacter('소년', [['기본', 'boy, short hair, brown eyes, school uniform']]),
-    ],
-    emotionSets: [
-      createEmotionSet('기본 씬 6종'),
-      { ...createEmotionSet('포즈 6종', SAMPLE_POSES), folder: SAMPLE_FOLDER },
-    ],
+    presets: [createPreset()],
+    characters: [],
+    emotionSets: [createEmotionSet('기본 씬 6종')],
     references: [],
     characterReferences: [],
     vibes: [],
     projects: [],
-    pieceSets: [
-      {
-        ...createPieceSet('배경', [
-          { name: '교실', prompt: 'classroom, indoors' },
-          { name: '거리', prompt: 'city street, outdoors' },
-          { name: '하늘', prompt: 'blue sky, clouds, outdoors' },
-        ]),
-        folder: SAMPLE_FOLDER,
-      },
-      {
-        ...createPieceSet('시간대', [
-          { name: '무작위', prompt: 'day\nsunset\nnight', multi: true },
-        ]),
-        folder: SAMPLE_FOLDER,
-      },
-    ],
+    pieceSets: [],
     freeGeneration: {
       presetId: '',
       characters: [],
