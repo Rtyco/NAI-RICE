@@ -233,6 +233,31 @@ function SectionTitle(props: {
   );
 }
 
+/** 아이콘만 남은 막대의 작업 폴더. 이름 대신 폴더 아이콘과 작업 수를 보인다. */
+function ProjectIconFolder(props: {
+  name: string;
+  count: number;
+  folded: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`icon-folder ${props.folded ? 'folded' : ''}`}>
+      <button
+        className="project-item icon-folder-toggle"
+        aria-expanded={!props.folded}
+        title={`${props.name} · 작업 ${props.count}개 · ${props.folded ? '펼치기' : '접기'}`}
+        onClick={() => toggleFolder(folderKey('projects', props.name))}
+      >
+        <span className="avatar">
+          <Icon name="folder" />
+        </span>
+        <span className="pill">{props.count}</span>
+      </button>
+      {!props.folded && props.children}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const projects = useStore((state) => state.library!.projects);
   const avatars = useProjectInfo(projectAvatar);
@@ -407,23 +432,14 @@ export function Sidebar() {
                   row.kind === 'item' ? (
                     renderProject(row.item)
                   ) : (
-                    <div
+                    <ProjectIconFolder
                       key={`folder:${row.name}`}
-                      className={`icon-folder ${isFolded(row.name) ? 'folded' : ''}`}
+                      name={row.name}
+                      count={row.items.length}
+                      folded={isFolded(row.name)}
                     >
-                      <button
-                        className="project-item icon-folder-toggle"
-                        aria-expanded={!isFolded(row.name)}
-                        title={`${row.name} · 작업 ${row.items.length}개 · ${isFolded(row.name) ? '펼치기' : '접기'}`}
-                        onClick={() => toggleFolder(folderKey('projects', row.name))}
-                      >
-                        <span className="avatar">
-                          <Icon name="folder" />
-                        </span>
-                        <span className="pill">{row.items.length}</span>
-                      </button>
-                      {!isFolded(row.name) && row.items.map(renderProject)}
-                    </div>
+                      {row.items.map(renderProject)}
+                    </ProjectIconFolder>
                   ),
                 )
               : rows.map((row) =>
