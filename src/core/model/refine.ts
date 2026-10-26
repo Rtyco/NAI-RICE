@@ -70,7 +70,7 @@ export function refineSummary(settings: RefineSettings): string {
     .join(' · ');
 }
 
-/** 칩에 보이는 짧은 값. 원본과 같은 모델이면 모델을 뺀다. 프롬프트 방식은 아이콘으로 따로 보인다. */
+/** 원본과 같은 모델이면 모델을 뺀다. 프롬프트 방식은 칩이 아이콘으로 보인다. */
 export function refineShortSummary(settings: RefineSettings): string {
   return [settings.model ? modelShortLabel(settings.model) : '', settings.strength.toFixed(2)]
     .filter(Boolean)
@@ -166,7 +166,6 @@ export type RefineImageRequest = {
   fit: RefineSettings['fit'];
 };
 
-/** 결과는 원래 씬(또는 자유 생성)에 쌓인다. */
 export async function buildRefineJobs(
   settings: RefineSettings,
   records: GenerationRecord[],

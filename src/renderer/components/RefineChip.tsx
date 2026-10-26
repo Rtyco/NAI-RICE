@@ -73,7 +73,6 @@ export function RefineChip({ target }: { target: RefineTarget }) {
   );
 }
 
-/** 생성 버튼 위. 설정 줄의 칩과 같은 값이다. */
 export function AutoRefineToggle({ target }: { target: RefineTarget }) {
   return (
     <div className="auto-refine-row" title={refineSummary(target.settings)}>

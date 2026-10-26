@@ -141,14 +141,14 @@ function nextStage(panel: StagePanel, stage: PanelStage): PanelStage {
   return order[(order.indexOf(stage) + 1) % order.length];
 }
 
-const hiddenByFocus = (state: LayoutState, part?: FocusPart) =>
+const forcedHidden = (state: LayoutState, part?: FocusPart) =>
   part !== undefined && (state.focusHidden.includes(part) || state.widthHidden.includes(part));
 
 const FOLD_ORDER: PanelStage[] = ['open', 'icons', 'hidden'];
 
 // 화면에 보이는 모습. 저장한 상태 위에 집중 모드와 좁은 창이 덮어쓴다.
 function shownStage(state: LayoutState, panel: StagePanel): PanelStage {
-  if (hiddenByFocus(state, STAGES[panel].part)) return 'hidden';
+  if (forcedHidden(state, STAGES[panel].part)) return 'hidden';
   const width = panel === 'sidebarStage' ? state.widthSidebar : undefined;
   // 휴대폰 폭은 펼친 사이드바(240px)가 프롬프트 칸을 덮어 아이콘만·숨김만 쓴다.
   if (width && state.widthClass === 'phone') return width;
@@ -157,7 +157,7 @@ function shownStage(state: LayoutState, panel: StagePanel): PanelStage {
     : state[panel];
 }
 const unfolded = (state: LayoutState, panel: FoldPanel) =>
-  !state[panel] && !hiddenByFocus(state, FOLDS[panel].part);
+  !state[panel] && !forcedHidden(state, FOLDS[panel].part);
 
 export const sidebarStageOf = (state: LayoutState) => shownStage(state, 'sidebarStage');
 export const libraryListStageOf = (state: LayoutState) => shownStage(state, 'libraryListStage');
@@ -165,7 +165,7 @@ export const promptPanelStageOf = (state: LayoutState) => shownStage(state, 'pro
 export const historyShownOf = (state: LayoutState) => unfolded(state, 'historyCollapsed');
 export const sidePanelShownOf = (state: LayoutState) => unfolded(state, 'sidePanelCollapsed');
 export const topBarShownOf = (state: LayoutState) => unfolded(state, 'topBarCollapsed');
-export const queueBarShownOf = (state: LayoutState) => !hiddenByFocus(state, 'queueBar');
+export const queueBarShownOf = (state: LayoutState) => !forcedHidden(state, 'queueBar');
 export const focusingOf = (state: LayoutState) => state.focusHidden.length > 0;
 
 /** 결과 화면(씬 상세·자유 생성)과 인페인트 편집에만 입력 패널이 있다. */
@@ -192,9 +192,9 @@ export function stageTitle(
 }
 
 /** 집중 모드나 좁은 창이 숨긴 곳을 열면 그곳만 돌아온다. */
-function revealFromFocus(part?: FocusPart): boolean {
+function revealForced(part?: FocusPart): boolean {
   const state = get();
-  if (!hiddenByFocus(state, part)) return false;
+  if (!forcedHidden(state, part)) return false;
   set({
     focusHidden: state.focusHidden.filter((item) => item !== part),
     widthHidden: state.widthHidden.filter((item) => item !== part),
@@ -226,15 +226,15 @@ function cycleStage(panel: StagePanel): void {
   if (overlayFromWidth(STAGES[panel].part, 'left')) return;
   const state = get();
   if (panel === 'sidebarStage' && state.widthClass === 'phone' && state.widthSidebar) {
-    if (revealFromFocus('sidebar')) return;
+    if (revealForced('sidebar')) return;
     return set({ widthSidebar: state.widthSidebar === 'icons' ? 'hidden' : 'icons' });
   }
   const widthFolded =
     panel === 'sidebarStage' &&
-    !hiddenByFocus(state, 'sidebar') &&
+    !forcedHidden(state, 'sidebar') &&
     shownStage(state, panel) !== state[panel];
   if (widthFolded) return set({ widthSidebar: undefined });
-  if (revealFromFocus(STAGES[panel].part)) {
+  if (revealForced(STAGES[panel].part)) {
     if (get()[panel] === 'hidden') setStage(panel, 'open');
     return;
   }
@@ -243,7 +243,7 @@ function cycleStage(panel: StagePanel): void {
 
 function toggleFold(panel: FoldPanel): void {
   if (overlayFromWidth(FOLDS[panel].part, 'right')) return;
-  if (revealFromFocus(FOLDS[panel].part) && !get()[panel]) return;
+  if (revealForced(FOLDS[panel].part) && !get()[panel]) return;
   const collapsed = !get()[panel];
   set({ [panel]: collapsed });
   saveUiState(FOLDS[panel].key, collapsed ? '1' : '0');

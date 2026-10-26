@@ -9,7 +9,6 @@ import {
 } from '../core/model/refine';
 import { updateFreeGeneration, updateProject } from './store';
 
-/** 작업과 자유 생성이 같은 칩과 토글을 쓴다. */
 export type RefineTarget = {
   settings: RefineSettings;
   on: boolean;

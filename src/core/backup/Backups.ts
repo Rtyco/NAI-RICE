@@ -60,7 +60,6 @@ const PROJECT_PARTS = {
   pieceSets: true,
 } as const;
 
-/** 작업 파일에 담는 라이브러리 몫. 프로그램 설정과 자유 생성은 넣지 않는다. */
 export type ProjectLibrary = Pick<Library, keyof typeof PROJECT_PARTS>;
 
 const formats = {
@@ -385,7 +384,7 @@ export function exportLibrary(
   };
 }
 
-/** 작업과 그 작업이 쓰는 항목만. */
+/** 생성 결과를 넣지 않아 대표 이미지(`favorites`)도 비운다. */
 export function projectLibrary(library: Library, projectId: string): ProjectLibrary {
   const project = library.projects.find((item) => item.id === projectId);
   if (!project) throw new Error('작업을 찾을 수 없습니다.');

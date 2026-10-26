@@ -374,7 +374,6 @@ export function ReferenceCanvas(props: Props) {
       return;
     }
     const rect = tool === 'reference' ? props.referenceRect : props.outputRect;
-    // 손가락은 마우스보다 크게 잡는다.
     const reach = event.pointerType === 'touch' ? 24 : 12;
     const handle = rectHandleAt(rect, point.x, point.y, Math.max(8, reach * point.scale));
     if (handle) {
