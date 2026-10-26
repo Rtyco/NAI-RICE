@@ -7,6 +7,7 @@ import {
   moveNextTo,
   newFolderName,
   renameFolder,
+  setFolderColor,
   ungroupFolder,
 } from '../../src/core/model/folders';
 import { librarySchema } from '../../src/core/validation/schemas';
@@ -84,5 +85,36 @@ describe('folders', () => {
       ],
     });
     expect(parsed.characters.map((item) => item.folder)).toEqual([undefined, 'F']);
+  });
+
+  it('폴더 색은 이름을 바꾸면 따라가고, 풀면 지워지고, 같은 이름으로 새로 묶으면 남지 않는다', () => {
+    const grouped = groupIntoFolder(libraryWith('a', 'b', 'c'), 'characters', ['a', 'b'], 'F');
+    const colored = setFolderColor(grouped, 'characters', 'F', 'blue');
+    expect(colored.folderColors).toEqual({ 'characters/F': 'blue' });
+    const renamed = renameFolder(colored, 'characters', 'F', 'G');
+    expect(renamed.folderColors).toEqual({ 'characters/G': 'blue' });
+    expect(ungroupFolder(renamed, 'characters', 'G').folderColors).toBeUndefined();
+    // 항목을 끌어내 폴더가 사라져도 색은 남아 있다가, 같은 이름으로 새로 묶을 때 지운다.
+    const emptied = moveNextTo(renamed, 'characters', ['a', 'b'], 'a', 'c');
+    expect(emptied.folderColors).toEqual({ 'characters/G': 'blue' });
+    expect(groupIntoFolder(emptied, 'characters', ['c'], 'G').folderColors).toBeUndefined();
+  });
+
+  it('이미 있는 폴더로 이름을 바꿔 합치면 그 폴더의 색을 남긴다', () => {
+    let library = groupIntoFolder(libraryWith('a', 'b'), 'characters', ['a'], 'F');
+    library = groupIntoFolder(library, 'characters', ['b'], 'G');
+    library = setFolderColor(library, 'characters', 'F', 'red');
+    library = setFolderColor(library, 'characters', 'G', 'green');
+    expect(renameFolder(library, 'characters', 'F', 'G').folderColors).toEqual({
+      'characters/G': 'green',
+    });
+  });
+
+  it('알 수 없는 폴더 색은 버린다', () => {
+    const parsed = librarySchema.parse({
+      ...libraryWith('a'),
+      folderColors: { 'characters/F': 'gold' },
+    });
+    expect(parsed.folderColors).toBeUndefined();
   });
 });

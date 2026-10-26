@@ -543,6 +543,13 @@ export const librarySchema = z.object({
       vibeIds: [],
     }),
   lastProjectId: z.string().optional(),
+  folderColors: z
+    .record(
+      z.string(),
+      z.enum(['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink']),
+    )
+    .optional()
+    .catch(undefined),
 });
 
 export const generationKindSchema = z.enum(['inpaint', 'txt2img', 'img2img', 'augment']);

@@ -44,6 +44,23 @@ export function ContextMenuHost() {
           <div key={`heading-${index}`} className="menu-heading" role="presentation">
             {item.heading}
           </div>
+        ) : 'swatches' in item ? (
+          <div key={`swatches-${index}`} className="menu-swatches" role="group">
+            {item.swatches.map((swatch) => (
+              <button
+                key={swatch.id}
+                role="menuitemradio"
+                aria-checked={swatch.active}
+                className={`swatch ${swatch.className} ${swatch.active ? 'active' : ''}`}
+                title={swatch.label}
+                aria-label={swatch.label}
+                onClick={() => {
+                  closeContextMenu();
+                  item.onPick(swatch.id);
+                }}
+              />
+            ))}
+          </div>
         ) : (
           <button
             key={item.label}

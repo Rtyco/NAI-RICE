@@ -487,3 +487,61 @@
   background: transparent;
   border: 1px dashed var(--line-strong);
 }
+
+/* ── 폴더 색 ─────────────────────────────────── */
+/* 테마와 관계없이 같은 색. 폴더 아이콘, 펼친 폴더의 안쪽 줄·배경, 메뉴의 색 단추에 쓴다. */
+.folder-color-red {
+  --folder-color: #ef5b6b;
+}
+.folder-color-orange {
+  --folder-color: #f08c2e;
+}
+.folder-color-yellow {
+  --folder-color: #d9b123;
+}
+.folder-color-green {
+  --folder-color: #3cb371;
+}
+.folder-color-teal {
+  --folder-color: #1fb5ad;
+}
+.folder-color-blue {
+  --folder-color: #3b8ff0;
+}
+.folder-color-purple {
+  --folder-color: #9b6cf0;
+}
+.folder-color-pink {
+  --folder-color: #e66bb3;
+}
+[class*='folder-color-'] .folder-icon {
+  color: var(--folder-color);
+}
+.list-folder[class*='folder-color-'] .list-folder-body {
+  border-left-color: var(--folder-color);
+}
+.icon-folder[class*='folder-color-']:not(.folded) {
+  background: color-mix(in srgb, var(--folder-color) 18%, var(--bg-4));
+}
+.menu-swatches {
+  display: flex;
+  gap: 6px;
+  padding: 4px 10px 6px;
+}
+.menu-popup .menu-swatches button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: var(--folder-color);
+}
+.menu-popup .menu-swatches button.no-color {
+  border-color: var(--line-strong);
+  background: linear-gradient(135deg, transparent 45%, var(--muted) 45% 55%, transparent 55%);
+}
+.menu-popup .menu-swatches button.active {
+  box-shadow:
+    0 0 0 2px var(--bg-3),
+    0 0 0 3.5px var(--text);
+}

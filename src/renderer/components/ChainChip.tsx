@@ -17,7 +17,7 @@ import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
 import { Icon, type IconName } from './Icon';
-import { folderKey } from './listFolders';
+import { folderColorClass, folderKey, useFolderColor } from './listFolders';
 import { NumberField } from './ui';
 
 function itemExists(section: LibrarySection, id: string): boolean {
@@ -194,6 +194,8 @@ const SEARCH_FROM = 9;
 /** 라이브러리 목록 폴더와 따로 접힌다. 이름으로 찾는 중에는 펼친다. */
 function ChecklistFolder(props: {
   foldKey: string;
+  /** 라이브러리 목록의 폴더면 그 색을 따른다. */
+  colorScope?: LibrarySection;
   name: string;
   count: number;
   checked: number;
@@ -201,8 +203,11 @@ function ChecklistFolder(props: {
   children: ReactNode;
 }) {
   const folded = useStore((state) => state.foldedFolders.includes(props.foldKey)) && !props.open;
+  const color = useFolderColor(props.colorScope ?? '', props.name);
   return (
-    <div className={`checklist-folder ${folded ? 'folded' : ''}`}>
+    <div
+      className={`checklist-folder ${folded ? 'folded' : ''} ${props.colorScope ? folderColorClass(color) : ''}`}
+    >
       <button
         className="checklist-folder-name"
         aria-expanded={!folded}
@@ -210,7 +215,7 @@ function ChecklistFolder(props: {
         onClick={() => toggleFolder(props.foldKey)}
       >
         <Icon name="chevron" size={11} className="section-chevron" />
-        <Icon name="folder" size={13} />
+        <Icon name="folder" size={13} className="folder-icon" />
         <span>{props.name}</span>
         {props.checked > 0 && <em>{props.checked}개 고름</em>}
         <small>{props.count}</small>
@@ -377,6 +382,7 @@ export function ChecklistChip(props: {
               <ChecklistFolder
                 key={`folder:${entry.name}`}
                 foldKey={folderKey(`pick-${props.section ?? title}`, entry.name)}
+                colorScope={props.section}
                 name={entry.name}
                 count={entry.items.length}
                 checked={entry.items.filter((item) => props.checked.includes(item.id)).length}

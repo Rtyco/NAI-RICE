@@ -509,7 +509,12 @@ export type Library = {
   pieceSets: PieceSet[];
   freeGeneration: FreeGeneration;
   lastProjectId?: string;
+  /** `목록/폴더 이름` → 색. 폴더는 항목의 `folder`로만 있어 색만 따로 둔다. */
+  folderColors?: Record<string, FolderColor>;
 };
+
+export type FolderColor =
+  'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink';
 
 export type LibrarySection =
   | 'presets'

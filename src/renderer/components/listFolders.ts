@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type { FolderColor } from '../../core/domain/types';
+import { folderKey } from '../../core/model/folders';
 import { useStore } from '../store';
 
-export function folderKey(scope: string, name: string): string {
-  return `${scope}/${name}`;
+export { folderKey };
+
+export function useFolderColor(scope: string, name: string): FolderColor | undefined {
+  return useStore((state) => state.library?.folderColors?.[folderKey(scope, name)]);
 }
+
+export const folderColorClass = (color: FolderColor | undefined) =>
+  color ? `folder-color-${color}` : '';
 
 export function useFoldedFolders(scope: string): (name: string) => boolean {
   const folded = useStore((state) => state.foldedFolders);

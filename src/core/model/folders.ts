@@ -1,4 +1,4 @@
-import type { Library } from '../domain/types';
+import type { FolderColor, Library } from '../domain/types';
 import { moveItems, uniqueName } from './mutations';
 
 export type FolderCollection =
@@ -12,6 +12,38 @@ export type FolderCollection =
   | 'pieceSets';
 
 type Foldered = { id: string; folder?: string };
+
+export const FOLDER_COLORS: FolderColor[] = [
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'teal',
+  'blue',
+  'purple',
+  'pink',
+];
+
+/** 접힘(화면 상태)과 색(`Library.folderColors`)이 같은 키를 쓴다. */
+export function folderKey(scope: string, name: string): string {
+  return `${scope}/${name}`;
+}
+
+export function setFolderColor(
+  library: Library,
+  key: FolderCollection,
+  name: string,
+  color: FolderColor | undefined,
+): Library {
+  const at = folderKey(key, name);
+  if (library.folderColors?.[at] === color) return library;
+  const colors = { ...library.folderColors };
+  if (color) colors[at] = color;
+  else delete colors[at];
+  const next: Library = { ...library, folderColors: colors };
+  if (!Object.keys(colors).length) delete next.folderColors;
+  return next;
+}
 
 export type ListRow<T> = { kind: 'item'; item: T } | { kind: 'folder'; name: string; items: T[] };
 
@@ -78,7 +110,11 @@ export function groupIntoFolder(
   const chosen = items.filter((item) => ids.includes(item.id));
   if (!chosen.length) return library;
   const [first, ...rest] = chosen;
-  return setFolder(gatherAfter(library, key, first.id, rest), key, ids, name);
+  const grouped = setFolder(gatherAfter(library, key, first.id, rest), key, ids, name);
+  // 항목이 모두 빠져 사라진 같은 이름 폴더의 색을 물려받지 않는다.
+  return items.some((item) => item.folder === name)
+    ? grouped
+    : setFolderColor(grouped, key, name, undefined);
 }
 
 function gatherAfter(
@@ -107,14 +143,19 @@ export function renameFolder(
   const ids = list(library, key)
     .filter((item) => item.folder === from)
     .map((item) => item.id);
-  return setFolder(library, key, ids, name);
+  const color = library.folderColors?.[folderKey(key, from)];
+  const renamed = setFolderColor(setFolder(library, key, ids, name), key, from, undefined);
+  // 이미 있는 폴더와 합치면 그 폴더의 색을 남긴다.
+  return renamed.folderColors?.[folderKey(key, name)]
+    ? renamed
+    : setFolderColor(renamed, key, name, color);
 }
 
 export function ungroupFolder(library: Library, key: FolderCollection, name: string): Library {
   const ids = list(library, key)
     .filter((item) => item.folder === name)
     .map((item) => item.id);
-  return setFolder(library, key, ids, undefined);
+  return setFolderColor(setFolder(library, key, ids, undefined), key, name, undefined);
 }
 
 export function moveIntoFolder(
