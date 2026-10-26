@@ -1,4 +1,4 @@
-import { useLayoutEffect, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
 import { useUiOption } from '../uiOptions';
 
 const clipped = (element: Element | null) =>
@@ -13,7 +13,14 @@ function useFitLevels(
   levels: number,
   overflowing: (container: HTMLElement) => boolean,
   start = 0,
+  /** 바뀌면 다시 맞춘다. 컨테이너의 className을 React가 다시 쓰는 값이면 넣는다. */
+  mode = '',
 ): void {
+  const check = useRef(overflowing);
+  useLayoutEffect(() => {
+    check.current = overflowing;
+  });
+  // 렌더마다 다시 맞추면 키 입력마다 단계를 지웠다 붙이며 레이아웃을 여러 번 한다(갤러리 키 +2.5ms).
   useLayoutEffect(() => {
     const container = ref.current;
     if (!container) return;
@@ -21,7 +28,7 @@ function useFitLevels(
       let level = 0;
       for (let next = 1; next <= levels; next++) container.classList.remove(`fit-${next}`);
       while (level < start) container.classList.add(`fit-${++level}`);
-      while (level < levels && overflowing(container)) container.classList.add(`fit-${++level}`);
+      while (level < levels && check.current(container)) container.classList.add(`fit-${++level}`);
     };
     let frame = 0;
     // 콜백 안에서 클래스를 바꾸면 Chromium이 ResizeObserver loop 오류를 낸다.
@@ -29,13 +36,19 @@ function useFitLevels(
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(fit);
     });
+    const observeChildren = () => {
+      for (const child of container.children) observer.observe(child);
+    };
     observer.observe(container);
-    for (const child of container.children) observer.observe(child);
+    observeChildren();
+    const children = new MutationObserver(observeChildren);
+    children.observe(container, { childList: true });
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      children.disconnect();
     };
-  });
+  }, [ref, levels, start, mode]);
 }
 
 const useSimpleUi = () => useUiOption('simpleUi');
@@ -68,11 +81,13 @@ export function useQueueBarFit(ref: RefObject<HTMLElement | null>): void {
  */
 export function useChainBarFit(ref: RefObject<HTMLElement | null>, compact: boolean): string {
   const wrap = useUiOption('chipWrap') && !compact;
+  const className = `chain-bar ${compact ? 'compact' : ''} ${wrap ? 'wrap' : ''}`;
   useFitLevels(
     ref,
     6,
     (bar) => !compact && !wrap && clipped(bar),
     useSimpleUi() && !compact ? 5 : 0,
+    className,
   );
-  return `chain-bar ${compact ? 'compact' : ''} ${wrap ? 'wrap' : ''}`;
+  return className;
 }
