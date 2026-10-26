@@ -283,6 +283,93 @@
   }
 }
 
+/* ── 설정: UI 간소화 ─────────────────────────── */
+.focus-level-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.sp-window {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 7px 14px 17px minmax(0, 1fr) 17px;
+}
+.sp-window .fp-titlebar {
+  grid-column: auto;
+}
+.sp-head,
+.sp-chips,
+.sp-queue {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 0 6px;
+}
+.sp-head {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.sp-head .fp-line {
+  width: 14px;
+  flex: none;
+}
+.sp-chips {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.sp-queue {
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.sp-item {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 10px;
+  padding: 0 3px;
+  border-radius: 5px;
+  background: var(--bg-4);
+}
+.sp-mode {
+  background: var(--accent-a12);
+  box-shadow: inset 0 0 0 1px var(--accent-a33);
+}
+.sp-push {
+  margin-left: auto;
+}
+.sp-icon {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--accent-text);
+}
+.sp-text {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--text-2);
+  transition:
+    width 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 200ms ease;
+}
+.sp-text.value {
+  width: 15px;
+  background: var(--muted);
+}
+.sp-go {
+  width: 30px;
+  height: 10px;
+}
+/* 간소화가 줄인 글자는 마우스를 올리면 파랗게 돌아온다. */
+.focus-level-card:not(:hover) .sp-window.simple .sp-text {
+  width: 0;
+  margin-left: -3px;
+}
+.focus-level-card:hover .sp-window.simple .sp-text {
+  background: var(--accent);
+}
+
 /* ── 가장자리에 마우스를 대면 보이기 ─────────────── */
 .edge-peek {
   position: absolute;

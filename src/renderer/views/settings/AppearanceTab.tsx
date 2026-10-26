@@ -5,7 +5,7 @@ import { resetLayout } from '../../layout';
 import { resetPanelWidths } from '../../panelWidths';
 import { resetSidebarSections, toast, useLibrary } from '../../store';
 import { MODE_LABELS, THEMES, themeSwatch } from '../../theme';
-import { EdgePeekToggle, FocusLevelGrid } from './FocusSettings';
+import { EdgePeekToggle, FocusLevelGrid, SimpleUiGrid } from './FocusSettings';
 import { patchSettings } from './patchSettings';
 
 export function AppearanceTab() {
@@ -55,6 +55,9 @@ export function AppearanceTab() {
       </Card>
       <Card title="집중 모드 (Tab)">
         <FocusLevelGrid />
+      </Card>
+      <Card title="UI 간소화">
+        <SimpleUiGrid />
       </Card>
       <Card title="숨긴 패널">
         <EdgePeekToggle />

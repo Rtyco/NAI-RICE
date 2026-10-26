@@ -4,6 +4,7 @@ import { FOCUS_PARTS } from '../../layout';
 import { useLibrary } from '../../store';
 import { FocusPreview } from './FocusPreview';
 import { patchSettings } from './patchSettings';
+import { SimplePreview } from './SimplePreview';
 
 const FOCUS_LEVELS: Array<{ id: FocusLevel; label: string; detail: string }> = [
   { id: 'panels', label: '패널만 (기본)', detail: '사이드바·왼쪽 패널·히스토리' },
@@ -49,5 +50,35 @@ export function EdgePeekToggle() {
         }))
       }
     />
+  );
+}
+
+const SIMPLE_MODES: Array<{ simple: boolean; label: string; detail: string }> = [
+  { simple: false, label: '기본', detail: '아이콘·이름·값 (창이 좁으면 줄임)' },
+  { simple: true, label: '간소화', detail: '설정 줄·생성 큐 막대 버튼·모드 이름을 아이콘만' },
+];
+
+export function SimpleUiGrid() {
+  const simpleUi = useLibrary().settings.layout.simpleUi;
+  return (
+    <div className="focus-level-grid two">
+      {SIMPLE_MODES.map((mode) => (
+        <button
+          key={mode.label}
+          className={`focus-level-card ${simpleUi === mode.simple ? 'active' : ''}`}
+          aria-pressed={simpleUi === mode.simple}
+          onClick={() =>
+            patchSettings((current) => ({
+              ...current,
+              layout: { ...current.layout, simpleUi: mode.simple },
+            }))
+          }
+        >
+          <SimplePreview simple={mode.simple} />
+          <b>{mode.label}</b>
+          <small>{mode.detail}</small>
+        </button>
+      ))}
+    </div>
   );
 }

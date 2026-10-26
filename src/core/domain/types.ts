@@ -429,6 +429,8 @@ export type AppSettings = {
   layout: {
     focusLevel: FocusLevel;
     edgePeek: boolean;
+    /** 설정 줄·큐 막대·머리줄을 넓은 창에서도 아이콘 위주로 줄인다. */
+    simpleUi: boolean;
     /** 씬 상세에서 조합 칸을 열 때 펼쳐 둘 후보 */
     comboOptions: ComboOptionsOpen;
   };
