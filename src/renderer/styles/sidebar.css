@@ -307,17 +307,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 8px 2px 10px;
+  padding: 4px 4px 0;
   color: var(--text-2);
   font-size: 12px;
-}
-.sidebar-section-title > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.sidebar-section-title:has(> .sidebar-section-toggle) {
-  padding: 4px 4px 0;
 }
 .sidebar-section-toggle {
   flex: 1;
@@ -423,7 +415,7 @@
 }
 .sidebar.collapsed .sidebar-section-title {
   justify-content: center;
-  padding: 8px 0 6px;
+  padding: 4px 0 2px;
 }
 .sidebar.collapsed .project-list {
   padding: 0;
@@ -434,9 +426,6 @@
   flex-direction: column;
   gap: 1px;
   padding: 3px 8px 1px;
-}
-.sidebar.collapsed .sidebar-section-title:has(> .sidebar-section-toggle) {
-  padding: 4px 0 2px;
 }
 .sidebar.collapsed .sidebar-card.folded .sidebar-section-title {
   padding-bottom: 4px;
