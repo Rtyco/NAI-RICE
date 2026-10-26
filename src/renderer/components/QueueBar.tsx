@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { QueueJobView } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import { FREE_PROJECT_ID } from '../../core/model/defaults';
@@ -6,7 +6,9 @@ import { queueBarShownOf, useLayout } from '../layout';
 import { openEmotion, openFree, openProject, useStore } from '../store';
 import { queueCommands, STATUS, summarizeQueue } from '../queueSummary';
 import { BottomSlotTarget } from './BottomSlot';
+import { Icon, type IconName } from './Icon';
 import { StreamPreview } from './StreamPreview';
+import { useQueueBarFit } from './useHeaderFit';
 
 function anlasText(job: QueueJobView): string {
   const estimate = job.anlasEstimate;
@@ -58,6 +60,25 @@ export function QueueJobs() {
   );
 }
 
+/** 막대가 좁으면 글자를 숨기고 아이콘만 남는다(.slot-icon-button). */
+function QueueAction(props: {
+  icon: IconName;
+  label: string;
+  className?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`slot-icon-button ${props.className ?? ''}`}
+      title={props.label}
+      onClick={props.onClick}
+    >
+      <Icon name={props.icon} size={15} />
+      <span>{props.label}</span>
+    </button>
+  );
+}
+
 export function QueueBar() {
   const shown = useLayout(queueBarShownOf);
   return shown ? <QueueBarContent /> : null;
@@ -66,6 +87,8 @@ export function QueueBar() {
 function QueueBarContent() {
   const queue = useStore((state) => state.queue);
   const [open, setOpen] = useState(false);
+  const summary = useRef<HTMLDivElement>(null);
+  useQueueBarFit(summary);
 
   const { active, current, failed, finished, status } = summarizeQueue(queue);
 
@@ -76,9 +99,9 @@ function QueueBarContent() {
           <QueueJobs />
         </div>
       )}
-      <div className="queue-summary">
+      <div ref={summary} className="queue-summary">
         <button className="queue-toggle" onClick={() => setOpen((value) => !value)}>
-          {open ? '▼' : '▲'} 생성 큐
+          {open ? '▼' : '▲'} <span className="queue-label">생성 큐</span>
         </button>
         {current && <StreamPreview jobIds={[current.id]} className="queue-preview" />}
         <span className="queue-status">
@@ -89,24 +112,37 @@ function QueueBarContent() {
         <div className="header-spacer" />
         {active.length > 0 &&
           (queue.paused ? (
-            <button onClick={() => void queueCommands.resume()}>재개</button>
+            <QueueAction icon="resume" label="재개" onClick={() => void queueCommands.resume()} />
           ) : (
-            <button className="pause-solid" onClick={() => void queueCommands.pause()}>
-              일시 중지
-            </button>
+            <QueueAction
+              icon="pause"
+              label="일시 중지"
+              className="pause-solid"
+              onClick={() => void queueCommands.pause()}
+            />
           ))}
         {active.length > 0 && (
-          <button className="danger-solid" onClick={() => void queueCommands.cancelAll()}>
-            모두 취소
-          </button>
+          <QueueAction
+            icon="close"
+            label="모두 취소"
+            className="danger-solid"
+            onClick={() => void queueCommands.cancelAll()}
+          />
         )}
         {failed > 0 && (
-          <button onClick={() => void queueCommands.retryFailed()}>실패 재시도</button>
+          <QueueAction
+            icon="refresh"
+            label="실패 재시도"
+            onClick={() => void queueCommands.retryFailed()}
+          />
         )}
         {finished > 0 && !active.length && (
-          <button className="link-button" onClick={() => void queueCommands.clearFinished()}>
-            기록 정리
-          </button>
+          <QueueAction
+            icon="clear-list"
+            label="기록 정리"
+            className="link-button"
+            onClick={() => void queueCommands.clearFinished()}
+          />
         )}
         <BottomSlotTarget />
       </div>

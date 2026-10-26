@@ -15,9 +15,7 @@
   background: var(--line);
 }
 .bottom-slot {
-  flex-wrap: wrap;
   justify-content: flex-end;
-  row-gap: 6px;
   margin-left: auto;
   gap: 10px;
   font-size: 13px;

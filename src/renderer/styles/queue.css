@@ -4,22 +4,75 @@
   border-top: 1px solid var(--line);
   background: var(--bg-2);
 }
-/* 좁으면 글자 단위가 아니라 묶음 단위로 다음 줄로 넘긴다. */
+/* 늘 한 줄. 넘치면 useQueueBarFit이 .fit-1부터 붙여 덜 중요한 것부터 줄인다. */
 .queue-summary {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 8px;
   padding: 7px 12px;
 }
-.queue-summary > :not(.header-spacer, .bottom-slot),
+.queue-summary > :not(.header-spacer),
 .bottom-slot > * {
   flex: none;
   white-space: nowrap;
 }
-.queue-summary > .bottom-slot {
+.queue-summary.fit-1 .bottom-slot :is(.slot-long, .pill.zero-cost),
+.queue-summary.fit-1 .bottom-slot .slot-icon-button > span,
+.queue-summary.fit-2 > .slot-icon-button > span,
+.queue-summary.fit-2 :is(.queue-label, .queue-preview),
+.queue-summary.fit-4 .slot-unit {
+  display: none;
+}
+.queue-summary.fit-1 .bottom-slot .slot-icon-button .icon,
+.queue-summary.fit-2 > .slot-icon-button .icon {
+  display: block;
+}
+.queue-summary.fit-3 {
+  gap: 6px;
+  padding: 6px 8px;
+}
+.queue-summary.fit-3 .bottom-slot {
+  gap: 6px;
+}
+.queue-summary.fit-3 .bottom-slot::before {
+  display: none;
+}
+.queue-summary.fit-3 :is(button, .bottom-slot button) {
+  padding: 5px 8px;
+}
+.queue-summary.fit-3 .bottom-slot .generate-button {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.queue-summary.fit-3 .bottom-slot :is(.zone-field b, .stepper input) {
+  font-size: 14px;
+}
+.queue-summary.fit-3 .bottom-slot .stepper .icon-button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.queue-summary.fit-5 .queue-status {
+  flex: 0 1 auto;
+  min-width: 7em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.queue-summary .generate-short,
+.queue-summary.fit-6 .bottom-slot > :is(.zone-field:first-child, .slot-icon-button),
+.queue-summary.fit-7 :is(.queue-status, .generate-long),
+.queue-summary.fit-8 .bottom-slot > .zone-field:has(.stepper) {
+  display: none;
+}
+.queue-summary.fit-7 .generate-short {
+  display: inline;
+}
+/* 마지막 단계: 그래도 넘치면 생성 버튼 글자를 말줄임으로 줄인다. */
+.queue-summary.fit-9 :is(.bottom-slot, .bottom-slot .generate-button) {
   flex: 0 1 auto;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .queue-summary button {
   padding: 5px 9px;

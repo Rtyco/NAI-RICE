@@ -87,7 +87,7 @@ function VariantsStepper({ preset }: { preset: Preset }) {
     );
   return (
     <span className="zone-field" title={`씬마다 만들 장수 · 생성 설정 「${preset.name}」에 저장`}>
-      ×
+      <span className="slot-unit">×</span>
       <Stepper
         value={value}
         min={1}
@@ -96,7 +96,7 @@ function VariantsStepper({ preset }: { preset: Preset }) {
         label="씬마다 만들 장수"
         onChange={change}
       />
-      장
+      <span className="slot-unit">장</span>
     </span>
   );
 }
@@ -541,7 +541,15 @@ export function ProjectView({ projectId }: { projectId: string }) {
                   title={generateTitle}
                   onClick={generate}
                 >
-                  ▶ {count ? countLabel : '생성할 씬 없음'}
+                  ▶{' '}
+                  {count ? (
+                    <>
+                      <span className="generate-long">{countLabel}</span>
+                      <span className="generate-short">{count}장</span>
+                    </>
+                  ) : (
+                    '생성할 씬 없음'
+                  )}
                 </button>
               </>
             }

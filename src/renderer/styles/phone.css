@@ -5,45 +5,6 @@
   .titlebar-location {
     display: none;
   }
-  .queue-summary {
-    padding: 6px 8px;
-  }
-  .queue-summary > .bottom-slot {
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    gap: 6px;
-    margin-left: 0;
-  }
-  .bottom-slot:not(:empty)::before {
-    display: none;
-  }
-  /* 생성 버튼이 줄을 혼자 차지하지 않고 수량 옆 남은 자리를 채운다. */
-  .queue-summary .bottom-slot button {
-    padding: 5px 8px;
-  }
-  .queue-summary .bottom-slot .generate-button {
-    flex: 1 1 auto;
-    padding: 6px 12px;
-    font-size: 14px;
-  }
-  .bottom-slot .zone-field b,
-  .bottom-slot .stepper input {
-    font-size: 14px;
-  }
-  .bottom-slot .stepper .icon-button {
-    width: 26px;
-    height: 26px;
-  }
-  .bottom-slot .slot-long,
-  .bottom-slot .pill.zero-cost {
-    display: none;
-  }
-  .slot-icon-button .icon {
-    display: block;
-  }
-  .slot-icon-button > span {
-    display: none;
-  }
   .project-header,
   .library-editor-head {
     gap: 6px;

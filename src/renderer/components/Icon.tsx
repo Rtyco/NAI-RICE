@@ -302,6 +302,7 @@ const ICONS = {
     />
   ),
   text: <path d="M5 7V4h14v3M12 4v16M9 20h6" />,
+  'clear-list': <path d="M4 6h12M4 12h8M4 18h6M15 14l5 5M20 14l-5 5" />,
   queue: (
     <>
       <rect x="4" y="4" width="16" height="5" rx="1.5" />
