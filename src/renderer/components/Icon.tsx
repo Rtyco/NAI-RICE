@@ -282,6 +282,13 @@ const ICONS = {
       <path d="m7 9 3 3-3 3M17 9l-3 3 3 3" />
     </>
   ),
+  // 집중 모드를 켠 동안 보인다. 누르면 패널이 펼쳐진다.
+  'focus-exit': (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="m10 9-3 3 3 3M14 9l3 3-3 3" />
+    </>
+  ),
   i2i: (
     <>
       <rect x="3" y="3" width="9" height="9" rx="1.5" />

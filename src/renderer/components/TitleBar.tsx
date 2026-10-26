@@ -82,7 +82,7 @@ export function TitleBar() {
           aria-pressed={focusing}
           onClick={toggleFocusMode}
         >
-          <Icon name="focus" size={16} />
+          <Icon name={focusing ? 'focus-exit' : 'focus'} size={16} />
         </button>
         <button
           className="titlebar-action"

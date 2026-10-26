@@ -1,5 +1,5 @@
 /* ── 작업 화면: 한 줄 구성 칩 ───────────────── */
-/* 늘 한 줄. 넘치면 useChainBarFit이 .fit-1부터 붙여 값 글자 → 연필 → 값 → 이름 순으로 줄인다.
+/* 늘 한 줄. 넘치면 useChainBarFit이 .fit-1부터 붙여 값 글자 → 값 → 이름 순으로 줄인다. 편집 연필은 늘 칩 옆에 있다.
    첫 화면(FHD 100%, 패널을 모두 연 상태)에서 이름이 보여야 아이콘을 익힐 수 있어 이름을 값보다 오래 남긴다. */
 .chain-bar {
   display: flex;
@@ -36,61 +36,55 @@
 .chain-bar.fit-1 .chain-chip-trigger {
   max-width: 130px;
 }
-/* 연필은 고르기 창에도 있다. 겹쳐 띄우면 값과 이웃 칩을 가린다. */
-.chain-bar.fit-2 .chain-chip {
-  padding-right: 8px;
-}
-.chain-bar.fit-2 .chain-chip-edit {
-  display: none;
-}
-.chain-bar.fit-3 .chain-chip-trigger {
+.chain-bar.fit-2 .chain-chip-trigger {
   max-width: 84px;
   padding: 3px 0 3px 4px;
 }
-.chain-bar.fit-3 :is(.chain-chip-switch, .chain-thumb),
-.chain-bar.fit-3:not(.fit-4) .chain-chip-trigger > .icon {
+.chain-bar.fit-2 :is(.chain-chip-switch, .chain-thumb),
+.chain-bar.fit-2:not(.fit-3) .chain-chip-trigger > .icon {
   display: none;
 }
-/* 4는 아이콘과 이름, 5는 아이콘만(머리줄에 접었을 때와 같은 모양). 값은 칩 설명에 있다. */
-:is(.chain-bar.compact, .chain-bar.fit-4) .chain-chip {
+/* 3은 아이콘과 이름, 4는 아이콘만(머리줄에 접었을 때와 같은 모양). 값은 칩 설명에 있고 연필은 남는다. */
+:is(.chain-bar.compact, .chain-bar.fit-3) .chain-chip {
   position: relative;
   flex: none;
   gap: 0;
   height: 26px;
   padding: 0 2px 0 7px;
 }
-:is(.chain-bar.compact, .chain-bar.fit-4)
-  :is(.chain-chip-edit, .chain-chip-switch, .chain-thumb, .chain-chip-trigger > span) {
+:is(.chain-bar.compact, .chain-bar.fit-3)
+  :is(.chain-chip-switch, .chain-thumb, .chain-chip-trigger > span),
+.chain-bar.compact .chain-chip-edit {
   display: none;
 }
-:is(.chain-bar.compact, .chain-bar.fit-4) .chain-chip-value {
+:is(.chain-bar.compact, .chain-bar.fit-3) .chain-chip-value {
   align-self: stretch;
   padding: 0 4px 0 3px;
   border-radius: 999px;
 }
-/* 칩 어디를 눌러도 고르기 창이 열린다. 아이콘 버튼만 그 위에 둔다. */
-:is(.chain-bar.compact, .chain-bar.fit-4) .chain-chip-value::before {
+/* 칩 어디를 눌러도 고르기 창이 열린다. 아이콘 버튼과 연필만 그 위에 둔다. */
+:is(.chain-bar.compact, .chain-bar.fit-3) .chain-chip-value::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
 }
-:is(.chain-bar.compact, .chain-bar.fit-4) .chain-chip-icon-button {
+:is(.chain-bar.compact, .chain-bar.fit-3) :is(.chain-chip-icon-button, .chain-chip-edit) {
   position: relative;
   z-index: 1;
 }
-.chain-bar.fit-4 .chain-chip-name {
+.chain-bar.fit-3 .chain-chip-name {
   margin-left: 5px;
   color: var(--text-2);
 }
-.chain-bar.fit-5 .chain-chip-name {
+.chain-bar.fit-4 .chain-chip-name {
   display: none;
 }
 /* 그래도 넘치면 끝이 잘리고 접기 버튼은 남는다. */
-.chain-bar.fit-6 {
+.chain-bar.fit-5 {
   overflow: hidden;
 }
-.chain-bar.fit-6 .top-bar-toggle {
+.chain-bar.fit-5 .top-bar-toggle {
   position: sticky;
   right: 0;
   background: var(--bg-1);

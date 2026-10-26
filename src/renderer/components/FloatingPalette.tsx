@@ -202,7 +202,7 @@ function Palette({ queueShown }: { queueShown: boolean }) {
         )}
         {focusing && (
           <PaletteButton
-            icon="focus"
+            icon="focus-exit"
             label="집중 모드 끝내기"
             title="집중 모드 끝내기 (Tab)"
             className="active"
