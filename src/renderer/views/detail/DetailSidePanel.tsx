@@ -69,7 +69,8 @@ export function DetailSidePanel({
           aria-pressed={!img2imgOn}
           onClick={() => updateImageTarget(img2imgTarget, { on: false })}
         >
-          <Icon name={txt2img ? 'sparkle' : 'reference'} size={14} />씬 프롬프트
+          <Icon name={txt2img ? 'sparkle' : 'reference'} size={14} />
+          프롬프트 생성
         </button>
         <button
           className={img2imgOn ? 'active' : ''}
