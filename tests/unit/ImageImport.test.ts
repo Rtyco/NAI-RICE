@@ -182,6 +182,8 @@ describe('applyImageImport', () => {
     expect(names).toEqual(['둘 1', '둘 2']);
     expect(project.positionMode).toBe('manual');
     expect(project.characters[1].center).toEqual({ x: 0.9, y: 0.5 });
-    expect(result.library.characters[1].promptSets[0].negative).toBe('hat');
+    expect(
+      result.library.characters.find((item) => item.name === '둘 2')?.promptSets[0].negative,
+    ).toBe('hat');
   });
 });
