@@ -4,7 +4,7 @@ import { FOCUS_PARTS } from '../../layout';
 import { useLibrary } from '../../store';
 import { useUiOption, type UiOption } from '../../uiOptions';
 import { FocusPreview } from './FocusPreview';
-import { patchSettings } from './patchSettings';
+import { patchLayout } from './patchSettings';
 import { SimplePreview } from './SimplePreview';
 
 const FOCUS_LEVELS: Array<{ id: FocusLevel; label: string; detail: string }> = [
@@ -22,12 +22,7 @@ export function FocusLevelGrid() {
           key={level.id}
           className={`focus-level-card ${focusLevel === level.id ? 'active' : ''}`}
           aria-pressed={focusLevel === level.id}
-          onClick={() =>
-            patchSettings((current) => ({
-              ...current,
-              layout: { ...current.layout, focusLevel: level.id },
-            }))
-          }
+          onClick={() => patchLayout({ focusLevel: level.id })}
         >
           <FocusPreview hidden={FOCUS_PARTS[level.id]} />
           <b>{level.label}</b>
@@ -44,12 +39,7 @@ export function EdgePeekToggle() {
     <Toggle
       label="창 가장자리에 마우스를 대면 숨긴 패널 보이기"
       checked={edgePeek}
-      onChange={(value) =>
-        patchSettings((current) => ({
-          ...current,
-          layout: { ...current.layout, edgePeek: value },
-        }))
-      }
+      onChange={(value) => patchLayout({ edgePeek: value })}
     />
   );
 }
@@ -60,7 +50,7 @@ const SIMPLE_MODES: Array<{ simple: boolean; label: string; detail: string }> = 
 ];
 
 export function SimpleUiGrid() {
-  const simpleUi = useLibrary().settings.layout.simpleUi;
+  const simpleUi = useUiOption('simpleUi');
   return (
     <div className="focus-level-grid two">
       {SIMPLE_MODES.map((mode) => (
@@ -68,12 +58,7 @@ export function SimpleUiGrid() {
           key={mode.label}
           className={`focus-level-card ${simpleUi === mode.simple ? 'active' : ''}`}
           aria-pressed={simpleUi === mode.simple}
-          onClick={() =>
-            patchSettings((current) => ({
-              ...current,
-              layout: { ...current.layout, simpleUi: mode.simple },
-            }))
-          }
+          onClick={() => patchLayout({ simpleUi: mode.simple })}
         >
           <SimplePreview simple={mode.simple} />
           <b>{mode.label}</b>
@@ -98,12 +83,7 @@ function UiToggle({ option, label }: { option: UiOption; label: string }) {
     <Toggle
       label={label}
       checked={checked}
-      onChange={(value) =>
-        patchSettings((current) => ({
-          ...current,
-          layout: { ...current.layout, [option]: value },
-        }))
-      }
+      onChange={(value) => patchLayout({ [option]: value })}
     />
   );
 }

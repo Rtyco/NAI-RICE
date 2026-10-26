@@ -6,7 +6,7 @@ import { resetPanelWidths } from '../../panelWidths';
 import { resetSidebarSections, toast, useLibrary } from '../../store';
 import { MODE_LABELS, THEMES, themeSwatch } from '../../theme';
 import { EdgePeekToggle, FocusLevelGrid, SimpleUiGrid, UiToggles } from './FocusSettings';
-import { patchSettings } from './patchSettings';
+import { patchLayout, patchSettings } from './patchSettings';
 
 export function AppearanceTab() {
   const { appearance, layout } = useLibrary().settings;
@@ -74,12 +74,7 @@ export function AppearanceTab() {
             { value: 'all', label: '모두' },
             { value: 'none', label: '모두 접기' },
           ]}
-          onChange={(comboOptions) =>
-            patchSettings((current) => ({
-              ...current,
-              layout: { ...current.layout, comboOptions },
-            }))
-          }
+          onChange={(comboOptions) => patchLayout({ comboOptions })}
         />
       </Card>
       <Card title="화면 배치">
