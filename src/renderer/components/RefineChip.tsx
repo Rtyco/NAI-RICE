@@ -38,7 +38,7 @@ const PROMPT_ICONS: Record<RefinePrompt, IconName | undefined> = {
   source: undefined,
   'negative-only': 'prompt-negative',
   empty: 'empty',
-  custom: 'pen',
+  custom: 'text',
 };
 
 function openRefineSettings(target: RefineTarget): void {

@@ -172,7 +172,7 @@ export function EmotionDetail({
       },
       {
         label: '자유 생성으로 보내기',
-        icon: 'sparkle',
+        icon: 'i2i',
         group: 'send',
         keepLabel: true,
         onSelect: () => void sendToFreeImg2Img(project.id, record),

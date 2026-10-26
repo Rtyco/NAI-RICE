@@ -53,7 +53,7 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
             aria-pressed={!free.inpaint}
             onClick={() => updateFreeGeneration({ inpaint: false })}
           >
-            <Icon name="refresh" size={14} /> 전체 다시 그리기
+            <Icon name="i2i" size={14} /> 전체 다시 그리기
           </button>
           <button
             className={free.inpaint ? 'active' : ''}

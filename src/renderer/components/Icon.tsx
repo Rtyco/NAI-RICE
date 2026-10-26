@@ -65,7 +65,8 @@ const ICONS = {
     </>
   ),
   folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
-  import: <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />,
+  // 다듬기(upscale)의 오른쪽 위 화살표와 겹치지 않게 아래로 받는 모양
+  export: <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />,
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
   edit: <path d="M4 20h4L19 9l-4-4L4 16Zm9-13 4 4" />,
@@ -76,7 +77,6 @@ const ICONS = {
     </>
   ),
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />,
-  export: <path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />,
   expand: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
   chevron: <path d="m9 6 6 6-6 6" />,
   'chevron-left': <path d="m15 6-6 6 6 6" />,
@@ -272,8 +272,36 @@ const ICONS = {
     </>
   ),
   play: <path d="M8 5.5v13l10.5-6.5z" />,
+  // 생성(play)과 같은 떠 있는 창에 있어 막대를 붙였다.
+  resume: <path d="M5 5.5v13M10 5.5v13l9-6.5z" />,
   pause: <path d="M9 5.5v13M15 5.5v13" />,
-  focus: <path d="M4 9V5h4M16 4h4v5M20 15v5h-4M8 20H4v-5" />,
+  // 네 모서리 꺾쇠는 크게 보기(expand)와 같아 보였다.
+  focus: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="m7 9 3 3-3 3M17 9l-3 3 3 3" />
+    </>
+  ),
+  i2i: (
+    <>
+      <rect x="3" y="3" width="9" height="9" rx="1.5" />
+      <rect x="12" y="12" width="9" height="9" rx="1.5" />
+      <path d="M15 5.5h1.5a2 2 0 0 1 2 2V9M16.5 7.5l2 2 2-2" />
+    </>
+  ),
+  strength: (
+    <>
+      <path d="M4 17a8 8 0 0 1 16 0" />
+      <path d="m12 17 4-5" />
+    </>
+  ),
+  noise: (
+    <path
+      d="M5 6h.01M11 5h.01M17 7h.01M8 10h.01M14 11h.01M19 12h.01M5 14h.01M10 16h.01M16 17h.01M7 19h.01M13 20h.01"
+      strokeWidth="2.6"
+    />
+  ),
+  text: <path d="M5 7V4h14v3M12 4v16M9 20h6" />,
   queue: (
     <>
       <rect x="4" y="4" width="16" height="5" rx="1.5" />

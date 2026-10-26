@@ -14,14 +14,14 @@ const FIELDS: Record<
 > = {
   img2imgStrength: {
     text: '강도',
-    icon: 'refresh',
+    icon: 'strength',
     name: 'i2i 강도 (Strength)',
     min: 0.01,
     max: 0.99,
   },
   img2imgNoise: {
     text: '노이즈',
-    icon: 'sparkle',
+    icon: 'noise',
     name: 'i2i 노이즈 (Noise)',
     min: 0,
     max: 0.99,
@@ -29,7 +29,7 @@ const FIELDS: Record<
   // NovelAI 웹 `inpaintImg2ImgStrength`. 1은 칠한 곳을 새로 그린다.
   inpaintStrength: {
     text: '강도',
-    icon: 'brush',
+    icon: 'strength',
     name: '인페인팅 강도 (Strength)',
     min: 0,
     max: 1,

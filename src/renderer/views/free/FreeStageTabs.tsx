@@ -7,7 +7,7 @@ export function FreeStageTabs(props: {
   onStage: (stage: FreeStage) => void;
   hasImage: boolean;
   /** 원본 탭 이름과 아이콘 */
-  source: { label: string; icon: 'brush' | 'wand' | 'reference' };
+  source: { label: string; icon: 'brush' | 'wand' | 'i2i' };
   drawable: boolean;
 }) {
   const { stage, onStage, hasImage } = props;

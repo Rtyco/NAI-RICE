@@ -8,7 +8,7 @@ type GenerateMode = 'txt2img' | 'img2img';
 
 const GENERATE_MODES: Record<GenerateMode, ModeInfo> = {
   txt2img: { label: '일반 생성', icon: 'sparkle' },
-  img2img: { label: 'i2i', icon: 'reference' },
+  img2img: { label: 'i2i', icon: 'i2i' },
 };
 
 /** 디렉터 툴을 끄면 돌아갈 방식. 저장하지 않아 다시 실행한 뒤에는 일반 생성으로 돌아간다. */

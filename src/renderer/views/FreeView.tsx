@@ -200,7 +200,7 @@ export function FreeView() {
       },
       {
         label: '이 결과로 i2i',
-        icon: 'sparkle',
+        icon: 'i2i',
         group: 'send',
         keepLabel: true,
         onSelect: () =>
@@ -359,7 +359,7 @@ export function FreeView() {
                   hasImage={Boolean(image)}
                   source={{
                     label: inpainting ? '마스크 칠하기' : sourceLabel,
-                    icon: inpainting ? 'brush' : director ? 'wand' : 'reference',
+                    icon: inpainting ? 'brush' : director ? 'wand' : 'i2i',
                   }}
                   drawable={free.mode === 'img2img'}
                 />

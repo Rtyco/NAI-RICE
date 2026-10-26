@@ -93,7 +93,11 @@ function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
       />
       {active.length > 0 &&
         (queue.paused ? (
-          <PaletteButton icon="play" label="큐 재개" onClick={() => void queueCommands.resume()} />
+          <PaletteButton
+            icon="resume"
+            label="큐 재개"
+            onClick={() => void queueCommands.resume()}
+          />
         ) : (
           <PaletteButton
             icon="pause"
