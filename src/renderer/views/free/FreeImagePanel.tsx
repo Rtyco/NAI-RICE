@@ -1,8 +1,7 @@
 import type { FreeGeneration, Preset } from '../../../core/domain/types';
 import { openDialog } from '../../components/dialogStack';
 import { Icon } from '../../components/Icon';
-import { PresetNumberRow } from '../../components/PresetNumberRow';
-import { Stepper } from '../../components/Stepper';
+import { NumberRow, PresetNumberRow } from '../../components/PresetNumberRow';
 import { clearFreeImage, loadFreeImageFromFile, sourceMedia } from '../../freeImageOps';
 import { updateFreeGeneration } from '../../store';
 import { FreeReferencePicker } from './FreeReferencePicker';
@@ -66,23 +65,16 @@ export function FreeImagePanel({ free, preset }: { free: FreeGeneration; preset?
         </div>
       )}
       {free.inpaint && image && fromReference && !director ? (
-        <div className="preset-number-row" title="인페인팅 강도 (Strength) · 이 이미지에 저장">
-          <span>
-            <Icon name="brush" size={14} /> 강도
-          </span>
-          <Stepper
-            value={fromReference.inpaintStrength}
-            min={0}
-            max={1}
-            step={0.05}
-            label="강도"
-            onChange={(inpaintStrength) =>
-              updateFreeGeneration({
-                image: { ...image, fromReference: { ...fromReference, inpaintStrength } },
-              })
-            }
-          />
-        </div>
+        <NumberRow
+          field="inpaintStrength"
+          value={fromReference.inpaintStrength}
+          savedIn="이 이미지"
+          onChange={(inpaintStrength) =>
+            updateFreeGeneration({
+              image: { ...image, fromReference: { ...fromReference, inpaintStrength } },
+            })
+          }
+        />
       ) : (
         preset &&
         !director &&

@@ -23,7 +23,7 @@ import type {
   Project,
   Rect,
   Reference,
-  RefinePrompt,
+  RefineSettings,
   Txt2ImgJobSnapshot,
 } from '../domain/types';
 import {
@@ -537,31 +537,26 @@ export function buildFreeJobs(
 /** 자유 생성은 씬이 없어 설정의 파일명 규칙을 쓰지 않는다. */
 export const FREE_FILENAME_TEMPLATE = '{date}-{time}__{seed}';
 
-export type ResultImg2ImgInput = {
-  record: GenerationRecord;
-  image: ImageInput;
-  width: number;
-  height: number;
-  strength: number;
-  noise: number;
-  count: number;
-  /** source: 원본 seed부터 차례로. */
-  seedMode: 'source' | 'random';
-  /** 비면 원본 모델 */
-  model?: string;
-  prompt?: RefinePrompt;
-  customPositive?: string;
-  customNegative?: string;
-  outputFilenameTemplate: string;
-  projectName: string;
-  now?: () => Date;
-  randomSeed?: () => number;
-};
+type RefinePromptChoice = Partial<
+  Pick<RefineSettings, 'model' | 'prompt' | 'customPositive' | 'customNegative'>
+>;
+
+export type ResultImg2ImgInput = Pick<RefineSettings, 'strength' | 'noise' | 'count' | 'seedMode'> &
+  RefinePromptChoice & {
+    record: GenerationRecord;
+    image: ImageInput;
+    width: number;
+    height: number;
+    outputFilenameTemplate: string;
+    projectName: string;
+    now?: () => Date;
+    randomSeed?: () => number;
+  };
 
 /** 원래 결과의 최종 프롬프트·설정을 쓴다. 참고 이미지가 없어 reference inset은 빼고, 원문이 없어 원문 자리에도 최종 프롬프트를 넣는다. */
 function resultJobCommon(
   record: GenerationRecord,
-  job: {
+  job: RefinePromptChoice & {
     id: string;
     createdAt: string;
     projectName: string;
@@ -570,10 +565,6 @@ function resultJobCommon(
     variantIndex: number;
     width: number;
     height: number;
-    model?: string;
-    prompt?: RefinePrompt;
-    customPositive?: string;
-    customNegative?: string;
   },
 ): JobSnapshotCommon {
   const mode = job.prompt ?? 'source';

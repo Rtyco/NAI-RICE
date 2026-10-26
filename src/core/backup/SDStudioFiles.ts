@@ -10,6 +10,7 @@ import type {
   Project,
   SceneOption,
 } from '../domain/types';
+import type { Size } from '../imaging/FreeSize';
 import { SD_STUDIO_RESOLUTIONS } from '../importers/SDStudioProjectImporter';
 import { scenePosition } from '../jobs/JobBuilder';
 import { createCharacter, createPromptSet, newId } from '../model/defaults';
@@ -28,8 +29,6 @@ type SDStudioProjectFile = {
   library: Record<string, { name: string; version: number; pieces: unknown[] }>;
   extraPrompt?: string;
 };
-
-type Size = { width: number; height: number };
 
 function uniqueKey(name: string, taken: Set<string>): string {
   let key = name.trim() || '씬';

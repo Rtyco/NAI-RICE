@@ -3,7 +3,6 @@ import {
   buildFreeJobs,
   buildJobs,
   buildResultAugmentJobs,
-  buildResultImg2ImgJobs,
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
   type AugmentTarget,
@@ -24,7 +23,7 @@ import {
 } from '../core/providers/NaiAugment';
 import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import { hasScenePrompt, resolveProject, type ResolvedCharacter } from '../core/model/defaults';
-import { freeAutoRefine, projectRefineSettings, refineTarget } from '../core/model/refine';
+import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
@@ -237,30 +236,20 @@ export function sendResultsToImg2Img(
     const free = projectId === FREE_PROJECT_ID;
     const project = library.projects.find((item) => item.id === projectId);
     if (!free && !project) throw new Error('작업을 찾을 수 없습니다.');
-    const { size, ...rest } = options;
-    const jobs: GenerationJobSnapshot[] = [];
-    for (const summary of records) {
-      const record = await libraryApi().getGeneration(projectId, summary.id);
-      const target = refineTarget(size, record.width, record.height);
-      const image = await libraryApi().prepareImageInput({
-        projectId,
-        source: { kind: 'record', projectId, generationId: record.id },
-        ...target,
-        fit: options.fit,
-      });
-      jobs.push(
-        ...buildResultImg2ImgJobs({
-          record,
-          image,
-          ...rest,
-          ...target,
-          projectName: free ? '자유 생성' : project!.name,
-          outputFilenameTemplate: free
-            ? FREE_FILENAME_TEMPLATE
-            : library.settings.outputFilenameTemplate,
-        }),
-      );
-    }
+    const full = [];
+    for (const summary of records)
+      full.push(await libraryApi().getGeneration(projectId, summary.id));
+    const jobs = await buildRefineJobs(
+      options,
+      full,
+      {
+        projectName: free ? '자유 생성' : project!.name,
+        outputFilenameTemplate: free
+          ? FREE_FILENAME_TEMPLATE
+          : library.settings.outputFilenameTemplate,
+      },
+      (request) => libraryApi().prepareImageInput(request),
+    );
     if (!jobs.length) throw new Error('다듬을 결과가 없습니다.');
     await enqueue(jobs, `다듬기 ${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);

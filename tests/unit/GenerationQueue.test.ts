@@ -13,7 +13,7 @@ import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
-import { refineJobs } from '../../electron/services/RefineJobs';
+import { buildRefineJobs } from '../../src/core/model/refine';
 
 let root: string;
 afterEach(() => rm(root, { recursive: true, force: true }));
@@ -168,9 +168,12 @@ describe('GenerationQueue 실패 처리', () => {
       emit: () => undefined,
       onRecord: () => undefined,
       ...(followUps && {
-        followUps: async (job, records) => {
+        followUps: async (refine, job, records) => {
           if (followUps === 'broken') throw new Error('입력을 만들지 못함');
-          return { jobs: await refineJobs(library, job, records), estimates: [] };
+          const jobs = await buildRefineJobs(refine, records, job, (request) =>
+            library.prepareImageInput(request),
+          );
+          return { jobs, estimates: [] };
         },
       }),
     });

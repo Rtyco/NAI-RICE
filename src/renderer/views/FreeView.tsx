@@ -7,7 +7,12 @@ import {
   FREE_PROJECT_ID,
   projectAid,
 } from '../../core/model/defaults';
-import { freeAutoRefine, freeRefineSource, refineCostJob } from '../../core/model/refine';
+import {
+  freeAutoRefine,
+  freeRefineSource,
+  generateCountLabel,
+  refineCostJob,
+} from '../../core/model/refine';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { modelLabel, noInpaintReason, supportsInpaint } from '../../core/providers/NaiModels';
@@ -145,9 +150,7 @@ export function FreeView() {
     : Boolean(preset) && (free.mode === 'txt2img' || (Boolean(image) && !inpaintModelMissing));
   const generateLabel = director
     ? `${runs}번 적용`
-    : refine
-      ? `${free.count}장 + 다듬기 ${free.count * refine.count}장`
-      : `${free.count}장 생성`;
+    : generateCountLabel(free.count, refine ? free.count * refine.count : 0);
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.

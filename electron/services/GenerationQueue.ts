@@ -6,6 +6,7 @@ import type {
   QueueSnapshot,
   QueueView,
   QueuedGenerationJob,
+  RefineSettings,
 } from '../../src/core/domain/types';
 import {
   cancel as cancelJob,
@@ -52,6 +53,7 @@ type QueueDependencies = {
   onPreview?: (preview: GenerationPreview) => void;
   /** 작업에 `refine`이 있을 때 끝난 뒤 이어 붙일 작업(생성 후 다듬기). */
   followUps?: (
+    refine: RefineSettings,
     job: QueuedGenerationJob,
     records: GenerationRecord[],
   ) => Promise<{ jobs: GenerationJobSnapshot[]; estimates: number[] }>;
@@ -132,7 +134,7 @@ export class GenerationQueue {
   private async addFollowUps(job: QueuedGenerationJob, records: GenerationRecord[]): Promise<void> {
     if (!job.refine || !this.dependencies.followUps) return;
     try {
-      const { jobs, estimates } = await this.dependencies.followUps(job, records);
+      const { jobs, estimates } = await this.dependencies.followUps(job.refine, job, records);
       if (!jobs.length) return;
       this.snapshot.jobs.splice(
         this.snapshot.jobs.indexOf(job) + 1,

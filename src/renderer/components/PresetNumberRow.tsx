@@ -45,21 +45,38 @@ function patchGeneration(preset: Preset, value: Partial<Preset['generation']>) {
   );
 }
 
-export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
-  const info = FIELDS[field];
+/** `savedIn`은 툴팁의 저장 위치 */
+export function NumberRow(props: {
+  field: PresetNumberField;
+  value: number;
+  savedIn: string;
+  onChange: (value: number) => void;
+}) {
+  const info = FIELDS[props.field];
   return (
-    <div className="preset-number-row" title={`${info.name} · 생성 설정 「${preset.name}」에 저장`}>
+    <div className="preset-number-row" title={`${info.name} · ${props.savedIn}에 저장`}>
       <span>
         <Icon name={info.icon} size={14} /> {info.text}
       </span>
       <Stepper
-        value={normalizeGenerationSettings(preset.generation)[field]}
+        value={props.value}
         min={info.min}
         max={info.max}
         step={0.05}
         label={info.text}
-        onChange={(next) => patchGeneration(preset, { [field]: next })}
+        onChange={props.onChange}
       />
     </div>
+  );
+}
+
+export function PresetNumberRow({ preset, field }: { preset: Preset; field: PresetNumberField }) {
+  return (
+    <NumberRow
+      field={field}
+      value={normalizeGenerationSettings(preset.generation)[field]}
+      savedIn={`생성 설정 「${preset.name}」`}
+      onChange={(next) => patchGeneration(preset, { [field]: next })}
+    />
   );
 }

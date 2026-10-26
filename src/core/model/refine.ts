@@ -1,6 +1,8 @@
 import type {
   FreeGeneration,
+  GenerationRecord,
   GenerationSettings,
+  Img2ImgJobSnapshot,
   Preset,
   Project,
   Reference,
@@ -8,6 +10,11 @@ import type {
   RefineSettings,
 } from '../domain/types';
 import { RESOLUTION_PRESETS } from '../imaging/CanvasLayout';
+import {
+  buildResultImg2ImgJobs,
+  type ImageInput,
+  type ResultImg2ImgInput,
+} from '../jobs/JobBuilder';
 import { RATIO_SIZES, ratioError, type Size } from '../imaging/FreeSize';
 import { modelLabel, modelShortLabel } from '../providers/NaiModels';
 import {
@@ -148,4 +155,48 @@ export function refineCostJob(
     canvasWidth: target.width,
     canvasHeight: target.height,
   };
+}
+
+/** `ImageInputRequest`(shared/ipc)와 같은 모양이라 메인과 화면이 각자의 `prepareImageInput`을 그대로 넘긴다. */
+export type RefineImageRequest = {
+  projectId: string;
+  source: { kind: 'record'; projectId: string; generationId: string };
+  width: number;
+  height: number;
+  fit: RefineSettings['fit'];
+};
+
+/** 결과는 원래 씬(또는 자유 생성)에 쌓인다. */
+export async function buildRefineJobs(
+  settings: RefineSettings,
+  records: GenerationRecord[],
+  names: Pick<ResultImg2ImgInput, 'projectName' | 'outputFilenameTemplate'>,
+  prepareImageInput: (request: RefineImageRequest) => Promise<ImageInput>,
+): Promise<Img2ImgJobSnapshot[]> {
+  const { size, fit, ...options } = settings;
+  const jobs: Img2ImgJobSnapshot[] = [];
+  for (const record of records) {
+    const target = refineTarget(size, record.width, record.height);
+    const image = await prepareImageInput({
+      projectId: record.projectId,
+      source: { kind: 'record', projectId: record.projectId, generationId: record.id },
+      ...target,
+      fit,
+    });
+    jobs.push(
+      ...buildResultImg2ImgJobs({
+        record,
+        image,
+        ...options,
+        ...target,
+        projectName: names.projectName,
+        outputFilenameTemplate: names.outputFilenameTemplate,
+      }),
+    );
+  }
+  return jobs;
+}
+
+export function generateCountLabel(images: number, refineImages: number): string {
+  return refineImages ? `${images}장 + 다듬기 ${refineImages}장` : `${images}장 생성`;
 }

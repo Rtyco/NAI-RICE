@@ -205,29 +205,26 @@ function SectionTitle(props: {
 }) {
   return (
     <div className="sidebar-section-title">
-      {props.narrow ? (
-        <button
-          className="sidebar-section-toggle narrow"
-          aria-expanded={!props.folded}
-          aria-label={props.label}
-          title={`${props.title} · ${props.folded ? '펼치기' : '접기'}`}
-          onClick={() => toggleSidebarSection(props.section)}
-        >
-          <Icon name={props.icon} />
-          <Icon name="chevron" size={10} className="section-chevron" />
-        </button>
-      ) : (
-        <button
-          className="sidebar-section-toggle"
-          aria-expanded={!props.folded}
-          title={`${props.title} · ${props.folded ? '펼치기' : '접기'}`}
-          onClick={() => toggleSidebarSection(props.section)}
-        >
-          <Icon name="chevron" size={12} className="section-chevron" />
-          <Icon name={props.icon} />
-          <b>{props.label}</b>
-        </button>
-      )}
+      <button
+        className={props.narrow ? 'sidebar-section-toggle narrow' : 'sidebar-section-toggle'}
+        aria-expanded={!props.folded}
+        aria-label={props.narrow ? props.label : undefined}
+        title={`${props.title} · ${props.folded ? '펼치기' : '접기'}`}
+        onClick={() => toggleSidebarSection(props.section)}
+      >
+        {props.narrow ? (
+          <>
+            <Icon name={props.icon} />
+            <Icon name="chevron" size={10} className="section-chevron" />
+          </>
+        ) : (
+          <>
+            <Icon name="chevron" size={12} className="section-chevron" />
+            <Icon name={props.icon} />
+            <b>{props.label}</b>
+          </>
+        )}
+      </button>
       {props.children}
     </div>
   );
