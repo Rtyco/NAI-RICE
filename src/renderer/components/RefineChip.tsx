@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { RefinePrompt, RefineSettings } from '../../core/domain/types';
 import { refineShortSummary, refineSummary } from '../../core/model/refine';
 import type { RefineTarget } from '../refineTargets';
+import { useUiOption } from '../uiOptions';
 import { ChecklistChip } from './ChainChip';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
@@ -56,7 +57,9 @@ function RefineValue({ settings, iconClass }: { settings: RefineSettings; iconCl
 }
 
 export function RefineChip({ target }: { target: RefineTarget }) {
+  const shown = useUiOption('refineChip');
   const { settings, on } = target;
+  if (!shown) return null;
   return (
     <ChecklistChip
       label={{ text: '자동 다듬기', icon: 'upscale', usage: `${target.savedIn}에 저장` }}

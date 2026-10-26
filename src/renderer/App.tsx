@@ -14,6 +14,7 @@ import { EmptyState } from './components/ui';
 import { importJsonFromPicker } from './importers';
 import { PROJECT_SECTIONS } from './sections';
 import { applyAppearance } from './theme';
+import { useUiOption } from './uiOptions';
 import {
   dismissToast,
   initialize,
@@ -85,6 +86,7 @@ const CHAIN_CHIPS: Array<{ icons: IconName[]; label: string; role: string }> = [
 ];
 
 function Welcome() {
+  const showChips = useUiOption('welcomeChips');
   return (
     <EmptyState title="작업을 만들어 시작하십시오">
       <div className="welcome-chain">
@@ -110,22 +112,24 @@ function Welcome() {
           <Icon name="settings" /> 프로그램 설정 (NovelAI 토큰)
         </button>
       </div>
-      <section className="welcome-chips" aria-label="설정 줄 칩">
-        <h3>설정 줄 칩</h3>
-        <div>
-          {CHAIN_CHIPS.map((chip) => (
-            <div key={chip.label} className="welcome-chip">
-              <span>
-                {chip.icons.map((icon) => (
-                  <Icon key={icon} name={icon} size={15} />
-                ))}
-                <b>{chip.label}</b>
-              </span>
-              <small>{chip.role}</small>
-            </div>
-          ))}
-        </div>
-      </section>
+      {showChips && (
+        <section className="welcome-chips" aria-label="설정 줄 칩">
+          <h3>설정 줄 칩</h3>
+          <div>
+            {CHAIN_CHIPS.map((chip) => (
+              <div key={chip.label} className="welcome-chip">
+                <span>
+                  {chip.icons.map((icon) => (
+                    <Icon key={icon} name={icon} size={15} />
+                  ))}
+                  <b>{chip.label}</b>
+                </span>
+                <small>{chip.role}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </EmptyState>
   );
 }

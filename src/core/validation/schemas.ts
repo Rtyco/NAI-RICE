@@ -430,9 +430,26 @@ export const appSettingsSchema = z.object({
       focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels'),
       edgePeek: z.boolean().default(false),
       simpleUi: z.boolean().catch(false),
+      chipEdit: z.boolean().catch(false),
+      chipNames: z.boolean().catch(true),
+      refineChip: z.boolean().catch(true),
+      welcomeChips: z.boolean().catch(true),
+      narrowOverlay: z.boolean().catch(true),
+      iconFolders: z.boolean().catch(true),
       comboOptions: z.enum(['first', 'all', 'none']).catch('first'),
     })
-    .default({ focusLevel: 'panels', edgePeek: false, simpleUi: false, comboOptions: 'first' }),
+    .default({
+      focusLevel: 'panels',
+      edgePeek: false,
+      simpleUi: false,
+      chipEdit: false,
+      chipNames: true,
+      refineChip: true,
+      welcomeChips: true,
+      narrowOverlay: true,
+      iconFolders: true,
+      comboOptions: 'first',
+    }),
   update: z
     .object({
       autoCheck: z.boolean().default(true),

@@ -2,6 +2,7 @@ import type { FocusLevel } from '../../../core/domain/types';
 import { Toggle } from '../../components/ui';
 import { FOCUS_PARTS } from '../../layout';
 import { useLibrary } from '../../store';
+import { useUiOption, type UiOption } from '../../uiOptions';
 import { FocusPreview } from './FocusPreview';
 import { patchSettings } from './patchSettings';
 import { SimplePreview } from './SimplePreview';
@@ -80,5 +81,40 @@ export function SimpleUiGrid() {
         </button>
       ))}
     </div>
+  );
+}
+
+const UI_TOGGLES: Array<{ key: Exclude<UiOption, 'simpleUi'>; label: string }> = [
+  { key: 'chipEdit', label: '설정 줄 칩 옆 편집 버튼' },
+  { key: 'chipNames', label: '설정 줄 칩 이름 (자리가 있을 때)' },
+  { key: 'refineChip', label: '설정 줄의 자동 다듬기 칩' },
+  { key: 'welcomeChips', label: '시작 화면의 설정 줄 칩 안내' },
+  { key: 'narrowOverlay', label: '좁은 창(960px 아래)에서 다시 연 패널을 이미지 위에 겹쳐 열기' },
+  { key: 'iconFolders', label: '아이콘만 남은 사이드바·라이브러리 목록에서 폴더로 묶기' },
+];
+
+function UiToggle({ option, label }: { option: UiOption; label: string }) {
+  const checked = useUiOption(option);
+  return (
+    <Toggle
+      label={label}
+      checked={checked}
+      onChange={(value) =>
+        patchSettings((current) => ({
+          ...current,
+          layout: { ...current.layout, [option]: value },
+        }))
+      }
+    />
+  );
+}
+
+export function UiToggles() {
+  return (
+    <>
+      {UI_TOGGLES.map((item) => (
+        <UiToggle key={item.key} option={item.key} label={item.label} />
+      ))}
+    </>
   );
 }

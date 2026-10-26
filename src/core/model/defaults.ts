@@ -259,7 +259,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
   streaming: false,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
-  layout: { focusLevel: 'panels', edgePeek: false, simpleUi: false, comboOptions: 'first' },
+  layout: {
+    focusLevel: 'panels',
+    edgePeek: false,
+    simpleUi: false,
+    chipEdit: false,
+    chipNames: true,
+    refineChip: true,
+    welcomeChips: true,
+    narrowOverlay: true,
+    iconFolders: true,
+    comboOptions: 'first',
+  },
   update: { autoCheck: true, skippedVersion: '', seenVersion: '' },
 };
 

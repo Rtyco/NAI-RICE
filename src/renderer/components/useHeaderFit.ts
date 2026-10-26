@@ -1,5 +1,5 @@
 import { useLayoutEffect, type RefObject } from 'react';
-import { useStore } from '../store';
+import { useUiOption } from '../uiOptions';
 
 const clipped = (element: Element | null) =>
   Boolean(element && element.scrollWidth > element.clientWidth);
@@ -38,7 +38,7 @@ function useFitLevels(
   });
 }
 
-const useSimpleUi = () => useStore((state) => state.library?.settings.layout.simpleUi ?? false);
+const useSimpleUi = () => useUiOption('simpleUi');
 
 /** 머리줄에 접어 둔 설정 줄의 칩이 잘리지 않게 한다(chips.css의 .fit-1 … .fit-6). */
 export function useHeaderFit(ref: RefObject<HTMLElement | null>): void {

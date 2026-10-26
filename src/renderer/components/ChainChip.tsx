@@ -17,6 +17,7 @@ import { LibraryEditorDialog } from '../views/library/LibraryEditorDialog';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
 import { Icon, type IconName } from './Icon';
+import { useUiOption } from '../uiOptions';
 import { folderColorClass, folderKey, useFolderColor } from './listFolders';
 import { NumberField } from './ui';
 
@@ -60,6 +61,8 @@ export function ChainChip(props: {
 }) {
   const info = props.section ? sectionInfo(props.section) : undefined;
   const label = props.label ?? { text: info!.label, icon: info!.icon };
+  const showEdit = useUiOption('chipEdit');
+  const showName = useUiOption('chipNames');
   const edit =
     props.edit === undefined && props.section
       ? {
@@ -88,9 +91,9 @@ export function ChainChip(props: {
           <Icon name={label.icon} size={15} />
         </span>
       )}
-      <span className="chain-chip-name">{label.text}</span>
+      {showName && <span className="chain-chip-name">{label.text}</span>}
       {props.children}
-      {edit && (
+      {showEdit && edit && (
         <button className="icon-button chain-chip-edit" title={edit.title} onClick={edit.open}>
           <Icon name="edit" size={14} />
         </button>

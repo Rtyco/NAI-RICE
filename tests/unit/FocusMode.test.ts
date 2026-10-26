@@ -229,6 +229,20 @@ describe('좁은 창에서 겹쳐 열기', () => {
     expect(state().peek).toBeUndefined();
   });
 
+  it('겹쳐 열기를 끄면 960px 아래에서도 패널을 레이아웃에 다시 열지만 휴대폰 폭은 겹쳐', () => {
+    reset();
+    store.useStore.getState().library!.settings.layout.narrowOverlay = false;
+    layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });
+    layout.fitToWidth(800);
+    layout.cyclePromptPanel();
+    expect(state().peek).toBeUndefined();
+    expect(layout.promptPanelStageOf(state())).toBe('open');
+    layout.fitToWidth(400);
+    layout.toggleHistory();
+    expect(state()).toMatchObject({ peek: 'right', peekPart: 'history' });
+    layout.toggleHistory();
+  });
+
   it('오른쪽 겹침은 누른 패널만 띄우고, 다른 패널 버튼을 누르면 그쪽으로 바꿔', () => {
     reset();
     layout.useLayout.setState({ widthClass: 'wide', widthHidden: [], widthSidebar: undefined });

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { FocusLevel } from '../core/domain/types';
 import type { PanelId } from './panelWidths';
 import { readUiState, removeUiState, saveUiState, useStore, type StoreState } from './store';
+import { uiOption } from './uiOptions';
 
 export type PanelStage = 'open' | 'icons' | 'hidden';
 
@@ -208,7 +209,7 @@ function setStage(panel: StagePanel, stage: PanelStage): void {
 }
 
 const overlaid = (state: LayoutState) =>
-  state.widthClass === 'narrow' || state.widthClass === 'phone';
+  state.widthClass === 'phone' || (state.widthClass === 'narrow' && uiOption('narrowOverlay'));
 
 /** 좁은 창이 접은 곳은 레이아웃을 밀지 않도록 위에 겹쳐 연다. 다시 누르면 닫는다. */
 function overlayFromWidth(part: FocusPart | undefined, side: 'left' | 'right'): boolean {
