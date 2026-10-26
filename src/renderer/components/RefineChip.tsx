@@ -29,7 +29,7 @@ function RefineSettingsDialog(props: { target: RefineTarget; close: () => void }
       }
     >
       <RefineFields value={value} sources={[props.target.source]} onChange={setValue} />
-      <p className="hint">{props.target.savedIn}에 저장되며 다듬기 창도 이 값으로 시작합니다.</p>
+      <p className="hint">{props.target.savedIn}의 다듬기 설정으로 저장됩니다.</p>
     </Modal>
   );
 }
