@@ -4,8 +4,9 @@ import { DEFAULT_GENERATION_SETTINGS } from '../../core/model/defaults';
 import { DEFAULT_AUGMENT_SETTINGS } from '../../core/providers/NaiAugment';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { directorToolSize, runDirectorTool, type DirectorToolOptions } from '../actions';
-import { projectMedia, useStore } from '../store';
+import { useStore } from '../store';
 import { Modal } from './Dialogs';
+import { CostEstimate, ResultThumbs } from './ResultDialogParts';
 import { BgRemovalWarning, DirectorToolFields } from './DirectorToolFields';
 import { Toggle } from './ui';
 
@@ -72,12 +73,7 @@ export function DirectorToolDialog(props: {
       wide
       footer={
         <>
-          <span
-            className={`hint ${estimate ? 'cost-warn' : ''}`}
-            title={[...reasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
-          >
-            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
-          </span>
+          <CostEstimate estimate={estimate} reasons={reasons} warn />
           <button onClick={props.close}>취소</button>
           <button className="accent" onClick={submit}>
             {requests > 1 ? `${requests}번 적용` : '적용'}
@@ -85,17 +81,7 @@ export function DirectorToolDialog(props: {
         </>
       }
     >
-      <div className="i2i-sources">
-        {props.records.slice(0, 12).map((record) => (
-          <figure key={record.id}>
-            <img src={projectMedia(props.projectId, record.thumbFile ?? record.file)} alt="" />
-            <figcaption>
-              {record.emotionName || `seed ${record.seed}`} · {record.width}×{record.height}
-            </figcaption>
-          </figure>
-        ))}
-        {count > 12 && <p className="hint">외 {count - 12}장</p>}
-      </div>
+      <ResultThumbs projectId={props.projectId} records={props.records} />
       <DirectorToolFields
         value={options}
         onChange={patch}

@@ -2,15 +2,15 @@ import { useState } from 'react';
 import type { GenerationSummary, LineFixSettings } from '../../core/domain/types';
 import {
   effectiveGenerationSettings,
-  FREE_PROJECT_ID,
   normalizeGenerationSettings,
 } from '../../core/model/defaults';
 import { REFINE_PROMPT_OPTIONS } from '../../core/model/refine';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { INPAINT_MODELS, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
 import { fixBorderLines } from '../actions';
-import { projectMedia, resolveFreeGeneration, updateLibrary, useLibrary, useStore } from '../store';
+import { resultGeneration, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
+import { CostEstimate, ResultThumbs } from './ResultDialogParts';
 import { CustomPromptFields } from './RefineFields';
 import { NumberField, SelectField } from './ui';
 
@@ -109,14 +109,7 @@ export function LineFixDialog(props: {
 }) {
   const library = useLibrary();
   const token = useStore((state) => state.token);
-  const project = library.projects.find((item) => item.id === props.projectId);
-  const preset =
-    props.projectId === FREE_PROJECT_ID
-      ? resolveFreeGeneration(library).preset
-      : library.presets.find((item) => item.id === project?.presetId);
-  const generation = normalizeGenerationSettings(
-    preset?.generation ?? library.presets[0].generation,
-  );
+  const generation = resultGeneration(library, props.projectId);
   const [options, setOptions] = useState<LineFixSettings>(library.settings.lineFix);
   // 작업을 만들 때처럼 모르는 모델 ID는 기본 모델로 읽는다.
   const modelOf = (record: GenerationSummary) =>
@@ -152,12 +145,7 @@ export function LineFixDialog(props: {
       wide
       footer={
         <>
-          <span
-            className="hint"
-            title={[...reasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
-          >
-            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
-          </span>
+          <CostEstimate estimate={estimate} reasons={reasons} />
           <button onClick={props.close}>취소</button>
           <button className="accent" disabled={unsupported.length > 0} onClick={submit}>
             {total}장 생성
@@ -165,17 +153,7 @@ export function LineFixDialog(props: {
         </>
       }
     >
-      <div className="i2i-sources">
-        {props.records.slice(0, 12).map((record) => (
-          <figure key={record.id}>
-            <img src={projectMedia(props.projectId, record.thumbFile ?? record.file)} alt="" />
-            <figcaption>
-              {record.emotionName || `seed ${record.seed}`} · {record.width}×{record.height}
-            </figcaption>
-          </figure>
-        ))}
-        {props.records.length > 12 && <p className="hint">외 {props.records.length - 12}장</p>}
-      </div>
+      <ResultThumbs projectId={props.projectId} records={props.records} />
       <LineFixFields value={options} onChange={setOptions} count />
       {unsupported.length > 0 && (
         <p className="field-error">

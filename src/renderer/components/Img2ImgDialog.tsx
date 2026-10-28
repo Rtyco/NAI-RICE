@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import type { GenerationSummary, RefineSettings } from '../../core/domain/types';
-import { FREE_PROJECT_ID, normalizeGenerationSettings } from '../../core/model/defaults';
+import { FREE_PROJECT_ID } from '../../core/model/defaults';
 import { defaultRefineSettings, refineCostJob } from '../../core/model/refine';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { sendResultsToImg2Img } from '../actions';
 import {
-  projectMedia,
-  resolveFreeGeneration,
+  resultGeneration,
   updateFreeGeneration,
   updateProject,
   useLibrary,
   useStore,
 } from '../store';
 import { Modal } from './Dialogs';
+import { CostEstimate, ResultThumbs } from './ResultDialogParts';
 import { RefineFields } from './RefineFields';
 
 export function Img2ImgDialog(props: {
@@ -25,13 +25,7 @@ export function Img2ImgDialog(props: {
   const project = library.projects.find((item) => item.id === props.projectId);
   const free = props.projectId === FREE_PROJECT_ID ? library.freeGeneration : undefined;
   const saved = project ?? free;
-  const preset =
-    props.projectId === FREE_PROJECT_ID
-      ? resolveFreeGeneration(library).preset
-      : library.presets.find((item) => item.id === project?.presetId);
-  const generation = normalizeGenerationSettings(
-    preset?.generation ?? library.presets[0].generation,
-  );
+  const generation = resultGeneration(library, props.projectId);
   const first = props.records[0];
   const [options, setOptions] = useState<RefineSettings>(
     () => saved?.refine ?? defaultRefineSettings(generation, first),
@@ -61,12 +55,7 @@ export function Img2ImgDialog(props: {
       wide
       footer={
         <>
-          <span
-            className="hint"
-            title={[...reasons, '예상값이며 실제 차감량과 다를 수 있습니다.'].join('\n')}
-          >
-            {estimate ? `예상 약 ${estimate.toLocaleString()} Anlas` : '예상 0 Anlas'}
-          </span>
+          <CostEstimate estimate={estimate} reasons={reasons} />
           <button onClick={props.close}>취소</button>
           <button className="accent" onClick={submit}>
             {total}장 생성
@@ -74,17 +63,7 @@ export function Img2ImgDialog(props: {
         </>
       }
     >
-      <div className="i2i-sources">
-        {props.records.slice(0, 12).map((record) => (
-          <figure key={record.id}>
-            <img src={projectMedia(props.projectId, record.thumbFile ?? record.file)} alt="" />
-            <figcaption>
-              {record.emotionName || `seed ${record.seed}`} · {record.width}×{record.height}
-            </figcaption>
-          </figure>
-        ))}
-        {props.records.length > 12 && <p className="hint">외 {props.records.length - 12}장</p>}
-      </div>
+      <ResultThumbs projectId={props.projectId} records={props.records} />
       <RefineFields value={options} sources={props.records} onChange={setOptions} />
       {saved && (
         <>

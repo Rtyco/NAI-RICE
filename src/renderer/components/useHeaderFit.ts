@@ -51,6 +51,11 @@ function useFitLevels(
   }, [ref, levels, start, mode]);
 }
 
+/** 지금 붙은 `.fit-n` 단계 수 */
+export function fitLevel(element: Element | null): number {
+  return [...(element?.classList ?? [])].filter((name) => name.startsWith('fit-')).length;
+}
+
 const useSimpleUi = () => useUiOption('simpleUi');
 
 /** 머리줄에 접어 둔 설정 줄의 칩이 잘리지 않게 한다(chips.css의 .fit-1 … .fit-6). */

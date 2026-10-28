@@ -6,7 +6,7 @@ import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { RecordInfo } from './RecordInfo';
 import { resultGroups, type ResultAction } from './resultMenu';
-import { useResultBarFit } from './useHeaderFit';
+import { fitLevel, useResultBarFit } from './useHeaderFit';
 
 /** 글자를 빼고 줄인 뒤의 단계부터 `fold` 순서로 하나씩 접는다(scene-detail.css). */
 const FOLD_AFTER = 3;
@@ -21,9 +21,7 @@ export function ResultBar(props: {
   const bar = useRef<HTMLDivElement>(null);
   useResultBarFit(bar);
   const showFolded = (event: MouseEvent) => {
-    const level = [...(bar.current?.classList ?? [])].filter((name) =>
-      name.startsWith('fit-'),
-    ).length;
+    const level = fitLevel(bar.current);
     showContextMenu(
       event,
       props.actions

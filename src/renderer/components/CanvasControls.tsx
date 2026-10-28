@@ -2,7 +2,7 @@ import { useRef, type MouseEvent, type ReactNode } from 'react';
 import type { useCanvasViewport } from './canvasViewport';
 import { showContextMenu, type MenuItem } from './contextMenuStore';
 import { Icon } from './Icon';
-import { useCanvasToolbarFit } from './useHeaderFit';
+import { fitLevel, useCanvasToolbarFit } from './useHeaderFit';
 import { ZOOM_STEP } from './zoom';
 
 export type ZoomView = Pick<ReturnType<typeof useCanvasViewport>, 'scale' | 'zoomTo' | 'fit'>;
@@ -24,9 +24,7 @@ export function CanvasToolbar(props: {
   const bar = useRef<HTMLDivElement>(null);
   useCanvasToolbarFit(bar);
   const showFolded = (event: MouseEvent) => {
-    const level = [...(bar.current?.classList ?? [])].filter((name) =>
-      name.startsWith('fit-'),
-    ).length;
+    const level = fitLevel(bar.current);
     showContextMenu(
       event,
       [...props.more, zoomFold(props.view), undoFold(props.history)]

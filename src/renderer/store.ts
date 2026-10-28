@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type {
   EmotionSet,
   FreeGeneration,
+  GenerationSettings,
   GenerationSummary,
   Library,
   LibrarySection,
@@ -12,6 +13,7 @@ import type {
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
 import {
   FREE_PROJECT_ID,
+  normalizeGenerationSettings,
   resolveCharacters,
   resolveProject,
   type ResolvedCharacter,
@@ -432,6 +434,18 @@ export function resolveFreeGeneration(library: Library) {
     character: characters[0]?.character,
     promptSet: characters[0]?.promptSet,
   };
+}
+
+/** 결과를 다시 보내는 창이 어림에 쓰는 생성 설정. */
+export function resultGeneration(library: Library, projectId: string): GenerationSettings {
+  const preset =
+    projectId === FREE_PROJECT_ID
+      ? resolveFreeGeneration(library).preset
+      : library.presets.find(
+          (item) =>
+            item.id === library.projects.find((project) => project.id === projectId)?.presetId,
+        );
+  return normalizeGenerationSettings((preset ?? library.presets[0]).generation);
 }
 
 export function openLibrary(section: LibrarySection, itemId?: string): void {
