@@ -47,15 +47,11 @@ export class TokenVault {
     this.legacyPath = path.join(userDataDirectory, 'novelai-token.vault');
   }
 
-  status(): TokenVaultStatus {
+  async getStatus(): Promise<TokenVaultStatus> {
     return {
-      stored: false,
+      stored: (await this.load()).accounts.length > 0,
       secureStorageAvailable: this.cipher.isEncryptionAvailable(),
     };
-  }
-
-  async getStatus(): Promise<TokenVaultStatus> {
-    return { ...this.status(), stored: (await this.load()).accounts.length > 0 };
   }
 
   private async load(): Promise<VaultFile> {

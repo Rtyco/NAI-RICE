@@ -106,6 +106,12 @@ function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   return quota.isNegative || quota.percent <= 0;
 }
 
+/** 화면에 보일 V5 할당량 %. 음수면 0이고, 조회 전이면 undefined. */
+export function shownV5Quota(account: Pick<CostAccount, 'v5Quota'>): number | undefined {
+  const quota = account.v5Quota;
+  return quota ? (quota.isNegative ? 0 : Math.max(0, quota.percent)) : undefined;
+}
+
 /** V5 무료 생성 할당량이 남은 Opus 계정. 조회 전이면 아니다. */
 export function hasV5Quota(account: CostAccount & { valid?: boolean }): boolean {
   const quota = account.v5Quota;

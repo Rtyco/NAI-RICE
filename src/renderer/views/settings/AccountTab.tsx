@@ -3,7 +3,8 @@ import { Icon } from '../../components/Icon';
 import { Card, NumberField, Toggle } from '../../components/ui';
 import { run, toast, useLibrary, useStore } from '../../store';
 import { accountApi } from '../../desktop';
-import type { AccountState, AccountSummary, TokenStatus } from '../../../shared/ipc';
+import { shownV5Quota } from '../../../core/providers/NaiCost';
+import type { AccountSummary, TokenStatus } from '../../../shared/ipc';
 import { patchSettings } from './patchSettings';
 
 function RequestDelayCard() {
@@ -50,18 +51,10 @@ function StreamingCard() {
   );
 }
 
-function quotaOf(state: AccountState): number | undefined {
-  return state.v5Quota
-    ? state.v5Quota.isNegative
-      ? 0
-      : Math.max(0, state.v5Quota.percent)
-    : undefined;
-}
-
 /** 이름은 칸을 떠날 때 저장한다. */
 function AccountRow({ account, busy }: { account: AccountSummary; busy: boolean }) {
   const [name, setName] = useState(account.name);
-  const quota = quotaOf(account);
+  const quota = shownV5Quota(account);
   const apply = (label: string, call: () => Promise<TokenStatus>) =>
     void run(label, async () => useStore.setState({ token: await call() }));
   return (
@@ -107,7 +100,7 @@ export function AccountTab() {
   const [input, setInput] = useState('');
   const [name, setName] = useState('');
   const rotation = useLibrary().settings.accountRotation;
-  const quota = quotaOf(token);
+  const quota = shownV5Quota(token);
   return (
     <>
       <Card title="NovelAI 계정">

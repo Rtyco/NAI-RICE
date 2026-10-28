@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { shownV5Quota } from '../../core/providers/NaiCost';
 import { refreshAccount, run, useStore } from '../store';
 import { Icon } from './Icon';
 
@@ -16,7 +17,7 @@ export function AccountMeter() {
   const [now, setNow] = useState(() => Date.now());
   const [change, setChange] = useState<{ anlas?: number; quota?: number; key: number }>();
   const previous = useRef<{ anlas?: number; quota?: number }>({});
-  const quota = token.v5Quota ? (token.v5Quota.isNegative ? 0 : token.v5Quota.percent) : undefined;
+  const quota = shownV5Quota(token);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
