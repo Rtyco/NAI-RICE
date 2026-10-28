@@ -3,7 +3,6 @@ import {
   buildFreeJobs,
   buildJobs,
   buildResultAugmentJobs,
-  buildResultInpaintJobs,
   buildSceneImg2ImgJobs,
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
@@ -26,12 +25,7 @@ import {
   DEFAULT_AUGMENT_SETTINGS,
   freeAugmentSize,
 } from '../core/providers/NaiAugment';
-import {
-  aidItems,
-  effectiveGenerationSettings,
-  FREE_PROJECT_ID,
-  projectAid,
-} from '../core/model/defaults';
+import { aidItems, FREE_PROJECT_ID, projectAid } from '../core/model/defaults';
 import {
   hasScenePrompt,
   img2imgMissing,
@@ -39,12 +33,13 @@ import {
   type ResolvedCharacter,
   type ResolvedProject,
 } from '../core/model/defaults';
+import { autoLineFixOn, autoLineFixSettings, buildLineFixJobs } from '../core/model/lineFix';
 import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
-import { applyPendingDrawing, dropSourceFiles, findBorderLineMask, saveMask } from './freeImageOps';
+import { applyPendingDrawing, saveMask } from './freeImageOps';
 import type { AidValue } from './components/AidChip';
 
 function jobCharacters(characters: ResolvedCharacter[]): JobCharacter[] {
@@ -166,6 +161,10 @@ function enqueueProjectJobs(
   if (project.autoRefine) {
     const refine = projectRefineSettings(project, resolved.preset, resolved.reference);
     jobs = jobs.map((job) => ({ ...job, refine }));
+  }
+  if (autoLineFixOn(project)) {
+    const lineFix = autoLineFixSettings(useStore.getState().library!.settings.lineFix);
+    jobs = jobs.map((job) => ({ ...job, lineFix }));
   }
   return enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);
 }
@@ -336,53 +335,18 @@ export function fixBorderLines(
     const free = projectId === FREE_PROJECT_ID;
     const project = library.projects.find((item) => item.id === projectId);
     if (!free && !project) throw new Error('작업을 찾을 수 없습니다.');
-    const jobs: GenerationJobSnapshot[] = [];
-    let missed = 0;
-    for (const summary of records) {
-      const record = await libraryApi().getGeneration(projectId, summary.id);
-      const { model } = effectiveGenerationSettings({
-        ...record.settings,
-        ...(settings.model ? { model: settings.model } : {}),
-      });
-      if (!supportsInpaint(model))
-        throw new Error(
-          `${modelLabel(model)}은(는) 인페인팅을 지원하지 않습니다. 구분선 지우기 창에서 모델을 고르십시오.`,
-        );
-      const stored = await libraryApi().addSourceImage({
-        kind: 'record',
-        projectId,
-        generationId: record.id,
-      });
-      const found = await findBorderLineMask(stored, settings.marginPx);
-      if (!found) {
-        missed += 1;
-        dropSourceFiles(stored);
-        continue;
-      }
-      const { mask, ...image } = await libraryApi().prepareSourceInput({
-        projectId,
-        file: stored.file,
-        maskFile: found.maskFile,
-      });
-      dropSourceFiles({ file: stored.file, maskFile: found.maskFile });
-      if (!mask) continue;
-      jobs.push(
-        ...buildResultInpaintJobs({
-          ...settings,
-          record,
-          image,
-          mask,
-          width: stored.width,
-          height: stored.height,
-          outputRect: stored.outputRect,
-          projectName: free ? '자유 생성' : project!.name,
-          outputFilenameTemplate: free
-            ? FREE_FILENAME_TEMPLATE
-            : library.settings.outputFilenameTemplate,
-        }),
-      );
-    }
-    if (missed) toast(`${missed}장은 구분선을 찾지 못해 뺐습니다.`);
+    const { jobs, skipped } = await buildLineFixJobs(
+      settings,
+      await Promise.all(records.map((record) => libraryApi().getGeneration(projectId, record.id))),
+      {
+        projectName: free ? '자유 생성' : project!.name,
+        outputFilenameTemplate: free
+          ? FREE_FILENAME_TEMPLATE
+          : library.settings.outputFilenameTemplate,
+      },
+      (request) => libraryApi().prepareBorderLineInput(request),
+    );
+    if (skipped.length) toast(`${skipped.length}장은 구분선을 찾지 못해 뺐습니다.`);
     if (!jobs.length) throw new Error('구분선을 찾은 결과가 없습니다.');
     await enqueue(jobs, `구분선 지우기 ${jobs.length}장을 생성 큐에 등록했습니다.`);
   }).then(() => undefined);

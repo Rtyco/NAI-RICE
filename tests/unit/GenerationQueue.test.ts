@@ -9,11 +9,11 @@ import type {
   RefineSettings,
   Txt2ImgJobSnapshot,
 } from '../../src/core/domain/types';
-import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
+import { DEFAULT_GENERATION_SETTINGS, DEFAULT_LINE_FIX } from '../../src/core/model/defaults';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
-import { buildRefineJobs } from '../../src/core/model/refine';
+import { buildFollowUpJobs } from '../../src/core/model/lineFix';
 
 let root: string;
 afterEach(() => rm(root, { recursive: true, force: true }));
@@ -143,15 +143,21 @@ describe('GenerationQueue 실패 처리', () => {
   });
 
   /** 실제 작업 폴더에 결과를 쓰는 큐. `outcomes`를 앞에서부터 하나씩 돌려준다(오류면 던진다). */
-  async function runningQueue(outcomes: Array<Error | 'ok'>, followUps?: 'refine' | 'broken') {
+  async function runningQueue(
+    outcomes: Array<Error | 'ok'>,
+    followUps?: 'refine' | 'broken',
+    result?: Buffer,
+  ) {
     root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
     const library = new Library(root);
     await library.load();
-    const png = await sharp({
-      create: { width: 64, height: 64, channels: 4, background: '#00ff00' },
-    })
-      .png()
-      .toBuffer();
+    const png =
+      result ??
+      (await sharp({
+        create: { width: 64, height: 64, channels: 4, background: '#00ff00' },
+      })
+        .png()
+        .toBuffer());
     let calls = 0;
     const queue = new GenerationQueue({
       persistencePath: path.join(root, 'queue.json'),
@@ -168,11 +174,12 @@ describe('GenerationQueue 실패 처리', () => {
       emit: () => undefined,
       onRecord: () => undefined,
       ...(followUps && {
-        followUps: async (refine, job, records) => {
+        followUps: async (job, records) => {
           if (followUps === 'broken') throw new Error('입력을 만들지 못함');
-          const jobs = await buildRefineJobs(refine, records, job, (request) =>
-            library.prepareImageInput(request),
-          );
+          const jobs = await buildFollowUpJobs(job, records, {
+            prepareImageInput: (request) => library.prepareImageInput(request),
+            prepareBorderLineInput: (request) => library.prepareBorderLineInput(request),
+          });
           return { jobs, estimates: [] };
         },
       }),
@@ -259,6 +266,51 @@ describe('GenerationQueue 실패 처리', () => {
     });
     expect(jobs[1]).not.toHaveProperty('refine');
   });
+
+  it('구분선 지우기가 있으면 선을 찾은 결과를 먼저 지우고, 지운 결과를 다듬어', async () => {
+    const lined = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: '#ffffff' },
+    })
+      .composite([
+        {
+          input: { create: { width: 4, height: 64, channels: 3, background: '#000000' } },
+          left: 2,
+          top: 0,
+        },
+      ])
+      .png()
+      .toBuffer();
+    const { queue } = await runningQueue(['ok'], 'refine', lined);
+    const lineFix = { ...DEFAULT_LINE_FIX, count: 1 };
+    await queue.enqueue([{ ...textJob('a'), lineFix, refine }, textJob('b')]);
+    await until(
+      () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
+      15_000,
+    );
+    await queue.pause();
+    const jobs = queue.getSnapshot().jobs;
+    expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'inpaint', 'img2img', 'txt2img']);
+    expect(jobs[1]).toMatchObject({
+      sourceRecordId: jobs[0].generationId,
+      outputRect: { x: 0, y: 0, width: 64, height: 64 },
+      refine,
+    });
+    expect(jobs[1]).not.toHaveProperty('lineFix');
+    expect(jobs[2]).toMatchObject({ sourceRecordId: jobs[1].generationId });
+  }, 20_000);
+
+  it('구분선이 없으면 원본을 바로 다듬어', async () => {
+    const { queue } = await runningQueue(['ok'], 'refine');
+    await queue.enqueue([{ ...textJob('a'), lineFix: DEFAULT_LINE_FIX, refine }]);
+    await until(
+      () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
+      15_000,
+    );
+    await queue.pause();
+    const jobs = queue.getSnapshot().jobs;
+    expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'img2img']);
+    expect(jobs[1]).toMatchObject({ sourceRecordId: jobs[0].generationId });
+  }, 20_000);
 
   it('다듬기 작업을 만들지 못해도 원본은 완료로 두고 다음 작업으로 넘어가', async () => {
     const { queue } = await runningQueue(['ok'], 'broken');

@@ -1,6 +1,8 @@
 import { promises as fs } from 'node:fs';
 import sharp from 'sharp';
 import type { Reference } from '../../src/core/domain/types';
+import { borderLineMask, detectBorderLines } from '../../src/core/imaging/BorderLines';
+import type { BorderLineInput, BorderLineRequest } from '../../src/core/model/lineFix';
 import type {
   ImageInputRequest,
   PreparedImage,
@@ -15,6 +17,7 @@ import {
   imageSize,
   integerCrop,
   maskHasGeneratePixels,
+  padToMultiple,
 } from './Images';
 import type { StoredFiles } from './StoredFiles';
 import type { WorkspacePaths } from './WorkspacePaths';
@@ -82,6 +85,42 @@ export class ProjectInputs {
       mask,
     );
     return { ...image, mask: { maskPath, maskSha256 } };
+  }
+
+  /** 구분선이 없으면 undefined. 마스크는 화면이 칠하는 것과 같은 흰색·검은색 PNG다. */
+  async prepareBorderLineInput(request: BorderLineRequest): Promise<BorderLineInput | undefined> {
+    const marginPx = Math.min(32, Math.max(0, Math.round(request.marginPx)));
+    const original = await this.files.readImageSource(request.source);
+    const { png, width, height, content } = await padToMultiple(original);
+    const pixels = await sharp(png).ensureAlpha().raw().toBuffer();
+    const lines = detectBorderLines(
+      {
+        width,
+        height,
+        data: new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.length),
+      },
+      content,
+    );
+    if (!lines.length) return undefined;
+    const mask = borderLineMask(width, height, content, lines, marginPx);
+    const rgba = Buffer.alloc(width * height * 4, 255);
+    for (let pixel = 0; pixel < mask.length; pixel += 1)
+      if (!mask[pixel]) rgba.fill(0, pixel * 4, pixel * 4 + 3);
+    const maskPng = await sharp(rgba, { raw: { width, height, channels: 4 } })
+      .png()
+      .toBuffer();
+    const { imagePath, imageSha256, maskPath, maskSha256 } = await this.writeInpaintInputs(
+      request.projectId,
+      png,
+      maskPng,
+    );
+    return {
+      image: { imagePath, imageSha256 },
+      mask: { maskPath, maskSha256 },
+      width,
+      height,
+      outputRect: content,
+    };
   }
 
   private async writeInpaintInputs(

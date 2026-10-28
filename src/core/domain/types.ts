@@ -267,6 +267,8 @@ export type Project = {
   refine?: RefineSettings;
   /** 켜면 이 작업의 씬 생성 결과마다 `refine`으로 다듬기를 이어 붙인다. */
   autoRefine?: boolean;
+  /** 켜면 인페인트 모드 결과마다 구분선을 찾아 찾은 것만 지운다(`settings.lineFix`, 1장). */
+  autoLineFix?: boolean;
   excludedEmotionIds: string[];
   /** 감정 ID → 생성 기록 ID */
   favorites: Record<string, string>;
@@ -291,7 +293,7 @@ export type RefinePrompt = 'source' | 'negative-only' | 'empty' | 'custom';
 /** 크롭된 결과 가장자리에 NovelAI가 그린 구분선을 찾아 그 자리만 인페인트한다. */
 export type LineFixSettings = {
   /** i2i로 보낸 이미지에서 찾아 마스크를 칠해 둔다. */
-  auto: boolean;
+  autoMask: boolean;
   /** 비면 원본 결과의 모델 */
   model: string;
   prompt: RefinePrompt;
@@ -696,6 +698,8 @@ export type JobSnapshotCommon = {
   aid?: JobAid;
   /** 있으면 끝난 결과마다 이 값으로 다듬기를 큐에 이어 붙인다. */
   refine?: RefineSettings;
+  /** 있으면 끝난 결과마다 구분선을 찾아 지우기를 이어 붙인다. `refine`은 지운 결과에 붙는다. */
+  lineFix?: LineFixSettings;
 };
 
 /** 작업 폴더 기준 상대 경로. 해시 이름의 불변 파일이다. */

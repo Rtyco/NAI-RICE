@@ -135,7 +135,7 @@ function lineFixSettings() {
 /** 찾지 못해도 이미지는 그대로 보낸다. */
 async function autoBorderLineMask(image: StoredSource) {
   const settings = lineFixSettings();
-  if (!settings?.auto) return undefined;
+  if (!settings?.autoMask) return undefined;
   return findBorderLineMask(image, settings.marginPx).catch(() => undefined);
 }
 

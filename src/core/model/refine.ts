@@ -203,6 +203,15 @@ export async function buildRefineJobs(
   return jobs;
 }
 
-export function generateCountLabel(images: number, refineImages: number): string {
+/** 구분선 지우기는 선을 찾은 결과만 생성해 최대 장수다. */
+export function generateCountLabel(
+  images: number,
+  refineImages: number,
+  lineFixImages = 0,
+): string {
+  if (lineFixImages)
+    return refineImages
+      ? `${images}장 + 후처리 최대 ${lineFixImages + refineImages}장`
+      : `${images}장 + 구분선 최대 ${lineFixImages}장`;
   return refineImages ? `${images}장 + 다듬기 ${refineImages}장` : `${images}장 생성`;
 }

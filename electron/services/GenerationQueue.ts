@@ -6,7 +6,6 @@ import type {
   QueueSnapshot,
   QueueView,
   QueuedGenerationJob,
-  RefineSettings,
 } from '../../src/core/domain/types';
 import {
   cancel as cancelJob,
@@ -51,9 +50,8 @@ type QueueDependencies = {
   /** 요청마다 읽는다. */
   streaming?: () => boolean;
   onPreview?: (preview: GenerationPreview) => void;
-  /** 작업에 `refine`이 있을 때 끝난 뒤 이어 붙일 작업(생성 후 다듬기). */
+  /** 작업에 `lineFix`나 `refine`이 있을 때 끝난 뒤 이어 붙일 작업(구분선 지우기, 다듬기). */
   followUps?: (
-    refine: RefineSettings,
     job: QueuedGenerationJob,
     records: GenerationRecord[],
   ) => Promise<{ jobs: GenerationJobSnapshot[]; estimates: number[] }>;
@@ -132,9 +130,9 @@ export class GenerationQueue {
 
   /** 원본 바로 뒤에 넣어 씬마다 원본과 다듬기가 짝으로 끝난다. 만들지 못해도 원본은 그대로 둔다. */
   private async addFollowUps(job: QueuedGenerationJob, records: GenerationRecord[]): Promise<void> {
-    if (!job.refine || !this.dependencies.followUps) return;
+    if ((!job.lineFix && !job.refine) || !this.dependencies.followUps) return;
     try {
-      const { jobs, estimates } = await this.dependencies.followUps(job.refine, job, records);
+      const { jobs, estimates } = await this.dependencies.followUps(job, records);
       if (!jobs.length) return;
       this.snapshot.jobs.splice(
         this.snapshot.jobs.indexOf(job) + 1,
@@ -143,7 +141,7 @@ export class GenerationQueue {
       );
       await this.commit();
     } catch (error) {
-      console.warn('다듬기 작업을 만들지 못했습니다.', error);
+      console.warn('이어 붙일 작업을 만들지 못했습니다.', error);
     }
   }
 

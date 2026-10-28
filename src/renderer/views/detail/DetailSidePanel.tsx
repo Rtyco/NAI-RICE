@@ -6,7 +6,7 @@ import { comboCount } from '../../../core/model/sceneCombos';
 import { hasMarker } from '../../../core/prompts/PromptComposer';
 import { usesMedium } from '../../../core/providers/NaiModels';
 import { Icon } from '../../components/Icon';
-import { AutoRefineToggle } from '../../components/RefineChip';
+import { AutoLineFixToggle, AutoRefineToggle } from '../../components/RefineChip';
 import { ScenePromptFields } from '../../components/ScenePromptFields';
 import { SceneExtras } from '../../components/SceneExtras';
 import { SceneSlotsEditor } from '../../components/SceneSlotsEditor';
@@ -157,6 +157,7 @@ export function DetailSidePanel({
       </label>
 
       <div className="generate-dock">
+        {project.mode === 'reference' && <AutoLineFixToggle project={project} />}
         <AutoRefineToggle target={projectRefineTarget(resolved)} />
         <NumberField
           label="생성 수"

@@ -16,6 +16,7 @@ import {
   projectRefineSettings,
   refineCostJob,
 } from '../../core/model/refine';
+import { autoLineFixOn } from '../../core/model/lineFix';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
 import {
@@ -46,7 +47,7 @@ import { SidePanelToggle } from '../components/SidePanel';
 import { useChainBarFit, useHeaderFit } from '../components/useHeaderFit';
 import { TopBarToggle } from '../components/TopBarToggle';
 import { ChecklistChip, SizeChip } from '../components/ChainChip';
-import { RefineChip } from '../components/RefineChip';
+import { PostProcessChip } from '../components/RefineChip';
 import { projectRefineTarget } from '../refineTargets';
 import { Stepper } from '../components/Stepper';
 import { useShortcut } from '../useShortcut';
@@ -191,7 +192,7 @@ function ChainBar({ resolved, compact }: { resolved: ResolvedProject; compact?: 
         onPick={(emotionSetId) => patch({ emotionSetId })}
         editSection="emotionSets"
       />
-      <RefineChip target={projectRefineTarget(resolved)} />
+      <PostProcessChip target={projectRefineTarget(resolved)} project={project} />
       <TopBarToggle collapsed={Boolean(compact)} />
     </div>
   );
@@ -430,7 +431,11 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const scenes = emotionSet?.emotions.filter((emotion) => batch.includes(emotion.id)) ?? [];
   const combos = scenes.reduce((total, emotion) => total + comboCount(emotion), 0);
   const count = combos * (preset?.generation.variantsPerEmotion ?? 1);
-  const countLabel = generateCountLabel(count, autoRefineCount(count, project, preset, reference));
+  const countLabel = generateCountLabel(
+    count,
+    autoRefineCount(count, project, preset, reference),
+    autoLineFixOn(project) ? count : 0,
+  );
   const { estimate, reasons: costReasons } = batchCost(
     resolved,
     scenes,

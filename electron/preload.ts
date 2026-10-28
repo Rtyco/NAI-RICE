@@ -29,6 +29,7 @@ const api: DesktopApi = {
   addSourceFromReference: (reference) => ipcRenderer.invoke('source:add-reference', reference),
   deleteSourceImage: (file) => ipcRenderer.invoke('source:delete', file),
   prepareSourceInput: (request) => ipcRenderer.invoke('source:prepare-input', request),
+  prepareBorderLineInput: (request) => ipcRenderer.invoke('source:prepare-border-line', request),
   readImageDataUrl: (source) => ipcRenderer.invoke('image:read-data-url', source),
   deleteProjectFiles: (id) => ipcRenderer.invoke('project:delete-files', id),
   listGenerations: (id) => ipcRenderer.invoke('generations:list', id),

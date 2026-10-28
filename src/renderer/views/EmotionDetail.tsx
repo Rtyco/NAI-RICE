@@ -8,6 +8,7 @@ import {
   recordedScenePrompts,
   sameScenePrompts,
 } from '../../core/model/sceneCombos';
+import { autoLineFixOn } from '../../core/model/lineFix';
 import { autoRefineCount, generateCountLabel } from '../../core/model/refine';
 import { supportsInpaint } from '../../core/providers/NaiModels';
 import { generateEmotions, generateSceneImg2Img, type GenerateOptions } from '../actions';
@@ -138,6 +139,7 @@ export function EmotionDetail({
   const imagesLabel = generateCountLabel(
     images,
     autoRefineCount(images, project, resolved.preset, resolved.reference),
+    autoLineFixOn(project) ? images : 0,
   );
 
   const setFavorite = (generationId?: string) =>

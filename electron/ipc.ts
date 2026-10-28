@@ -22,6 +22,7 @@ import type { GenerationRequests } from './services/GenerationRequests';
 import { toQueueView } from '../src/core/jobs/QueueView';
 import type { TokenizerName } from '../src/core/prompts/PromptTokens';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
+import type { BorderLineRequest } from '../src/core/model/lineFix';
 import { findInRecord, type GenerationFindHit } from '../src/core/model/promptFields';
 import { GENERATION_FIND_LIMIT } from '../src/shared/ipc';
 import { ZOOM_STEP, zoomWindow } from './window';
@@ -111,6 +112,9 @@ export function registerIpc(services: AppServices): void {
   );
   ipcMain.handle('source:prepare-input', (_event, request: SourceInputRequest) =>
     library.prepareSourceInput(request),
+  );
+  ipcMain.handle('source:prepare-border-line', (_event, request: BorderLineRequest) =>
+    library.prepareBorderLineInput(request),
   );
   ipcMain.handle('project:delete-files', async (_event, id: string) => {
     await queue.cancelProject(id);

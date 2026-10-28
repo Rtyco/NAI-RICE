@@ -6,6 +6,7 @@ import type {
   Reference,
 } from '../../src/core/domain/types';
 import { createDefaultLibrary } from '../../src/core/model/defaults';
+import type { BorderLineInput, BorderLineRequest } from '../../src/core/model/lineFix';
 import { compareVersions, WHATS_NEW_VERSION } from '../../src/core/update/UpdateCheck';
 import { librarySchema } from '../../src/core/validation/schemas';
 import type {
@@ -188,6 +189,10 @@ export class Library
 
   prepareSourceInput(request: SourceInputRequest): Promise<PreparedSourceInput> {
     return this.inputs.prepareSourceInput(request);
+  }
+
+  prepareBorderLineInput(request: BorderLineRequest): Promise<BorderLineInput | undefined> {
+    return this.inputs.prepareBorderLineInput(request);
   }
 
   prepareImageInput(request: ImageInputRequest): Promise<PreparedImage> {

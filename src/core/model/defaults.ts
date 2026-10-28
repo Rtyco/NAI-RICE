@@ -246,7 +246,7 @@ export function createProject(
 }
 
 export const DEFAULT_LINE_FIX: LineFixSettings = {
-  auto: true,
+  autoMask: true,
   model: '',
   prompt: 'source',
   strength: 1,

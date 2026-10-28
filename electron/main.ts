@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, Menu, net, session, shell } from 'electron';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
-import { buildRefineJobs } from '../src/core/model/refine';
+import { buildFollowUpJobs } from '../src/core/model/lineFix';
 import { estimateJobAnlas } from '../src/core/providers/NaiCost';
 import { NovelAIProvider } from '../src/core/providers/NovelAIProvider';
 import { registerIpc, type AppServices } from './ipc';
@@ -65,10 +65,11 @@ async function createServices(): Promise<AppServices> {
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
     streaming: () => library.settings?.streaming ?? false,
     onPreview: (preview) => broadcast('generation:preview', preview),
-    followUps: async (refine, job, records) => {
-      const jobs = await buildRefineJobs(refine, records, job, (request) =>
-        library.prepareImageInput(request),
-      );
+    followUps: async (job, records) => {
+      const jobs = await buildFollowUpJobs(job, records, {
+        prepareImageInput: (request) => library.prepareImageInput(request),
+        prepareBorderLineInput: (request) => library.prepareBorderLineInput(request),
+      });
       return { jobs, estimates: jobs.map((item) => estimateJobAnlas(item, account.latest)) };
     },
   });

@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import type { RefinePrompt, RefineSettings } from '../../core/domain/types';
+import { useState, type ReactNode } from 'react';
+import type { Project, RefinePrompt, RefineSettings } from '../../core/domain/types';
+import { autoLineFixOn, lineFixSummary } from '../../core/model/lineFix';
 import { refineShortSummary, refineSummary } from '../../core/model/refine';
 import type { RefineTarget } from '../refineTargets';
+import { updateProject, useStore } from '../store';
 import { ChecklistChip } from './ChainChip';
 import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
 import { Icon, type IconName } from './Icon';
+import { LineFixSettingsDialog } from './LineFixDialog';
 import { RefineFields } from './RefineFields';
 
 function RefineSettingsDialog(props: { target: RefineTarget; close: () => void }) {
@@ -45,6 +48,15 @@ function openRefineSettings(target: RefineTarget): void {
   void openDialog((close) => <RefineSettingsDialog target={target} close={close} />);
 }
 
+function openLineFixSettings(): void {
+  void openDialog((close) => <LineFixSettingsDialog close={close} />);
+}
+
+type LineFixProject = Pick<Project, 'id' | 'mode' | 'autoLineFix'>;
+
+const setAutoLineFix = (project: LineFixProject, autoLineFix: boolean) =>
+  updateProject(project.id, (current) => ({ ...current, autoLineFix }));
+
 function RefineValue({ settings, iconClass }: { settings: RefineSettings; iconClass: string }) {
   const promptIcon = PROMPT_ICONS[settings.prompt];
   return (
@@ -77,28 +89,115 @@ export function RefineChip({ target }: { target: RefineTarget }) {
   );
 }
 
-export function AutoRefineToggle({ target }: { target: RefineTarget }) {
+/** 작업의 설정 줄에서 생성 뒤 구분선 지우기와 다듬기를 켠다. 구분선 지우기 값은 프로그램 설정에 있다. */
+export function PostProcessChip({
+  target,
+  project,
+}: {
+  target: RefineTarget;
+  project: LineFixProject;
+}) {
+  const lineFix = useStore((state) => state.library!.settings.lineFix);
+  const lineOn = autoLineFixOn(project);
+  const refineOn = target.on;
+  const value =
+    [lineOn && '구분선 지우기', refineOn && refineSummary(target.settings)]
+      .filter(Boolean)
+      .join(' · ') || '끔';
   return (
-    <div className="auto-refine-row" title={refineSummary(target.settings)}>
+    <ChecklistChip
+      label={{
+        text: '자동 후처리',
+        icon: lineOn && !refineOn ? 'border-line' : 'upscale',
+        usage: '작업에 저장',
+      }}
+      value={value}
+      display={
+        lineOn || refineOn ? (
+          <>
+            {lineOn && '구분선'}
+            {lineOn && refineOn && ' · '}
+            {refineOn && <RefineValue settings={target.settings} iconClass="chain-value-icon" />}
+          </>
+        ) : undefined
+      }
+      multi
+      items={[
+        {
+          id: 'line',
+          name: `구분선 지우기 · ${lineFixSummary(lineFix)}`,
+          disabled: project.mode === 'reference' ? undefined : '인페인트 모드에서만 씁니다.',
+          edit: { title: '구분선 지우기 설정', open: openLineFixSettings },
+        },
+        {
+          id: 'refine',
+          name: `다듬기 · ${refineSummary(target.settings)}`,
+          edit: { title: '다듬기 설정', open: () => openRefineSettings(target) },
+        },
+      ]}
+      checked={[...(lineOn ? ['line'] : []), ...(refineOn ? ['refine'] : [])]}
+      onPick={(id) => (id === 'line' ? setAutoLineFix(project, !lineOn) : target.setOn(!refineOn))}
+    />
+  );
+}
+
+function AutoRow(props: {
+  label: string;
+  on: boolean;
+  setOn: (on: boolean) => void;
+  summary: string;
+  value: ReactNode;
+  editTitle: string;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="auto-refine-row" title={props.summary}>
       <label className="toggle-field">
         <input
           type="checkbox"
-          checked={target.on}
-          onChange={(event) => target.setOn(event.target.checked)}
+          checked={props.on}
+          onChange={(event) => props.setOn(event.target.checked)}
         />
-        <span>자동 다듬기</span>
+        <span>{props.label}</span>
       </label>
-      <span className="auto-refine-value">
-        <RefineValue settings={target.settings} iconClass="auto-refine-icon" />
-      </span>
+      <span className="auto-refine-value">{props.value}</span>
       <button
         className="icon-button"
-        title="다듬기 설정"
-        aria-label="다듬기 설정"
-        onClick={() => openRefineSettings(target)}
+        title={props.editTitle}
+        aria-label={props.editTitle}
+        onClick={props.onEdit}
       >
         <Icon name="edit" size={14} />
       </button>
     </div>
+  );
+}
+
+export function AutoRefineToggle({ target }: { target: RefineTarget }) {
+  return (
+    <AutoRow
+      label="자동 다듬기"
+      on={target.on}
+      setOn={target.setOn}
+      summary={refineSummary(target.settings)}
+      value={<RefineValue settings={target.settings} iconClass="auto-refine-icon" />}
+      editTitle="다듬기 설정"
+      onEdit={() => openRefineSettings(target)}
+    />
+  );
+}
+
+export function AutoLineFixToggle({ project }: { project: LineFixProject }) {
+  const summary = lineFixSummary(useStore((state) => state.library!.settings.lineFix));
+  return (
+    <AutoRow
+      label="자동 구분선 지우기"
+      on={autoLineFixOn(project)}
+      setOn={(on) => setAutoLineFix(project, on)}
+      summary={summary}
+      value={summary}
+      editTitle="구분선 지우기 설정"
+      onEdit={openLineFixSettings}
+    />
   );
 }

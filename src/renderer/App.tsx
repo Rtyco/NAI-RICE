@@ -81,7 +81,11 @@ const CHAIN_CHIPS: Array<{ icons: IconName[]; label: string; role: string }> = [
   { icons: ['reference'], label: '인페인트', role: '참고 이미지 · 캔버스 (인페인트 모드)' },
   { icons: ['portrait', 'vibe'], label: '참고', role: '캐릭터 레퍼런스 ⇄ 바이브 (V4.5)' },
   { icons: ['emotion'], label: '씬 모음', role: '씬 프롬프트' },
-  { icons: ['upscale'], label: '자동 다듬기', role: '생성할 때마다 다듬기' },
+  {
+    icons: ['border-line', 'upscale'],
+    label: '자동 후처리',
+    role: '생성할 때마다 구분선 지우기 · 다듬기',
+  },
 ];
 
 function Welcome() {

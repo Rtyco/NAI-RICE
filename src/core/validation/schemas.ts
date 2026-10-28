@@ -289,8 +289,14 @@ function readSingleCharacterReference(value: unknown): unknown {
   };
 }
 
-export const lineFixSettingsSchema = z.object({
-  auto: z.boolean(),
+// 1.1.4 개발 중에는 autoMask가 auto였다.
+const readLineFixAuto = (value: unknown) =>
+  value && typeof value === 'object' && 'auto' in value && !('autoMask' in value)
+    ? { ...value, autoMask: value.auto }
+    : value;
+
+const lineFixObjectSchema = z.object({
+  autoMask: z.boolean(),
   model: z.string(),
   prompt: z.enum(['source', 'negative-only', 'empty', 'custom']),
   customPositive: z.string().max(20000).optional(),
@@ -300,6 +306,8 @@ export const lineFixSettingsSchema = z.object({
   count: z.number().int().min(1).max(10),
   seedMode: z.enum(['source', 'random']),
 });
+
+export const lineFixSettingsSchema = z.preprocess(readLineFixAuto, lineFixObjectSchema);
 
 export const refineSettingsSchema = z.object({
   model: z.string(),
@@ -358,6 +366,7 @@ export const projectSchema = z.preprocess(
     normalizeVibes: z.boolean().optional().catch(undefined),
     refine: refineSettingsSchema.optional().catch(undefined),
     autoRefine: z.boolean().optional().catch(undefined),
+    autoLineFix: z.boolean().optional().catch(undefined),
     excludedEmotionIds: z.array(z.string()).default([]),
     favorites: z.record(z.string(), z.string()).default({}),
     sceneImg2Img: z
@@ -731,6 +740,7 @@ const jobSnapshotCommonSchema = z.object({
   warnings: z.array(z.string()),
   sourceRecordId: z.string().min(1).optional(),
   refine: refineSettingsSchema.optional(),
+  lineFix: lineFixSettingsSchema.optional(),
   aid: z
     .preprocess(
       readSingleAid,

@@ -274,4 +274,12 @@ describe('구분선 지우기', () => {
       DEFAULT_LINE_FIX,
     );
   });
+
+  it('1.1.4 개발 중의 auto를 autoMask로 읽어', () => {
+    const old: Record<string, unknown> = { ...DEFAULT_LINE_FIX, auto: false };
+    delete old.autoMask;
+    expect(appSettingsSchema.parse({ ...DEFAULT_SETTINGS, lineFix: old }).lineFix.autoMask).toBe(
+      false,
+    );
+  });
 });

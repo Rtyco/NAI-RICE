@@ -11,6 +11,7 @@ import type {
   Reference,
   Vibe,
 } from '../core/domain/types';
+import type { PrepareBorderLineInput } from '../core/model/lineFix';
 import type { UpdateCheckResult } from '../core/update/UpdateCheck';
 import type { TokenizerName } from '../core/prompts/PromptTokens';
 import type { MetadataVibe } from '../core/vibes/VibeFile';
@@ -189,6 +190,7 @@ export type LibraryApi = {
   /** 앱이 만든 사본이라 휴지통을 거치지 않는다. */
   deleteSourceImage: (file: string) => Promise<void>;
   prepareSourceInput: (request: SourceInputRequest) => Promise<PreparedSourceInput>;
+  prepareBorderLineInput: PrepareBorderLineInput;
   /** 화면 CSP가 `desk-media:` fetch를 막고, 그 주소로 그린 캔버스는 다른 출처라 픽셀을 읽을 수 없다. */
   readImageDataUrl: (source: ImageDataSource) => Promise<string>;
   deleteProjectFiles: (projectId: string) => Promise<void>;
