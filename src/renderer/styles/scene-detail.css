@@ -299,36 +299,35 @@ button.detail-position[aria-expanded='true'] {
   height: 28px;
   padding: 0;
 }
-.result-send {
-  display: flex;
-  gap: inherit;
-}
-/* 이름 있는 버튼은 아이콘만으로 줄이지 않고(resultMenu.ts keepLabel) 보내기 묶음 끝부터 이름째 ⋯로 접는다. */
-.result-bar:not(.fit-2) .result-more,
-.result-bar.fit-2 .result-send > :nth-last-child(-n + 1),
-.result-bar.fit-3 .result-send > :nth-last-child(-n + 2),
-.result-bar.fit-4 .result-send > :nth-last-child(-n + 3),
-.result-bar.fit-5 .result-send > :nth-last-child(-n + 4),
-.result-bar.fit-6 .result-send > :nth-last-child(-n + 5),
+/* 글자 → 아이콘만 → 촘촘히 → 덜 중요한 버튼부터 ⋯로 접기(resultMenu.ts fold, 단계 4부터 하나씩) */
 .result-bar.fit-1 :not(.keep-label) > .result-label,
-.result-bar.fit-7 .result-label {
+.result-bar.fit-2 .result-label,
+.result-bar:not(.fit-4) .result-more,
+.result-bar.fit-4 [data-fold='1'],
+.result-bar.fit-5 [data-fold='2'],
+.result-bar.fit-6 [data-fold='3'],
+.result-bar.fit-7 [data-fold='4'],
+.result-bar.fit-8 [data-fold='5'],
+.result-bar.fit-9 [data-fold='6'],
+.result-bar.fit-10 [data-fold='7'],
+.result-bar.fit-11 [data-fold='8'] {
   display: none;
 }
 .result-bar.fit-1 .with-icon:not(.keep-label),
-.result-bar.fit-7 .with-icon {
+.result-bar.fit-2 .with-icon {
   min-width: 28px;
   height: 28px;
   justify-content: center;
   padding: 0;
 }
-.result-bar.fit-8 {
+.result-bar.fit-3 {
   gap: 1px;
   padding: 4px 6px;
 }
-.result-bar.fit-8 .zone-divider {
+.result-bar.fit-3 .zone-divider {
   display: none;
 }
-.result-bar.fit-8 :is(.icon-button, .with-icon) {
+.result-bar.fit-3 :is(.icon-button, .with-icon) {
   min-width: 24px;
   width: 24px;
   height: 24px;

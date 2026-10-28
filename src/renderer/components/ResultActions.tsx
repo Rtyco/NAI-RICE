@@ -8,6 +8,9 @@ import { RecordInfo } from './RecordInfo';
 import { resultGroups, type ResultAction } from './resultMenu';
 import { useResultBarFit } from './useHeaderFit';
 
+/** 글자를 빼고 줄인 뒤의 단계부터 `fold` 순서로 하나씩 접는다(scene-detail.css). */
+const FOLD_AFTER = 3;
+
 /** 같은 목록을 `showResultMenu`도 쓴다. */
 export function ResultBar(props: {
   projectId: string;
@@ -17,20 +20,15 @@ export function ResultBar(props: {
   const { record } = props;
   const bar = useRef<HTMLDivElement>(null);
   useResultBarFit(bar);
-  const send = props.actions.filter((action) => action.group === 'send');
-  // .fit-2부터 단계마다 보내기 묶음 끝의 버튼 하나가 접힌다(scene-detail.css).
   const showFolded = (event: MouseEvent) => {
     const level = [...(bar.current?.classList ?? [])].filter((name) =>
       name.startsWith('fit-'),
     ).length;
-    const folded = Math.min(send.length, Math.max(0, level - 1));
     showContextMenu(
       event,
-      send.slice(send.length - folded).map(({ label, onSelect, disabled }) => ({
-        label,
-        onSelect,
-        disabled,
-      })),
+      props.actions
+        .filter((action) => action.fold && action.fold <= level - FOLD_AFTER)
+        .map(({ label, onSelect, disabled }) => ({ label, onSelect, disabled })),
     );
   };
   const button = (action: ResultAction) => (
@@ -40,6 +38,7 @@ export function ResultBar(props: {
       disabled={action.disabled}
       title={action.title ?? action.label}
       aria-label={action.label}
+      data-fold={action.fold}
       onClick={action.onSelect}
     >
       <Icon name={action.icon} size={14} className={action.active ? 'filled' : ''} />
@@ -65,13 +64,7 @@ export function ResultBar(props: {
       {resultGroups(props.actions).map((group) => (
         <Fragment key={group[0].group}>
           {group[0].group === 'file' ? (
-            <span className="header-spacer" />
-          ) : (
-            group[0].group !== 'delete' && <span className="zone-divider" />
-          )}
-          {group[0].group === 'send' ? (
             <>
-              <span className="result-send">{group.map(button)}</span>
               <button
                 className="icon-button result-more"
                 title="더 보기"
@@ -80,10 +73,12 @@ export function ResultBar(props: {
               >
                 ⋯
               </button>
+              <span className="header-spacer" />
             </>
           ) : (
-            group.map(button)
+            group[0].group !== 'delete' && <span className="zone-divider" />
           )}
+          {group.map(button)}
         </Fragment>
       ))}
     </div>

@@ -21,6 +21,7 @@ export function commonResultActions(
       icon: 'upscale',
       group: 'send',
       keepLabel: true,
+      fold: 7,
       onSelect: () => openImg2ImgDialog(projectId, [record]),
     },
     makeReference: {
@@ -28,6 +29,7 @@ export function commonResultActions(
       icon: 'reference',
       group: 'send',
       keepLabel: true,
+      fold: 2,
       onSelect: () => void makeReferenceFromRecord(projectId, record),
     },
     file: [
@@ -37,6 +39,7 @@ export function commonResultActions(
         icon: 'save',
         group: 'file',
         iconOnly: true,
+        fold: 8,
         onSelect: () => options.saveAs(record),
       },
       {
@@ -44,6 +47,7 @@ export function commonResultActions(
         icon: 'folder',
         group: 'file',
         iconOnly: true,
+        fold: 4,
         onSelect: () =>
           void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id)),
       },

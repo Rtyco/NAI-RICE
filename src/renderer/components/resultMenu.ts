@@ -13,8 +13,10 @@ export type ResultAction = {
   active?: boolean;
   /** 결과 막대에서 아이콘만 보인다. 우클릭 메뉴에는 이름이 나온다. */
   iconOnly?: boolean;
-  /** 좁은 결과 막대에서도 이름을 오래 둔다(보내기 묶음은 이름째 ⋯로 접는다). 아이콘만으로는 다른 동작으로 읽혔다(2026-10-25 화면 테스트). */
+  /** 좁은 결과 막대에서 이름을 다른 버튼보다 늦게 뺀다. */
   keepLabel?: boolean;
+  /** 아이콘만으로도 넘치는 결과 막대에서 ⋯ 메뉴로 접는 순서. 작을수록 먼저, 없으면 접지 않는다. */
+  fold?: number;
 };
 
 export function resultGroups(actions: ResultAction[]): ResultAction[][] {

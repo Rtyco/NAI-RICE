@@ -161,6 +161,7 @@ export function FreeView() {
             icon: 'undo',
             group: 'main',
             keepLabel: true,
+            fold: 5,
             disabled:
               record.emotionPrompt === free.prompt &&
               (record.emotionNegative ?? '') === free.negative,
@@ -186,6 +187,7 @@ export function FreeView() {
         icon: 'wand',
         group: 'send',
         keepLabel: true,
+        fold: 3,
         onSelect: () =>
           void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },
@@ -194,6 +196,7 @@ export function FreeView() {
         icon: 'i2i',
         group: 'send',
         keepLabel: true,
+        fold: 6,
         onSelect: () =>
           void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },
