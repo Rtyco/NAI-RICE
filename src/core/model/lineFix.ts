@@ -1,5 +1,6 @@
 import type {
   GenerationJobSnapshot,
+  GenerationSettings,
   GenerationRecord,
   InpaintJobSnapshot,
   LineFixSettings,
@@ -11,6 +12,7 @@ import {
   type ImageInput,
   type ResultImg2ImgInput,
 } from '../jobs/JobBuilder';
+import type { Size } from '../imaging/FreeSize';
 import { supportsInpaint } from '../providers/NaiModels';
 import { effectiveGenerationSettings } from './defaults';
 import { buildRefineJobs, type RefineImageRequest } from './refine';
@@ -40,12 +42,27 @@ export function autoLineFixOn(project: Pick<Project, 'mode' | 'autoLineFix'>): b
   return project.mode === 'reference' && Boolean(project.autoLineFix);
 }
 
-export function autoLineFixSettings(settings: LineFixSettings): LineFixSettings {
-  return { ...settings, count: 1 };
-}
-
 export function lineFixSummary(settings: LineFixSettings): string {
   return `세기 ${settings.strength.toFixed(2)} · 여유 ${settings.marginPx}px`;
+}
+
+/** 예상 Anlas용. 입력은 결과(`source`)에 64 배수 여백을 더한 크기다. `generation`은 원본 결과의 설정. */
+export function lineFixCostJob(
+  settings: LineFixSettings,
+  generation: GenerationSettings,
+  source: Size,
+) {
+  const ceil64 = (value: number) => Math.ceil(value / 64) * 64;
+  return {
+    kind: 'inpaint' as const,
+    strength: settings.strength,
+    settings: effectiveGenerationSettings({
+      ...generation,
+      ...(settings.model ? { model: settings.model } : {}),
+    }),
+    canvasWidth: ceil64(source.width),
+    canvasHeight: ceil64(source.height),
+  };
 }
 
 /** 작업을 만들 때처럼 모르는 모델 ID는 기본 모델로 읽는다. */

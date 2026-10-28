@@ -50,6 +50,7 @@ export function EmotionDetail({
   const { project } = resolved;
   const set = resolved.emotionSet!;
   const exportQuality = useStore((state) => state.library!.settings.export.quality);
+  const lineFixCount = useStore((state) => state.library!.settings.lineFix.count);
   const allRecords = useStore((state) => state.generations[project.id]);
   const queue = useStore((state) => state.queue);
   const records = useMemo(() => emotionRecords(allRecords, emotion.id), [allRecords, emotion.id]);
@@ -139,7 +140,7 @@ export function EmotionDetail({
   const imagesLabel = generateCountLabel(
     images,
     autoRefineCount(images, project, resolved.preset, resolved.reference),
-    autoLineFixOn(project) ? images : 0,
+    autoLineFixOn(project) ? images * lineFixCount : 0,
   );
 
   const setFavorite = (generationId?: string) =>

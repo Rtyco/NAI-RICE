@@ -267,7 +267,7 @@ export type Project = {
   refine?: RefineSettings;
   /** 켜면 이 작업의 씬 생성 결과마다 `refine`으로 다듬기를 이어 붙인다. */
   autoRefine?: boolean;
-  /** 켜면 인페인트 모드 결과마다 구분선을 찾아 찾은 것만 지운다(`settings.lineFix`, 1장). */
+  /** 켜면 인페인트 모드 결과마다 구분선을 찾아 찾은 것만 지운다(`settings.lineFix`). */
   autoLineFix?: boolean;
   excludedEmotionIds: string[];
   /** 감정 ID → 생성 기록 ID */

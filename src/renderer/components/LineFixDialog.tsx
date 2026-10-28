@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import type { GenerationSummary, LineFixSettings } from '../../core/domain/types';
-import {
-  effectiveGenerationSettings,
-  normalizeGenerationSettings,
-} from '../../core/model/defaults';
+import { normalizeGenerationSettings } from '../../core/model/defaults';
+import { lineFixCostJob } from '../../core/model/lineFix';
 import { REFINE_PROMPT_OPTIONS } from '../../core/model/refine';
 import { estimateJobAnlas, generationCostWarnings } from '../../core/providers/NaiCost';
 import { INPAINT_MODELS, modelLabel, supportsInpaint } from '../../core/providers/NaiModels';
@@ -14,19 +12,15 @@ import { CostEstimate, ResultThumbs } from './ResultDialogParts';
 import { CustomPromptFields } from './RefineFields';
 import { NumberField, SelectField } from './ui';
 
-const ceil64 = (value: number) => Math.ceil(value / 64) * 64;
-
 const saveLineFix = (value: LineFixSettings) =>
   updateLibrary((current) => ({
     ...current,
     settings: { ...current.settings, lineFix: value },
   }));
 
-/** `count`가 없으면 장수 칸을 숨긴다(자동은 1장). */
 function LineFixFields(props: {
   value: LineFixSettings;
   onChange: (value: LineFixSettings) => void;
-  count?: boolean;
 }) {
   const { value } = props;
   const patch = (next: Partial<LineFixSettings>) => props.onChange({ ...value, ...next });
@@ -70,16 +64,14 @@ function LineFixFields(props: {
         <CustomPromptFields value={value} title="구분선 지우기" onChange={patch} />
       )}
       <div className="four-column-fields">
-        {props.count && (
-          <NumberField
-            label="결과마다 장수"
-            value={value.count}
-            min={1}
-            max={10}
-            integer
-            onChange={(count) => patch({ count })}
-          />
-        )}
+        <NumberField
+          label="결과마다 장수"
+          value={value.count}
+          min={1}
+          max={10}
+          integer
+          onChange={(count) => patch({ count })}
+        />
         <SelectField
           label="Seed"
           value={value.seedMode}
@@ -119,13 +111,9 @@ export function LineFixDialog(props: {
   );
   const total = props.records.length * options.count;
   // 기록 목록에는 Steps가 없어 생성 설정 값으로 어림한다. 입력은 64 배수 여백을 더한 크기다.
-  const costJobs = props.records.map((record) => ({
-    kind: 'inpaint' as const,
-    strength: options.strength,
-    settings: effectiveGenerationSettings({ ...generation, model: modelOf(record) }),
-    canvasWidth: ceil64(record.width),
-    canvasHeight: ceil64(record.height),
-  }));
+  const costJobs = props.records.map((record) =>
+    lineFixCostJob({ ...options, model: modelOf(record) }, generation, record),
+  );
   const estimate =
     costJobs.reduce((sum, job) => sum + estimateJobAnlas(job, token), 0) * options.count;
   const reasons = generationCostWarnings(costJobs, token);
@@ -154,7 +142,7 @@ export function LineFixDialog(props: {
       }
     >
       <ResultThumbs projectId={props.projectId} records={props.records} />
-      <LineFixFields value={options} onChange={setOptions} count />
+      <LineFixFields value={options} onChange={setOptions} />
       {unsupported.length > 0 && (
         <p className="field-error">
           {unsupported.map(modelLabel).join(', ')}은(는) 인페인팅을 지원하지 않아 모델을 골라야
@@ -188,7 +176,7 @@ export function LineFixSettingsDialog(props: { close: () => void }) {
       }
     >
       <LineFixFields value={value} onChange={setValue} />
-      <p className="hint">프로그램 설정에 저장됩니다. 자동 구분선 지우기는 결과마다 1장입니다.</p>
+      <p className="hint">프로그램 설정에 저장됩니다.</p>
     </Modal>
   );
 }

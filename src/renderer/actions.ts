@@ -33,7 +33,7 @@ import {
   type ResolvedCharacter,
   type ResolvedProject,
 } from '../core/model/defaults';
-import { autoLineFixOn, autoLineFixSettings, buildLineFixJobs } from '../core/model/lineFix';
+import { autoLineFixOn, buildLineFixJobs } from '../core/model/lineFix';
 import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
@@ -163,7 +163,7 @@ function enqueueProjectJobs(
     jobs = jobs.map((job) => ({ ...job, refine }));
   }
   if (autoLineFixOn(project)) {
-    const lineFix = autoLineFixSettings(useStore.getState().library!.settings.lineFix);
+    const lineFix = useStore.getState().library!.settings.lineFix;
     jobs = jobs.map((job) => ({ ...job, lineFix }));
   }
   return enqueue(jobs, `${jobs.length}개의 작업을 생성 큐에 등록했습니다.`);

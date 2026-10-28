@@ -1,6 +1,12 @@
 import { Fragment, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { Emotion, Preset, Project, ProjectMode } from '../../core/domain/types';
+import type {
+  Emotion,
+  LineFixSettings,
+  Preset,
+  Project,
+  ProjectMode,
+} from '../../core/domain/types';
 import { composeRequestPrompts, sceneSize } from '../../core/jobs/JobBuilder';
 import {
   AID_MODEL_MISSING,
@@ -16,7 +22,7 @@ import {
   projectRefineSettings,
   refineCostJob,
 } from '../../core/model/refine';
-import { autoLineFixOn } from '../../core/model/lineFix';
+import { autoLineFixOn, lineFixCostJob } from '../../core/model/lineFix';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
 import {
@@ -354,6 +360,7 @@ function batchCost(
   scenes: Emotion[],
   aid: ReturnType<typeof projectAid>,
   token: CostAccount,
+  lineFixSettings: LineFixSettings,
 ): { estimate?: number; reasons: string[] } {
   const { project, preset, reference } = resolved;
   const variants = preset?.generation.variantsPerEmotion ?? 1;
@@ -395,7 +402,18 @@ function batchCost(
         images: item.images * refine.count,
       }))
     : [];
-  const costs = [...sceneCosts, ...refineCosts];
+  // 구분선을 찾은 결과만 지우니 최대치로 더한다.
+  const lineFix = autoLineFixOn(project) && lineFixSettings;
+  const lineFixCosts = lineFix
+    ? sceneCosts.map((item) => ({
+        job: lineFixCostJob(lineFix, costJob.settings, {
+          width: area?.width ?? item.job.canvasWidth,
+          height: area?.height ?? item.job.canvasHeight,
+        }),
+        images: item.images * lineFix.count,
+      }))
+    : [];
+  const costs = [...sceneCosts, ...lineFixCosts, ...refineCosts];
   return {
     estimate: images
       ? costs.reduce((total, item) => total + estimateJobAnlas(item.job, token) * item.images, 0)
@@ -412,6 +430,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const busy = useStore((state) => state.busy);
   const detailEmotionId = useStore((state) => state.detailEmotionId);
   const token = useStore((state) => state.token);
+  const lineFixSettings = useStore((state) => state.library!.settings.lineFix);
   const queueShown = useLayout(queueBarShownOf);
   const topShown = useLayout(topBarShownOf);
   const headerRef = useRef<HTMLElement>(null);
@@ -434,13 +453,14 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const countLabel = generateCountLabel(
     count,
     autoRefineCount(count, project, preset, reference),
-    autoLineFixOn(project) ? count : 0,
+    autoLineFixOn(project) ? count * lineFixSettings.count : 0,
   );
   const { estimate, reasons: costReasons } = batchCost(
     resolved,
     scenes,
     projectAid(aidSources, project),
     token,
+    lineFixSettings,
   );
   const detail = emotionSet?.emotions.find((emotion) => emotion.id === detailEmotionId);
   const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
