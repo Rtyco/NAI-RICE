@@ -1,35 +1,19 @@
 import { Fragment, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type {
-  Emotion,
-  LineFixSettings,
-  Preset,
-  Project,
-  ProjectMode,
-} from '../../core/domain/types';
-import { composeRequestPrompts, sceneSize } from '../../core/jobs/JobBuilder';
+import type { Emotion, Preset, Project, ProjectMode } from '../../core/domain/types';
+import { composeRequestPrompts } from '../../core/jobs/JobBuilder';
 import {
   AID_MODEL_MISSING,
   INPAINT_MODEL_MISSING,
-  effectiveGenerationSettings,
   generationKindFor,
   projectAid,
   type ResolvedProject,
 } from '../../core/model/defaults';
-import {
-  autoRefineCount,
-  generateCountLabel,
-  projectRefineSettings,
-  refineCostJob,
-} from '../../core/model/refine';
-import { autoLineFixOn, lineFixCostJob } from '../../core/model/lineFix';
+import { autoRefineCount, generateCountLabel } from '../../core/model/refine';
+import { autoLineFixOn } from '../../core/model/lineFix';
+import { batchCost } from '../../core/model/batchCost';
 import { comboCount, comboPrompts, sceneCombos } from '../../core/model/sceneCombos';
 import { repeatedTags, tagKey } from '../../core/prompts/PromptComposer';
-import {
-  estimateJobAnlas,
-  generationCostWarnings,
-  type CostAccount,
-} from '../../core/providers/NaiCost';
 import { patchItem } from '../../core/model/mutations';
 import {
   maxCharactersFor,
@@ -352,77 +336,6 @@ export function PreviewDialog({
       <p className="hint">모델: {modelLabel(resolved.preset.generation.model)}</p>
     </Modal>
   );
-}
-
-/** 메인 프로세스가 큐에 넣을 때와 같은 식. 일반 생성은 씬 크기가 씬마다 다를 수 있다. */
-function batchCost(
-  resolved: ResolvedProject,
-  scenes: Emotion[],
-  aid: ReturnType<typeof projectAid>,
-  token: CostAccount,
-  lineFixSettings: LineFixSettings,
-): { estimate?: number; reasons: string[] } {
-  const { project, preset, reference } = resolved;
-  const variants = preset?.generation.variantsPerEmotion ?? 1;
-  const generation = preset && effectiveGenerationSettings(preset.generation);
-  const costJob =
-    project.mode !== 'reference'
-      ? generation && {
-          kind: project.mode,
-          settings: generation,
-          canvasWidth: generation.width,
-          canvasHeight: generation.height,
-          aid,
-        }
-      : generation && reference?.image
-        ? {
-            settings: generation,
-            canvasWidth: reference.image.canvasWidth,
-            canvasHeight: reference.image.canvasHeight,
-            aid,
-          }
-        : undefined;
-  if (!costJob) return { reasons: [] };
-  const sceneCosts = scenes.map((emotion) => {
-    const size = project.mode === 'txt2img' && sceneSize(emotion, costJob.settings);
-    return {
-      job: size ? { ...costJob, canvasWidth: size.width, canvasHeight: size.height } : costJob,
-      images: comboCount(emotion) * variants,
-    };
-  });
-  const images = sceneCosts.reduce((total, item) => total + item.images, 0);
-  const refine = project.autoRefine && projectRefineSettings(project, preset, reference);
-  const area = project.mode === 'reference' ? reference?.image?.outputRect : undefined;
-  const refineCosts = refine
-    ? sceneCosts.map((item) => ({
-        job: refineCostJob(refine, costJob.settings, {
-          width: area?.width ?? item.job.canvasWidth,
-          height: area?.height ?? item.job.canvasHeight,
-        }),
-        images: item.images * refine.count,
-      }))
-    : [];
-  // 구분선을 찾은 결과만 지우니 최대치로 더한다.
-  const lineFix = autoLineFixOn(project) && lineFixSettings;
-  const lineFixCosts = lineFix
-    ? sceneCosts.map((item) => ({
-        job: lineFixCostJob(lineFix, costJob.settings, {
-          width: area?.width ?? item.job.canvasWidth,
-          height: area?.height ?? item.job.canvasHeight,
-        }),
-        images: item.images * lineFix.count,
-      }))
-    : [];
-  const costs = [...sceneCosts, ...lineFixCosts, ...refineCosts];
-  return {
-    estimate: images
-      ? costs.reduce((total, item) => total + estimateJobAnlas(item.job, token) * item.images, 0)
-      : undefined,
-    reasons: generationCostWarnings(
-      costs.length ? costs.map((item) => item.job) : [costJob],
-      token,
-    ),
-  };
 }
 
 export function ProjectView({ projectId }: { projectId: string }) {
