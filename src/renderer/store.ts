@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { create } from 'zustand';
 import type {
+  EmotionSet,
   FreeGeneration,
   GenerationSummary,
   Library,
@@ -493,7 +494,7 @@ export function requestResult(request: ResultRef | undefined): void {
   set({ resultRequest: request });
 }
 
-/** 지금 씬 모음에 없는 씬의 결과는 열 수 없다. */
+/** 다른 씬 모음의 씬이면 작업의 씬 모음을 그쪽으로 바꾼다. */
 export function showResult(
   record: ResultRef & Pick<GenerationSummary, 'emotionId' | 'emotionName'>,
 ): void {
@@ -502,11 +503,17 @@ export function showResult(
     if (view.kind !== 'free') openFree();
   } else {
     const project = library?.projects.find((item) => item.id === record.projectId);
-    const set = library?.emotionSets.find((item) => item.id === project?.emotionSetId);
     if (!project) return;
-    if (!set?.emotions.some((emotion) => emotion.id === record.emotionId)) {
-      toast(`「${record.emotionName}」 씬이 지금 씬 모음에 없어 결과를 열 수 없습니다.`);
+    const has = (set: EmotionSet) => set.emotions.some((item) => item.id === record.emotionId);
+    const current = library!.emotionSets.find((item) => item.id === project.emotionSetId);
+    const owner = current && has(current) ? current : library!.emotionSets.find(has);
+    if (!owner) {
+      toast(`「${record.emotionName}」 씬이 지워져 결과를 열 수 없습니다.`);
       return;
+    }
+    if (owner.id !== project.emotionSetId) {
+      updateProject(project.id, (current) => ({ ...current, emotionSetId: owner.id }));
+      toast(`씬 모음을 「${owner.name}」(으)로 바꿨습니다.`);
     }
     if (view.kind !== 'project' || view.projectId !== project.id) openProject(project.id);
     if (get().detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
