@@ -89,7 +89,7 @@ export function RefineChip({ target }: { target: RefineTarget }) {
   );
 }
 
-/** 작업의 설정 줄에서 생성 뒤 구분선 지우기와 다듬기를 켠다. 구분선 지우기 값은 프로그램 설정에 있다. */
+/** 구분선 지우기 값은 프로그램 설정에, 켜짐과 다듬기 값은 작업에 있다. */
 export function PostProcessChip({
   target,
   project,

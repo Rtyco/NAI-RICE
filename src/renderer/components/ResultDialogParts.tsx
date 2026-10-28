@@ -3,7 +3,6 @@ import { projectMedia } from '../store';
 
 const SHOWN = 12;
 
-/** 결과를 받는 창 위쪽의 썸네일. */
 export function ResultThumbs(props: { projectId: string; records: GenerationSummary[] }) {
   return (
     <div className="i2i-sources">

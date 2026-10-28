@@ -40,7 +40,6 @@ export function autoLineFixOn(project: Pick<Project, 'mode' | 'autoLineFix'>): b
   return project.mode === 'reference' && Boolean(project.autoLineFix);
 }
 
-/** 자동은 결과마다 1장이다. */
 export function autoLineFixSettings(settings: LineFixSettings): LineFixSettings {
   return { ...settings, count: 1 };
 }

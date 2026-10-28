@@ -436,7 +436,7 @@ export function resolveFreeGeneration(library: Library) {
   };
 }
 
-/** 결과를 다시 보내는 창이 어림에 쓰는 생성 설정. */
+/** 생성 설정이 지워졌으면 첫 생성 설정. */
 export function resultGeneration(library: Library, projectId: string): GenerationSettings {
   const preset =
     projectId === FREE_PROJECT_ID
