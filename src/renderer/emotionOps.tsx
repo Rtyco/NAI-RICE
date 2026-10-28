@@ -33,6 +33,7 @@ import {
   clearEmotionResults,
   openDirectorToolDialog,
   openImg2ImgDialog,
+  openLineFixDialog,
   openSceneSetDialog,
 } from './generationOps';
 
@@ -239,6 +240,11 @@ export function emotionMenu(
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
     },
     {
+      label: '구분선 지우기',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => openLineFixDialog(projectId, [cover])),
+    },
+    {
       label: '이 이미지로 i2i',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void sendToSceneImg2Img(projectId, emotion.id, cover)),
@@ -329,6 +335,11 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
       label: '다듬기',
       disabled: !covers.length,
       onSelect: () => openImg2ImgDialog(projectId, covers),
+    },
+    {
+      label: '구분선 지우기',
+      disabled: !covers.length,
+      onSelect: () => openLineFixDialog(projectId, covers),
     },
     {
       label: '디렉터 툴',

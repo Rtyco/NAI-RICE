@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { GenerationRecord } from '../../src/core/domain/types';
-import { buildResultImg2ImgJobs } from '../../src/core/jobs/JobBuilder';
-import { createDefaultLibrary, DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
+import { buildResultImg2ImgJobs, buildResultInpaintJobs } from '../../src/core/jobs/JobBuilder';
+import {
+  createDefaultLibrary,
+  DEFAULT_GENERATION_SETTINGS,
+  DEFAULT_LINE_FIX,
+  DEFAULT_SETTINGS,
+} from '../../src/core/model/defaults';
 import {
   autoRefineCount,
   defaultRefineSettings,
@@ -14,6 +19,7 @@ import {
   refineTarget,
 } from '../../src/core/model/refine';
 import {
+  appSettingsSchema,
   generationEnqueueRequestSchema,
   librarySchema,
   projectSchema,
@@ -219,5 +225,53 @@ describe('다듬기 설정', () => {
     expect(parsed.jobs[0].refine).toEqual(refine);
     const broken = projectSchema.parse({ ...project, refine: { model: 1 } });
     expect(broken.refine).toBeUndefined();
+  });
+});
+
+describe('구분선 지우기', () => {
+  it('결과에 여백만 더한 입력을 마스크로 인페인트하고, 결과는 원래 크기로 잘려 그 씬에 쌓여', () => {
+    const mask = { maskPath: `inputs/${'b'.repeat(64)}.png`, maskSha256: 'b'.repeat(64) };
+    const jobs = buildResultInpaintJobs({
+      record,
+      image,
+      mask,
+      width: 640,
+      height: 832,
+      outputRect: { x: 0, y: 0, width: 608, height: 832 },
+      strength: 1,
+      count: 2,
+      seedMode: 'source',
+      model: 'nai-diffusion-4-5-full-inpainting',
+      outputFilenameTemplate: '{emotion}__{seed}',
+      projectName: '작업',
+    });
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      kind: 'inpaint',
+      emotionId: 'e1',
+      prompt: 'masterpiece',
+      canvasWidth: 640,
+      canvasHeight: 832,
+      outputRect: { x: 0, y: 0, width: 608, height: 832 },
+      sourceRecordId: 'rec-1',
+      seed: 100,
+      ...mask,
+      ...image,
+    });
+    expect(jobs[0].settings).toMatchObject({
+      model: 'nai-diffusion-4-5-full-inpainting',
+      inpaintStrength: 1,
+    });
+    expect(jobs[1].seed).toBe(101);
+    expect(generationEnqueueRequestSchema.safeParse({ jobs }).success).toBe(true);
+  });
+
+  it('설정이 없거나 깨졌으면 기본값으로 읽어', () => {
+    const old: Partial<typeof DEFAULT_SETTINGS> = { ...DEFAULT_SETTINGS };
+    delete old.lineFix;
+    expect(appSettingsSchema.parse(old).lineFix).toEqual(DEFAULT_LINE_FIX);
+    expect(appSettingsSchema.parse({ ...old, lineFix: { auto: 'x' } }).lineFix).toEqual(
+      DEFAULT_LINE_FIX,
+    );
   });
 });

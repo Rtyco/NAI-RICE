@@ -161,7 +161,7 @@ export function FreeView() {
             icon: 'undo',
             group: 'main',
             keepLabel: true,
-            fold: 5,
+            fold: 6,
             disabled:
               record.emotionPrompt === free.prompt &&
               (record.emotionNegative ?? '') === free.negative,
@@ -182,12 +182,13 @@ export function FreeView() {
     return [
       ...promptActions(record),
       common.refine,
+      common.lineFix,
       {
         label: '이 결과로 디렉터 툴',
         icon: 'wand',
         group: 'send',
         keepLabel: true,
-        fold: 3,
+        fold: 4,
         onSelect: () =>
           void sendToFreeDirector(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },
@@ -196,7 +197,7 @@ export function FreeView() {
         icon: 'i2i',
         group: 'send',
         keepLabel: true,
-        fold: 6,
+        fold: 7,
         onSelect: () =>
           void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },

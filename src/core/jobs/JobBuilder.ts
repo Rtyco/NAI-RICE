@@ -678,6 +678,41 @@ export function buildResultImg2ImgJobs(input: ResultImg2ImgInput): Img2ImgJobSna
   return jobs;
 }
 
+export type ResultInpaintInput = Omit<ResultImg2ImgInput, 'noise'> & {
+  mask: { maskPath: string; maskSha256: string };
+  /** 64 배수 여백을 뺀 원래 결과 영역 */
+  outputRect: Rect;
+};
+
+/** 구분선 지우기. 입력은 원래 결과에 여백만 더한 크기라 결과는 원래 크기로 잘린다. */
+export function buildResultInpaintJobs(input: ResultInpaintInput): InpaintJobSnapshot[] {
+  const { record } = input;
+  const now = input.now ?? (() => new Date());
+  const randomSeed = input.randomSeed ?? (() => Math.floor(Math.random() * UINT32));
+  return Array.from({ length: input.count }, (_, index) => {
+    const variantIndex = index + 1;
+    const seed =
+      input.seedMode === 'source' ? seedForVariant(record.seed, variantIndex) : randomSeed();
+    const createdAt = now().toISOString();
+    const common = resultJobCommon(record, {
+      ...input,
+      id: `${record.projectId}-${record.id}-line-${variantIndex}-${seed}-${createdAt}`,
+      createdAt,
+      seed,
+      variantIndex,
+    });
+    return {
+      ...common,
+      settings: { ...common.settings, inpaintStrength: input.strength },
+      kind: 'inpaint',
+      ...input.image,
+      ...input.mask,
+      outputRect: { ...input.outputRect },
+      keepDiagnosticCanvas: false,
+    };
+  });
+}
+
 export type AugmentTarget = {
   emotionId: string;
   emotionName: string;

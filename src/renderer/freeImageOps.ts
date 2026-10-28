@@ -6,10 +6,11 @@ import type {
   Reference,
   SceneImg2Img,
 } from '../core/domain/types';
+import { borderLineMask, detectBorderLines } from '../core/imaging/BorderLines';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
-import { createReference, FREE_PROJECT_ID } from '../core/model/defaults';
+import { createReference, DEFAULT_LINE_FIX, FREE_PROJECT_ID } from '../core/model/defaults';
 import { fileApi, libraryApi } from './desktop';
-import { canvas2d, maskToDataUrl } from './lib/image';
+import { canvas2d, decodeMask, loadHtmlImage, maskToDataUrl } from './lib/image';
 import type { StoredSource } from '../shared/ipc';
 import {
   openEmotion,
@@ -94,7 +95,9 @@ function usedSourceFiles(library: Library | null): Set<string | undefined> {
 }
 
 /** 파일 이름이 내용 해시라 다른 곳이 같은 파일을 쓸 수 있다. 지우지 못해도 지장이 없다. */
-export function dropSourceFiles(...images: Array<FreeImage | undefined>): void {
+export function dropSourceFiles(
+  ...images: Array<Pick<FreeImage, 'file' | 'maskFile'> | undefined>
+): void {
   const used = usedSourceFiles(useStore.getState().library);
   for (const image of images)
     for (const file of [image?.file, image?.maskFile])
@@ -104,27 +107,73 @@ export function dropSourceFiles(...images: Array<FreeImage | undefined>): void {
           .catch(() => undefined);
 }
 
-function setTargetImage(
+/** 찾은 선이 없으면 undefined. `base` 마스크가 있으면 거기에 더한다. */
+export async function findBorderLineMask(
+  image: StoredSource,
+  marginPx: number,
+  base?: string,
+): Promise<{ maskFile: string; lines: number } | undefined> {
+  const { width, height, outputRect } = image;
+  const picture = await loadHtmlImage(await sourceDataUrl(image.file));
+  const { context } = canvas2d(width, height);
+  context.drawImage(picture, 0, 0);
+  const lines = detectBorderLines(context.getImageData(0, 0, width, height), outputRect);
+  if (!lines.length) return undefined;
+  const mask = borderLineMask(width, height, outputRect, lines, marginPx);
+  if (base) {
+    const previous = await decodeMask(await sourceDataUrl(base), width, height);
+    for (let pixel = 0; pixel < mask.length; pixel += 1) mask[pixel] |= previous[pixel];
+  }
+  const maskFile = await libraryApi().addSourceMask(maskToDataUrl(mask, width, height));
+  return { maskFile, lines: lines.length };
+}
+
+function lineFixSettings() {
+  return useStore.getState().library?.settings.lineFix;
+}
+
+/** 찾지 못해도 이미지는 그대로 보낸다. */
+async function autoBorderLineMask(image: StoredSource) {
+  const settings = lineFixSettings();
+  if (!settings?.auto) return undefined;
+  return findBorderLineMask(image, settings.marginPx).catch(() => undefined);
+}
+
+// 캔버스가 같으면 마스크 칸이 key로 다시 만들어지지 않아 화면에 옛 마스크가 남는다.
+async function remountMaskCanvas(target: ImageTarget) {
+  updateImageTarget(target, { image: undefined });
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
+async function setTargetImage(
   target: ImageTarget,
   stored: StoredSource,
   name: string,
   mode: 'img2img' | 'augment',
-  fromRecord?: FreeImage['fromRecord'],
+  options: { fromRecord?: FreeImage['fromRecord']; findLines?: boolean } = {},
 ) {
   const previous = targetImage(target);
   pendingMask = undefined;
+  // 같은 이미지면 칠해 둔 마스크를 그대로 쓴다.
+  const keptMask = previous?.file === stored.file ? previous.maskFile : undefined;
+  const found =
+    mode === 'img2img' && options.findLines !== false && !keptMask
+      ? await autoBorderLineMask(stored)
+      : undefined;
+  const maskFile = keptMask ?? found?.maskFile;
   const image: FreeImage = {
     name,
     ...stored,
-    // 같은 이미지면 칠해 둔 마스크를 그대로 쓴다.
-    ...(previous?.file === stored.file && previous.maskFile ? { maskFile: previous.maskFile } : {}),
-    ...(fromRecord ? { fromRecord } : {}),
+    ...(maskFile ? { maskFile } : {}),
+    ...(options.fromRecord ? { fromRecord: options.fromRecord } : {}),
   };
-  updateImageTarget(target, { image, on: true }, mode);
+  if (found && previous?.file === stored.file) await remountMaskCanvas(target);
+  updateImageTarget(target, { image, on: true, ...(found ? { inpaint: true } : {}) }, mode);
   dropSourceFiles(previous);
+  if (found) toast(`구분선 ${found.lines}개를 찾아 마스크를 칠했습니다.`);
 }
 
-/** 인페인팅 토글은 그대로 둔다. */
+/** 구분선을 찾지 못하면 인페인팅 토글은 그대로 둔다. */
 export function sendToFreeImg2Img(projectId: string, record: GenerationSummary): Promise<void> {
   return sendRecord(FREE_TARGET, projectId, record, 'img2img');
 }
@@ -156,9 +205,8 @@ function sendRecord(
       projectId,
       generationId: record.id,
     });
-    setTargetImage(target, stored, recordName(projectId, record), mode, {
-      projectId,
-      generationId: record.id,
+    await setTargetImage(target, stored, recordName(projectId, record), mode, {
+      fromRecord: { projectId, generationId: record.id },
     });
     if (target.kind === 'free') openFree();
     else openEmotion(target.emotionId);
@@ -174,7 +222,7 @@ export function loadImageFromFile(target: ImageTarget): Promise<void> {
       target.kind === 'free' && useStore.getState().library?.freeGeneration.mode === 'augment'
         ? 'augment'
         : 'img2img';
-    setTargetImage(target, stored, file.name.replace(/\.[^.]+$/, ''), mode);
+    await setTargetImage(target, stored, file.name.replace(/\.[^.]+$/, ''), mode);
   }).then(() => undefined);
 }
 
@@ -184,11 +232,7 @@ export function loadImageFromReference(target: ImageTarget, reference: Reference
     const stored = await libraryApi().addSourceFromReference(reference);
     const previous = targetImage(target);
     pendingMask = undefined;
-    // 캔버스가 같으면 마스크 칸이 key로 다시 만들어지지 않아 화면에 옛 마스크가 남는다.
-    if (previous?.file === stored.file) {
-      updateImageTarget(target, { image: undefined });
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-    }
+    if (previous?.file === stored.file) await remountMaskCanvas(target);
     const image: FreeImage = {
       name: reference.name,
       ...stored,
@@ -212,7 +256,7 @@ export function newBlankImage(target: ImageTarget, width: number, height: number
       kind: 'data',
       dataUrl: canvas.toDataURL('image/png'),
     });
-    setTargetImage(target, stored, '빈 캔버스', 'img2img');
+    await setTargetImage(target, stored, '빈 캔버스', 'img2img', { findLines: false });
   }).then(() => undefined);
 }
 
@@ -241,6 +285,31 @@ export async function applyPendingDrawing(): Promise<void> {
   const apply = pendingDrawing;
   pendingDrawing = undefined;
   await apply?.();
+}
+
+export function findBorderLines(target: ImageTarget): Promise<void> {
+  return run('구분선을 찾는 중', async () => {
+    await saveMask();
+    const image = targetImage(target);
+    if (!image) return;
+    const found = await findBorderLineMask(
+      image,
+      lineFixSettings()?.marginPx ?? DEFAULT_LINE_FIX.marginPx,
+      image.maskFile,
+    );
+    if (!found) {
+      toast('구분선을 찾지 못했습니다.');
+      return;
+    }
+    await remountMaskCanvas(target);
+    updateImageTarget(
+      target,
+      { image: { ...image, maskFile: found.maskFile }, inpaint: true },
+      'img2img',
+    );
+    dropSourceFiles(image);
+    toast(`구분선 ${found.lines}개를 찾아 마스크를 칠했습니다.`);
+  }).then(() => undefined);
 }
 
 export function clearImage(target: ImageTarget): void {

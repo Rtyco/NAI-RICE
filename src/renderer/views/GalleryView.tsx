@@ -34,7 +34,12 @@ import {
   emotionsMenu,
   updateEmotionSet,
 } from '../emotionOps';
-import { clearEmotionResults, openDirectorToolDialog, openImg2ImgDialog } from '../generationOps';
+import {
+  clearEmotionResults,
+  openDirectorToolDialog,
+  openImg2ImgDialog,
+  openLineFixDialog,
+} from '../generationOps';
 import {
   coverRecord,
   GALLERY_ASPECTS,
@@ -373,6 +378,13 @@ export function GalleryView({
               onClick={() => openImg2ImgDialog(project.id, pickedCovers())}
             >
               <Icon name="upscale" size={14} /> 다듬기
+            </button>
+            <button
+              className="with-icon"
+              title="고른 씬의 대표 이미지 구분선 지우기"
+              onClick={() => openLineFixDialog(project.id, pickedCovers())}
+            >
+              <Icon name="border-line" size={14} /> 구분선 지우기
             </button>
             <button
               className="with-icon"

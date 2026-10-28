@@ -75,9 +75,9 @@ export function useQueueBarFit(ref: RefObject<HTMLElement | null>): void {
   useFitLevels(ref, 9, clipped, useSimpleUi() ? 2 : 0);
 }
 
-/** 결과 막대를 한 줄로 둔다(scene-detail.css의 .fit-1 … .fit-11). */
+/** 결과 막대를 한 줄로 둔다(scene-detail.css의 .fit-1 … .fit-12). */
 export function useResultBarFit(ref: RefObject<HTMLElement | null>): void {
-  useFitLevels(ref, 11, clipped);
+  useFitLevels(ref, 12, clipped);
 }
 
 /**

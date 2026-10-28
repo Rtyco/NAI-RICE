@@ -176,7 +176,7 @@ export function EmotionDetail({
         icon: 'undo',
         group: 'main',
         keepLabel: true,
-        fold: 5,
+        fold: 6,
         // 고른 후보 내용은 요약에 없어, 보고 있는 결과만 미리 받아 비교한다.
         disabled:
           selectedRecord?.id === record.id &&
@@ -188,12 +188,13 @@ export function EmotionDetail({
           }),
       },
       common.refine,
+      common.lineFix,
       {
         label: '디렉터 툴',
         icon: 'wand',
         group: 'send',
         keepLabel: true,
-        fold: 3,
+        fold: 4,
         onSelect: () => openDirectorToolDialog(project.id, [record]),
       },
       {
@@ -201,7 +202,7 @@ export function EmotionDetail({
         icon: 'i2i',
         group: 'send',
         keepLabel: true,
-        fold: 6,
+        fold: 7,
         onSelect: () =>
           void sendToSceneImg2Img(project.id, emotion.id, record).then(() => setStage('source')),
       },

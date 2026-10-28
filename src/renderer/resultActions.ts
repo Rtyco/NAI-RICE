@@ -2,7 +2,7 @@ import type { GenerationSummary } from '../core/domain/types';
 import type { ResultAction } from './components/resultMenu';
 import { libraryApi } from './desktop';
 import { makeReferenceFromRecord } from './freeImageOps';
-import { deleteShownResult, openImg2ImgDialog } from './generationOps';
+import { deleteShownResult, openImg2ImgDialog, openLineFixDialog } from './generationOps';
 import { run } from './store';
 
 /** 씬 상세와 자유 생성 결과에 똑같이 있는 동작 */
@@ -14,22 +14,35 @@ export function commonResultActions(
     saveAs: (record: GenerationSummary) => void;
     show: (id: string) => void;
   },
-): { refine: ResultAction; makeReference: ResultAction; file: ResultAction[] } {
+): {
+  refine: ResultAction;
+  lineFix: ResultAction;
+  makeReference: ResultAction;
+  file: ResultAction[];
+} {
   return {
     refine: {
       label: '다듬기',
       icon: 'upscale',
       group: 'send',
       keepLabel: true,
-      fold: 7,
+      fold: 8,
       onSelect: () => openImg2ImgDialog(projectId, [record]),
+    },
+    lineFix: {
+      label: '구분선 지우기',
+      icon: 'border-line',
+      group: 'send',
+      keepLabel: true,
+      fold: 2,
+      onSelect: () => openLineFixDialog(projectId, [record]),
     },
     makeReference: {
       label: '인페인트 만들기',
       icon: 'reference',
       group: 'send',
       keepLabel: true,
-      fold: 2,
+      fold: 3,
       onSelect: () => void makeReferenceFromRecord(projectId, record),
     },
     file: [
@@ -39,7 +52,7 @@ export function commonResultActions(
         icon: 'save',
         group: 'file',
         iconOnly: true,
-        fold: 8,
+        fold: 9,
         onSelect: () => options.saveAs(record),
       },
       {
@@ -47,7 +60,7 @@ export function commonResultActions(
         icon: 'folder',
         group: 'file',
         iconOnly: true,
-        fold: 4,
+        fold: 5,
         onSelect: () =>
           void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id)),
       },

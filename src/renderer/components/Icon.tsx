@@ -239,6 +239,12 @@ const ICONS = {
       <path d="M18 3v3M16.5 4.5h3M20 10v2M19 11h2M10 3v2M9 4h2" />
     </>
   ),
+  'border-line': (
+    <>
+      <rect x="6.5" y="3.5" width="11" height="17" rx="1.5" strokeDasharray="2.5 2.5" />
+      <path d="M12 3.5v17" />
+    </>
+  ),
   upscale: (
     <>
       <rect x="3" y="10" width="11" height="11" rx="2" />

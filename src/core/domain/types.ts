@@ -288,6 +288,23 @@ export type AidMode = 'character' | 'vibe';
 
 export type RefinePrompt = 'source' | 'negative-only' | 'empty' | 'custom';
 
+/** 크롭된 결과 가장자리에 NovelAI가 그린 구분선을 찾아 그 자리만 인페인트한다. */
+export type LineFixSettings = {
+  /** i2i로 보낸 이미지에서 찾아 마스크를 칠해 둔다. */
+  auto: boolean;
+  /** 비면 원본 결과의 모델 */
+  model: string;
+  prompt: RefinePrompt;
+  customPositive?: string;
+  customNegative?: string;
+  /** 인페인트 세기 0~1 */
+  strength: number;
+  /** 선 양옆에 더 칠하는 px. 마스크는 8px 칸에 맞춘다. */
+  marginPx: number;
+  count: number;
+  seedMode: 'source' | 'random';
+};
+
 export type RefineSettings = {
   /** 비면 원본 결과의 모델 */
   model: string;
@@ -453,6 +470,7 @@ export type AppSettings = {
     /** 씬 상세에서 조합 칸을 열 때 펼쳐 둘 후보 */
     comboOptions: ComboOptionsOpen;
   };
+  lineFix: LineFixSettings;
   update: {
     autoCheck: boolean;
     /** 더 새 버전이 나오면 다시 알린다. */

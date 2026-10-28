@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icon';
 import { NumberRow, PresetNumberRow } from '../../components/PresetNumberRow';
 import {
   clearImage,
+  findBorderLines,
   loadImageFromFile,
   sourceMedia,
   updateImageTarget,
@@ -60,6 +61,11 @@ export function FreeImagePanel({
             }
           >
             <Icon name="reference" size={14} /> 인페인트에서 불러오기
+          </button>
+        )}
+        {!director && image && (
+          <button className="with-icon" onClick={() => void findBorderLines(target)}>
+            <Icon name="border-line" size={14} /> 구분선 찾기
           </button>
         )}
       </div>

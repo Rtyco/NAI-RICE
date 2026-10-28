@@ -310,7 +310,8 @@ button.detail-position[aria-expanded='true'] {
 .result-bar.fit-8 [data-fold='5'],
 .result-bar.fit-9 [data-fold='6'],
 .result-bar.fit-10 [data-fold='7'],
-.result-bar.fit-11 [data-fold='8'] {
+.result-bar.fit-11 [data-fold='8'],
+.result-bar.fit-12 [data-fold='9'] {
   display: none;
 }
 .result-bar.fit-1 .with-icon:not(.keep-label),

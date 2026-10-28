@@ -15,12 +15,42 @@ import {
   type Size,
 } from '../../core/imaging/FreeSize';
 import { FREE_MAX_PIXELS } from '../../core/providers/NaiCost';
+import { REFINE_PROMPT_OPTIONS } from '../../core/model/refine';
 import { NAI_MODELS } from '../../core/providers/NaiModels';
 import { NumberField, PromptField, SelectField } from './ui';
 
 function presetIdOf(size: Size): string | undefined {
   return RESOLUTION_PRESETS.find((item) => item.width === size.width && item.height === size.height)
     ?.id;
+}
+
+type CustomPrompt = Pick<RefineSettings, 'customPositive' | 'customNegative'>;
+
+/** 프롬프트 방식이 직접 입력일 때 */
+export function CustomPromptFields(props: {
+  value: CustomPrompt;
+  title: string;
+  onChange: (value: CustomPrompt) => void;
+}) {
+  return (
+    <div className="two-column-fields">
+      <PromptField
+        label="포지티브"
+        dialogTitle={`${props.title} 포지티브`}
+        rows={3}
+        value={props.value.customPositive ?? ''}
+        onChange={(customPositive) => props.onChange({ customPositive })}
+      />
+      <PromptField
+        label="네거티브"
+        dialogTitle={`${props.title} 네거티브`}
+        tone="negative"
+        rows={3}
+        value={props.value.customNegative ?? ''}
+        onChange={(customNegative) => props.onChange({ customNegative })}
+      />
+    </div>
+  );
 }
 
 /** `sources`는 다듬을 결과 크기(모르면 빈 배열). */
@@ -78,12 +108,7 @@ export function RefineFields(props: {
         <SelectField
           label="프롬프트"
           value={value.prompt}
-          options={[
-            { value: 'source', label: '원본 프롬프트' },
-            { value: 'negative-only', label: '네거티브만 남기기' },
-            { value: 'empty', label: '비우기 (네거티브도)' },
-            { value: 'custom', label: '직접 입력' },
-          ]}
+          options={REFINE_PROMPT_OPTIONS}
           onChange={(prompt) => patch({ prompt })}
         />
         <NumberField
@@ -104,23 +129,7 @@ export function RefineFields(props: {
         />
       </div>
       {value.prompt === 'custom' && (
-        <div className="two-column-fields">
-          <PromptField
-            label="포지티브"
-            dialogTitle="다듬기 포지티브"
-            rows={3}
-            value={value.customPositive ?? ''}
-            onChange={(customPositive) => patch({ customPositive })}
-          />
-          <PromptField
-            label="네거티브"
-            dialogTitle="다듬기 네거티브"
-            tone="negative"
-            rows={3}
-            value={value.customNegative ?? ''}
-            onChange={(customNegative) => patch({ customNegative })}
-          />
-        </div>
+        <CustomPromptFields value={value} title="다듬기" onChange={patch} />
       )}
       <div className="four-column-fields">
         <SelectField

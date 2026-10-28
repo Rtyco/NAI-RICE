@@ -3,7 +3,7 @@ import {
   DEFAULT_EXPORT_FILENAME_TEMPLATE,
   DEFAULT_OUTPUT_FILENAME_TEMPLATE,
 } from '../output/OutputFilename';
-import { DEFAULT_DIVIDER, DEFAULT_SETTINGS } from '../model/defaults';
+import { DEFAULT_DIVIDER, DEFAULT_LINE_FIX, DEFAULT_SETTINGS } from '../model/defaults';
 import { splitAtLastMarker } from '../prompts/PromptComposer';
 
 export const rectSchema = z.object({
@@ -289,6 +289,18 @@ function readSingleCharacterReference(value: unknown): unknown {
   };
 }
 
+export const lineFixSettingsSchema = z.object({
+  auto: z.boolean(),
+  model: z.string(),
+  prompt: z.enum(['source', 'negative-only', 'empty', 'custom']),
+  customPositive: z.string().max(20000).optional(),
+  customNegative: z.string().max(20000).optional(),
+  strength: z.number().min(0.01).max(1),
+  marginPx: z.number().int().min(0).max(32),
+  count: z.number().int().min(1).max(10),
+  seedMode: z.enum(['source', 'random']),
+});
+
 export const refineSettingsSchema = z.object({
   model: z.string(),
   prompt: z.enum(['source', 'negative-only', 'empty', 'custom']),
@@ -480,6 +492,7 @@ export const appSettingsSchema = z.object({
       narrowOverlay: true,
       comboOptions: 'first',
     }),
+  lineFix: lineFixSettingsSchema.catch(DEFAULT_LINE_FIX).default(DEFAULT_LINE_FIX),
   update: z
     .object({
       autoCheck: z.boolean().default(true),

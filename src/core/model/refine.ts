@@ -52,6 +52,13 @@ export function refineTarget(size: RefineSettings['size'], width: number, height
   return typeof size === 'string' ? RATIO_SIZES[size](width, height) : size;
 }
 
+export const REFINE_PROMPT_OPTIONS: Array<{ value: RefinePrompt; label: string }> = [
+  { value: 'source', label: '원본 프롬프트' },
+  { value: 'negative-only', label: '네거티브만 남기기' },
+  { value: 'empty', label: '비우기 (네거티브도)' },
+  { value: 'custom', label: '직접 입력' },
+];
+
 const PROMPT_SUMMARY: Record<RefinePrompt, string> = {
   source: '',
   'negative-only': '네거티브만',

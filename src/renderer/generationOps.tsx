@@ -2,6 +2,7 @@ import type { GenerationSummary } from '../core/domain/types';
 import { confirmDialog, openDialog } from './components/dialogStack';
 import { DirectorToolDialog } from './components/DirectorToolDialog';
 import { Img2ImgDialog } from './components/Img2ImgDialog';
+import { LineFixDialog } from './components/LineFixDialog';
 import { SceneSetDialog } from './components/SceneSetDialog';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { deleteGenerations, emotionRecords, run, toast, useStore } from './store';
@@ -96,6 +97,13 @@ export function openImg2ImgDialog(projectId: string, records: GenerationSummary[
   if (!records.length) return;
   void openDialog((close) => (
     <Img2ImgDialog projectId={projectId} records={records} close={close} />
+  ));
+}
+
+export function openLineFixDialog(projectId: string, records: GenerationSummary[]): void {
+  if (!records.length) return;
+  void openDialog((close) => (
+    <LineFixDialog projectId={projectId} records={records} close={close} />
   ));
 }
 

@@ -11,6 +11,7 @@ import type {
   GenerationKind,
   GenerationSettings,
   Library,
+  LineFixSettings,
   PieceSet,
   Preset,
   Project,
@@ -244,6 +245,16 @@ export function createProject(
   };
 }
 
+export const DEFAULT_LINE_FIX: LineFixSettings = {
+  auto: true,
+  model: '',
+  prompt: 'source',
+  strength: 1,
+  marginPx: 4,
+  count: 1,
+  seedMode: 'random',
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
   outputFilenameTemplate: DEFAULT_OUTPUT_FILENAME_TEMPLATE,
   keepDiagnosticCanvas: true,
@@ -270,6 +281,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     narrowOverlay: true,
     comboOptions: 'first',
   },
+  lineFix: DEFAULT_LINE_FIX,
   update: { autoCheck: true, skippedVersion: '', seenVersion: '' },
 };
 
