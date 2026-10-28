@@ -11,7 +11,7 @@ import type {
   NovelAIVibeRequest,
 } from '../../src/core/providers/NovelAIProvider';
 import type { ImageDataSource, ProjectInspection, ReferenceImages } from '../../src/shared/ipc';
-import type { TokenVaultStatus } from './TokenVault';
+import type { StoredAccounts, TokenVaultStatus } from './TokenVault';
 
 /** 서비스는 구체 클래스 대신 이 인터페이스에 의존한다. main.ts가 잇고, 테스트는 가짜 객체를 넘긴다. */
 
@@ -27,9 +27,13 @@ export interface AccountChecker {
 
 export interface TokenStore {
   getStatus(): Promise<TokenVaultStatus>;
-  read(): Promise<string>;
-  save(token: string): Promise<void>;
-  remove(): Promise<void>;
+  accounts(): Promise<StoredAccounts>;
+  /** `id`가 없으면 사용 중인 계정 */
+  read(id?: string): Promise<string>;
+  add(name: string, token: string): Promise<string>;
+  rename(id: string, name: string): Promise<void>;
+  setActive(id: string): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 
 export interface GenerationStore {

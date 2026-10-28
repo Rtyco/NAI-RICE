@@ -40,7 +40,12 @@ export type V5QuotaState = { percent: number; isNegative: boolean };
 export const OPUS_TIER = 3;
 
 /** 조회 전이면 비워 두고 Opus로 본다. */
-export type CostAccount = { tier?: number; v5Quota?: V5QuotaState };
+export type CostAccount = {
+  tier?: number;
+  v5Quota?: V5QuotaState;
+  /** 다른 계정에 V5 사용량이 남아 그 계정으로 바꿔 생성한다. */
+  v5Spare?: boolean;
+};
 
 /** 한 장(n_samples 1) 비용. 무료 조건은 따지지 않는다. 식은 NekoAI-JS `calculateCost`, 0단계 실측(512×512·29스텝 6 Anlas)과 맞췄다. */
 export function imageAnlasCost(input: {
@@ -97,8 +102,24 @@ function isOpus(account?: CostAccount): boolean {
 
 function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   const quota = account?.v5Quota;
-  if (!quota || modelInfo(job.settings.model)?.generation !== 'v5') return false;
+  if (!quota || account.v5Spare || modelInfo(job.settings.model)?.generation !== 'v5') return false;
   return quota.isNegative || quota.percent <= 0;
+}
+
+/** V5 무료 생성 할당량이 남은 Opus 계정. 조회 전이면 아니다. */
+export function hasV5Quota(account: CostAccount & { valid?: boolean }): boolean {
+  const quota = account.v5Quota;
+  if (!quota || account.valid === false || !isOpus(account)) return false;
+  return !quota.isNegative && quota.percent > 0;
+}
+
+/** 이 계정은 V5 할당량이 없어 Anlas가 들지만, 할당량이 남은 Opus 계정이면 무료인 작업. */
+export function needsSpareV5Quota(job: CostJob, account?: CostAccount): boolean {
+  if (job.kind === 'augment' || !account?.v5Quota || !isOpus(account)) return false;
+  return (
+    v5QuotaExhausted(job, { ...account, v5Spare: false }) &&
+    checkFreeGeneration(job.settings, job.canvasWidth, job.canvasHeight).free
+  );
 }
 
 /** 무료 조건 안이면 0. */

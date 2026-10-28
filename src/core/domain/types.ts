@@ -450,6 +450,8 @@ export type AppSettings = {
   requestDelayMs: number;
   /** V4·V4.5·V5에만 적용된다. */
   streaming: boolean;
+  /** V5 무료 할당량을 다 쓰면 저장한 다음 계정으로 바꾼다. */
+  accountRotation: boolean;
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

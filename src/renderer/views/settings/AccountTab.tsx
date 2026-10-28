@@ -3,6 +3,7 @@ import { Icon } from '../../components/Icon';
 import { Card, NumberField, Toggle } from '../../components/ui';
 import { run, toast, useLibrary, useStore } from '../../store';
 import { accountApi } from '../../desktop';
+import type { AccountState, AccountSummary, TokenStatus } from '../../../shared/ipc';
 import { patchSettings } from './patchSettings';
 
 function RequestDelayCard() {
@@ -49,32 +50,89 @@ function StreamingCard() {
   );
 }
 
+function quotaOf(state: AccountState): number | undefined {
+  return state.v5Quota
+    ? state.v5Quota.isNegative
+      ? 0
+      : Math.max(0, state.v5Quota.percent)
+    : undefined;
+}
+
+/** 이름은 칸을 떠날 때 저장한다. */
+function AccountRow({ account, busy }: { account: AccountSummary; busy: boolean }) {
+  const [name, setName] = useState(account.name);
+  const quota = quotaOf(account);
+  const apply = (label: string, call: () => Promise<TokenStatus>) =>
+    void run(label, async () => useStore.setState({ token: await call() }));
+  return (
+    <div className={`account-row ${account.active ? 'active' : ''}`}>
+      {account.active ? (
+        <span className="account-active">사용 중</span>
+      ) : (
+        <button
+          disabled={busy}
+          onClick={() => apply('계정을 바꾸는 중', () => accountApi().setActiveAccount(account.id))}
+        >
+          사용
+        </button>
+      )}
+      <input
+        value={name}
+        aria-label="계정 이름"
+        onChange={(event) => setName(event.target.value)}
+        onBlur={() => {
+          if (name.trim() && name !== account.name)
+            apply('이름을 바꾸는 중', () => accountApi().renameAccount(account.id, name));
+          else setName(account.name);
+        }}
+      />
+      <span className="account-row-value" title="V5 무료 생성 할당량">
+        V5 {quota === undefined ? '—' : `${quota}%`}
+      </span>
+      <span className="account-row-value">{account.anlas?.toLocaleString() ?? '—'} Anlas</span>
+      <button
+        className="danger-quiet"
+        disabled={busy}
+        onClick={() => apply('토큰을 삭제하는 중', () => accountApi().removeAccount(account.id))}
+      >
+        삭제
+      </button>
+    </div>
+  );
+}
+
 export function AccountTab() {
   const token = useStore((state) => state.token);
   const busy = useStore((state) => state.busy);
   const [input, setInput] = useState('');
-  const quota = token.v5Quota
-    ? token.v5Quota.isNegative
-      ? 0
-      : Math.max(0, token.v5Quota.percent)
-    : undefined;
+  const [name, setName] = useState('');
+  const rotation = useLibrary().settings.accountRotation;
+  const quota = quotaOf(token);
   return (
     <>
-      <Card title="NovelAI 연결">
+      <Card title="NovelAI 계정">
         {!token.secureStorageAvailable && (
           <div className="warning-box">
             운영체제 보안 저장소를 사용할 수 없어 토큰을 저장할 수 없습니다.
           </div>
         )}
+        {(token.accounts ?? []).map((account) => (
+          <AccountRow key={account.id} account={account} busy={Boolean(busy)} />
+        ))}
         <div className="token-row">
+          <input
+            value={name}
+            placeholder={`계정 ${(token.accounts?.length ?? 0) + 1}`}
+            aria-label="계정 이름"
+            onChange={(event) => setName(event.target.value)}
+          />
           <input
             type="password"
             autoComplete="off"
             spellCheck={false}
             value={input}
-            placeholder={
-              token.stored ? '저장됨 · 새 토큰으로 교체' : 'NovelAI Persistent API Token'
-            }
+            placeholder="NovelAI Persistent API Token"
+            aria-label="NovelAI 토큰"
             onChange={(event) => setInput(event.target.value)}
           />
           <button
@@ -82,27 +140,22 @@ export function AccountTab() {
             disabled={!input.trim() || !token.secureStorageAvailable || Boolean(busy)}
             onClick={() =>
               void run('토큰을 검증하는 중', async () => {
-                const status = await accountApi().saveAndValidateToken(input);
+                const status = await accountApi().addAccount(name, input);
                 useStore.setState({ token: status });
                 setInput('');
-                toast(status.message ?? '토큰을 저장했습니다.');
+                setName('');
+                toast(status.message ?? '계정을 저장했습니다.');
               })
             }
           >
-            검증 후 저장
-          </button>
-          <button
-            className="danger-quiet"
-            disabled={!token.stored || Boolean(busy)}
-            onClick={() =>
-              void run('토큰을 삭제하는 중', async () =>
-                useStore.setState({ token: await accountApi().removeToken() }),
-              )
-            }
-          >
-            삭제
+            검증 후 추가
           </button>
         </div>
+        <Toggle
+          label="V5 무료 할당량을 다 쓰면 다음 계정으로 바꾸기"
+          checked={rotation}
+          onChange={(value) => patchSettings((current) => ({ ...current, accountRotation: value }))}
+        />
       </Card>
 
       <Card

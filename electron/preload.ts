@@ -67,9 +67,11 @@ const api: DesktopApi = {
   exportVibes: (vibes) => ipcRenderer.invoke('file:export-vibes', vibes),
 
   tokenStatus: () => ipcRenderer.invoke('token:status'),
-  saveAndValidateToken: (token) => ipcRenderer.invoke('token:save-and-validate', token),
+  addAccount: (name, token) => ipcRenderer.invoke('token:add', name, token),
   validateStoredToken: () => ipcRenderer.invoke('token:validate'),
-  removeToken: () => ipcRenderer.invoke('token:remove'),
+  renameAccount: (id, name) => ipcRenderer.invoke('token:rename', id, name),
+  setActiveAccount: (id) => ipcRenderer.invoke('token:set-active', id),
+  removeAccount: (id) => ipcRenderer.invoke('token:remove', id),
 
   queueSnapshot: () => ipcRenderer.invoke('generation:snapshot'),
   enqueueGeneration: (request) => ipcRenderer.invoke('generation:enqueue', request),

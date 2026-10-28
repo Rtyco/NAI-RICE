@@ -40,7 +40,8 @@ type QueueDependencies = {
   persistencePath: string;
   library: GenerationStore;
   provider: ImageGenerator;
-  token: () => Promise<string>;
+  /** 요청마다 읽는다. 계정을 바꾸면 작업마다 다른 토큰일 수 있다. */
+  token: (job: QueuedGenerationJob) => Promise<string>;
   emit: (view: QueueView) => void;
   onRecord: (record: GenerationRecord) => void;
   /** 조회 실패는 무시한다. */
@@ -294,7 +295,7 @@ export class GenerationQueue {
     inputs: JobInputs,
     signal: AbortSignal,
   ): Promise<{ generated: Buffer[]; anlasSpent?: number }> {
-    const token = await this.dependencies.token();
+    const token = await this.dependencies.token(job);
     const anlasBefore = await this.anlasNow(token);
     // 인코딩 비용도 이 결과의 Anlas에 들어가도록 전후 조회 사이에서 인코딩한다.
     const aid =

@@ -471,6 +471,7 @@ export const appSettingsSchema = z.object({
   // 예전 naiTags(직접 고친 품질 태그 문구)는 읽지 않는다.
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
   streaming: z.boolean().default(false),
+  accountRotation: z.boolean().catch(true).default(true),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({

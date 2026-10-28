@@ -120,9 +120,8 @@ export type PreparedSourceInput = PreparedImage & {
   mask?: Pick<PreparedInputs, 'maskPath' | 'maskSha256'>;
 };
 
-export type TokenStatus = {
-  stored: boolean;
-  secureStorageAvailable: boolean;
+/** 계정 하나의 마지막 조회 결과 */
+export type AccountState = {
   valid?: boolean;
   anlas?: number;
   /** 3이 Opus */
@@ -133,6 +132,18 @@ export type TokenStatus = {
     timeUntilNextPercent: number;
   };
   checkedAt?: string;
+};
+
+export type AccountSummary = AccountState & { id: string; name: string; active: boolean };
+
+/** 위쪽 값은 사용 중인 계정의 것이다. */
+export type TokenStatus = AccountState & {
+  stored: boolean;
+  secureStorageAvailable: boolean;
+  /** 저장한 순서. 다음 계정으로 바꿀 때 이 순서를 따른다. */
+  accounts?: AccountSummary[];
+  /** 다음 계정으로 바꾸기가 켜져 있고, 다른 계정에 V5 할당량이 남았다. */
+  v5Spare?: boolean;
   message?: string;
 };
 
@@ -242,9 +253,13 @@ export type FileApi = {
 
 export type AccountApi = {
   tokenStatus: () => Promise<TokenStatus>;
-  saveAndValidateToken: (token: string) => Promise<TokenStatus>;
+  /** 토큰을 확인한 뒤에만 저장한다. */
+  addAccount: (name: string, token: string) => Promise<TokenStatus>;
+  /** 모든 계정을 다시 조회한다. */
   validateStoredToken: () => Promise<TokenStatus>;
-  removeToken: () => Promise<TokenStatus>;
+  renameAccount: (id: string, name: string) => Promise<TokenStatus>;
+  setActiveAccount: (id: string) => Promise<TokenStatus>;
+  removeAccount: (id: string) => Promise<TokenStatus>;
   onTokenStatus: (listener: (status: TokenStatus) => void) => () => void;
 };
 

@@ -13,47 +13,123 @@ import type {
 } from '../../src/core/domain/types';
 import type { TokenStatus } from '../../src/shared/ipc';
 
-function memoryVault(initial?: string): TokenStore & { value?: string } {
+function memoryVault(...tokens: string[]): TokenStore & {
+  items: Array<{ id: string; name: string; token: string }>;
+  activeId?: string;
+} {
+  const items = tokens.map((token, index) => ({
+    id: `a${index}`,
+    name: `계정 ${index + 1}`,
+    token,
+  }));
   return {
-    value: initial,
+    items,
+    activeId: items[0]?.id,
     async getStatus() {
-      return { stored: this.value !== undefined, secureStorageAvailable: true };
+      return { stored: this.items.length > 0, secureStorageAvailable: true };
     },
-    async read() {
-      if (this.value === undefined) throw new Error('저장된 NovelAI 토큰이 없습니다.');
-      return this.value;
+    async accounts() {
+      return {
+        activeId: this.activeId,
+        accounts: this.items.map(({ id, name }) => ({ id, name })),
+      };
     },
-    async save(token) {
-      this.value = token;
+    async read(id) {
+      const item = this.items.find((entry) => entry.id === (id ?? this.activeId));
+      if (!item) throw new Error('저장된 NovelAI 토큰이 없습니다.');
+      return item.token;
     },
-    async remove() {
-      this.value = undefined;
+    async add(name, token) {
+      const id = `a${this.items.length}`;
+      this.items.push({ id, name, token });
+      this.activeId ??= id;
+      return id;
+    },
+    async rename(id, name) {
+      const item = this.items.find((entry) => entry.id === id);
+      if (item) item.name = name;
+    },
+    async setActive(id) {
+      this.activeId = id;
+    },
+    async remove(id) {
+      this.items = this.items.filter((entry) => entry.id !== id);
+      if (this.activeId === id) this.activeId = this.items[0]?.id;
     },
   };
 }
 
+/** 토큰 이름에 V5 할당량을 적는다(`good`은 0%, `full`은 80%). */
 const checker = {
-  validateToken: async (token: string) => ({
-    valid: token === 'good',
-    anlas: 10,
-    v5Quota: { percent: 0, isNegative: false, timeUntilNextPercent: 0 },
-  }),
+  validateToken: async (token: string) => {
+    if (token === 'bad') throw new Error('401');
+    return {
+      valid: true,
+      anlas: 10,
+      tier: 3,
+      v5Quota: { percent: token === 'full' ? 80 : 0, isNegative: false, timeUntilNextPercent: 0 },
+    };
+  },
 };
+
+const v5Job = {
+  kind: 'txt2img' as const,
+  settings: { model: 'nai-diffusion-5-curated', steps: 28 },
+  canvasWidth: 832,
+  canvasHeight: 1216,
+} as unknown as Parameters<AccountService['tokenFor']>[0];
 
 describe('AccountService', () => {
   it('검증한 뒤 저장하고 마지막 상태를 기억해 알려', async () => {
     const vault = memoryVault();
     const published: TokenStatus[] = [];
     const account = new AccountService(vault, checker, (status) => published.push(status));
-    const saved = await account.saveAndValidate('  good  ');
-    expect(vault.value).toBe('  good  ');
+    const saved = await account.addAccount('', '  good  ');
+    expect(vault.items[0].token).toBe('good');
     expect(saved).toMatchObject({ stored: true, valid: true, anlas: 10 });
     expect(account.latest?.v5Quota?.percent).toBe(0);
     await account.refresh();
-    expect(published).toHaveLength(1);
-    await account.remove();
+    expect(published).toHaveLength(2);
+    await account.removeAccount(vault.items[0].id);
     expect(account.latest).toBeUndefined();
     expect(await account.refresh()).toBeUndefined();
+    await expect(account.addAccount('', 'bad')).rejects.toThrow('401');
+    expect(vault.items).toHaveLength(0);
+  });
+
+  it('V5 할당량을 다 쓰면 할당량이 남은 다음 계정으로 바꾸고, 꺼져 있으면 그대로 써', async () => {
+    const vault = memoryVault('good', 'good', 'full');
+    let rotate = true;
+    const account = new AccountService(
+      vault,
+      checker,
+      () => undefined,
+      () => rotate,
+    );
+    await account.validateStored();
+    expect(account.latest?.v5Spare).toBe(true);
+    rotate = false;
+    expect(await account.tokenFor(v5Job)).toBe('good');
+    rotate = true;
+    expect(await account.tokenFor(v5Job)).toBe('full');
+    expect(vault.activeId).toBe('a2');
+    expect(account.latest?.accounts?.find((item) => item.active)?.name).toBe('계정 3');
+  });
+
+  it('바꿔도 무료가 아닌 작업이나 V5가 아닌 모델은 계정을 바꾸지 않아', async () => {
+    const vault = memoryVault('good', 'full');
+    const account = new AccountService(
+      vault,
+      checker,
+      () => undefined,
+      () => true,
+    );
+    await account.validateStored();
+    const large = { ...v5Job, canvasWidth: 1216, canvasHeight: 1216 };
+    const v45 = { ...v5Job, settings: { model: 'nai-diffusion-4-5-full', steps: 28 } };
+    expect(await account.tokenFor(large)).toBe('good');
+    expect(await account.tokenFor(v45 as typeof v5Job)).toBe('good');
+    expect(vault.activeId).toBe('a0');
   });
 });
 

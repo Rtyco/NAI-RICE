@@ -10,9 +10,35 @@
 }
 .token-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
   gap: 6px;
   margin-bottom: 12px;
+}
+.account-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+}
+.account-row.active {
+  border-color: var(--accent-strong);
+}
+.account-active {
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.account-row-value {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .account-cards {
   display: grid;

@@ -180,11 +180,15 @@ export function registerIpc(services: AppServices): void {
   );
 
   ipcMain.handle('token:status', () => account.status());
-  ipcMain.handle('token:save-and-validate', (_event, token: string) =>
-    account.saveAndValidate(token),
+  ipcMain.handle('token:add', (_event, name: string, token: string) =>
+    account.addAccount(name, token),
   );
   ipcMain.handle('token:validate', () => account.validateStored());
-  ipcMain.handle('token:remove', () => account.remove());
+  ipcMain.handle('token:rename', (_event, id: string, name: string) =>
+    account.renameAccount(id, name),
+  );
+  ipcMain.handle('token:set-active', (_event, id: string) => account.setActive(id));
+  ipcMain.handle('token:remove', (_event, id: string) => account.removeAccount(id));
 
   ipcMain.handle('generation:snapshot', () => toQueueView(queue.getSnapshot()));
   ipcMain.handle('generation:enqueue', (_event, request: unknown) => requests.enqueue(request));

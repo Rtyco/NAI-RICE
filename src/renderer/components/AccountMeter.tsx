@@ -43,7 +43,14 @@ export function AccountMeter() {
     <button
       className={`account-meter ${change ? 'changed' : ''}`}
       key={change?.key}
-      title={`계정 상태 다시 조회${token.checkedAt ? ` · 마지막 조회 ${new Date(token.checkedAt).toLocaleTimeString()}` : ''}`}
+      title={[
+        (token.accounts?.length ?? 0) > 1 &&
+          token.accounts?.find((account) => account.active)?.name,
+        '계정 상태 다시 조회',
+        token.checkedAt && `마지막 조회 ${new Date(token.checkedAt).toLocaleTimeString()}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       onClick={() => void run('계정 상태를 확인하는 중', refreshAccount)}
     >
       {quota !== undefined && (

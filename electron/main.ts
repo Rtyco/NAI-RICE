@@ -50,15 +50,18 @@ async function createServices(): Promise<AppServices> {
       : renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk'),
     app.getVersion(),
   );
-  const account = new AccountService(new TokenVault(userData), provider, (status) =>
-    broadcast('token:status', status),
+  const account = new AccountService(
+    new TokenVault(userData),
+    provider,
+    (status) => broadcast('token:status', status),
+    () => library.settings?.accountRotation ?? true,
   );
   const queueFile = path.join(userData, 'generation-queue-v2.json');
   const queue = new GenerationQueue({
     persistencePath: queueFile,
     library,
     provider,
-    token: () => account.token(),
+    token: (job) => account.tokenFor(job),
     emit: (snapshot) => broadcast('generation:queue-update', snapshot),
     onRecord: (record) => broadcast('generation:record-added', toGenerationSummary(record)),
     anlas: async (token) => (await account.refresh(token))?.anlas,
