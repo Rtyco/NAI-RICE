@@ -84,7 +84,6 @@ export class TokenVault {
     return { activeId, accounts: accounts.map(({ id, name }) => ({ id, name })) };
   }
 
-  /** `id`가 없으면 사용 중인 계정 */
   async read(id?: string): Promise<string> {
     if (!this.cipher.isEncryptionAvailable())
       throw new Error('운영체제 보안 저장소를 사용할 수 없습니다.');
