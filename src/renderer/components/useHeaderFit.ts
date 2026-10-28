@@ -75,6 +75,11 @@ export function useQueueBarFit(ref: RefObject<HTMLElement | null>): void {
   useFitLevels(ref, 9, clipped, useSimpleUi() ? 2 : 0);
 }
 
+/** 결과 막대를 한 줄로 둔다(scene-detail.css의 .fit-1 … .fit-8). */
+export function useResultBarFit(ref: RefObject<HTMLElement | null>): void {
+  useFitLevels(ref, 8, clipped);
+}
+
 /**
  * 펼친 설정 줄을 한 줄로 둔다(chips.css의 .fit-1 … .fit-6). 머리줄에 접은 칩은 useHeaderFit이 맡는다.
  * 줄바꿈을 고른 사용자면 줄이지 않는다(.wrap). 막대의 className을 돌려준다.
