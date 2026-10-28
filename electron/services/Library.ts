@@ -10,6 +10,7 @@ import type { BorderLineInput, BorderLineRequest } from '../../src/core/model/li
 import { compareVersions, WHATS_NEW_VERSION } from '../../src/core/update/UpdateCheck';
 import { librarySchema } from '../../src/core/validation/schemas';
 import type {
+  BorderLineMaskRequest,
   GenerationMeasure,
   ImageDataSource,
   ImageInputRequest,
@@ -161,6 +162,12 @@ export class Library
 
   addSourceMask(dataUrl: string): Promise<string> {
     return this.files.addSourceMask(dataUrl);
+  }
+
+  addBorderLineMask(
+    request: BorderLineMaskRequest,
+  ): Promise<{ maskFile: string; lines: number } | undefined> {
+    return this.files.addBorderLineMask(request);
   }
 
   addSourceFromReference(reference: Reference): Promise<ReferenceSource> {

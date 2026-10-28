@@ -3,6 +3,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import type { Reference } from '../../src/core/domain/types';
 import type {
+  BorderLineMaskRequest,
   ImageDataSource,
   ImageInputSource,
   ReferenceImages,
@@ -21,7 +22,7 @@ import {
   toDataUrl,
 } from './fsUtils';
 import type { GenerationIndex } from './GenerationIndex';
-import { imageSize, padToMultiple } from './Images';
+import { findBorderLineMask, imageSize, padToMultiple } from './Images';
 import type { WorkspacePaths } from './WorkspacePaths';
 
 export type ReferenceImageWrite = Omit<ReferenceImageSave, 'referenceId'>;
@@ -146,6 +147,20 @@ export class StoredFiles {
               (await this.generations.find(source.projectId, source.generationId)).file,
             );
     return toDataUrl(await fs.readFile(file), imageMime(file));
+  }
+
+  async addBorderLineMask(
+    request: BorderLineMaskRequest,
+  ): Promise<{ maskFile: string; lines: number } | undefined> {
+    const read = async (file: string) =>
+      fs.readFile(await this.paths.verifyReal(this.paths.sourceFile(file)));
+    const found = await findBorderLineMask(
+      await read(request.file),
+      request.outputRect,
+      request.marginPx,
+      request.baseMaskFile ? await read(request.baseMaskFile) : undefined,
+    );
+    return found && { maskFile: await this.writeSource(found.mask), lines: found.lines };
   }
 
   async addSourceMask(dataUrl: string): Promise<string> {

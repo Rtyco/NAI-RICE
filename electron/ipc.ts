@@ -6,6 +6,7 @@ import {
   generationFindRequestSchema,
 } from '../src/core/validation/schemas';
 import type {
+  BorderLineMaskRequest,
   ImageDataSource,
   ImageInputRequest,
   MetadataVibeImport,
@@ -103,6 +104,9 @@ export function registerIpc(services: AppServices): void {
     library.addSourceImage(request),
   );
   ipcMain.handle('source:add-mask', (_event, dataUrl: string) => library.addSourceMask(dataUrl));
+  ipcMain.handle('source:add-border-line-mask', (_event, request: BorderLineMaskRequest) =>
+    library.addBorderLineMask(request),
+  );
   ipcMain.handle('source:add-reference', (_event, reference: Reference) =>
     library.addSourceFromReference(reference),
   );

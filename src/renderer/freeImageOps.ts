@@ -6,11 +6,10 @@ import type {
   Reference,
   SceneImg2Img,
 } from '../core/domain/types';
-import { borderLineMask, detectBorderLines } from '../core/imaging/BorderLines';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
 import { createReference, DEFAULT_LINE_FIX, FREE_PROJECT_ID } from '../core/model/defaults';
 import { fileApi, libraryApi } from './desktop';
-import { canvas2d, decodeMask, loadHtmlImage, maskToDataUrl } from './lib/image';
+import { canvas2d, maskToDataUrl } from './lib/image';
 import type { StoredSource } from '../shared/ipc';
 import {
   openEmotion,
@@ -108,24 +107,17 @@ export function dropSourceFiles(
 }
 
 /** 찾은 선이 없으면 undefined. `base` 마스크가 있으면 거기에 더한다. */
-export async function findBorderLineMask(
+export function findBorderLineMask(
   image: StoredSource,
   marginPx: number,
   base?: string,
 ): Promise<{ maskFile: string; lines: number } | undefined> {
-  const { width, height, outputRect } = image;
-  const picture = await loadHtmlImage(await sourceDataUrl(image.file));
-  const { context } = canvas2d(width, height);
-  context.drawImage(picture, 0, 0);
-  const lines = detectBorderLines(context.getImageData(0, 0, width, height), outputRect);
-  if (!lines.length) return undefined;
-  const mask = borderLineMask(width, height, outputRect, lines, marginPx);
-  if (base) {
-    const previous = await decodeMask(await sourceDataUrl(base), width, height);
-    for (let pixel = 0; pixel < mask.length; pixel += 1) mask[pixel] |= previous[pixel];
-  }
-  const maskFile = await libraryApi().addSourceMask(maskToDataUrl(mask, width, height));
-  return { maskFile, lines: lines.length };
+  return libraryApi().addBorderLineMask({
+    file: image.file,
+    outputRect: image.outputRect,
+    marginPx,
+    ...(base ? { baseMaskFile: base } : {}),
+  });
 }
 
 function lineFixSettings() {

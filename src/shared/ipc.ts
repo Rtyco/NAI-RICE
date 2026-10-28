@@ -102,6 +102,12 @@ export type StoredSource = { file: string; width: number; height: number; output
 
 export type ReferenceSource = StoredSource & { maskFile: string };
 
+/** `baseMaskFile`이 있으면 그 마스크에 더한다. */
+export type BorderLineMaskRequest = Omit<StoredSource, 'width' | 'height'> & {
+  marginPx: number;
+  baseMaskFile?: string;
+};
+
 export type SourceInputRequest = {
   projectId: string;
   file: string;
@@ -185,6 +191,10 @@ export type LibraryApi = {
   prepareImageInput: (request: ImageInputRequest) => Promise<PreparedImage>;
   addSourceImage: (request: SourceImageAdd) => Promise<StoredSource>;
   addSourceMask: (dataUrl: string) => Promise<string>;
+  /** 구분선이 없으면 undefined. */
+  addBorderLineMask: (
+    request: BorderLineMaskRequest,
+  ) => Promise<{ maskFile: string; lines: number } | undefined>;
   /** 인페인트의 캔버스와 마스크를 복사한다. 결과 영역은 인페인트의 것. */
   addSourceFromReference: (reference: Reference) => Promise<ReferenceSource>;
   /** 앱이 만든 사본이라 휴지통을 거치지 않는다. */

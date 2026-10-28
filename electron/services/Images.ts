@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import type { ExportFormat, Rect, StorageFormat } from '../../src/core/domain/types';
+import { borderLineMask, detectBorderLines } from '../../src/core/imaging/BorderLines';
 import { DESK_METADATA_KEY } from '../../src/core/metadata/NaiMetadata';
 import {
   copyTextChunks,
@@ -186,4 +187,46 @@ export function formatFromExtension(filePath: string): ExportFormat {
   if (lower.endsWith('.webp')) return 'webp';
   if (lower.endsWith('.avif')) return 'avif';
   return 'png';
+}
+
+/**
+ * 64 배수 캔버스(`area`는 여백을 뺀 결과 영역)에서 구분선을 찾아 마스크 PNG를 만든다. 없으면 undefined.
+ * 마스크는 화면이 칠하는 것과 같은 흰색·검은색이고, `base`(같은 크기의 마스크)에 더한다.
+ */
+export async function findBorderLineMask(
+  png: Buffer,
+  area: Rect,
+  marginPx: number,
+  base?: Buffer,
+): Promise<{ mask: Buffer; lines: number } | undefined> {
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
+  const lines = detectBorderLines(
+    { width, height, data: new Uint8ClampedArray(data.buffer, data.byteOffset, data.length) },
+    area,
+  );
+  if (!lines.length) return undefined;
+  const mask = borderLineMask(
+    width,
+    height,
+    area,
+    lines,
+    Math.min(32, Math.max(0, Math.round(marginPx))),
+  );
+  if (base) {
+    const red = await sharp(base).extractChannel(0).raw().toBuffer({ resolveWithObject: true });
+    if (red.info.width !== width || red.info.height !== height)
+      throw new Error('마스크 크기가 이미지와 다릅니다. 마스크를 다시 칠하십시오.');
+    for (let pixel = 0; pixel < mask.length; pixel += 1)
+      if (red.data[pixel] >= 128) mask[pixel] = 1;
+  }
+  const rgba = Buffer.alloc(width * height * 4, 255);
+  for (let pixel = 0; pixel < mask.length; pixel += 1)
+    if (!mask[pixel]) rgba.fill(0, pixel * 4, pixel * 4 + 3);
+  return {
+    mask: await sharp(rgba, { raw: { width, height, channels: 4 } })
+      .png()
+      .toBuffer(),
+    lines: lines.length,
+  };
 }
