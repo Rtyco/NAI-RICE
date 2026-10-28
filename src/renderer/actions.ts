@@ -109,7 +109,6 @@ async function enqueue(jobs: GenerationJobSnapshot[], message: string): Promise<
   if (!jobs.every(onStage)) toast(message);
 }
 
-/** 씬 i2i는 작업의 인페인트를 쓰지 않는다. */
 async function projectJobInput(
   projectId: string,
   emotionIds: string[],
@@ -184,7 +183,6 @@ export function generateEmotions(
   }).then(() => undefined);
 }
 
-/** 씬 상세의 i2i 이미지로 만든다. 결과는 그 씬에 쌓인다. */
 export function generateSceneImg2Img(
   projectId: string,
   emotionId: string,

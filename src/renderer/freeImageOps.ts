@@ -24,7 +24,6 @@ import {
   useStore,
 } from './store';
 
-/** i2i 이미지를 둔 곳: 자유 생성 또는 씬 상세의 한 씬 */
 export type ImageTarget =
   { kind: 'free' } | { kind: 'scene'; projectId: string; emotionId: string };
 

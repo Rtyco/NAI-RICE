@@ -12,7 +12,6 @@ import {
 import { FreeDrawStage } from './FreeDrawStage';
 import { FreeMaskCanvas } from './FreeMaskCanvas';
 
-/** 자유 생성과 씬 상세 i2i의 가운데. `result`는 결과 미리보기. */
 export function FreeSourceStage(props: {
   target: ImageTarget;
   image?: FreeImage;

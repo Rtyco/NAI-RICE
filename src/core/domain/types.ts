@@ -276,7 +276,6 @@ export type Project = {
   updatedAt: string;
 };
 
-/** 결과는 그 씬에 쌓인다. */
 export type SceneImg2Img = {
   /** 끄면 이미지는 남기고 작업의 생성 방식으로 돌아간다. */
   on: boolean;
