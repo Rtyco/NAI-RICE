@@ -14,6 +14,8 @@ import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { GenerationQueue } from '../../electron/services/GenerationQueue';
 import { Library } from '../../electron/services/Library';
 import { buildFollowUpJobs } from '../../src/core/model/lineFix';
+import { AccountService } from '../../electron/services/AccountService';
+import type { TokenStore } from '../../electron/services/ports';
 
 let root: string;
 afterEach(() => rm(root, { recursive: true, force: true }));
@@ -320,4 +322,84 @@ describe('GenerationQueue 실패 처리', () => {
     await queue.pause();
     expect(queue.getSnapshot().jobs.map((item) => item.id)).toEqual(['a', 'b']);
   });
+
+  it('첫 계정의 V5 할당량이 바닥나면 다음 요청부터 다음 계정으로 하나씩 생성해', async () => {
+    root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
+    const library = new Library(root);
+    await library.load();
+    const png = await sharp({
+      create: { width: 64, height: 64, channels: 4, background: '#00ff00' },
+    })
+      .png()
+      .toBuffer();
+    // 토큰마다 남은 V5 할당량(%). 생성할 때마다 1씩 쓴다.
+    const quota = new Map([
+      ['first', 1],
+      ['second', 50],
+    ]);
+    let activeId = 'a0';
+    const items = [
+      { id: 'a0', name: '본계정', token: 'first' },
+      { id: 'a1', name: '부계정', token: 'second' },
+    ];
+    const vault: TokenStore = {
+      getStatus: async () => ({ stored: true, secureStorageAvailable: true }),
+      accounts: async () => ({ activeId, accounts: items.map(({ id, name }) => ({ id, name })) }),
+      read: async (id) => items.find((item) => item.id === (id ?? activeId))!.token,
+      add: async () => '',
+      rename: async () => undefined,
+      setActive: async (id) => void (activeId = id),
+      remove: async () => undefined,
+    };
+    const account = new AccountService(
+      vault,
+      {
+        validateToken: async (token) => ({
+          valid: true,
+          tier: 3,
+          anlas: 100,
+          v5Quota: { percent: quota.get(token)!, isNegative: false, timeUntilNextPercent: 0 },
+        }),
+      },
+      () => undefined,
+      () => true,
+    );
+    await account.validateStored();
+    const used: string[] = [];
+    let running = 0;
+    let overlapped = false;
+    const queue = new GenerationQueue({
+      persistencePath: path.join(root, 'queue.json'),
+      library,
+      provider: {
+        generate: async (request) => {
+          overlapped ||= running > 0;
+          running += 1;
+          used.push(request.token);
+          quota.set(request.token, quota.get(request.token)! - 1);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          running -= 1;
+          return [png];
+        },
+      },
+      token: (job) => account.tokenFor(job),
+      anlas: async (token) => (await account.refresh(token))?.anlas,
+      emit: () => undefined,
+      onRecord: () => undefined,
+    });
+    await queue.initialize();
+    const v5 = (id: string): Txt2ImgJobSnapshot => ({
+      ...textJob(id),
+      settings: { ...DEFAULT_GENERATION_SETTINGS, model: 'nai-diffusion-5-curated', steps: 28 },
+    });
+    await queue.enqueue([v5('a'), v5('b'), v5('c')]);
+    await until(
+      () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
+      15_000,
+    );
+    await queue.pause();
+    expect(used).toEqual(['first', 'second', 'second']);
+    expect(overlapped).toBe(false);
+    expect(activeId).toBe('a1');
+  }, 20_000);
 });
