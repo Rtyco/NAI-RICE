@@ -40,6 +40,14 @@ describe('크롭된 결과의 구분선', () => {
     ]);
   });
 
+  it('가장자리를 넓게 덮은 굵은 선도 찾아', () => {
+    const result = image(664, 832);
+    fill(result, { x: 0, y: 0, width: 56, height: 832 }, BLACK);
+    expect(detectBorderLines(result, whole(result))).toEqual([
+      { axis: 'vertical', from: 0, to: 56 },
+    ]);
+  });
+
   it('윤곽선처럼 끊긴 선, 가운데의 선, 띠를 채운 어두운 배경은 선으로 보지 않아', () => {
     const outline = image(160, 256);
     fill(outline, { x: 4, y: 0, width: 2, height: 100 }, BLACK);
@@ -49,9 +57,13 @@ describe('크롭된 결과의 구분선', () => {
     fill(middle, { x: 200, y: 0, width: 8, height: 256 }, BLACK);
     expect(detectBorderLines(middle, whole(middle))).toEqual([]);
 
-    const dark = image(160, 256);
-    fill(dark, { x: 0, y: 0, width: 60, height: 256 }, BLACK);
+    const dark = image(664, 832);
+    fill(dark, { x: 0, y: 0, width: 200, height: 832 }, BLACK);
     expect(detectBorderLines(dark, whole(dark))).toEqual([]);
+
+    const inner = image(664, 832);
+    fill(inner, { x: 60, y: 0, width: 8, height: 832 }, BLACK);
+    expect(detectBorderLines(inner, whole(inner))).toEqual([]);
   });
 
   it('64 배수 여백은 빼고 결과 영역의 가장자리에서 찾아', () => {

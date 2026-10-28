@@ -8,9 +8,10 @@ export type BorderLine = { axis: 'vertical' | 'horizontal'; from: number; to: nu
 const DARK_BELOW = 100;
 /** 캐릭터가 선을 일부 가려도 잡는다. */
 const MIN_COVERAGE = 0.6;
-/** 인페인트가 그린 선은 8px 안팎이었다(2026-10-28 크롭 결과). 넓은 어두운 배경은 선으로 보지 않는다. */
-const MAX_THICKNESS = 24;
-const BAND = 48;
+/** 실측 8px과 56px(664px 폭 크롭 결과, 2026-10-28). 이보다 넓거나 안쪽 끝이 없으면 어두운 배경으로 본다. */
+const MAX_THICKNESS = 96;
+/** 선은 가장자리에서 이 안에서 시작한다. */
+const EDGE = 48;
 /** NovelAI 마스크 한 칸 */
 const CELL = 8;
 
@@ -40,17 +41,19 @@ function linesInBand(
 ): BorderLine[] {
   const lines: BorderLine[] = [];
   let run: number[] = [];
+  let runStart = 0;
   const close = (reachedEnd: boolean) => {
-    if (run.length && run.length <= MAX_THICKNESS && !reachedEnd) {
+    if (run.length && run.length <= MAX_THICKNESS && runStart < EDGE && !reachedEnd) {
       const from = Math.min(...run);
       lines.push({ axis, from, to: Math.max(...run) + 1 });
     }
     run = [];
   };
-  for (const position of positions) {
-    if (isLine(position)) run.push(position);
-    else close(false);
-  }
+  positions.forEach((position, index) => {
+    if (!isLine(position)) return close(false);
+    if (!run.length) runStart = index;
+    run.push(position);
+  });
   close(true);
   return lines;
 }
@@ -63,7 +66,7 @@ export function detectBorderLines(image: PixelBuffer, area: Rect): BorderLine[] 
   for (const axis of ['vertical', 'horizontal'] as const) {
     const start = axis === 'vertical' ? area.x : area.y;
     const size = axis === 'vertical' ? area.width : area.height;
-    const band = Math.min(BAND, Math.floor(size / 4));
+    const band = Math.min(EDGE + MAX_THICKNESS, Math.floor(size / 4));
     const isLine = (position: number) => coverage(image, area, axis, position) >= MIN_COVERAGE;
     const near = Array.from({ length: band }, (_, index) => start + index);
     const far = Array.from({ length: band }, (_, index) => start + size - 1 - index);
