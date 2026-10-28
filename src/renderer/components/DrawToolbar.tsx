@@ -1,4 +1,4 @@
-import { CanvasZoom, UndoRedoButtons, type ZoomView } from './CanvasControls';
+import { CanvasToolbar, CanvasZoom, UndoRedoButtons, type ZoomView } from './CanvasControls';
 import { MAX_SIZE, PALETTE, TIPS, TOOLS, type DrawSettings } from './drawSettings';
 import { Icon } from './Icon';
 
@@ -14,7 +14,40 @@ export function DrawToolbar(props: {
   const { tool, tip, color } = settings;
   const brushing = tool === 'pen' || tool === 'eraser';
   return (
-    <div className="canvas-toolbar">
+    <CanvasToolbar
+      label="그리기 도구"
+      view={props.view}
+      history={props.history}
+      more={[
+        {
+          fold: 1,
+          items: [
+            { heading: '펜 끝' },
+            ...TIPS.map((item) => ({
+              label: item.label,
+              hint: tip === item.id ? '사용 중' : undefined,
+              onSelect: () => settings.setTip(item.id),
+            })),
+          ],
+        },
+        { fold: 1, items: [{ label: '그린 것 지우기', hint: 'Delete', onSelect: props.onClear }] },
+        {
+          fold: 2,
+          items: [
+            { heading: '팔레트' },
+            {
+              swatches: PALETTE.map((swatch) => ({
+                id: swatch,
+                label: swatch,
+                color: swatch,
+                active: swatch === color,
+              })),
+              onPick: settings.setColor,
+            },
+          ],
+        },
+      ]}
+    >
       <div className="segmented" role="group" aria-label="도구">
         {TOOLS.map((item) => (
           <button
@@ -24,7 +57,7 @@ export function DrawToolbar(props: {
             title={`${item.label} (${item.key.toUpperCase()})`}
             onClick={() => settings.setTool(item.id)}
           >
-            <Icon name={item.icon} size={14} /> {item.label}
+            <Icon name={item.icon} size={14} /> <span className="tool-label">{item.label}</span>
           </button>
         ))}
       </div>
@@ -47,7 +80,7 @@ export function DrawToolbar(props: {
           onChange={(event) => settings.setColor(event.target.value)}
         />
       </div>
-      <div className="draw-palette" role="group" aria-label="팔레트">
+      <div className="draw-palette" role="group" aria-label="팔레트" data-fold="2">
         {PALETTE.map((swatch) => (
           <button
             key={swatch}
@@ -61,7 +94,7 @@ export function DrawToolbar(props: {
       </div>
       <span className="zone-divider" />
       <div className={`brush-settings ${brushing ? '' : 'idle'}`}>
-        <div className="segmented" role="group" aria-label="펜 끝">
+        <div className="segmented" role="group" aria-label="펜 끝" data-fold="1">
           {TIPS.map((item) => (
             <button
               key={item.id}
@@ -74,7 +107,7 @@ export function DrawToolbar(props: {
           ))}
         </div>
         <label className="range-field" title="크기 ([ / ]) · 끝 모양 (Shift+[ / ])">
-          크기
+          <span className="range-name">크기</span>
           <input
             type="range"
             min="1"
@@ -86,7 +119,7 @@ export function DrawToolbar(props: {
         </label>
       </div>
       <label className="range-field" title="불투명도 (1~0)">
-        불투명도
+        <span className="range-name">불투명도</span>
         <input
           type="range"
           min="1"
@@ -97,8 +130,8 @@ export function DrawToolbar(props: {
         <b>{settings.opacity}%</b>
       </label>
       {tool === 'fill' && (
-        <label className="range-field">
-          허용 오차
+        <label className="range-field" title="허용 오차">
+          <span className="range-name">허용 오차</span>
           <input
             type="range"
             min="0"
@@ -111,17 +144,22 @@ export function DrawToolbar(props: {
       )}
       <span className="zone-divider" />
       <UndoRedoButtons {...props.history} />
-      <button onClick={props.onClear} title="모두 지우기 (Delete)">
+      <button data-fold="1" onClick={props.onClear} title="모두 지우기 (Delete)">
         그린 것 지우기
       </button>
       <div className="toolbar-zone view-zone">
         <CanvasZoom view={props.view} />
         {props.apply && (
-          <button className="accent" disabled={!props.apply.pending} onClick={props.apply.run}>
-            이미지에 합치기
+          <button
+            className="accent"
+            title="이미지에 합치기"
+            disabled={!props.apply.pending}
+            onClick={props.apply.run}
+          >
+            <span className="long-label">이미지에 </span>합치기
           </button>
         )}
       </div>
-    </div>
+    </CanvasToolbar>
   );
 }

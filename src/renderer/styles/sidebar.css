@@ -525,6 +525,8 @@
 }
 .menu-swatches {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 220px;
   gap: 6px;
   padding: 4px 10px 6px;
 }

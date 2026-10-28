@@ -5,9 +5,15 @@ export type MenuItem =
   | { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean; hint?: string }
   /** 누를 수 없는 작은 제목 */
   | { heading: string }
-  /** 한 줄의 색 단추. `className`이 색을 정한다. */
+  /** 한 줄의 색 단추. `className`이나 `color`가 색을 정한다. */
   | {
-      swatches: Array<{ id: string; label: string; className: string; active: boolean }>;
+      swatches: Array<{
+        id: string;
+        label: string;
+        className?: string;
+        color?: string;
+        active: boolean;
+      }>;
       onPick: (id: string) => void;
     }
   | 'divider';

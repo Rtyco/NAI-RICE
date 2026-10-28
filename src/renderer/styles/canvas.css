@@ -181,12 +181,66 @@
   display: flex;
   flex-direction: column;
 }
+/* 넘치면 useCanvasToolbarFit이 .fit-1…8을 붙인다. 마지막 단계는 자르지 않고 가로로 민다. */
 .canvas-toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 4px;
+  gap: 4px;
   margin-bottom: 7px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.canvas-toolbar > *,
+.canvas-toolbar .toolbar-zone > * {
+  flex: none;
+}
+.canvas-toolbar .canvas-more {
+  display: none;
+}
+.canvas-toolbar.fit-3 .view-zone::before {
+  content: none;
+}
+.canvas-toolbar.fit-3 .range-field input {
+  width: 48px;
+}
+.canvas-toolbar.fit-3 .brush-settings {
+  gap: 4px;
+  margin-left: 0;
+}
+.canvas-toolbar.fit-3 .draw-palette {
+  display: grid;
+  grid-template-columns: repeat(7, 11px);
+  gap: 2px;
+}
+.canvas-toolbar.fit-3 .draw-palette button {
+  width: 11px;
+  height: 11px;
+}
+.canvas-toolbar.fit-4 .canvas-more {
+  display: inline-flex;
+}
+/* 팔레트의 grid보다 뒤에 둔다. */
+.canvas-toolbar.fit-1 .range-name,
+.canvas-toolbar.fit-2 .tool-label,
+.canvas-toolbar.fit-3 .zone-divider,
+.canvas-toolbar.fit-3 .canvas-zoom .icon-button,
+.canvas-toolbar.fit-4 [data-fold='1'],
+.canvas-toolbar.fit-5 [data-fold='2'],
+.canvas-toolbar.fit-6 [data-fold='3'],
+.canvas-toolbar.fit-7 .long-label {
+  display: none;
+}
+.canvas-toolbar.fit-7 {
+  gap: 2px;
+}
+.canvas-toolbar.fit-7 .range-field input {
+  width: 32px;
+}
+.canvas-toolbar.fit-7 .segmented button {
+  padding-inline: 6px;
+}
+.canvas-toolbar.fit-8 {
+  overflow-x: auto;
 }
 .canvas-toolbar .segmented button {
   display: inline-flex;

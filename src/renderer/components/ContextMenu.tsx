@@ -51,7 +51,8 @@ export function ContextMenuHost() {
                 key={swatch.id}
                 role="menuitemradio"
                 aria-checked={swatch.active}
-                className={`swatch ${swatch.className} ${swatch.active ? 'active' : ''}`}
+                className={`swatch ${swatch.className ?? ''} ${swatch.active ? 'active' : ''}`}
+                style={swatch.color ? { background: swatch.color } : undefined}
                 title={swatch.label}
                 aria-label={swatch.label}
                 onClick={() => {
