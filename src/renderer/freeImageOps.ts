@@ -2,6 +2,7 @@ import type {
   FreeImage,
   GenerationSummary,
   Library,
+  Project,
   Reference,
   SceneImg2Img,
 } from '../core/domain/types';
@@ -84,13 +85,12 @@ function recordName(projectId: string, record: GenerationSummary): string {
   return `${record.emotionName || (projectId === FREE_PROJECT_ID ? '자유 생성' : '결과')} ${record.seed}`;
 }
 
+export function sceneImages(project: Project | undefined): Array<FreeImage | undefined> {
+  return Object.values(project?.sceneImg2Img ?? {}).map((scene) => scene.image);
+}
+
 function usedSourceFiles(library: Library | null): Set<string | undefined> {
-  const images = [
-    library?.freeGeneration.image,
-    ...(library?.projects ?? []).flatMap((project) =>
-      Object.values(project.sceneImg2Img ?? {}).map((scene) => scene.image),
-    ),
-  ];
+  const images = [library?.freeGeneration.image, ...(library?.projects ?? []).flatMap(sceneImages)];
   return new Set(images.flatMap((image) => [image?.file, image?.maskFile]));
 }
 

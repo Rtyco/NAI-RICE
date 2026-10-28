@@ -7,10 +7,12 @@ import {
   buildTxt2ImgJobs,
   FREE_FILENAME_TEMPLATE,
   type AugmentTarget,
+  type ImageJobInput,
   type JobCharacter,
 } from '../core/jobs/JobBuilder';
 import type {
   AugmentSettings,
+  FreeImage,
   GenerationJobSnapshot,
   GenerationSummary,
   JobAid,
@@ -193,37 +195,45 @@ export function generateSceneImg2Img(
     await saveMask();
     const { resolved, common } = await projectJobInput(projectId, [emotionId], options, true);
     const scene = common.project.sceneImg2Img?.[emotionId];
-    const source = scene?.image;
-    if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
-    if (scene.inpaint) assertInpaintable(source.maskFile, common.preset.generation.model);
-    const { mask, ...prepared } = await libraryApi().prepareSourceInput({
+    const image = await prepareImageInput(
       projectId,
-      file: source.file,
-      ...(scene.inpaint ? { maskFile: source.maskFile } : {}),
-    });
-    const jobs = buildSceneImg2ImgJobs({
-      ...common,
-      image: {
-        image: prepared,
-        mask,
-        width: source.width,
-        height: source.height,
-        outputRect: source.outputRect,
-        ...(scene.inpaint && source.fromReference ? { reference: source.fromReference } : {}),
-        sourceRecordId:
-          source.fromRecord?.projectId === projectId ? source.fromRecord.generationId : undefined,
-      },
-    });
-    await enqueueProjectJobs(resolved, jobs);
+      scene?.image,
+      Boolean(scene?.inpaint),
+      common.preset.generation.model,
+    );
+    await enqueueProjectJobs(resolved, buildSceneImg2ImgJobs({ ...common, image }));
   }).then(() => undefined);
 }
 
-function assertInpaintable(maskFile: string | undefined, model: string): void {
-  if (!maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
-  if (!supportsInpaint(model))
-    throw new Error(
-      `${modelLabel(model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서 모델을 바꾸거나 인페인팅을 끄십시오.`,
-    );
+async function prepareImageInput(
+  projectId: string,
+  source: FreeImage | undefined,
+  inpaint: boolean,
+  model: string,
+): Promise<ImageJobInput> {
+  if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+  if (inpaint) {
+    if (!source.maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
+    if (!supportsInpaint(model))
+      throw new Error(
+        `${modelLabel(model)}은(는) 인페인팅을 지원하지 않습니다. 생성 설정에서 모델을 바꾸거나 인페인팅을 끄십시오.`,
+      );
+  }
+  const { mask, ...prepared } = await libraryApi().prepareSourceInput({
+    projectId,
+    file: source.file,
+    ...(inpaint ? { maskFile: source.maskFile } : {}),
+  });
+  return {
+    image: prepared,
+    mask,
+    width: source.width,
+    height: source.height,
+    outputRect: source.outputRect,
+    ...(inpaint && source.fromReference ? { reference: source.fromReference } : {}),
+    sourceRecordId:
+      source.fromRecord?.projectId === projectId ? source.fromRecord.generationId : undefined,
+  };
 }
 
 /** `prompt`·`seed`를 주면 그 값으로 다시 만든다. */
@@ -242,29 +252,15 @@ export function generateFree(
     if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
     const prompt = options.prompt ?? free.prompt;
 
-    let image;
-    if (free.mode === 'img2img') {
-      const source = free.image;
-      if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
-      if (free.inpaint) assertInpaintable(source.maskFile, preset.generation.model);
-      const { mask, ...prepared } = await libraryApi().prepareSourceInput({
-        projectId: FREE_PROJECT_ID,
-        file: source.file,
-        ...(free.inpaint ? { maskFile: source.maskFile } : {}),
-      });
-      image = {
-        image: prepared,
-        mask,
-        width: source.width,
-        height: source.height,
-        outputRect: source.outputRect,
-        ...(free.inpaint && source.fromReference ? { reference: source.fromReference } : {}),
-        sourceRecordId:
-          source.fromRecord?.projectId === FREE_PROJECT_ID
-            ? source.fromRecord.generationId
-            : undefined,
-      };
-    }
+    const image =
+      free.mode === 'img2img'
+        ? await prepareImageInput(
+            FREE_PROJECT_ID,
+            free.image,
+            free.inpaint,
+            preset.generation.model,
+          )
+        : undefined;
     const jobs = buildFreeJobs({
       preset,
       characters: jobCharacters(characters),

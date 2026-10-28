@@ -505,7 +505,7 @@ export function buildFreeJobs(
   return jobs;
 }
 
-type ImageJobInput = NonNullable<FreeJobBuildInput['image']>;
+export type ImageJobInput = NonNullable<FreeJobBuildInput['image']>;
 
 function imageJob(
   common: JobSnapshotCommon,

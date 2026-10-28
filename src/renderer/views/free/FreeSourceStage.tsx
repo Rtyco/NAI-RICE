@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
-import type { FreeImage } from '../../../core/domain/types';
+import type { MouseEvent, ReactNode } from 'react';
+import type { FreeImage, Preset } from '../../../core/domain/types';
 import { modelLabel, noInpaintReason } from '../../../core/providers/NaiModels';
 import { ImageStage } from '../../components/ImageStage';
+import { StreamPreview } from '../../components/StreamPreview';
 import {
   loadImageFromFile,
   newBlankImage,
@@ -20,11 +21,14 @@ export function FreeSourceStage(props: {
   inpainting: boolean;
   sourceLabel: string;
   filmstrip: boolean;
-  /** 이미지 없이 그리기 탭을 열면 만들 빈 캔버스 크기 */
-  blank: { width: number; height: number };
+  preset?: Preset;
   result: ReactNode;
 }) {
-  const { target, image, blank } = props;
+  const { target, image } = props;
+  const blank = {
+    width: props.preset?.generation.width ?? 832,
+    height: props.preset?.generation.height ?? 1216,
+  };
   if (props.drawing)
     return (
       <div className="free-mask-stage">
@@ -64,6 +68,40 @@ export function FreeSourceStage(props: {
       />
       {props.result}
     </div>
+  );
+}
+
+export function ResultStage(props: {
+  src?: string;
+  alt?: string;
+  filmstrip: boolean;
+  /** 원본과 나란히 보일 때 붙인다. */
+  labelled: boolean;
+  running: string[];
+  pending: number;
+  onContextMenu?: (event: MouseEvent) => void;
+}) {
+  return (
+    <ImageStage
+      src={props.src}
+      alt={props.alt}
+      filmstrip={props.filmstrip}
+      empty={
+        <div className="stage-empty">
+          <p>아직 생성된 이미지가 없습니다.</p>
+        </div>
+      }
+      overlay={
+        <>
+          <StreamPreview jobIds={props.running} className="stage-preview" />
+          {props.labelled && <span className="stage-label">결과</span>}
+          {props.pending > 0 && (
+            <span className="card-status busy stage-status">생성 대기 {props.pending}</span>
+          )}
+        </>
+      }
+      onContextMenu={props.onContextMenu}
+    />
   );
 }
 

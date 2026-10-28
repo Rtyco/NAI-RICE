@@ -11,8 +11,6 @@ import {
 import { autoRefineCount, generateCountLabel } from '../../core/model/refine';
 import { supportsInpaint } from '../../core/providers/NaiModels';
 import { generateEmotions, generateSceneImg2Img, type GenerateOptions } from '../actions';
-import { ImageStage } from '../components/ImageStage';
-import { StreamPreview } from '../components/StreamPreview';
 import { Filmstrip } from '../components/Filmstrip';
 import { PaletteButton } from '../components/FloatingPalette';
 import { SidePanelLayout } from '../components/SidePanel';
@@ -38,7 +36,7 @@ import { fileApi, libraryApi } from '../desktop';
 import { useSceneOrder } from '../useSceneOrder';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
-import { FreeSourceStage, InpaintModelBanner } from './free/FreeSourceStage';
+import { FreeSourceStage, InpaintModelBanner, ResultStage } from './free/FreeSourceStage';
 import { FreeStageTabs, type FreeStage } from './free/FreeStageTabs';
 
 export function EmotionDetail({
@@ -231,24 +229,13 @@ export function EmotionDetail({
   );
 
   const resultStage = (
-    <ImageStage
+    <ResultStage
       src={selected && projectMedia(project.id, selected.file)}
       alt={emotion.name}
       filmstrip={records.length > 0}
-      empty={
-        <div className="stage-empty">
-          <p>아직 생성된 이미지가 없습니다.</p>
-        </div>
-      }
-      overlay={
-        <>
-          <StreamPreview jobIds={running} className="stage-preview" />
-          {image && <span className="stage-label">결과</span>}
-          {pending > 0 && (
-            <span className="card-status busy stage-status">생성 대기 {pending}</span>
-          )}
-        </>
-      }
+      labelled={Boolean(image)}
+      running={running}
+      pending={pending}
       onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
   );
@@ -328,10 +315,7 @@ export function EmotionDetail({
             inpainting={inpainting}
             sourceLabel="i2i 이미지"
             filmstrip={records.length > 0}
-            blank={{
-              width: resolved.preset?.generation.width ?? 832,
-              height: resolved.preset?.generation.height ?? 1216,
-            }}
+            preset={resolved.preset}
             result={resultStage}
           />
           {!showSource && !drawing && selected && (

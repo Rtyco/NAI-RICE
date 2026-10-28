@@ -5,7 +5,7 @@ import { uniqueName } from '../core/model/mutations';
 import { confirmDialog } from './components/dialogStack';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { fileApi, libraryApi } from './desktop';
-import { dropSourceFiles } from './freeImageOps';
+import { dropSourceFiles, sceneImages } from './freeImageOps';
 
 /** 생성 결과와 대표 이미지는 가져오지 않는다. */
 export function duplicateProject(project: Project): void {
@@ -52,9 +52,8 @@ export function exportProjectFile(project: Project, format: 'sdstudio' | 'rice')
   });
 }
 
-function sceneImages(projectId: string) {
-  const project = useStore.getState().library?.projects.find((item) => item.id === projectId);
-  return Object.values(project?.sceneImg2Img ?? {}).map((scene) => scene.image);
+function projectSceneImages(projectId: string) {
+  return sceneImages(useStore.getState().library?.projects.find((item) => item.id === projectId));
 }
 
 /** 라이브러리 항목은 그대로 둔다. */
@@ -75,7 +74,7 @@ export async function deleteProject(project: Pick<Project, 'id' | 'name'>): Prom
   if (!ok) return;
   await run('작업을 삭제하는 중', async () => {
     await libraryApi().deleteProjectFiles(project.id);
-    const images = sceneImages(project.id);
+    const images = projectSceneImages(project.id);
     updateLibrary((current) => ({
       ...current,
       projects: current.projects.filter((item) => item.id !== project.id),
@@ -118,7 +117,7 @@ export async function deleteProjects(projects: Array<Pick<Project, 'id' | 'name'
       }
     } finally {
       // 중간에 실패해도 이미 지운 작업은 목록에서 뺀다.
-      const images = [...removed].flatMap(sceneImages);
+      const images = [...removed].flatMap(projectSceneImages);
       updateLibrary((current) => ({
         ...current,
         projects: current.projects.filter((item) => !removed.has(item.id)),

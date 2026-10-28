@@ -29,8 +29,6 @@ import { AutoRefineToggle } from '../components/RefineChip';
 import { ResultBar } from '../components/ResultActions';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
-import { StreamPreview } from '../components/StreamPreview';
-import { ImageStage } from '../components/ImageStage';
 import { NumberField, Toggle } from '../components/ui';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { fileApi, libraryApi } from '../desktop';
@@ -51,7 +49,7 @@ import { FreeChainBar } from './free/FreeChainBar';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
 import { FreePromptFields } from './free/FreePromptFields';
-import { FreeSourceStage, InpaintModelBanner } from './free/FreeSourceStage';
+import { FreeSourceStage, InpaintModelBanner, ResultStage } from './free/FreeSourceStage';
 import { FreeStageTabs, type FreeStage } from './free/FreeStageTabs';
 
 const NO_RECORDS: GenerationSummary[] = [];
@@ -205,23 +203,12 @@ export function FreeView() {
   };
 
   const resultStage = (
-    <ImageStage
+    <ResultStage
       src={selected && projectMedia(FREE_PROJECT_ID, selected.file)}
       filmstrip={records.length > 0}
-      empty={
-        <div className="stage-empty">
-          <p>아직 생성된 이미지가 없습니다.</p>
-        </div>
-      }
-      overlay={
-        <>
-          <StreamPreview jobIds={running} className="stage-preview" />
-          {image && <span className="stage-label">결과</span>}
-          {pending > 0 && (
-            <span className="card-status busy stage-status">생성 대기 {pending}</span>
-          )}
-        </>
-      }
+      labelled={Boolean(image)}
+      running={running}
+      pending={pending}
       onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
   );
@@ -362,10 +349,7 @@ export function FreeView() {
                 inpainting={inpainting}
                 sourceLabel={sourceLabel}
                 filmstrip={records.length > 0}
-                blank={{
-                  width: preset?.generation.width ?? 832,
-                  height: preset?.generation.height ?? 1216,
-                }}
+                preset={preset}
                 result={resultStage}
               />
               {!showSource && !drawing && selected && (
