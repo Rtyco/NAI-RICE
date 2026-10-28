@@ -304,10 +304,11 @@ describe('GenerationQueue 실패 처리', () => {
   it('구분선이 없으면 원본을 바로 다듬어', async () => {
     const { queue } = await runningQueue(['ok'], 'refine');
     await queue.enqueue([{ ...textJob('a'), lineFix: DEFAULT_LINE_FIX, refine }]);
-    await until(
-      () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
-      15_000,
-    );
+    // 원본이 끝난 뒤 다듬기가 붙기 전에도 모두 완료로 보인다.
+    await until(() => {
+      const jobs = queue.getSnapshot().jobs;
+      return jobs.length === 2 && jobs.every((item) => item.status === 'completed');
+    }, 15_000);
     await queue.pause();
     const jobs = queue.getSnapshot().jobs;
     expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'img2img']);
