@@ -57,9 +57,7 @@ describe('히스토리에서 결과 열기', () => {
     expect(project().emotionSetId).toBe(other.id);
     expect(state.detailEmotionId).toBe(other.emotions[2].id);
     expect(state.resultRequest).toEqual({ projectId: project().id, id: 'record' });
-    expect(state.toasts.map((toast) => toast.message)).toEqual([
-      '씬 모음을 「다른 모음」(으)로 바꿨습니다.',
-    ]);
+    expect(state.toasts).toEqual([]);
   });
 
   it('지금 씬 모음의 씬이면 씬 모음은 그대로 둬', () => {

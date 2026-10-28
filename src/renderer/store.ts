@@ -511,10 +511,8 @@ export function showResult(
       toast(`「${record.emotionName}」 씬이 지워져 결과를 열 수 없습니다.`);
       return;
     }
-    if (owner.id !== project.emotionSetId) {
+    if (owner.id !== project.emotionSetId)
       updateProject(project.id, (current) => ({ ...current, emotionSetId: owner.id }));
-      toast(`씬 모음을 「${owner.name}」(으)로 바꿨습니다.`);
-    }
     if (view.kind !== 'project' || view.projectId !== project.id) openProject(project.id);
     if (get().detailEmotionId !== record.emotionId) openEmotion(record.emotionId);
   }
