@@ -16,6 +16,7 @@ import { Filmstrip } from '../components/Filmstrip';
 import { PaletteButton } from '../components/FloatingPalette';
 import { SidePanelLayout } from '../components/SidePanel';
 import { ResultBar } from '../components/ResultActions';
+import { ResultGrid } from '../components/ResultGrid';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
 import { Menu } from '../components/ui';
@@ -27,6 +28,7 @@ import {
   openEmotion,
   projectMedia,
   run,
+  setResultGrid,
   toast,
   updateProject,
   useStore,
@@ -75,6 +77,12 @@ export function EmotionDetail({
   const [stage, setStage] = useState<FreeStage>('source');
   const drawing = img2imgOn && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
+  const grid = useStore((state) => state.resultGrid);
+  const showGrid = grid && records.length > 0 && !showSource && !drawing;
+  const toggleGrid = () => {
+    setStage('result');
+    setResultGrid(!showGrid);
+  };
 
   const browser = useResultBrowser(project.id, records, {
     preferredId: favoriteId,
@@ -118,6 +126,8 @@ export function EmotionDetail({
       const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
       if (plain && event.key.toLowerCase() === 'f' && selected && !dialogOpen)
         setFavorite(favoriteId === selected.id ? undefined : selected.id);
+      // 한글 입력 상태에서도 받으려고 code로 본다.
+      if (plain && event.code === 'KeyG' && records.length && !dialogOpen) toggleGrid();
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
     };
@@ -252,6 +262,7 @@ export function EmotionDetail({
       labelled={Boolean(image)}
       running={running}
       pending={pending}
+      onGrid={toggleGrid}
       onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
   );
@@ -323,17 +334,30 @@ export function EmotionDetail({
               drawable
             />
           )}
-          <FreeSourceStage
-            target={img2imgTarget}
-            image={image}
-            drawing={drawing}
-            showSource={showSource}
-            inpainting={inpainting}
-            sourceLabel="i2i 이미지"
-            filmstrip={records.length > 0}
-            preset={resolved.preset}
-            result={resultStage}
-          />
+          {showGrid ? (
+            <ResultGrid
+              projectId={project.id}
+              records={records}
+              browser={browser}
+              menu={resultActions}
+              favoriteId={favoriteId}
+              running={running}
+              pending={pending}
+              onSingle={toggleGrid}
+            />
+          ) : (
+            <FreeSourceStage
+              target={img2imgTarget}
+              image={image}
+              drawing={drawing}
+              showSource={showSource}
+              inpainting={inpainting}
+              sourceLabel="i2i 이미지"
+              filmstrip={records.length > 0}
+              preset={resolved.preset}
+              result={resultStage}
+            />
+          )}
           {!showSource && !drawing && selected && (
             <ResultBar projectId={project.id} record={selected} actions={resultActions(selected)} />
           )}
@@ -343,6 +367,7 @@ export function EmotionDetail({
             browser={browser}
             menu={resultActions}
             favoriteId={favoriteId}
+            strip={!showGrid}
             onOpen={() => setStage('result')}
             tools={
               <>

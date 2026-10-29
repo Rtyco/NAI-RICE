@@ -277,6 +277,14 @@ const ICONS = {
       <path d="M3 19.5h4M10 19.5h4M17 19.5h4" />
     </>
   ),
+  grid: (
+    <>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </>
+  ),
   play: <path d="M8 5.5v13l10.5-6.5z" />,
   // 생성(play)과 같은 떠 있는 창에 있어 막대를 붙였다.
   resume: <path d="M5 5.5v13M10 5.5v13l9-6.5z" />,

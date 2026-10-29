@@ -219,6 +219,7 @@ export function ImageStage(props: {
   empty?: ReactNode;
   overlay?: ReactNode;
   filmstrip?: boolean;
+  onGrid?: () => void;
   onContextMenu?: (event: MouseEvent) => void;
 }) {
   const [lightbox, setLightbox] = useState(false);
@@ -254,6 +255,16 @@ export function ImageStage(props: {
               >
                 <Icon name="expand" size={16} />
               </button>
+              {props.onGrid && (
+                <button
+                  className="icon-button"
+                  title="모아 보기 (G)"
+                  aria-pressed={false}
+                  onClick={props.onGrid}
+                >
+                  <Icon name="grid" size={16} />
+                </button>
+              )}
               {filmstripButton}
             </>
           }

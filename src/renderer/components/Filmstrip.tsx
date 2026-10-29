@@ -6,7 +6,7 @@ import { Icon } from './Icon';
 import { showResultMenu, type ResultAction } from './resultMenu';
 import type { ResultBrowser } from './useResultBrowser';
 
-/** 목록을 접으면 막대도 숨긴다. */
+/** 목록을 접으면 막대도 숨긴다. `strip`이 false면(모아 보기) 접기와 상관없이 막대만 보인다. */
 export function Filmstrip(props: {
   projectId: string;
   records: GenerationSummary[];
@@ -15,48 +15,52 @@ export function Filmstrip(props: {
   favoriteId?: string;
   onOpen?: () => void;
   tools?: ReactNode;
+  strip?: boolean;
 }) {
   const collapsed = useLayout((state) => state.filmstripCollapsed);
   const { records, browser } = props;
   const { selected, picking } = browser;
-  if (!records.length || collapsed) return null;
+  const strip = props.strip ?? true;
+  if (!records.length || (strip && collapsed)) return null;
   return (
     <>
-      <div
-        className="filmstrip selectable"
-        role="listbox"
-        aria-label="생성 기록"
-        aria-multiselectable
-        {...picking.containerProps}
-      >
-        {records.map((record) => (
-          <button
-            key={record.id}
-            role="option"
-            data-select-id={record.id}
-            aria-selected={record.id === selected?.id}
-            className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
-            onClick={(event) => {
-              if (picking.clickItem(event, record.id)) return;
-              browser.setSelectedId(record.id);
-              props.onOpen?.();
-            }}
-            onContextMenu={(event) => {
-              browser.setSelectedId(record.id);
-              showResultMenu(event, props.menu(record));
-            }}
-            title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
-          >
-            <img
-              src={projectMedia(props.projectId, record.thumbFile ?? record.file)}
-              alt=""
-              loading="lazy"
-            />
-            {record.id === props.favoriteId && <span className="card-favorite">★</span>}
-          </button>
-        ))}
-        {picking.boxElement}
-      </div>
+      {strip && (
+        <div
+          className="filmstrip selectable"
+          role="listbox"
+          aria-label="생성 기록"
+          aria-multiselectable
+          {...picking.containerProps}
+        >
+          {records.map((record) => (
+            <button
+              key={record.id}
+              role="option"
+              data-select-id={record.id}
+              aria-selected={record.id === selected?.id}
+              className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
+              onClick={(event) => {
+                if (picking.clickItem(event, record.id)) return;
+                browser.setSelectedId(record.id);
+                props.onOpen?.();
+              }}
+              onContextMenu={(event) => {
+                browser.setSelectedId(record.id);
+                showResultMenu(event, props.menu(record));
+              }}
+              title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
+            >
+              <img
+                src={projectMedia(props.projectId, record.thumbFile ?? record.file)}
+                alt=""
+                loading="lazy"
+              />
+              {record.id === props.favoriteId && <span className="card-favorite">★</span>}
+            </button>
+          ))}
+          {picking.boxElement}
+        </div>
+      )}
       <div className="filmstrip-bar">
         {picking.selected.size > 0 ? (
           <>

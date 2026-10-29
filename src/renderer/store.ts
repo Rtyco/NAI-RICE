@@ -55,6 +55,9 @@ export type StoreState = {
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
   galleryAspect: GalleryAspect;
+  /** 씬 상세 결과를 한 장씩 대신 원본을 여러 장 모아 본다. */
+  resultGrid: boolean;
+  resultGridColumns: number;
   /** 작업 ID → 갤러리 씬 이름 검색어. 씬 상세의 이전·다음도 따른다. 이번 실행 동안만. */
   sceneQueries: Record<string, string>;
   /** 씬 상세 오른쪽 패널이 보여 주는 쪽. 씬을 넘겨도 유지한다(이번 실행 동안). */
@@ -119,6 +122,10 @@ export const GALLERY_ASPECTS = [
 export type GalleryAspect = (typeof GALLERY_ASPECTS)[number]['id'];
 const GALLERY_ASPECT_KEY = 'gallery-aspect';
 
+export const RESULT_GRID_COLUMN_CHOICES = [2, 3, 4, 5, 6] as const;
+const RESULT_GRID_KEY = 'result-grid';
+const RESULT_GRID_COLUMNS_KEY = 'result-grid-columns';
+
 const readGalleryColumns = () =>
   readUiState(
     GALLERY_COLUMNS_KEY,
@@ -165,6 +172,15 @@ export const useStore = create<StoreState>(() => ({
     GALLERY_ASPECT_KEY,
     (raw) => GALLERY_ASPECTS.find((item) => item.id === raw)?.id ?? 'portrait',
     'portrait',
+  ),
+  resultGrid: readUiState(RESULT_GRID_KEY, (raw) => raw === '1', false),
+  resultGridColumns: readUiState(
+    RESULT_GRID_COLUMNS_KEY,
+    (raw) => {
+      const value = Number(raw);
+      return (RESULT_GRID_COLUMN_CHOICES as readonly number[]).includes(value) ? value : 4;
+    },
+    4,
   ),
   sceneQueries: {},
   detailSideView: 'scene',
@@ -487,6 +503,16 @@ export function setGalleryColumns(columns: number): void {
 export function setGalleryAspect(aspect: GalleryAspect): void {
   set({ galleryAspect: aspect });
   saveUiState(GALLERY_ASPECT_KEY, aspect);
+}
+
+export function setResultGrid(on: boolean): void {
+  set({ resultGrid: on });
+  saveUiState(RESULT_GRID_KEY, on ? '1' : '0');
+}
+
+export function setResultGridColumns(columns: number): void {
+  set({ resultGridColumns: columns });
+  saveUiState(RESULT_GRID_COLUMNS_KEY, String(columns));
 }
 
 export function setSceneQuery(projectId: string, query: string): void {

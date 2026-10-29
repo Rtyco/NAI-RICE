@@ -78,6 +78,7 @@ export function ResultStage(props: {
   labelled: boolean;
   running: string[];
   pending: number;
+  onGrid?: () => void;
   onContextMenu?: (event: MouseEvent) => void;
 }) {
   return (
@@ -85,6 +86,7 @@ export function ResultStage(props: {
       src={props.src}
       alt={props.alt}
       filmstrip={props.filmstrip}
+      onGrid={props.onGrid}
       empty={
         <div className="stage-empty">
           <p>아직 생성된 이미지가 없습니다.</p>
