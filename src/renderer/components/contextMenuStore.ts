@@ -8,7 +8,7 @@ export type MenuItem =
       danger?: boolean;
       disabled?: boolean;
       hint?: string;
-      /** 영문 대문자나 숫자 한 글자. Windows 메뉴처럼 이름 뒤에 `(A)`로 붙는다. */
+      /** 영문 대문자나 숫자 한 글자. Windows 메뉴처럼 이름 뒤에 ` (A)`로 붙는다. */
       accessKey?: string;
     }
   /** 누를 수 없는 작은 제목 */

@@ -78,7 +78,7 @@ export function ContextMenuHost() {
           >
             <span>
               {item.label}
-              {item.accessKey && `(${item.accessKey})`}
+              {item.accessKey && ` (${item.accessKey})`}
             </span>
             {item.hint && <small>{item.hint}</small>}
           </button>

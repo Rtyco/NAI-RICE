@@ -50,7 +50,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     title: '우클릭 메뉴',
     keys: [
       ['Shift+F10 / 메뉴 키', '고른 항목(없으면 마우스 자리)의 메뉴 열기'],
-      ['이름 뒤 글자', '그 항목 실행 (예: 다른 이름으로 저장(A)은 A)'],
+      ['이름 뒤 글자', '그 항목 실행 (예: 다른 이름으로 저장 (A)은 A)'],
       ['↑ / ↓ / Enter', '항목 고르기·실행'],
     ],
   },
