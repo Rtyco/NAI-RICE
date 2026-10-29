@@ -167,7 +167,12 @@ export function DetailSidePanel({
           integer
           onChange={setVariants}
         />
-        <button className="generate-button" disabled={!canGenerate} onClick={generate}>
+        <button
+          className="generate-button"
+          title="생성 (Ctrl+Enter)"
+          disabled={!canGenerate}
+          onClick={generate}
+        >
           ▶ {imagesLabel}
         </button>
       </div>

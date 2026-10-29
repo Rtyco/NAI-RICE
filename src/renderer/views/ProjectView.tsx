@@ -379,7 +379,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
   const canGenerate = Boolean(count) && !busy && !resolved.missing.length;
   const generateTitle = resolved.missing.length
     ? `필요: ${resolved.missing.join(', ')}`
-    : `체크한 씬 ${batch.length}개${combos === batch.length ? '' : `(조합 ${combos}개)`} × ${preset?.generation.variantsPerEmotion ?? 1}장`;
+    : `체크한 씬 ${batch.length}개${combos === batch.length ? '' : `(조합 ${combos}개)`} × ${preset?.generation.variantsPerEmotion ?? 1}장 (Ctrl+Enter)`;
   const generate = () => void generateEmotions(project.id, batch);
   const bannerMissing = resolved.missing.filter(
     (item) => item !== AID_MODEL_MISSING && item !== INPAINT_MODEL_MISSING,
@@ -459,6 +459,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
           <GalleryView
             resolved={resolved}
             countControl={preset && <VariantsStepper preset={preset} />}
+            onGenerate={canGenerate ? generate : undefined}
             generate={
               <>
                 {estimate !== undefined && (

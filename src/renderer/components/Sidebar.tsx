@@ -338,10 +338,12 @@ export function Sidebar() {
           exports: [
             {
               label: 'SD Studio 프로젝트로 내보내기',
+              accessKey: 'S',
               onSelect: () => exportProjectFile(project, 'sdstudio'),
             },
             {
               label: 'NAI RICE 작업 파일로 내보내기',
+              accessKey: 'R',
               onSelect: () => exportProjectFile(project, 'rice'),
             },
           ],

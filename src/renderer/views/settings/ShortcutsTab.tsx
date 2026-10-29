@@ -33,6 +33,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Ctrl++ / Ctrl+- / Ctrl+휠', '화면 확대·축소'],
       ['Ctrl+0', '화면 크기 되돌리기'],
       ['휠 클릭', '자동 스크롤'],
+      ['Ctrl+Enter', '생성 (프롬프트를 쓰는 중에도)'],
       ['Ctrl+N', '새 작업'],
       ['Ctrl+O', 'JSON 가져오기'],
       ['Ctrl+S', '지금 저장 (평소에도 자동 저장)'],
@@ -43,6 +44,21 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['Ctrl+W', '창 닫기'],
       ['Esc', '열린 창·메뉴 닫기'],
       ['Enter', '열린 창에서 적용·확인'],
+    ],
+  },
+  {
+    title: '우클릭 메뉴',
+    keys: [
+      ['Shift+F10 / 메뉴 키', '고른 항목(없으면 마우스 자리)의 메뉴 열기'],
+      ['이름 뒤 글자', '그 항목 실행 (예: 다른 이름으로 저장(A)은 A)'],
+      ['↑ / ↓ / Enter', '항목 고르기·실행'],
+    ],
+  },
+  {
+    title: '이미지 보기 (결과·캔버스)',
+    keys: [
+      ['Z', '화면에 맞춤·원본 크기 바꾸기'],
+      ['Ctrl+1', '원본 크기'],
     ],
   },
   {
@@ -77,7 +93,9 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['← / →', '이전·다음 결과'],
       ['Home / End', '첫·마지막 결과'],
       ['F', '보고 있는 결과를 대표로 지정·해제'],
+      ['Ctrl+C', '보고 있는 결과 이미지 복사'],
       ['Ctrl+Shift+S', '보고 있는 결과를 다른 이름으로 저장'],
+      ['Shift+Alt+R', '보고 있는 결과를 폴더에서 보기'],
       ['Delete', '보고 있는 결과 삭제 (휴지통)'],
       ['PageUp / PageDown', '이전·다음 씬'],
       ['Esc', '갤러리로 돌아가기'],
@@ -88,7 +106,9 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     keys: [
       ['← / →', '이전·다음 결과'],
       ['Home / End', '첫·마지막 결과'],
+      ['Ctrl+C', '보고 있는 결과 이미지 복사'],
       ['Ctrl+Shift+S', '보고 있는 결과를 다른 이름으로 저장'],
+      ['Shift+Alt+R', '보고 있는 결과를 폴더에서 보기'],
       ['Delete', '보고 있는 결과 삭제 (휴지통)'],
     ],
   },
@@ -97,7 +117,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     keys: [
       ['Alt+↑ / Alt+↓', '이전·다음 항목'],
       ['Ctrl+Shift+N', '이 칸에 새 항목'],
-      ['Ctrl+Shift+D', '보고 있는 항목 복제'],
+      ['Ctrl+Shift+D / Ctrl+J', '보고 있는 항목 복제'],
       ['Delete', '보고 있는 항목 삭제'],
       ['F2', '이름 바꾸기'],
     ],
@@ -108,6 +128,9 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['B / E', '칠하기·지우기'],
       ['X', '칠하기와 지우기 바꾸기'],
       ['[ / ]', '붓 크기 줄이기·키우기'],
+      ['Ctrl+Shift+I', '마스크 반전'],
+      ['Alt+Backspace', '모두 칠하기'],
+      ['Delete / Backspace', '칠하기·지우기 도구에서 모두 지우기'],
       ['Space+끌기', '화면 이동'],
       ['Ctrl+Z', '되돌리기'],
       ['Ctrl+Y / Ctrl+Shift+Z', '다시 실행'],

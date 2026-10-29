@@ -48,7 +48,10 @@ export function CanvasToolbar(props: {
 }
 
 function zoomFold(view: ZoomView): ToolbarFold {
-  return { fold: 1, items: [{ label: '원본 크기 (1:1)', onSelect: () => view.zoomTo(1) }] };
+  return {
+    fold: 1,
+    items: [{ label: '원본 크기 (1:1)', hint: 'Ctrl+1', onSelect: () => view.zoomTo(1) }],
+  };
 }
 
 function undoFold(history: UndoRedo): ToolbarFold {
@@ -86,7 +89,7 @@ export function CanvasZoom({ view }: { view: ZoomView }) {
       <button
         className="zoom-level"
         data-fold="1"
-        title="원본 크기 (1:1)"
+        title="원본 크기 (Ctrl+1)"
         onClick={() => view.zoomTo(1)}
       >
         1:1

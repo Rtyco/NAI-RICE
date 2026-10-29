@@ -35,6 +35,7 @@ import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { fileApi, libraryApi } from '../desktop';
 import { useSceneOrder } from '../useSceneOrder';
+import { useShortcut } from '../useShortcut';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
 import { FreeSourceStage, InpaintModelBanner, ResultStage } from './free/FreeSourceStage';
@@ -136,6 +137,7 @@ export function EmotionDetail({
       ? generateSceneImg2Img(project.id, emotion.id, options)
       : generateEmotions(project.id, [emotion.id], options));
   const generate = () => generateWith({ variants });
+  useShortcut('Ctrl+Enter', generate, canGenerate, { inFields: true });
   const images = variants * comboCount(emotion);
   const imagesLabel = generateCountLabel(
     images,
@@ -163,6 +165,7 @@ export function EmotionDetail({
         title: `${favoriteId === record.id ? '대표 해제' : '대표로 지정'} (F)`,
         icon: 'star',
         group: 'main',
+        accessKey: 'F',
         active: favoriteId === record.id,
         onSelect: () => setFavorite(favoriteId === record.id ? undefined : record.id),
       },
@@ -170,6 +173,7 @@ export function EmotionDetail({
         label: '이 seed로 다시',
         icon: 'refresh',
         group: 'main',
+        accessKey: 'G',
         title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
         disabled: record.comboKey !== undefined && !findCombo(emotion, record.comboKey),
         onSelect: () => generateWith({ seed: record.seed, variants: 1, comboKey: record.comboKey }),
@@ -178,6 +182,7 @@ export function EmotionDetail({
         label: '프롬프트 복원',
         icon: 'undo',
         group: 'main',
+        accessKey: 'P',
         keepLabel: true,
         fold: 6,
         // 고른 후보 내용은 요약에 없어, 보고 있는 결과만 미리 받아 비교한다.
@@ -196,6 +201,7 @@ export function EmotionDetail({
         label: '디렉터 툴',
         icon: 'wand',
         group: 'send',
+        accessKey: 'T',
         keepLabel: true,
         fold: 4,
         onSelect: () => openDirectorToolDialog(project.id, [record]),
@@ -204,6 +210,7 @@ export function EmotionDetail({
         label: '이 결과로 i2i',
         icon: 'i2i',
         group: 'send',
+        accessKey: 'I',
         keepLabel: true,
         fold: 7,
         onSelect: () =>
@@ -213,6 +220,7 @@ export function EmotionDetail({
         label: '자유 생성으로 보내기',
         icon: 'sparkle',
         group: 'send',
+        accessKey: 'S',
         keepLabel: true,
         fold: 1,
         onSelect: () => void sendToFreeImg2Img(project.id, record),

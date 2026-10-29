@@ -1,9 +1,20 @@
 import type { GenerationSummary } from '../core/domain/types';
 import type { ResultAction } from './components/resultMenu';
-import { libraryApi } from './desktop';
+import { fileApi, libraryApi } from './desktop';
 import { makeReferenceFromRecord } from './freeImageOps';
 import { deleteShownResult, openImg2ImgDialog, openLineFixDialog } from './generationOps';
-import { run } from './store';
+import { run, toast } from './store';
+
+export function copyResultImage(projectId: string, record: GenerationSummary): void {
+  void run('이미지를 복사하는 중', async () => {
+    await fileApi().copyImage(projectId, record.id);
+    return true;
+  }).then((done) => done && toast('이미지를 클립보드에 복사했습니다.'));
+}
+
+export function revealResult(projectId: string, record: GenerationSummary): void {
+  void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id));
+}
 
 /** 씬 상세와 자유 생성 결과에 똑같이 있는 동작 */
 export function commonResultActions(
@@ -25,6 +36,7 @@ export function commonResultActions(
       label: '다듬기',
       icon: 'upscale',
       group: 'send',
+      accessKey: 'R',
       keepLabel: true,
       fold: 8,
       onSelect: () => openImg2ImgDialog(projectId, [record]),
@@ -33,6 +45,7 @@ export function commonResultActions(
       label: '구분선 지우기',
       icon: 'border-line',
       group: 'send',
+      accessKey: 'L',
       keepLabel: true,
       fold: 2,
       onSelect: () => openLineFixDialog(projectId, [record]),
@@ -41,16 +54,27 @@ export function commonResultActions(
       label: '인페인트 만들기',
       icon: 'reference',
       group: 'send',
+      accessKey: 'N',
       keepLabel: true,
       fold: 3,
       onSelect: () => void makeReferenceFromRecord(projectId, record),
     },
     file: [
       {
+        label: '이미지 복사',
+        icon: 'copy',
+        group: 'file',
+        accessKey: 'C',
+        shortcut: 'Ctrl+C',
+        menuOnly: true,
+        onSelect: () => copyResultImage(projectId, record),
+      },
+      {
         label: '다른 이름으로 저장',
-        title: '다른 이름으로 저장 (Ctrl+Shift+S)',
         icon: 'save',
         group: 'file',
+        accessKey: 'A',
+        shortcut: 'Ctrl+Shift+S',
         iconOnly: true,
         fold: 9,
         onSelect: () => options.saveAs(record),
@@ -59,16 +83,18 @@ export function commonResultActions(
         label: '폴더에서 보기',
         icon: 'folder',
         group: 'file',
+        accessKey: 'E',
+        shortcut: 'Shift+Alt+R',
         iconOnly: true,
         fold: 5,
-        onSelect: () =>
-          void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id)),
+        onSelect: () => revealResult(projectId, record),
       },
       {
         label: '이 결과 삭제',
         icon: 'trash',
-        title: '이 결과 삭제 (Del)',
         group: 'delete',
+        accessKey: 'D',
+        shortcut: 'Delete',
         iconOnly: true,
         onSelect: () => void deleteShownResult(projectId, options.records, record, options.show),
       },

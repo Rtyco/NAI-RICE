@@ -130,7 +130,10 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   useShortcut('Ctrl+Shift+N', () =>
     openLibrary(section, createItem(section, useStore.getState().library!)),
   );
-  useShortcut('Ctrl+Shift+D', () => selected && void duplicateItem(section, selected));
+  const duplicateShown = () => selected && void duplicateItem(section, selected);
+  useShortcut('Ctrl+Shift+D', duplicateShown);
+  // 포토샵의 레이어 복제
+  useShortcut('Ctrl+J', duplicateShown);
   // 여러 개를 고른 동안의 Delete는 useBoxSelection이 처리한다.
   useShortcut(
     'Delete',
@@ -207,10 +210,11 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     showContextMenu(event, [
       {
         label: '기본 씬 6개로 시작',
+        accessKey: 'B',
         hint: '중립·기쁨·슬픔·분노·놀람·부끄러움',
         onSelect: () => create(false),
       },
-      { label: '빈 상태로 시작', onSelect: () => create(true) },
+      { label: '빈 상태로 시작', accessKey: 'E', onSelect: () => create(true) },
     ]);
   };
 

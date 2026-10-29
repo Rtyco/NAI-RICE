@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { BrowserWindow, clipboard, ClipboardItem, ipcMain, shell } from 'electron';
 import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain/types';
 import {
   exportQualitySchema,
@@ -166,6 +166,12 @@ export function registerIpc(services: AppServices): void {
     (_event, id: string, generationId: string, name: string, quality: unknown) =>
       exporter.saveImageAs(id, generationId, name, exportQualitySchema.parse(quality)),
   );
+  ipcMain.handle('file:copy-image', async (_event, id: string, generationId: string) => {
+    const png = new Uint8Array(await exporter.pngOf(id, generationId));
+    await clipboard.write([
+      new ClipboardItem({ 'image/png': new Blob([png], { type: 'image/png' }) }),
+    ]);
+  });
   ipcMain.handle('file:export-images', (_event, request: unknown) =>
     exporter.exportImages(exportRequestSchema.parse(request)),
   );

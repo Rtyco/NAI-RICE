@@ -182,6 +182,7 @@ export function emotionMenu(
   };
   const folder = {
     label: '결과 폴더 열기',
+    accessKey: 'E',
     onSelect: () =>
       void run('폴더를 여는 중', () =>
         records[0]
@@ -199,25 +200,28 @@ export function emotionMenu(
   };
   // 보기, 생성, 씬 고치기, 대표 이미지, 지우기 순
   return [
-    { label: '열기', onSelect: () => openEmotion(emotion.id) },
+    { label: '열기', accessKey: 'O', onSelect: () => openEmotion(emotion.id) },
     folder,
     'divider',
     {
       label: '이 씬만 생성',
+      accessKey: 'G',
       disabled: !hasScenePrompt(emotion),
       onSelect: () => void generateEmotions(projectId, [emotion.id]),
     },
     {
       label: excluded ? '일괄 생성에 포함' : '일괄 생성에서 제외',
+      accessKey: excluded ? 'B' : 'X',
       onSelect: () =>
         updateProject(projectId, (project) =>
           setEmotionsExcluded(project, [emotion.id], !excluded),
         ),
     },
     'divider',
-    { label: '이름 변경', onSelect: () => void renameEmotion(set.id, emotion) },
+    { label: '이름 변경', accessKey: 'M', onSelect: () => void renameEmotion(set.id, emotion) },
     {
       label: '씬 복제',
+      accessKey: 'U',
       hint: '같은 프롬프트로 하나 더',
       onSelect: () => {
         duplicateEmotionIn(set.id, emotion.id);
@@ -226,6 +230,7 @@ export function emotionMenu(
     },
     {
       label: '프롬프트 복사',
+      accessKey: 'C',
       disabled: !emotion.prompt,
       onSelect: () =>
         void navigator.clipboard
@@ -236,50 +241,59 @@ export function emotionMenu(
     { heading: records.length ? '대표 이미지 (없으면 최신)' : '대표 이미지 (결과 없음)' },
     {
       label: '다듬기',
+      accessKey: 'R',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openImg2ImgDialog(projectId, [cover])),
     },
     {
       label: '구분선 지우기',
+      accessKey: 'L',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openLineFixDialog(projectId, [cover])),
     },
     {
       label: '이 이미지로 i2i',
+      accessKey: 'I',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void sendToSceneImg2Img(projectId, emotion.id, cover)),
     },
     {
       label: '디렉터 툴',
+      accessKey: 'T',
       hint: 'Emotion·배경 제거 등',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openDirectorToolDialog(projectId, [cover])),
     },
     {
       label: '이 이미지로 씬 표정 만들기',
+      accessKey: 'K',
       hint: 'Emotion 툴',
       disabled: !records.length,
       onSelect: () => withCover((cover) => openSceneSetDialog(projectId, cover)),
     },
     {
       label: '자유 생성으로 보내기',
+      accessKey: 'S',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void sendToFreeImg2Img(projectId, cover)),
     },
     {
       label: '인페인트 만들기',
+      accessKey: 'N',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
     },
     'divider',
     {
       label: '결과만 삭제',
+      accessKey: 'W',
       hint: '대표 이미지는 남김',
       disabled: !records.length,
       onSelect: () => void clearEmotionResults(projectId, [emotion]),
     },
     {
       label: '씬 삭제',
+      accessKey: 'D',
       danger: true,
       onSelect: () => void deleteEmotion(set.id, emotion, projectId),
     },
@@ -304,22 +318,26 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
     { heading: `고른 씬 ${emotions.length}개` },
     {
       label: '고른 씬 생성',
+      accessKey: 'G',
       disabled: !ready.length,
       onSelect: () => void generateEmotions(projectId, ready),
     },
     {
       label: '일괄 생성에 포함',
+      accessKey: 'B',
       disabled: ids.every((id) => !excluded.has(id)),
       onSelect: () => setExcluded(false),
     },
     {
       label: '일괄 생성에서 제외',
+      accessKey: 'X',
       disabled: ids.every((id) => excluded.has(id)),
       onSelect: () => setExcluded(true),
     },
     'divider',
     {
       label: '씬 복제',
+      accessKey: 'U',
       onSelect: () => {
         for (const id of ids) duplicateEmotionIn(set.id, id);
         toast(`씬 ${ids.length}개를 복제했습니다.`);
@@ -333,16 +351,19 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
     },
     {
       label: '다듬기',
+      accessKey: 'R',
       disabled: !covers.length,
       onSelect: () => openImg2ImgDialog(projectId, covers),
     },
     {
       label: '구분선 지우기',
+      accessKey: 'L',
       disabled: !covers.length,
       onSelect: () => openLineFixDialog(projectId, covers),
     },
     {
       label: '디렉터 툴',
+      accessKey: 'T',
       hint: 'Emotion·배경 제거 등',
       disabled: !covers.length,
       onSelect: () => openDirectorToolDialog(projectId, covers),
@@ -350,12 +371,14 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
     'divider',
     {
       label: '결과만 삭제',
+      accessKey: 'W',
       hint: '대표 이미지는 남김',
       disabled: !covers.length,
       onSelect: () => void clearEmotionResults(projectId, emotions),
     },
     {
       label: '씬 삭제',
+      accessKey: 'D',
       danger: true,
       onSelect: () => void deleteEmotions(set.id, emotions, projectId),
     },

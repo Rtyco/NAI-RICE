@@ -4,6 +4,7 @@ import type { Library } from '../core/domain/types';
 import { createDefaultLibrary } from '../core/model/defaults';
 import type { DesktopApi } from '../shared/ipc';
 import App from './App';
+import { installContextMenuKeys } from './components/contextMenuKeys';
 import { applyAppearance, cachedAppearance } from './theme';
 import { restorePanelWidths, watchPanelFit } from './panelWidths';
 import './styles/index.css';
@@ -64,6 +65,7 @@ function createPreviewApi(): DesktopApi {
     saveJsonFile: async () => null,
     openImageFile: async () => null,
     saveImageAs: async () => null,
+    copyImage: unsupported,
     exportImages: async () => null,
     exportReference: async () => null,
     exportLibrary: async () => null,
@@ -112,6 +114,7 @@ function createPreviewApi(): DesktopApi {
 applyAppearance(cachedAppearance());
 restorePanelWidths();
 watchPanelFit();
+installContextMenuKeys();
 
 if (import.meta.env.DEV && !window.referenceDesk) {
   window.referenceDesk = createPreviewApi();

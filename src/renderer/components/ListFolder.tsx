@@ -86,13 +86,18 @@ export function ListFolder(props: {
         draggable={!props.renaming}
         onContextMenu={(event) =>
           showContextMenu(event, [
-            { label: folded ? '펼치기' : '접기', onSelect: toggle },
-            { label: '이름 변경', onSelect: () => props.setRenaming(true) },
-            { label: '안의 항목 모두 선택', onSelect: props.onPickAll },
+            { label: folded ? '펼치기' : '접기', accessKey: 'F', onSelect: toggle },
+            { label: '이름 변경', accessKey: 'M', onSelect: () => props.setRenaming(true) },
+            { label: '안의 항목 모두 선택', accessKey: 'A', onSelect: props.onPickAll },
             'divider',
             ...folderColorMenu(props.scope, props.name, color),
             'divider',
-            { label: '폴더 풀기', hint: '항목은 그대로 둡니다', onSelect: props.onUngroup },
+            {
+              label: '폴더 풀기',
+              accessKey: 'N',
+              hint: '항목은 그대로 둡니다',
+              onSelect: props.onUngroup,
+            },
           ])
         }
         onDragStart={(event) => writeDragPayload(event, props.dragType, props.startDrag())}
@@ -171,7 +176,7 @@ export function IconFolder(props: {
         onClick={toggle}
         onContextMenu={(event) =>
           showContextMenu(event, [
-            { label: props.folded ? '펼치기' : '접기', onSelect: toggle },
+            { label: props.folded ? '펼치기' : '접기', accessKey: 'F', onSelect: toggle },
             'divider',
             ...folderColorMenu(props.scope, props.name, color),
           ])

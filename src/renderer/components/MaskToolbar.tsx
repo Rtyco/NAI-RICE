@@ -41,8 +41,13 @@ export function MaskToolbar(props: {
         {
           fold: 1,
           items: [
-            { label: '반전', onSelect: props.onInvert },
-            { label: '모두 지우기', onSelect: props.onClear, disabled: !props.canClear },
+            { label: '반전', hint: 'Ctrl+Shift+I', onSelect: props.onInvert },
+            {
+              label: '모두 지우기',
+              hint: 'Delete',
+              onSelect: props.onClear,
+              disabled: !props.canClear,
+            },
           ],
         },
         {
@@ -136,10 +141,15 @@ export function MaskToolbar(props: {
         </label>
       </div>
       <span className="zone-divider" />
-      <button data-fold="1" onClick={props.onInvert}>
+      <button data-fold="1" title="반전 (Ctrl+Shift+I)" onClick={props.onInvert}>
         반전
       </button>
-      <button data-fold="1" onClick={props.onClear} disabled={!props.canClear}>
+      <button
+        data-fold="1"
+        title="모두 지우기 (Delete)"
+        onClick={props.onClear}
+        disabled={!props.canClear}
+      >
         모두 지우기
       </button>
       <UndoRedoButtons {...props.history} />

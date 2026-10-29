@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { deleteResults, deleteShownResult } from '../generationOps';
+import { copyResultImage, revealResult } from '../resultActions';
 import { requestResult, setShownResult, useStore } from '../store';
+import { matchesKey } from '../useShortcut';
 import { useBoxSelection } from './useBoxSelection';
 
 export function useResultBrowser(
@@ -81,13 +83,29 @@ export function useResultBrowser(
         event.preventDefault();
         options.saveAs(selected);
       }
+      const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
+      // 화면 글자를 골라 둔 Ctrl+C는 글자를 복사한다.
+      if (
+        matchesKey(event, 'Ctrl+C') &&
+        selected &&
+        !dialogOpen &&
+        !window.getSelection()?.toString()
+      ) {
+        event.preventDefault();
+        copyResultImage(projectId, selected);
+      }
+      // VS Code의 「파일 탐색기에 표시」
+      if (matchesKey(event, 'Shift+Alt+R') && selected && !dialogOpen) {
+        event.preventDefault();
+        revealResult(projectId, selected);
+      }
       // 여러 장을 고른 동안의 Delete는 useBoxSelection이 처리한다.
       if (
         event.key === 'Delete' &&
         !pickedCount &&
         (options.canDeleteShown ?? true) &&
         selected &&
-        !document.querySelector('.modal-backdrop')
+        !dialogOpen
       ) {
         event.preventDefault();
         void deleteShownResult(projectId, records, selected, setSelectedId);

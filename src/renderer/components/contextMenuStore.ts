@@ -2,7 +2,15 @@ import type { MouseEvent as ReactMouseEvent } from 'react';
 import { create } from 'zustand';
 
 export type MenuItem =
-  | { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean; hint?: string }
+  | {
+      label: string;
+      onSelect: () => void;
+      danger?: boolean;
+      disabled?: boolean;
+      hint?: string;
+      /** 영문 대문자나 숫자 한 글자. Windows 메뉴처럼 이름 뒤에 `(A)`로 붙는다. */
+      accessKey?: string;
+    }
   /** 누를 수 없는 작은 제목 */
   | { heading: string }
   /** 한 줄의 색 단추. `className`이나 `color`가 색을 정한다. */

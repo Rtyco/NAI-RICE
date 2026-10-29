@@ -13,8 +13,13 @@ export function matchesKey(event: KeyboardEvent, combo: string): boolean {
   );
 }
 
-/** 입력 칸이나 대화상자에서는 무시한다. `action`은 늘 최신 값을 부른다. */
-export function useShortcut(combo: string, action: () => void, enabled = true): void {
+/** 입력 칸(`inFields`면 받는다)과 대화상자에서는 무시한다. `action`은 늘 최신 값을 부른다. */
+export function useShortcut(
+  combo: string,
+  action: () => void,
+  enabled = true,
+  { inFields = false } = {},
+): void {
   const latest = useRef(action);
   latest.current = action;
   useEffect(() => {
@@ -22,12 +27,13 @@ export function useShortcut(combo: string, action: () => void, enabled = true): 
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || !matchesKey(event, combo)) return;
       const target = event.target as HTMLElement | null;
-      if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (!inFields && target?.closest?.('input, textarea, select, [contenteditable="true"]'))
+        return;
       if (document.querySelector('.modal-backdrop')) return;
       event.preventDefault();
       latest.current();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [combo, enabled]);
+  }, [combo, enabled, inFields]);
 }

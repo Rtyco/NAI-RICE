@@ -13,7 +13,7 @@ import {
 import { exportFileNames, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
 import type { ExportRequest, ExportResult } from '../../src/shared/ipc';
 import { atomicWrite, exists } from './fsUtils';
-import { convertImage, formatFromExtension } from './Images';
+import { convertImage, formatFromExtension, toPngWithText } from './Images';
 import type { ExportSource, FileDialogs } from './ports';
 
 const FILTERS = [
@@ -70,6 +70,13 @@ export class Exporter {
       await convertImage(source, formatFromExtension(result.filePath), quality),
     );
     return result.filePath;
+  }
+
+  async pngOf(projectId: string, generationId: string): Promise<Buffer> {
+    const record = await this.library.findGeneration(projectId, generationId);
+    return toPngWithText(
+      await fs.readFile(await this.library.resolveProjectReal(projectId, record.file)),
+    );
   }
 
   async exportImages(request: ExportRequest): Promise<ExportResult> {

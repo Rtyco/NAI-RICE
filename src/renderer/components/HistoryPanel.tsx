@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
-import { libraryApi } from '../desktop';
 import { deleteResults } from '../generationOps';
 import { historyShownOf, toggleHistory, useLayout } from '../layout';
-import { projectMedia, run, showResult, useStore } from '../store';
+import { copyResultImage, revealResult } from '../resultActions';
+import { projectMedia, showResult, useStore } from '../store';
 import { Icon } from './Icon';
 import { showResultMenu } from './resultMenu';
 import { StreamPreview } from './StreamPreview';
@@ -64,18 +64,32 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
 
   const menu = (event: MouseEvent, record: GenerationSummary) =>
     showResultMenu(event, [
-      { label: '보기', icon: 'images', group: 'main', onSelect: () => showResult(record) },
+      {
+        label: '보기',
+        icon: 'images',
+        group: 'main',
+        accessKey: 'V',
+        onSelect: () => showResult(record),
+      },
+      {
+        label: '이미지 복사',
+        icon: 'copy',
+        group: 'file',
+        accessKey: 'C',
+        onSelect: () => copyResultImage(projectId, record),
+      },
       {
         label: '폴더에서 보기',
         icon: 'folder',
         group: 'file',
-        onSelect: () =>
-          void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id)),
+        accessKey: 'E',
+        onSelect: () => revealResult(projectId, record),
       },
       {
         label: '이 결과 삭제',
         icon: 'trash',
         group: 'delete',
+        accessKey: 'D',
         onSelect: () => void deleteResults(projectId, [record]),
       },
     ]);

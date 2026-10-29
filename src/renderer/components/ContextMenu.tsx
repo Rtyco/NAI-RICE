@@ -17,20 +17,21 @@ export function ContextMenuHost() {
 
   useEffect(() => {
     if (!menu) return;
+    const before = document.activeElement;
     const close = (event: Event) => {
-      if (event.type === 'keydown' && (event as KeyboardEvent).key !== 'Escape') return;
       if (event.type === 'pointerdown' && ref.current?.contains(event.target as Node)) return;
       closeContextMenu();
     };
     window.addEventListener('pointerdown', close);
-    window.addEventListener('keydown', close);
     window.addEventListener('blur', close);
     window.addEventListener('wheel', close, { passive: true });
     return () => {
       window.removeEventListener('pointerdown', close);
-      window.removeEventListener('keydown', close);
       window.removeEventListener('blur', close);
       window.removeEventListener('wheel', close);
+      // 방향키로 옮겨 간 포커스가 메뉴와 함께 사라지면 메뉴를 열기 전 자리로 돌려놓는다.
+      if (document.activeElement === document.body && before instanceof HTMLElement)
+        before.focus({ preventScroll: true });
     };
   }, [menu]);
 
@@ -68,12 +69,17 @@ export function ContextMenuHost() {
             role="menuitem"
             className={item.danger ? 'danger' : ''}
             disabled={item.disabled}
+            data-access-key={item.accessKey}
+            aria-keyshortcuts={item.accessKey}
             onClick={() => {
               closeContextMenu();
               item.onSelect();
             }}
           >
-            <span>{item.label}</span>
+            <span>
+              {item.label}
+              {item.accessKey && `(${item.accessKey})`}
+            </span>
             {item.hint && <small>{item.hint}</small>}
           </button>
         ),

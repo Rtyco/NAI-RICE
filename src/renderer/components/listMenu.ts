@@ -7,7 +7,7 @@ export type ListMenuActions = {
   duplicate: () => void;
   exportJson?: () => void;
   /** 작업만 */
-  exports?: Array<{ label: string; onSelect: () => void }>;
+  exports?: Array<{ label: string; accessKey: string; onSelect: () => void }>;
   /** 바이브만 */
   exportVibes?: () => void;
   folder?: () => void;
@@ -23,10 +23,17 @@ export type ListMenuActions = {
 /** 고른 것 중 하나에서 우클릭하면 묶기·삭제는 고른 것 모두에 한다. */
 export function listMenu(actions: ListMenuActions): MenuItem[] {
   return [
-    { label: '열기', onSelect: actions.open },
-    { label: '이름 변경', disabled: !actions.rename, onSelect: () => actions.rename?.() },
-    { label: '복제', onSelect: actions.duplicate },
-    ...(actions.exportJson ? [{ label: 'JSON 내보내기', onSelect: actions.exportJson }] : []),
+    { label: '열기', accessKey: 'O', onSelect: actions.open },
+    {
+      label: '이름 변경',
+      accessKey: 'M',
+      disabled: !actions.rename,
+      onSelect: () => actions.rename?.(),
+    },
+    { label: '복제', accessKey: 'U', onSelect: actions.duplicate },
+    ...(actions.exportJson
+      ? [{ label: 'JSON 내보내기', accessKey: 'J', onSelect: actions.exportJson }]
+      : []),
     ...(actions.exports ?? []),
     ...(actions.exportVibes
       ? [
@@ -35,11 +42,12 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
               actions.pickedCount > 1
                 ? `고른 ${actions.pickedCount}개를 바이브 묶음으로 내보내기`
                 : '바이브 파일로 내보내기',
+            accessKey: 'V',
             onSelect: actions.exportVibes,
           },
         ]
       : []),
-    ...(actions.folder ? [{ label: '폴더 열기', onSelect: actions.folder }] : []),
+    ...(actions.folder ? [{ label: '폴더 열기', accessKey: 'E', onSelect: actions.folder }] : []),
     ...(actions.group
       ? [
           'divider' as const,
@@ -48,19 +56,23 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
               actions.pickedCount > 1
                 ? `고른 ${actions.pickedCount}개를 폴더로 묶기`
                 : '폴더로 묶기',
+            accessKey: 'G',
             hint: 'Ctrl+G',
             onSelect: actions.group,
           },
         ]
       : []),
-    ...(actions.ungroup ? [{ label: '폴더에서 빼기', onSelect: actions.ungroup }] : []),
+    ...(actions.ungroup
+      ? [{ label: '폴더에서 빼기', accessKey: 'N', onSelect: actions.ungroup }]
+      : []),
     'divider',
     actions.pickedCount > 1
       ? {
           label: `고른 ${actions.pickedCount}개 삭제`,
+          accessKey: 'D',
           danger: true,
           onSelect: actions.removePicked,
         }
-      : { label: '삭제', danger: true, onSelect: actions.remove },
+      : { label: '삭제', accessKey: 'D', danger: true, onSelect: actions.remove },
   ];
 }

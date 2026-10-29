@@ -25,6 +25,10 @@
   background: transparent;
   text-align: left;
 }
+.menu-popup button:focus-visible {
+  outline: none;
+  background: var(--bg-5);
+}
 .menu-popup hr {
   width: 100%;
   border: none;

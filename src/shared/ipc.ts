@@ -241,6 +241,8 @@ export type FileApi = {
     suggestedName: string,
     quality: number,
   ) => Promise<string | null>;
+  /** WebP로 저장된 결과도 PNG로 넣는다. */
+  copyImage: (projectId: string, generationId: string) => Promise<void>;
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;

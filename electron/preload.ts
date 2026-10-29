@@ -58,6 +58,7 @@ const api: DesktopApi = {
   openImageFile: () => ipcRenderer.invoke('file:open-image'),
   saveImageAs: (id, generationId, name, quality) =>
     ipcRenderer.invoke('file:save-image-as', id, generationId, name, quality),
+  copyImage: (id, generationId) => ipcRenderer.invoke('file:copy-image', id, generationId),
   exportImages: (request) => ipcRenderer.invoke('file:export-images', request),
   exportReference: (reference) => ipcRenderer.invoke('file:export-reference', reference),
   exportLibrary: (library) => ipcRenderer.invoke('file:export-library', library),

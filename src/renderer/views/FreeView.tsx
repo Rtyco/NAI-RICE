@@ -45,6 +45,7 @@ import {
 import { freeRefineTarget } from '../refineTargets';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
+import { useShortcut } from '../useShortcut';
 import { FreeChainBar } from './free/FreeChainBar';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
@@ -143,6 +144,7 @@ export function FreeView() {
     ? `${runs}번 적용`
     : generateCountLabel(free.count, refine ? free.count * refine.count : 0);
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
+  useShortcut('Ctrl+Enter', generate, canGenerate && !busy, { inFields: true });
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
   const promptActions = (record: GenerationSummary): ResultAction[] =>
@@ -153,6 +155,7 @@ export function FreeView() {
             label: '이 seed로 다시',
             icon: 'refresh',
             group: 'main',
+            accessKey: 'G',
             title: '현재 프롬프트와 이 결과의 seed로 다시 생성',
             onSelect: () => void generateFree({ seed: record.seed, count: 1 }),
           },
@@ -160,6 +163,7 @@ export function FreeView() {
             label: '프롬프트 복원',
             icon: 'undo',
             group: 'main',
+            accessKey: 'P',
             keepLabel: true,
             fold: 6,
             disabled:
@@ -187,6 +191,7 @@ export function FreeView() {
         label: '이 결과로 디렉터 툴',
         icon: 'wand',
         group: 'send',
+        accessKey: 'T',
         keepLabel: true,
         fold: 4,
         onSelect: () =>
@@ -196,6 +201,7 @@ export function FreeView() {
         label: '이 결과로 i2i',
         icon: 'i2i',
         group: 'send',
+        accessKey: 'I',
         keepLabel: true,
         fold: 7,
         onSelect: () =>
@@ -268,6 +274,7 @@ export function FreeView() {
         )}
         <button
           className="generate-button"
+          title={`${director ? '적용' : '생성'} (Ctrl+Enter)`}
           disabled={!canGenerate || Boolean(busy)}
           onClick={generate}
         >

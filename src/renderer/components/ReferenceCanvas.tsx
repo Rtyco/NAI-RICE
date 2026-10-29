@@ -504,7 +504,33 @@ export function ReferenceCanvas(props: Props) {
     setOverrides(new Int8Array(props.width * props.height).fill(0));
   };
 
+  const fillMask = () => {
+    beginHistory();
+    setOverrides(new Int8Array(props.width * props.height).fill(1));
+  };
+
   const brushing = tool === 'generate' || tool === 'keep';
+
+  // 라이브러리의 Delete(항목 삭제)보다 먼저 받으려고 캡처 단계에서 막는다.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
+      if (dialog && !dialog.contains(canvasRef.current)) return;
+      const plain = !(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey);
+      // 영역 상자 도구일 때의 Delete는 라이브러리 항목 삭제로 남긴다.
+      if (plain && brushing && (event.key === 'Delete' || event.key === 'Backspace')) {
+        if (hasGeneratePixels) clearMask();
+      } else if (event.altKey && !event.ctrlKey && !event.shiftKey && event.key === 'Backspace')
+        fillMask();
+      else if (event.ctrlKey && event.shiftKey && !event.altKey && event.code === 'KeyI') invert();
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  });
 
   return (
     <section className="canvas-card">

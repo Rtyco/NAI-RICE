@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { toggleFilmstrip, useLayout } from '../layout';
 import { Icon } from './Icon';
 import { clampZoom, useWheel, ZOOM_STEP } from './zoom';
+import { useZoomKeys } from './zoomKeys';
 
 const PAD = 14;
 
@@ -72,6 +73,8 @@ function ZoomView(props: {
     setOffset(CENTER);
     setZoom(next);
   };
+  const toggleZoom = () => reset(zoom === 'fit' ? 1 : 'fit');
+  useZoomKeys(viewport, { toggle: toggleZoom, actualSize: () => zoomTo(1) });
 
   useWheel(viewport, (event) => {
     if (!size) return;
@@ -120,7 +123,7 @@ function ZoomView(props: {
         }}
         onPointerUp={endPan}
         onPointerCancel={endPan}
-        onDoubleClick={() => reset(zoom === 'fit' ? 1 : 'fit')}
+        onDoubleClick={toggleZoom}
       >
         <img
           src={props.src}
@@ -164,7 +167,7 @@ function ZoomView(props: {
         >
           <Icon name="zoom-in" size={16} />
         </button>
-        <button className="zoom-level" title="원본 크기 (1:1)" onClick={() => zoomTo(1)}>
+        <button className="zoom-level" title="원본 크기 (Ctrl+1)" onClick={() => zoomTo(1)}>
           1:1
         </button>
         <button

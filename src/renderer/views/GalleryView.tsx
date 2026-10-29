@@ -196,10 +196,13 @@ export function GalleryView({
   resolved,
   countControl,
   generate,
+  onGenerate,
 }: {
   resolved: ResolvedProject;
   countControl: ReactNode;
   generate: ReactNode;
+  /** 생성할 수 없으면 없다. */
+  onGenerate?: () => void;
 }) {
   const prefer = useStore((state) => state.library!.settings.export.target);
   const { project, emotionSet } = resolved;
@@ -300,6 +303,7 @@ export function GalleryView({
   const openExport = () =>
     void openDialog((close) => <ExportDialog resolved={resolved} close={close} />);
   useShortcut('Ctrl+E', openExport, Boolean(emotionSet));
+  useShortcut('Ctrl+Enter', () => onGenerate?.(), Boolean(onGenerate), { inFields: true });
 
   const scroller = selection.containerProps.ref;
   // 씬 상세에서 PageDown으로 넘어갔으면 그 씬이 화면 밖일 수 있다.

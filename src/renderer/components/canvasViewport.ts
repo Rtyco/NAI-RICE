@@ -6,6 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { clampZoom, useWheel, ZOOM_STEP } from './zoom';
+import { useZoomKeys } from './zoomKeys';
 
 type Offset = { x: number; y: number };
 const CENTER: Offset = { x: 0, y: 0 };
@@ -74,6 +75,15 @@ export function useCanvasViewport(width: number, height: number) {
     scaleRef.current = target;
     setZoom(target);
   };
+
+  const fit = () => {
+    setOffset(CENTER);
+    setZoom('fit');
+  };
+  useZoomKeys(viewport, {
+    toggle: () => (zoom === 'fit' ? zoomTo(1) : fit()),
+    actualSize: () => zoomTo(1),
+  });
 
   useWheel(viewport, (event) => {
     event.preventDefault();
@@ -166,10 +176,7 @@ export function useCanvasViewport(width: number, height: number) {
     viewport,
     scale,
     zoomTo,
-    fit: () => {
-      setOffset(CENTER);
-      setZoom('fit');
-    },
+    fit,
     pan,
     touch,
     panning,

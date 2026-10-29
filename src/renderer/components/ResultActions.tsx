@@ -5,7 +5,7 @@ import { Modal } from './Dialogs';
 import { openDialog } from './dialogStack';
 import { Icon } from './Icon';
 import { RecordInfo } from './RecordInfo';
-import { resultGroups, type ResultAction } from './resultMenu';
+import { resultGroups, resultMenuItem, resultTitle, type ResultAction } from './resultMenu';
 import { fitLevel, useResultBarFit } from './useHeaderFit';
 
 /** 글자를 빼고 줄인 뒤의 단계부터 `fold` 순서로 하나씩 접는다(scene-detail.css). */
@@ -18,15 +18,16 @@ export function ResultBar(props: {
   actions: ResultAction[];
 }) {
   const { record } = props;
+  const actions = props.actions.filter((action) => !action.menuOnly);
   const bar = useRef<HTMLDivElement>(null);
   useResultBarFit(bar);
   const showFolded = (event: MouseEvent) => {
     const level = fitLevel(bar.current);
     showContextMenu(
       event,
-      props.actions
+      actions
         .filter((action) => action.fold && action.fold <= level - FOLD_AFTER)
-        .map(({ label, onSelect, disabled }) => ({ label, onSelect, disabled })),
+        .map(resultMenuItem),
     );
   };
   const button = (action: ResultAction) => (
@@ -34,7 +35,7 @@ export function ResultBar(props: {
       key={action.label}
       className={`${action.iconOnly ? 'icon-button' : 'with-icon'} ${action.keepLabel ? 'keep-label' : ''} ${action.group === 'delete' ? 'danger-quiet' : action.active ? 'active' : ''}`}
       disabled={action.disabled}
-      title={action.title ?? action.label}
+      title={resultTitle(action)}
       aria-label={action.label}
       data-fold={action.fold}
       onClick={action.onSelect}
@@ -59,7 +60,7 @@ export function ResultBar(props: {
       >
         <Icon name="info" size={14} />
       </button>
-      {resultGroups(props.actions).map((group) => (
+      {resultGroups(actions).map((group) => (
         <Fragment key={group[0].group}>
           {group[0].group === 'file' ? (
             <>
