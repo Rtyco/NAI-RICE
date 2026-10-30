@@ -1,7 +1,7 @@
 import type { GenerationSummary } from '../core/domain/types';
 import type { ResultAction } from './components/resultMenu';
 import { fileApi, libraryApi } from './desktop';
-import { makeReferenceFromRecord } from './freeImageOps';
+import { makeAidFromRecord, makeReferenceFromRecord } from './freeImageOps';
 import { deleteShownResult, openImg2ImgDialog, openLineFixDialog } from './generationOps';
 import { run, toast } from './store';
 
@@ -29,6 +29,8 @@ export function commonResultActions(
   refine: ResultAction;
   lineFix: ResultAction;
   makeReference: ResultAction;
+  /** 결과 막대에는 자리가 없어 우클릭 메뉴에만 있다. */
+  aid: ResultAction[];
   file: ResultAction[];
 } {
   return {
@@ -59,6 +61,24 @@ export function commonResultActions(
       fold: 3,
       onSelect: () => void makeReferenceFromRecord(projectId, record),
     },
+    aid: [
+      {
+        label: '캐릭터 레퍼런스로 보내기',
+        icon: 'portrait',
+        group: 'send',
+        accessKey: 'H',
+        menuOnly: true,
+        onSelect: () => void makeAidFromRecord('characterReferences', projectId, record),
+      },
+      {
+        label: '바이브로 보내기',
+        icon: 'vibe',
+        group: 'send',
+        accessKey: 'V',
+        menuOnly: true,
+        onSelect: () => void makeAidFromRecord('vibes', projectId, record),
+      },
+    ],
     file: [
       {
         label: '이미지 복사',

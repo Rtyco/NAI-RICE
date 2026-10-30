@@ -8,6 +8,7 @@ import type {
 } from '../core/domain/types';
 import { maskHasGeneratePixels } from '../core/imaging/MaskBuilder';
 import { createReference, DEFAULT_LINE_FIX, FREE_PROJECT_ID } from '../core/model/defaults';
+import { addAidFromImage, type AidSection } from './aidImport';
 import { fileApi, libraryApi } from './desktop';
 import { canvas2d, maskToDataUrl } from './lib/image';
 import type { StoredSource } from '../shared/ipc';
@@ -365,6 +366,26 @@ export async function saveMask(): Promise<void> {
   if (latest?.file !== mask.file) return;
   updateImageTarget(mask.target, { image: { ...latest, maskFile } });
   dropSourceFiles(latest);
+}
+
+/** 캐릭터 레퍼런스는 그 작업(또는 자유 생성)에 고른 것을 바꿔 끼우고, 바이브는 뒤에 더한다. */
+export function makeAidFromRecord(
+  section: AidSection,
+  projectId: string,
+  record: GenerationSummary,
+): Promise<void> {
+  const label = section === 'characterReferences' ? '캐릭터 레퍼런스' : '바이브';
+  return run(`${label}를 만드는 중`, async () => {
+    const dataUrl = await libraryApi().readImageDataUrl({
+      kind: 'record',
+      projectId,
+      generationId: record.id,
+    });
+    const name = recordName(projectId, record);
+    await addAidFromImage(section, { name: `${name}.png`, dataUrl }, name, projectId);
+    const where = projectId === FREE_PROJECT_ID ? '자유 생성' : '이 작업';
+    toast(`${label} 「${name}」을(를) 만들어 ${where}에 넣었습니다.`);
+  }).then(() => undefined);
 }
 
 export function makeReferenceFromRecord(

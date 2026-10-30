@@ -25,6 +25,7 @@ import {
 import { libraryApi } from './desktop';
 import {
   forgetSceneImages,
+  makeAidFromRecord,
   makeReferenceFromRecord,
   sendToFreeImg2Img,
   sendToSceneImg2Img,
@@ -282,6 +283,19 @@ export function emotionMenu(
       accessKey: 'N',
       disabled: !records.length,
       onSelect: () => withCover((cover) => void makeReferenceFromRecord(projectId, cover)),
+    },
+    {
+      label: '캐릭터 레퍼런스로 보내기',
+      accessKey: 'H',
+      disabled: !records.length,
+      onSelect: () =>
+        withCover((cover) => void makeAidFromRecord('characterReferences', projectId, cover)),
+    },
+    {
+      label: '바이브로 보내기',
+      accessKey: 'V',
+      disabled: !records.length,
+      onSelect: () => withCover((cover) => void makeAidFromRecord('vibes', projectId, cover)),
     },
     'divider',
     {

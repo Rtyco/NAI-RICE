@@ -208,6 +208,7 @@ export function FreeView() {
           void sendToFreeImg2Img(FREE_PROJECT_ID, record).then(() => setStage('source')),
       },
       common.makeReference,
+      ...common.aid,
       ...common.file,
     ];
   };

@@ -1,5 +1,10 @@
 import type { Library, Vibe } from '../core/domain/types';
-import { createCharacterReference, createVibe } from '../core/model/defaults';
+import {
+  createCharacterReference,
+  createVibe,
+  FREE_PROJECT_ID,
+  type AidChoice,
+} from '../core/model/defaults';
 import { patchItem } from '../core/model/mutations';
 import type { MetadataVibe } from '../core/vibes/VibeFile';
 import type { ImportedVibe } from '../shared/ipc';
@@ -8,7 +13,7 @@ import { currentProject, openLibrary, toast, updateLibrary, useStore } from './s
 
 export type AidSection = 'characterReferences' | 'vibes';
 
-/** `projectId`가 있으면 캐릭터 레퍼런스는 바꿔 끼우고, 바이브는 고른 바이브 뒤에 더한다. */
+/** `projectId`(자유 생성은 FREE_PROJECT_ID)가 있으면 캐릭터 레퍼런스는 바꿔 끼우고, 바이브는 고른 바이브 뒤에 더한다. */
 export async function addAidFromImage(
   section: AidSection,
   image: { name: string; dataUrl: string },
@@ -17,14 +22,22 @@ export async function addAidFromImage(
 ): Promise<string> {
   const stored = await libraryApi().addPicture(image.dataUrl);
   const picture = { ...stored, name: image.name };
-  const link = (library: Library, id: string) =>
-    !projectId
-      ? library
-      : patchItem(library, 'projects', projectId, (project) =>
-          section === 'characterReferences'
-            ? { ...project, characterReferenceIds: [id], aidMode: 'character' }
-            : { ...project, vibeIds: [...project.vibeIds, id], aidMode: 'vibe' },
-        );
+  const linked = (aid: AidChoice, id: string): Partial<AidChoice> =>
+    section === 'characterReferences'
+      ? { characterReferenceIds: [id], aidMode: 'character' }
+      : { vibeIds: [...aid.vibeIds, id], aidMode: 'vibe' };
+  const link = (library: Library, id: string) => {
+    if (!projectId) return library;
+    if (projectId === FREE_PROJECT_ID)
+      return {
+        ...library,
+        freeGeneration: { ...library.freeGeneration, ...linked(library.freeGeneration, id) },
+      };
+    return patchItem(library, 'projects', projectId, (project) => ({
+      ...project,
+      ...linked(project, id),
+    }));
+  };
   if (section === 'characterReferences') {
     const item = { ...createCharacterReference(name), image: picture };
     updateLibrary((current) =>

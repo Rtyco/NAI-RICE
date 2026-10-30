@@ -236,6 +236,7 @@ export function EmotionDetail({
         onSelect: () => void sendToFreeImg2Img(project.id, record),
       },
       common.makeReference,
+      ...common.aid,
       ...common.file,
     ];
   };
