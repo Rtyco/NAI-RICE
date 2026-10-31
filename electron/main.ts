@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, Menu, net, Notification, session, shell } from 'electron';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
 import { buildFollowUpJobs } from '../src/core/model/lineFix';
@@ -19,6 +20,8 @@ import { QueueNotifier, type QueueDone } from './services/QueueNotifier';
 import { TokenVault } from './services/TokenVault';
 import { UpdateChecker } from './services/UpdateChecker';
 import { VibeFiles } from './services/VibeFiles';
+import { readLocation, writeLocation } from './services/WorkspaceLocation';
+import { WorkspaceMover } from './services/WorkspaceMover';
 import { WorkspaceShell } from './services/WorkspaceShell';
 import {
   anyWindowVisible,
@@ -67,15 +70,39 @@ function notifyQueueDone(done: QueueDone): void {
   notice.show();
 }
 
+const defaultRoot = (): string => path.join(app.getPath('documents'), APP_NAME);
+
+/** 고른 위치를 찾을 수 없으면(빼 둔 외장 드라이브 등) 다시 찾거나 기본 위치로 연다. */
+async function workspaceRoot(userData: string): Promise<string> {
+  if (freshRoot) return path.join(freshRoot, 'library');
+  const saved = readLocation(userData);
+  while (saved.root && !existsSync(saved.root)) {
+    const { response } = await dialog.showMessageBox({
+      type: 'warning',
+      title: APP_NAME,
+      message: '작업 폴더를 찾을 수 없습니다.',
+      detail: saved.root,
+      buttons: ['다시 찾기', '기본 위치로 열기', '끝내기'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    });
+    if (response === 2) {
+      app.exit(0);
+      throw new Error('작업 폴더 없이 끝냈습니다.');
+    }
+    if (response === 1) {
+      await writeLocation(userData, {});
+      saved.root = undefined;
+    }
+  }
+  return saved.root ?? renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk');
+}
+
 async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
   const provider = new NovelAIProvider();
-  const library = new Library(
-    freshRoot
-      ? path.join(freshRoot, 'library')
-      : renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk'),
-    app.getVersion(),
-  );
+  const library = new Library(await workspaceRoot(userData), app.getVersion());
   const account = new AccountService(
     new TokenVault(userData),
     provider,
@@ -126,6 +153,20 @@ async function createServices(): Promise<AppServices> {
     requests: new GenerationRequests(queue, account, library),
     appCache: new AppCache(userData, queueFile, () => session.defaultSession),
     vibes: new VibeFiles(library, dialog),
+    mover: new WorkspaceMover({
+      userData,
+      root: library.root,
+      defaultRoot: defaultRoot(),
+      movable: !freshRoot,
+      queue,
+      dialog,
+      shell,
+      progress: (progress) => broadcast('storage:move-progress', progress),
+      restart: () => {
+        app.relaunch();
+        app.exit(0);
+      },
+    }),
     tokenizers: new TokenizerFiles(path.join(userData, 'Tokenizers'), (url, init) =>
       net.fetch(url, init),
     ),

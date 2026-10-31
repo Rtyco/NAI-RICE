@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GenerationSummary, Project } from '../../../core/domain/types';
-import type { ProjectInspection, ProjectUsage, StorageUsage } from '../../../shared/ipc';
+import type {
+  ProjectInspection,
+  ProjectUsage,
+  StorageUsage,
+  WorkspaceLocationInfo,
+} from '../../../shared/ipc';
 import { Modal } from '../../components/Dialogs';
 import { confirmDialog, openDialog } from '../../components/dialogStack';
 import { FREE_PROJECT_ID } from '../../../core/model/defaults';
 import { Card, NumberField } from '../../components/ui';
 import { fileApi, libraryApi, queueApi, storageApi } from '../../desktop';
 import { importJsonFromPicker } from '../../importers';
+import { formatBytes } from '../../lib/bytes';
 import { deleteProject } from '../../projectOps';
 import { deleteGenerations, loadGenerations, run, toast, useLibrary, useStore } from '../../store';
+import { moveWorkspaceTo } from '../../workspaceMove';
 import { patchSettings } from './patchSettings';
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${bytes} B`;
-}
 
 /** 대표 이미지를 뺀다. before가 있으면 그날(포함) 이전만. */
 function cleanupTargets(
@@ -308,6 +308,10 @@ export function StorageTab() {
   const root = useStore((state) => state.root);
   const library = useLibrary();
   const [usage, setUsage] = useState<StorageUsage>();
+  const [location, setLocation] = useState<WorkspaceLocationInfo>();
+  useEffect(() => {
+    void storageApi().workspaceLocation().then(setLocation);
+  }, []);
   const refresh = useCallback(() => {
     setUsage(undefined);
     storageApi()
@@ -337,6 +341,27 @@ export function StorageTab() {
             폴더 열기
           </button>
         </div>
+        {location?.movable && (
+          <div className="button-row">
+            <button
+              onClick={() =>
+                void storageApi()
+                  .pickWorkspaceFolder()
+                  .then((folder) => (folder ? moveWorkspaceTo(folder) : undefined))
+              }
+            >
+              위치 바꾸기…
+            </button>
+            {location.root !== location.defaultRoot && (
+              <button
+                className="link-button"
+                onClick={() => void moveWorkspaceTo(location.defaultRoot)}
+              >
+                기본 위치로 ({location.defaultRoot})
+              </button>
+            )}
+          </div>
+        )}
       </Card>
       <Card title="사용량">
         {!usage ? (

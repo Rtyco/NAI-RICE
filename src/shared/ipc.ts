@@ -320,6 +320,15 @@ export type ProjectInspection = {
   missingRecords: number;
 };
 
+/** copy: 지금 작업 폴더를 복사한다. existing: 고른 곳의 library.json을 그대로 쓴다. */
+export type WorkspaceMovePlan = { root: string; mode: 'copy' | 'existing'; bytes: number };
+
+export type WorkspaceMoveProgress = { copied: number; total: number };
+
+export type WorkspaceLocationInfo = { root: string; defaultRoot: string; movable: boolean };
+
+export type MovedWorkspace = { root: string; previousRoot: string };
+
 export type StorageApi = {
   storageUsage: () => Promise<StorageUsage>;
   measureGenerations: (projectId: string, generationIds: string[]) => Promise<GenerationMeasure>;
@@ -328,6 +337,15 @@ export type StorageApi = {
   repairProject: (projectId: string) => Promise<ProjectInspection>;
   /** 비운 바이트(대략) */
   clearAppCache: () => Promise<number>;
+  workspaceLocation: () => Promise<WorkspaceLocationInfo>;
+  pickWorkspaceFolder: () => Promise<string | null>;
+  planWorkspaceMove: (folder: string) => Promise<WorkspaceMovePlan>;
+  /** 끝나면 앱이 다시 시작한다. */
+  moveWorkspace: (folder: string) => Promise<void>;
+  onWorkspaceMoveProgress: (listener: (progress: WorkspaceMoveProgress) => void) => () => void;
+  /** 옮긴 뒤 처음 시작했으면 이전 폴더 */
+  movedWorkspace: () => Promise<MovedWorkspace | null>;
+  finishWorkspaceMove: (trash: boolean) => Promise<void>;
 };
 
 export type AppApi = {

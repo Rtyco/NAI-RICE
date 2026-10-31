@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { GenerationSummary, QueueView } from '../src/core/domain/types';
-import type { DesktopApi, GenerationPreview, TokenStatus, WindowState } from '../src/shared/ipc';
+import type {
+  DesktopApi,
+  GenerationPreview,
+  TokenStatus,
+  WindowState,
+  WorkspaceMoveProgress,
+} from '../src/shared/ipc';
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
   const handler = (_event: Electron.IpcRendererEvent, payload: T) => listener(payload);
@@ -88,6 +94,14 @@ const api: DesktopApi = {
   inspectProject: (id) => ipcRenderer.invoke('storage:inspect', id),
   repairProject: (id) => ipcRenderer.invoke('storage:repair', id),
   clearAppCache: () => ipcRenderer.invoke('storage:clear-cache'),
+  workspaceLocation: () => ipcRenderer.invoke('storage:location'),
+  pickWorkspaceFolder: () => ipcRenderer.invoke('storage:pick-folder'),
+  planWorkspaceMove: (folder) => ipcRenderer.invoke('storage:plan-move', folder),
+  moveWorkspace: (folder) => ipcRenderer.invoke('storage:move', folder),
+  onWorkspaceMoveProgress: (listener) =>
+    subscribe<WorkspaceMoveProgress>('storage:move-progress', listener),
+  movedWorkspace: () => ipcRenderer.invoke('storage:moved'),
+  finishWorkspaceMove: (trash) => ipcRenderer.invoke('storage:finish-move', trash),
   onQueueUpdate: (listener) => subscribe<QueueView>('generation:queue-update', listener),
   onGenerationAdded: (listener) =>
     subscribe<GenerationSummary>('generation:record-added', listener),

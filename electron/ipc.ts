@@ -32,6 +32,7 @@ import type { TokenizerFiles } from './services/TokenizerFiles';
 import type { Library } from './services/Library';
 import type { UpdateChecker } from './services/UpdateChecker';
 import type { VibeFiles } from './services/VibeFiles';
+import type { WorkspaceMover } from './services/WorkspaceMover';
 import type { WorkspaceShell } from './services/WorkspaceShell';
 
 export type AppServices = {
@@ -47,6 +48,7 @@ export type AppServices = {
   updates: UpdateChecker;
   vibes: VibeFiles;
   tokenizers: TokenizerFiles;
+  mover: WorkspaceMover;
 };
 
 export function registerIpc(services: AppServices): void {
@@ -62,6 +64,7 @@ export function registerIpc(services: AppServices): void {
     updates,
     vibes,
     tokenizers,
+    mover,
   } = services;
 
   ipcMain.handle('library:load', () => library.load());
@@ -220,6 +223,12 @@ export function registerIpc(services: AppServices): void {
   });
   ipcMain.handle('storage:repair', (_event, id: string) => workspace.repairProject(id));
   ipcMain.handle('storage:clear-cache', () => appCache.clear());
+  ipcMain.handle('storage:location', () => mover.info());
+  ipcMain.handle('storage:pick-folder', () => mover.pickFolder());
+  ipcMain.handle('storage:plan-move', (_event, folder: string) => mover.plan(folder));
+  ipcMain.handle('storage:move', (_event, folder: string) => mover.move(folder));
+  ipcMain.handle('storage:moved', () => mover.moved());
+  ipcMain.handle('storage:finish-move', (_event, trash: boolean) => mover.finishMove(trash));
 
   ipcMain.handle('app:version', () => services.version);
   ipcMain.handle('app:check-update', () => updates.check());
