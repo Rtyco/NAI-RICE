@@ -29,7 +29,7 @@ const job = (id: string, projectId: string, status: string) => ({
   maxAttempts: 4,
 });
 
-async function queueWith(jobs: unknown[]) {
+async function queueWith(jobs: unknown[], finishedKept?: () => number) {
   root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
   const persistencePath = path.join(root, 'queue.json');
   await writeFile(persistencePath, JSON.stringify({ paused: false, jobs }));
@@ -41,6 +41,7 @@ async function queueWith(jobs: unknown[]) {
     token: async () => 'token',
     emit: (snapshot) => emitted.push(snapshot),
     onRecord: () => undefined,
+    finishedKept,
   });
   await queue.initialize();
   return { queue, emitted, persistencePath };
@@ -60,6 +61,13 @@ describe('GenerationQueue', () => {
     expect(ids[0]).toBe('failed-old');
     expect(ids[1]).toBe('done-100');
     expect(ids.at(-1)).toBe('done-399');
+  });
+
+  it('keeps as many finished jobs as the setting says', async () => {
+    const jobs = Array.from({ length: 30 }, (_, i) => job(`done-${i}`, 'a', 'completed'));
+    const { queue } = await queueWith(jobs, () => 10);
+    const ids = queue.getSnapshot().jobs.map((item) => item.id);
+    expect(ids).toEqual(Array.from({ length: 10 }, (_, i) => `done-${i + 20}`));
   });
 
   it('removes a deleted project in one save and cancels its waiting jobs', async () => {

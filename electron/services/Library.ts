@@ -35,8 +35,6 @@ import { StoredFiles, type ReferenceImageWrite } from './StoredFiles';
 import { WorkspaceMaintenance } from './WorkspaceMaintenance';
 import { WorkspacePaths } from './WorkspacePaths';
 
-const KEEP_BACKUPS = 20;
-
 /** library.json 읽기·저장과 백업만 직접 하고 나머지는 맡은 객체에 넘긴다. */
 export class Library
   extends WorkspacePaths
@@ -83,7 +81,7 @@ export class Library
           `library.json을 읽을 수 없습니다. 원본은 ${path.basename(broken)}로 보관했습니다. backups 폴더의 최근 파일로 복원할 수 있습니다. (${error instanceof Error ? error.message : String(error)})`,
         );
       }
-      await this.snapshot(raw);
+      await this.snapshot(raw, library.settings.keepBackups);
     } else if (await exists(path.join(this.root, 'workspace.json'))) {
       library = await migrateV1Workspace(this, notices);
     } else {
@@ -108,7 +106,7 @@ export class Library
   }
 
   /** 앱을 열 때마다 남기고 최근 것만 보관한다. */
-  private async snapshot(raw: string): Promise<void> {
+  private async snapshot(raw: string, keep: number): Promise<void> {
     const directory = path.join(this.root, 'backups');
     await fs.mkdir(directory, { recursive: true });
     const name = `library-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
@@ -116,7 +114,7 @@ export class Library
     const files = (await fs.readdir(directory))
       .filter((file) => /^library-.*\.json$/.test(file))
       .sort();
-    for (const old of files.slice(0, Math.max(0, files.length - KEEP_BACKUPS))) {
+    for (const old of files.slice(0, Math.max(0, files.length - keep))) {
       await fs.rm(path.join(directory, old), { force: true });
     }
   }

@@ -272,6 +272,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   anlasConfirm: { mode: 'any', over: 100 },
   notifyWhenDone: true,
   confirmResultDelete: true,
+  keepBackups: 20,
+  keepFinishedJobs: 300,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   layout: {

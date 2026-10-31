@@ -481,6 +481,8 @@ export const appSettingsSchema = z.object({
     .default({ mode: 'any', over: 100 }),
   notifyWhenDone: z.boolean().catch(true).default(true),
   confirmResultDelete: z.boolean().catch(true).default(true),
+  keepBackups: z.number().int().min(1).max(200).catch(20).default(20),
+  keepFinishedJobs: z.number().int().min(10).max(2000).catch(300).default(300),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({

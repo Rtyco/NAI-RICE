@@ -102,6 +102,7 @@ async function createServices(): Promise<AppServices> {
     anlas: async (token) => (await account.refresh(token))?.anlas,
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
     streaming: () => library.settings?.streaming ?? false,
+    finishedKept: () => library.settings?.keepFinishedJobs ?? 300,
     onPreview: (preview) => broadcast('generation:preview', preview),
     followUps: async (job, records) => {
       const jobs = await buildFollowUpJobs(job, records, {
