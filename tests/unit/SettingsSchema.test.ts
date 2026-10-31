@@ -3,6 +3,23 @@ import { createDefaultLibrary } from '../../src/core/model/defaults';
 import { librarySchema } from '../../src/core/validation/schemas';
 
 describe('설정 읽기', () => {
+  it('1.1.4 이하 설정에는 새 설정의 기본값이 들어간다', () => {
+    const library = createDefaultLibrary();
+    const added = [
+      'anlasConfirm',
+      'notifyWhenDone',
+      'confirmResultDelete',
+      'keepBackups',
+      'keepFinishedJobs',
+      'requestRetries',
+      'requestTimeoutSec',
+    ] as const;
+    const old: Record<string, unknown> = { ...library.settings };
+    for (const key of added) delete old[key];
+    const parsed = librarySchema.parse({ ...library, settings: old });
+    for (const key of added) expect(parsed.settings[key]).toEqual(library.settings[key]);
+  });
+
   it('1.1.4 이하 화면 설정에는 프롬프트 글자 크기 기본값(13px)이 들어간다', () => {
     const library = createDefaultLibrary();
     const parsed = librarySchema.parse({

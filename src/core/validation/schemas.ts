@@ -470,29 +470,33 @@ export const appSettingsSchema = z.object({
     .default(() => ({ ...DEFAULT_SETTINGS.export })),
   // 예전 naiTags(직접 고친 품질 태그 문구)는 읽지 않는다.
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
-  requestRetries: z.number().int().min(0).max(10).catch(3).default(3),
-  requestTimeoutSec: z.number().int().min(30).max(600).catch(180).default(180),
+  requestRetries: z.number().int().min(0).max(10).catch(DEFAULT_SETTINGS.requestRetries),
+  requestTimeoutSec: z.number().int().min(30).max(600).catch(DEFAULT_SETTINGS.requestTimeoutSec),
   streaming: z.boolean().default(false),
   accountRotation: z.boolean().catch(true).default(true),
   anlasConfirm: z
     .object({
-      mode: z.enum(['off', 'any', 'over']).catch('any'),
-      over: z.number().int().min(1).max(100000).catch(100),
+      mode: z.enum(['off', 'any', 'over']).catch(DEFAULT_SETTINGS.anlasConfirm.mode),
+      over: z.number().int().min(1).max(100000).catch(DEFAULT_SETTINGS.anlasConfirm.over),
     })
-    .catch({ mode: 'any', over: 100 })
-    .default({ mode: 'any', over: 100 }),
-  notifyWhenDone: z.boolean().catch(true).default(true),
-  confirmResultDelete: z.boolean().catch(true).default(true),
-  keepBackups: z.number().int().min(1).max(200).catch(20).default(20),
-  keepFinishedJobs: z.number().int().min(10).max(2000).catch(300).default(300),
+    .catch(() => ({ ...DEFAULT_SETTINGS.anlasConfirm })),
+  notifyWhenDone: z.boolean().catch(DEFAULT_SETTINGS.notifyWhenDone),
+  confirmResultDelete: z.boolean().catch(DEFAULT_SETTINGS.confirmResultDelete),
+  keepBackups: z.number().int().min(1).max(200).catch(DEFAULT_SETTINGS.keepBackups),
+  keepFinishedJobs: z.number().int().min(10).max(2000).catch(DEFAULT_SETTINGS.keepFinishedJobs),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({
       theme: z.enum(['navy', 'graphite', 'violet', 'forest', 'rose']).catch('navy'),
       mode: z.enum(['dark', 'light', 'system']).catch('dark'),
-      promptFontSize: z.number().int().min(10).max(24).catch(13).default(13),
+      promptFontSize: z
+        .number()
+        .int()
+        .min(10)
+        .max(24)
+        .catch(DEFAULT_SETTINGS.appearance.promptFontSize),
     })
-    .default({ theme: 'navy', mode: 'dark', promptFontSize: 13 }),
+    .default(() => ({ ...DEFAULT_SETTINGS.appearance })),
   layout: z
     .object({
       focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels'),

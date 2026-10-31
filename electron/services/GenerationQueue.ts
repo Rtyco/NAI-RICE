@@ -20,6 +20,7 @@ import {
   startAttempt,
 } from '../../src/core/jobs/JobLifecycle';
 import { toQueueView } from '../../src/core/jobs/QueueView';
+import { DEFAULT_SETTINGS } from '../../src/core/model/defaults';
 import { NaiApiError } from '../../src/core/providers/NaiErrors';
 import { atomicWrite, sha256 } from './fsUtils';
 import { saveGenerationOutput } from './GenerationOutput';
@@ -33,7 +34,6 @@ import { VibeEncoder } from './VibeEncoder';
 type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
-const DEFAULT_TIMEOUT_MS = 180_000;
 
 type QueueDependencies = {
   persistencePath: string;
@@ -53,7 +53,7 @@ type QueueDependencies = {
   maxAttempts?: () => number;
   /** ms. 요청마다 읽는다. */
   requestTimeoutMs?: () => number;
-  /** 끝난 작업을 남기는 수. 기본 300. */
+  /** 끝난 작업을 남기는 수 */
   finishedKept?: () => number;
   onPreview?: (preview: GenerationPreview) => void;
   /** 작업에 `lineFix`나 `refine`이 있을 때 끝난 뒤 이어 붙일 작업(구분선 지우기, 다듬기). */
@@ -211,7 +211,7 @@ export class GenerationQueue {
 
   /** 큐 파일은 바뀔 때마다 통째로 저장·전송되어 기록이 쌓이면 수십 MB가 된다. 실패·중단은 다시 시도하도록 남긴다. */
   private pruneFinished(): void {
-    const limit = this.dependencies.finishedKept?.() ?? 300;
+    const limit = this.dependencies.finishedKept?.() ?? DEFAULT_SETTINGS.keepFinishedJobs;
     let kept = 0;
     const drop = new Set<QueuedGenerationJob>();
     for (let i = this.snapshot.jobs.length - 1; i >= 0; i--) {
@@ -393,7 +393,7 @@ export class GenerationQueue {
       this.activeJobId = job.id;
       const timeout = setTimeout(
         () => controller.abort(),
-        this.dependencies.requestTimeoutMs?.() ?? DEFAULT_TIMEOUT_MS,
+        this.dependencies.requestTimeoutMs?.() ?? DEFAULT_SETTINGS.requestTimeoutSec * 1000,
       );
       try {
         const records = await this.generateOnce(job, controller.signal);

@@ -1,8 +1,9 @@
 import type { GenerationJobSnapshot, JobStatus, QueuedGenerationJob } from '../domain/types';
+import { DEFAULT_SETTINGS } from '../model/defaults';
 
 /** 허용하지 않은 상태 변화는 오류로 막는다. 큐는 상태를 직접 바꾸지 않는다. */
 
-const DEFAULT_MAX_ATTEMPTS = 4;
+const DEFAULT_MAX_ATTEMPTS = DEFAULT_SETTINGS.requestRetries + 1;
 
 const TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   queued: ['generating', 'cancelled'],

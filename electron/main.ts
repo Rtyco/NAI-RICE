@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, Menu, net, session, shell } from 'electron'
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
+import { DEFAULT_SETTINGS } from '../src/core/model/defaults';
 import { buildFollowUpJobs } from '../src/core/model/lineFix';
 import { estimateJobAnlas } from '../src/core/providers/NaiCost';
 import { NovelAIProvider } from '../src/core/providers/NovelAIProvider';
@@ -84,17 +85,18 @@ async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
   const provider = new NovelAIProvider();
   const library = new Library(await workspaceRoot(userData), app.getVersion());
+  const settings = () => library.settings ?? DEFAULT_SETTINGS;
   const account = new AccountService(
     new TokenVault(userData),
     provider,
     (status) => broadcast('token:status', status),
-    () => library.settings?.accountRotation ?? true,
+    () => settings().accountRotation,
   );
   const queueFile = path.join(userData, 'generation-queue-v2.json');
   const notifier = new QueueNotifier({
     progress: showQueueProgress,
     finished: (done) => {
-      if (library.settings?.notifyWhenDone ?? true) notifyQueueDone(APP_NAME, done);
+      if (settings().notifyWhenDone) notifyQueueDone(APP_NAME, done);
     },
   });
   const queue = new GenerationQueue({
@@ -110,9 +112,9 @@ async function createServices(): Promise<AppServices> {
     anlas: async (token) => (await account.refresh(token))?.anlas,
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
     streaming: () => library.settings?.streaming ?? false,
-    finishedKept: () => library.settings?.keepFinishedJobs ?? 300,
-    maxAttempts: () => (library.settings?.requestRetries ?? 3) + 1,
-    requestTimeoutMs: () => (library.settings?.requestTimeoutSec ?? 180) * 1000,
+    finishedKept: () => settings().keepFinishedJobs,
+    maxAttempts: () => settings().requestRetries + 1,
+    requestTimeoutMs: () => settings().requestTimeoutSec * 1000,
     onPreview: (preview) => broadcast('generation:preview', preview),
     followUps: async (job, records) => {
       const jobs = await buildFollowUpJobs(job, records, {
