@@ -154,14 +154,15 @@ export function useGlobalShortcuts(): void {
     return () => window.removeEventListener('wheel', onWheel);
   }, []);
 
-  useEffect(() => {
-    let zoom = 100;
-    return appApi().onWindowState((state) => {
-      document.documentElement.dataset.fullscreen = state.fullScreen ? 'true' : 'false';
-      if (state.zoomPercent !== zoom) {
-        zoom = state.zoomPercent;
-        toast(`화면 크기 ${zoom}%${zoom === 100 ? '' : ' · Ctrl+0으로 되돌리기'}`);
-      }
-    });
-  }, []);
+  useEffect(
+    () =>
+      appApi().onWindowState((state) => {
+        document.documentElement.dataset.fullscreen = state.fullScreen ? 'true' : 'false';
+        if (state.zoomed)
+          toast(
+            `화면 크기 ${state.zoomPercent}%${state.zoomPercent === 100 ? '' : ' · Ctrl+0으로 되돌리기'}`,
+          );
+      }),
+    [],
+  );
 }

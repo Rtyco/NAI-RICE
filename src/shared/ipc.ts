@@ -358,10 +358,19 @@ export type AppApi = {
   setTitleBarColors: (colors: TitleBarColors) => void;
   /** Electron은 Ctrl+휠로 스스로 확대하지 않는다. 캔버스·이미지 확대가 막지 않은 Ctrl+휠만 렌더러가 보낸다. */
   zoomWindow: (direction: 'in' | 'out') => void;
+  /** Chromium 확대 단계(0이 100%, 1 차이가 1.2배) */
+  setZoomLevel: (level: number) => void;
+  windowState: () => Promise<WindowState>;
   onWindowState: (listener: (state: WindowState) => void) => () => void;
 };
 
-export type WindowState = { fullScreen: boolean; zoomPercent: number };
+/** `zoomed`는 배율을 바꿔서 보낸 상태. */
+export type WindowState = {
+  fullScreen: boolean;
+  zoomLevel: number;
+  zoomPercent: number;
+  zoomed?: boolean;
+};
 
 export type TitleBarColors = { color: string; symbolColor: string };
 

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, Menu, net, Notification, session, shell } from 'electron';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
 import { buildFollowUpJobs } from '../src/core/model/lineFix';
@@ -12,7 +12,7 @@ import { TokenizerFiles } from './services/TokenizerFiles';
 import { Exporter } from './services/Exporter';
 import { createFreshRoot, removeFreshRoot } from './services/freshData';
 import { FilePicker } from './services/FilePicker';
-import { removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
+import { atomicWrite, removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
 import { GenerationQueue } from './services/GenerationQueue';
 import { GenerationRequests } from './services/GenerationRequests';
 import { Library } from './services/Library';
@@ -29,6 +29,7 @@ import {
   createWindow,
   handleMediaProtocol,
   registerMediaScheme,
+  rememberZoom,
 } from './window';
 
 const APP_NAME = 'NAI RICE';
@@ -97,6 +98,22 @@ async function workspaceRoot(userData: string): Promise<string> {
     }
   }
   return saved.root ?? renamedFolder(app.getPath('documents'), APP_NAME, 'Reference Inpaint Desk');
+}
+
+function zoomMemory(userData: string) {
+  const file = path.join(userData, 'window-zoom.json');
+  return {
+    load: () => {
+      try {
+        const level = (JSON.parse(readFileSync(file, 'utf8')) as { level?: unknown }).level;
+        return typeof level === 'number' && Number.isFinite(level) ? level : 0;
+      } catch {
+        return 0;
+      }
+    },
+    save: (level: number) =>
+      void atomicWrite(file, JSON.stringify({ level })).catch(() => undefined),
+  };
 }
 
 async function createServices(): Promise<AppServices> {
@@ -220,6 +237,7 @@ app
     registerIpc(services);
     // 입력란의 복사·붙여넣기 단축키는 메뉴 없이도 동작한다.
     Menu.setApplicationMenu(null);
+    rememberZoom(zoomMemory(app.getPath('userData')));
     createWindow(APP_NAME, moduleDirectory);
     services.account.startAutoRefresh(anyWindowVisible);
     void cleanUpLeftovers(services);

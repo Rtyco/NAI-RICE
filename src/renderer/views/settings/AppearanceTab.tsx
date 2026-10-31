@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { AppSettings, ThemeId, ThemeMode } from '../../../core/domain/types';
 import { confirmDialog } from '../../components/dialogStack';
-import { Card, SelectField } from '../../components/ui';
+import { Card, NumberField, SelectField } from '../../components/ui';
+import { appApi } from '../../desktop';
 import { resetLayout } from '../../layout';
 import { resetPanelWidths } from '../../panelWidths';
 import { resetSidebarSections, toast, useLibrary } from '../../store';
@@ -53,6 +55,20 @@ export function AppearanceTab() {
           })}
         </div>
       </Card>
+      <Card title="크기">
+        <div className="four-column-fields">
+          <ZoomField />
+          <NumberField
+            label="프롬프트 글자 크기"
+            value={appearance.promptFontSize}
+            min={10}
+            max={24}
+            integer
+            suffix="px"
+            onChange={(promptFontSize) => set({ promptFontSize })}
+          />
+        </div>
+      </Card>
       <Card title="집중 모드 (Tab)">
         <FocusLevelGrid />
       </Card>
@@ -83,6 +99,31 @@ export function AppearanceTab() {
         </div>
       </Card>
     </>
+  );
+}
+
+/** Chromium 확대 단계. 0.5가 Ctrl++ 한 번(약 10%)이다. */
+const ZOOM_LEVELS = Array.from({ length: 15 }, (_, index) => (index - 7) / 2);
+
+function ZoomField() {
+  const [level, setLevel] = useState<number>();
+  useEffect(() => {
+    void appApi()
+      .windowState()
+      .then((state) => setLevel(state.zoomLevel));
+    return appApi().onWindowState((state) => setLevel(state.zoomLevel));
+  }, []);
+  const levels =
+    level === undefined || ZOOM_LEVELS.includes(level) ? ZOOM_LEVELS : [...ZOOM_LEVELS, level];
+  return (
+    <SelectField
+      label="화면 배율"
+      value={String(level ?? 0)}
+      options={[...levels]
+        .sort((a, b) => a - b)
+        .map((item) => ({ value: String(item), label: `${Math.round(1.2 ** item * 100)}%` }))}
+      onChange={(value) => appApi().setZoomLevel(Number(value))}
+    />
   );
 }
 

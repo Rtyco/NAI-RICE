@@ -114,6 +114,8 @@ function createPreviewApi(): DesktopApi {
     openReleasePage: unsupported,
     setTitleBarColors: () => undefined,
     zoomWindow: () => undefined,
+    setZoomLevel: () => undefined,
+    windowState: async () => ({ fullScreen: false, zoomLevel: 0, zoomPercent: 100 }),
     onWindowState: none,
   };
 }

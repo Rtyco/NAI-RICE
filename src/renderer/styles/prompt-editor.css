@@ -103,7 +103,7 @@
   min-height: min(60vh, 560px);
   resize: vertical;
   font-family: Consolas, 'D2Coding', monospace;
-  font-size: 13px;
+  font-size: var(--prompt-font-size, 13px);
   line-height: 1.6;
 }
 .text-editor-area.negative {
@@ -137,6 +137,7 @@
 }
 textarea.syntax-input {
   position: relative;
+  font-size: var(--prompt-font-size, 13px);
   display: block;
   scrollbar-gutter: stable;
   background: transparent;

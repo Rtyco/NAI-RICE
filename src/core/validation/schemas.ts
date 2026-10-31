@@ -490,8 +490,9 @@ export const appSettingsSchema = z.object({
     .object({
       theme: z.enum(['navy', 'graphite', 'violet', 'forest', 'rose']).catch('navy'),
       mode: z.enum(['dark', 'light', 'system']).catch('dark'),
+      promptFontSize: z.number().int().min(10).max(24).catch(13).default(13),
     })
-    .default({ theme: 'navy', mode: 'dark' }),
+    .default({ theme: 'navy', mode: 'dark', promptFontSize: 13 }),
   layout: z
     .object({
       focusLevel: z.enum(['panels', 'inputs', 'all']).catch('panels'),

@@ -277,7 +277,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   keepBackups: 20,
   keepFinishedJobs: 300,
   tagAutocomplete: true,
-  appearance: { theme: 'navy', mode: 'dark' },
+  appearance: { theme: 'navy', mode: 'dark', promptFontSize: 13 },
   layout: {
     focusLevel: 'panels',
     edgePeek: false,

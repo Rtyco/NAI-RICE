@@ -26,7 +26,7 @@ import { toGenerationSummary } from '../src/core/model/generationSummary';
 import type { BorderLineRequest } from '../src/core/model/lineFix';
 import { findInRecord, type GenerationFindHit } from '../src/core/model/promptFields';
 import { GENERATION_FIND_LIMIT } from '../src/shared/ipc';
-import { ZOOM_STEP, zoomWindow } from './window';
+import { setWindowZoom, windowState, ZOOM_STEP, zoomWindow } from './window';
 import type { AppCache } from './services/AppCache';
 import type { TokenizerFiles } from './services/TokenizerFiles';
 import type { Library } from './services/Library';
@@ -243,6 +243,15 @@ export function registerIpc(services: AppServices): void {
     const window = BrowserWindow.fromWebContents(event.sender);
     if (window && (direction === 'in' || direction === 'out'))
       zoomWindow(window, direction === 'in' ? ZOOM_STEP : -ZOOM_STEP);
+  });
+  ipcMain.on('app:set-zoom', (event, level: unknown) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window && typeof level === 'number' && Number.isFinite(level)) setWindowZoom(window, level);
+  });
+  ipcMain.handle('app:window-state', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) throw new Error('창을 찾을 수 없습니다.');
+    return windowState(window);
   });
   ipcMain.on('app:titlebar', (event, colors: unknown) => {
     const hex = /^#[0-9a-f]{6}$/i;

@@ -470,6 +470,8 @@ export type AppSettings = {
   appearance: {
     theme: ThemeId;
     mode: ThemeMode;
+    /** px. 프롬프트 입력란과 크게 보기 창 */
+    promptFontSize: number;
   };
   layout: {
     focusLevel: FocusLevel;

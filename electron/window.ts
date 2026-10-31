@@ -2,6 +2,7 @@ import { app, BrowserWindow, net, protocol, shell } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { imageMime } from './services/fsUtils';
+import type { WindowState } from '../src/shared/ipc';
 import type { Library } from './services/Library';
 
 export const MEDIA_SCHEME = 'desk-media';
@@ -9,18 +10,40 @@ export const MEDIA_SCHEME = 'desk-media';
 /** 약 10% */
 export const ZOOM_STEP = 0.5;
 
-function sendWindowState(window: BrowserWindow, fullScreen = window.isFullScreen()): void {
-  window.webContents.send('app:window-state', {
+export function windowState(
+  window: BrowserWindow,
+  fullScreen = window.isFullScreen(),
+): WindowState {
+  return {
     fullScreen,
+    zoomLevel: window.webContents.getZoomLevel(),
     zoomPercent: Math.round(window.webContents.getZoomFactor() * 100),
-  });
+  };
 }
 
-/** null이면 100%. 50%~200%. */
+function sendWindowState(window: BrowserWindow, fullScreen?: boolean, zoomed = false): void {
+  window.webContents.send('app:window-state', { ...windowState(window, fullScreen), zoomed });
+}
+
+/** 다시 열 때 같은 배율로 연다. main.ts가 userData 파일로 정한다. */
+type ZoomMemory = { load(): number; save(level: number): void };
+let zoomMemory: ZoomMemory = { load: () => 0, save: () => undefined };
+
+export function rememberZoom(memory: ZoomMemory): void {
+  zoomMemory = memory;
+}
+
+/** 50%~200% */
+export function setWindowZoom(window: BrowserWindow, level: number): void {
+  const clamped = Math.max(-3.8, Math.min(3.8, level));
+  window.webContents.setZoomLevel(clamped);
+  zoomMemory.save(clamped);
+  sendWindowState(window, undefined, true);
+}
+
+/** null이면 100%. */
 export function zoomWindow(window: BrowserWindow, step: number | null): void {
-  const level = window.webContents.getZoomLevel();
-  window.webContents.setZoomLevel(step === null ? 0 : Math.max(-3.8, Math.min(3.8, level + step)));
-  sendWindowState(window);
+  setWindowZoom(window, step === null ? 0 : window.webContents.getZoomLevel() + step);
 }
 
 /** app 준비 전에 불러야 한다. */
@@ -83,6 +106,8 @@ export function createWindow(title: string, moduleDirectory: string): void {
       devTools: !app.isPackaged,
       // 세션의 검사기와 사전은 main.ts의 disableSpellChecker가 끈다.
       spellcheck: false,
+      // Chromium 확대 단계는 1.2배씩이다(setZoomLevel과 같은 식).
+      zoomFactor: 1.2 ** zoomMemory.load(),
     },
   });
   window.webContents.setWindowOpenHandler(({ url }) => {

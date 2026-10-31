@@ -120,7 +120,7 @@ function lightTokens(theme: (typeof THEMES)[ThemeId]): Record<string, string> {
 }
 
 let systemQuery: MediaQueryList | undefined;
-let current: Appearance = { theme: 'navy', mode: 'dark' };
+let current: Appearance = { theme: 'navy', mode: 'dark', promptFontSize: 13 };
 
 function resolvedMode(mode: ThemeMode): 'dark' | 'light' {
   if (mode !== 'system') return mode;
@@ -136,6 +136,8 @@ export function applyAppearance(appearance: Appearance): void {
   const root = document.documentElement;
   for (const [name, value] of Object.entries(tokens)) root.style.setProperty(name, value);
   root.dataset.mode = mode;
+  // 1.1.4 이하가 남긴 캐시에는 없다.
+  root.style.setProperty('--prompt-font-size', `${appearance.promptFontSize ?? 13}px`);
   syncTitleBar();
   try {
     localStorage.setItem('appearance', JSON.stringify(appearance));
@@ -199,7 +201,7 @@ export function cachedAppearance(): Appearance {
   } catch {
     // 없거나 깨졌으면 기본값
   }
-  return { theme: 'navy', mode: 'dark' };
+  return { theme: 'navy', mode: 'dark', promptFontSize: 13 };
 }
 
 export function themeSwatch(id: ThemeId, mode: 'dark' | 'light') {
