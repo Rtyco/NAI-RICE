@@ -190,6 +190,45 @@ export function SelectField<T extends string>(props: {
   );
 }
 
+/** 파일 이름 규칙 칸. 토큰 단추는 끝에 붙인다. */
+export function TemplateField(props: {
+  label: string;
+  value: string;
+  /** [토큰, 단추 툴팁] */
+  tokens: Array<[string, string?]>;
+  initial: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <>
+      <label className="stack-field">
+        {props.label}
+        <input
+          className="template-input"
+          value={props.value}
+          spellCheck={false}
+          onChange={(event) => props.onChange(event.target.value)}
+        />
+      </label>
+      <div className="token-picker">
+        {props.tokens.map(([token, title]) => (
+          <button
+            key={token}
+            type="button"
+            title={title}
+            onClick={() => props.onChange(`${props.value}${token}`)}
+          >
+            {token}
+          </button>
+        ))}
+        <button type="button" className="link-button" onClick={() => props.onChange(props.initial)}>
+          기본값
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function Toggle(props: {
   label: string;
   checked: boolean;

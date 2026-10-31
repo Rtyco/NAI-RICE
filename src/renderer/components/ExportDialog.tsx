@@ -10,7 +10,7 @@ import {
 import { EXPORT_SCOPES, exportPicks, type ExportPick } from '../exportPicks';
 import { projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
-import { NumberField, SelectField } from './ui';
+import { NumberField, SelectField, TemplateField } from './ui';
 import { fileApi } from '../desktop';
 
 /** 씬마다 한 장은 RisuAI 감정 이미지 업로드용이다. */
@@ -157,34 +157,13 @@ export function ExportDialog({
         />
       </div>
       <p className="hint">{format === 'png' ? '메타데이터 포함' : '메타데이터 없음'}</p>
-      <label className="stack-field">
-        파일 이름
-        <input
-          className="template-input"
-          value={filenameTemplate}
-          spellCheck={false}
-          onChange={(event) => setFilenameTemplate(event.target.value)}
-        />
-      </label>
-      <div className="token-picker">
-        {Object.entries(EXPORT_FILENAME_TOKENS).map(([token, label]) => (
-          <button
-            key={token}
-            type="button"
-            title={label}
-            onClick={() => setFilenameTemplate(`${filenameTemplate}${token}`)}
-          >
-            {token}
-          </button>
-        ))}
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => setFilenameTemplate(DEFAULT_EXPORT_FILENAME_TEMPLATE)}
-        >
-          기본값
-        </button>
-      </div>
+      <TemplateField
+        label="파일 이름"
+        value={filenameTemplate}
+        tokens={Object.entries(EXPORT_FILENAME_TOKENS)}
+        initial={DEFAULT_EXPORT_FILENAME_TEMPLATE}
+        onChange={setFilenameTemplate}
+      />
       {scope !== 'scene' && !namesCombo && (
         <p className="hint">조합 칸이 있는 씬은 파일 이름 뒤에 조합 이름을 붙입니다.</p>
       )}

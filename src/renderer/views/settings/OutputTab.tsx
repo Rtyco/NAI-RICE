@@ -9,7 +9,7 @@ import {
 } from '../../../core/output/OutputFilename';
 import { LineFixFields } from '../../components/LineFixDialog';
 import { EXPORT_SCOPES } from '../../exportPicks';
-import { Card, NumberField, SelectField, Toggle } from '../../components/ui';
+import { Card, NumberField, SelectField, TemplateField, Toggle } from '../../components/ui';
 import { useLibrary } from '../../store';
 import { patchSettings } from './patchSettings';
 
@@ -40,29 +40,13 @@ export function OutputTab() {
   return (
     <>
       <Card title="결과 파일">
-        <label className="stack-field">
-          파일명 규칙
-          <input
-            className="template-input"
-            value={template}
-            spellCheck={false}
-            onChange={(event) => setTemplate(event.target.value)}
-          />
-        </label>
-        <div className="token-picker">
-          {OUTPUT_FILENAME_TOKENS.map((token) => (
-            <button key={token} type="button" onClick={() => setTemplate(`${template}${token}`)}>
-              {token}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => setTemplate(DEFAULT_OUTPUT_FILENAME_TEMPLATE)}
-          >
-            기본값
-          </button>
-        </div>
+        <TemplateField
+          label="파일명 규칙"
+          value={template}
+          tokens={OUTPUT_FILENAME_TOKENS.map((token) => [token])}
+          initial={DEFAULT_OUTPUT_FILENAME_TEMPLATE}
+          onChange={setTemplate}
+        />
         {error ? (
           <p className="field-error">{error}</p>
         ) : (
@@ -133,34 +117,13 @@ export function OutputTab() {
           options={EXPORT_SCOPES.map((choice) => ({ value: choice.id, label: choice.label }))}
           onChange={(scope) => setExport({ scope })}
         />
-        <label className="stack-field">
-          파일 이름
-          <input
-            className="template-input"
-            value={exportTemplate}
-            spellCheck={false}
-            onChange={(event) => setExport({ filenameTemplate: event.target.value })}
-          />
-        </label>
-        <div className="token-picker">
-          {Object.entries(EXPORT_FILENAME_TOKENS).map(([token, label]) => (
-            <button
-              key={token}
-              type="button"
-              title={label}
-              onClick={() => setExport({ filenameTemplate: `${exportTemplate}${token}` })}
-            >
-              {token}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => setExport({ filenameTemplate: DEFAULT_EXPORT_FILENAME_TEMPLATE })}
-          >
-            기본값
-          </button>
-        </div>
+        <TemplateField
+          label="파일 이름"
+          value={exportTemplate}
+          tokens={Object.entries(EXPORT_FILENAME_TOKENS)}
+          initial={DEFAULT_EXPORT_FILENAME_TEMPLATE}
+          onChange={(filenameTemplate) => setExport({ filenameTemplate })}
+        />
         {exportError && <p className="field-error">{exportError}</p>}
       </Card>
       <Card title="구분선 지우기">
