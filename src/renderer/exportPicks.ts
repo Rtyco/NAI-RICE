@@ -2,6 +2,12 @@ import type { Emotion, ExportScope, GenerationSummary } from '../core/domain/typ
 import { sceneCombos } from '../core/model/sceneCombos';
 import { coverRecord, emotionRecords } from './store';
 
+export const EXPORT_SCOPES: Array<{ id: ExportScope; label: string }> = [
+  { id: 'scene', label: '씬마다 한 장' },
+  { id: 'combo', label: '조합마다 한 장' },
+  { id: 'all', label: '모든 생성 이미지' },
+];
+
 export type ExportPick = {
   /** 고르기 해제를 기억하는 키. 대표 이미지를 바꿔도 같은 자리면 같다. */
   key: string;

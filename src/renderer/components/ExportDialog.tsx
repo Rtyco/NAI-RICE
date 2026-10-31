@@ -7,17 +7,11 @@ import {
   renderExportFilename,
   validateOutputFilenameTemplate,
 } from '../../core/output/OutputFilename';
-import { exportPicks, type ExportPick } from '../exportPicks';
+import { EXPORT_SCOPES, exportPicks, type ExportPick } from '../exportPicks';
 import { projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField } from './ui';
 import { fileApi } from '../desktop';
-
-const SCOPES: Array<{ id: ExportScope; label: string }> = [
-  { id: 'scene', label: '씬마다 한 장' },
-  { id: 'combo', label: '조합마다 한 장' },
-  { id: 'all', label: '모든 생성 이미지' },
-];
 
 /** 씬마다 한 장은 RisuAI 감정 이미지 업로드용이다. */
 export function ExportDialog({
@@ -45,7 +39,7 @@ export function ExportDialog({
   const counts = useMemo(
     () =>
       Object.fromEntries(
-        SCOPES.map((choice) => [
+        EXPORT_SCOPES.map((choice) => [
           choice.id,
           exportPicks(emotions, records, project.favorites, target, choice.id),
         ]),
@@ -119,7 +113,7 @@ export function ExportDialog({
       }
     >
       <div className="segmented full" role="group" aria-label="내보낼 이미지">
-        {SCOPES.map((choice) => (
+        {EXPORT_SCOPES.map((choice) => (
           <button
             key={choice.id}
             className={choice.id === scope ? 'active' : ''}
