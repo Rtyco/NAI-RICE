@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
+import { isTypingTarget } from '../useShortcut';
 
 type ZoomActions = {
   /** 화면에 맞춤 ↔ 원본 크기 */
@@ -24,8 +25,7 @@ function activeTarget(): ZoomTarget | undefined {
 
 function onKey(event: KeyboardEvent): void {
   if (event.defaultPrevented || event.isComposing || event.repeat) return;
-  if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]'))
-    return;
+  if (isTypingTarget(event.target)) return;
   const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
   const ctrl = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
   // Lightroom의 Z, 포토샵의 Ctrl+1. 한글 입력 상태에서도 받도록 code를 본다.

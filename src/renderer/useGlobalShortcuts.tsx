@@ -8,6 +8,7 @@ import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { openFind } from './find';
 import { requestRename } from './renameRequest';
 import { SECTIONS } from './sections';
+import { isTypingTarget } from './useShortcut';
 import {
   cycleLibraryList,
   cyclePromptPanel,
@@ -87,9 +88,7 @@ export function useGlobalShortcuts(): void {
       const ctrl = event.ctrlKey && !event.altKey && !event.metaKey;
       const plain = !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       const key = event.key;
-      const typing = (event.target as HTMLElement | null)?.closest?.(
-        'input, textarea, select, [contenteditable="true"]',
-      );
+      const typing = isTypingTarget(event.target);
       let action: (() => void) | undefined;
 
       // 글을 쓰는 중이면 숫자는 그대로 입력된다.

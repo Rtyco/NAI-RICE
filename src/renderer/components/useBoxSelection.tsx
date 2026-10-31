@@ -6,6 +6,7 @@ import {
   type MouseEvent,
   type PointerEvent,
 } from 'react';
+import { isTypingTarget } from '../useShortcut';
 
 import { edgeScrollStep } from './edgeScroll';
 
@@ -67,8 +68,7 @@ export function useBoxSelection<T extends HTMLElement>(
   useEffect(() => {
     if (!selected.size) return;
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTypingTarget(event.target)) return;
       if (document.querySelector('.modal-backdrop')) return;
       if (event.key === 'Delete') {
         event.preventDefault();
@@ -92,8 +92,7 @@ export function useBoxSelection<T extends HTMLElement>(
     const onKey = (event: KeyboardEvent) => {
       if (!isCtrl(event, 'a')) return;
       // 입력 칸에서는 글자 전체 선택을 둔다.
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTypingTarget(event.target)) return;
       if (document.querySelector('.modal-backdrop')) return;
       event.preventDefault();
       setSelected(new Set(selectAllKey.current?.() ?? []));

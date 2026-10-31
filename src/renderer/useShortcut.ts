@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
 
+const TYPING = 'input, textarea, select, [contenteditable="true"]';
+
+/** 창(window)에 보낸 키 이벤트는 target이 요소가 아니다. */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(TYPING) !== null;
+}
+
 /** 글자 키는 대소문자를 가리지 않는다. */
 export function matchesKey(event: KeyboardEvent, combo: string): boolean {
   const parts = combo.split('+');
@@ -26,9 +33,7 @@ export function useShortcut(
     if (!enabled) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || !matchesKey(event, combo)) return;
-      const target = event.target as HTMLElement | null;
-      if (!inFields && target?.closest?.('input, textarea, select, [contenteditable="true"]'))
-        return;
+      if (!inFields && isTypingTarget(event.target)) return;
       if (document.querySelector('.modal-backdrop')) return;
       event.preventDefault();
       latest.current();

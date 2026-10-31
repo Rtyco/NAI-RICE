@@ -3,7 +3,7 @@ import type { GenerationSummary } from '../../core/domain/types';
 import { deleteResults, deleteShownResult } from '../generationOps';
 import { copyResultImage, revealResult } from '../resultActions';
 import { requestResult, setShownResult, useStore } from '../store';
-import { matchesKey } from '../useShortcut';
+import { isTypingTarget, matchesKey } from '../useShortcut';
 import { useBoxSelection } from './useBoxSelection';
 
 export function useResultBrowser(
@@ -72,7 +72,7 @@ export function useResultBrowser(
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (isTypingTarget(event.target)) return;
       const position = records.findIndex((record) => record.id === selected?.id);
       if (event.key === 'ArrowRight' && records[position + 1])
         setSelectedId(records[position + 1].id);

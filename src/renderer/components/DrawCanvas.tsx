@@ -8,6 +8,7 @@ import {
   rgbToHex,
   type CanvasImage,
 } from '../lib/image';
+import { isTypingTarget } from '../useShortcut';
 import { useCanvasViewport } from './canvasViewport';
 import { useDrawSettings, type DrawTip } from './drawSettings';
 import { DrawToolbar } from './DrawToolbar';
@@ -318,10 +319,7 @@ export function DrawCanvas(props: {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (
-        (event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')
-      )
-        return;
+      if (isTypingTarget(event.target)) return;
       // 인페인트 편집 팝업 안에서도 쓰므로 맨 위 대화상자 안에 있을 때만 받는다.
       const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
       if (dialog && !dialog.contains(layerRef.current)) return;

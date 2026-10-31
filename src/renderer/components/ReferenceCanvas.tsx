@@ -24,6 +24,7 @@ import {
   paintMask,
   type CanvasImage,
 } from '../lib/image';
+import { isTypingTarget } from '../useShortcut';
 import { readUiState, saveUiState } from '../store';
 import { MAX_BRUSH_CELLS, MaskToolbar, type MaskTool } from './MaskToolbar';
 import { useCanvasViewport } from './canvasViewport';
@@ -445,7 +446,7 @@ export function ReferenceCanvas(props: Props) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (isTypingTarget(event.target)) return;
       if (
         event.code === 'Space' &&
         !event.repeat &&
@@ -514,7 +515,7 @@ export function ReferenceCanvas(props: Props) {
   // 라이브러리의 Delete(항목 삭제)보다 먼저 받으려고 캡처 단계에서 막는다.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (isTypingTarget(event.target)) return;
       const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
       if (dialog && !dialog.contains(canvasRef.current)) return;
       const plain = !(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey);

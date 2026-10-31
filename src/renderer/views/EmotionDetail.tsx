@@ -37,7 +37,7 @@ import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
 import { fileApi, libraryApi } from '../desktop';
 import { useSceneOrder } from '../useSceneOrder';
-import { useShortcut } from '../useShortcut';
+import { isTypingTarget, useShortcut } from '../useShortcut';
 import { ScenePicker } from '../components/ScenePicker';
 import { DetailSidePanel } from './detail/DetailSidePanel';
 import { FreeSourceStage, InpaintModelBanner, ResultStage } from './free/FreeSourceStage';
@@ -119,7 +119,7 @@ export function EmotionDetail({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (isTypingTarget(event.target)) return;
       // 여러 장을 고른 동안의 Esc는 useBoxSelection이 처리한다.
       if (event.key === 'Escape' && !pickedCount) openEmotion(undefined);
       const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;

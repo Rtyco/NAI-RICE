@@ -7,6 +7,7 @@ import {
   type ImageBox,
   type TransformHandle,
 } from '../../core/imaging/FreeTransform';
+import { isTypingTarget } from '../useShortcut';
 import type { useCanvasViewport } from './canvasViewport';
 
 /** 자동 구성에서만. 바뀐 상자를 받아 다시 칠한다. */
@@ -97,7 +98,7 @@ export function useFreeTransform(options: {
   useEffect(() => {
     if (!transforming) return;
     const onKey = (event: KeyboardEvent) => {
-      if ((event.target as HTMLElement).closest('input, textarea, select')) return;
+      if (isTypingTarget(event.target)) return;
       const box = target?.box;
       const step = event.shiftKey ? 10 : 1;
       const nudge: Record<string, [number, number]> = {

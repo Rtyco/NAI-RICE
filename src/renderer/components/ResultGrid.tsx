@@ -1,6 +1,7 @@
 import { useEffect, type CSSProperties } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { projectMedia, RESULT_GRID_COLUMN_CHOICES, setResultGridColumns, useStore } from '../store';
+import { isTypingTarget } from '../useShortcut';
 import { Icon } from './Icon';
 import { showResultMenu, type ResultAction } from './resultMenu';
 import { StreamPreview } from './StreamPreview';
@@ -35,7 +36,7 @@ export function ResultGrid(props: {
       if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
       if (event.shiftKey) return;
       const target = event.target as HTMLElement;
-      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTypingTarget(target)) return;
       if (document.querySelector('.modal-backdrop')) return;
       const position = records.findIndex((record) => record.id === selectedId);
       const step = event.key === 'ArrowDown' ? columns : event.key === 'ArrowUp' ? -columns : 0;

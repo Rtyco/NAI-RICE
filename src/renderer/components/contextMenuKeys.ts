@@ -1,3 +1,4 @@
+import { isTypingTarget } from '../useShortcut';
 import { closeContextMenu, useContextMenu } from './contextMenuStore';
 
 const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
@@ -108,10 +109,7 @@ export function installContextMenuKeys(): void {
         return;
       }
       if (!isMenuKey(event)) return;
-      const typing = (event.target as HTMLElement | null)?.closest?.(
-        'input, textarea, select, [contenteditable="true"]',
-      );
-      if (typing) return;
+      if (isTypingTarget(event.target)) return;
       event.preventDefault();
       openFromKeyboard();
     },

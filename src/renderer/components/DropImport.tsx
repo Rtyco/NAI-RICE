@@ -6,6 +6,7 @@ import { importVibeFile } from '../aidImport';
 import { importJsonText } from '../importers';
 import { blobToDataUrl, decodePixels } from '../lib/image';
 import { run } from '../store';
+import { isTypingTarget } from '../useShortcut';
 import { openDialog } from './dialogStack';
 import { ImageImportDialog } from './imageImport/ImageImportDialog';
 import { PlainImageDialog } from './imageImport/PlainImageDialog';
@@ -73,8 +74,7 @@ export function DropZone() {
       })();
     };
     const onPaste = (event: ClipboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTypingTarget(event.target)) return;
       if (document.querySelector('.modal-backdrop')) return;
       const files = [...(event.clipboardData?.files ?? [])].filter((file) =>
         file.type.startsWith('image/'),
