@@ -45,7 +45,7 @@ export async function moveWorkspaceTo(folder: string): Promise<void> {
     return <MoveProgressDialog root={plan.root} />;
   });
   try {
-    await storageApi().moveWorkspace(plan.root);
+    await storageApi().moveWorkspace(folder);
   } catch (error) {
     closeProgress?.();
     toast(

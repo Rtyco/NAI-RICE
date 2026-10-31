@@ -95,6 +95,25 @@ describe('작업 폴더 옮기기', () => {
     expect(readLocation(next.userData)).toEqual({ root: target });
   });
 
+  it('비어 있지 않은 폴더를 고르면 확인한 위치(아직 없는 NAI RICE)로 그대로 옮긴다', async () => {
+    const { root, target } = await workspace();
+    await writeFile(path.join(target, 'other.txt'), 'x');
+    const plan = await planMove(root, target);
+    const moving = mover(root);
+    await moving.instance.move(plan.root);
+    expect(readLocation(moving.userData).root).toBe(path.join(target, 'NAI RICE'));
+    expect(await readFile(path.join(plan.root, 'library.json'), 'utf8')).toBe(
+      '{"schemaVersion":2}',
+    );
+  });
+
+  it('없는 폴더는 부모 폴더가 있으면 새로 만들어 쓰고, 부모도 없으면 막는다', async () => {
+    const { root } = await workspace();
+    const fresh = path.join(base, 'new-root');
+    expect(await planMove(root, fresh)).toMatchObject({ root: fresh, mode: 'copy' });
+    await expect(planMove(root, path.join(base, 'no', 'such'))).rejects.toThrow('찾을 수 없습니다');
+  });
+
   it('생성 중에는 옮기지 않는다', async () => {
     const { root, target } = await workspace();
     const busy = mover(root, [{ status: 'generating' } as QueueSnapshot['jobs'][number]]);
