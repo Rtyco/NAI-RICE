@@ -85,6 +85,18 @@ function recordName(projectId: string, record: GenerationSummary): string {
   return `${record.emotionName || (projectId === FREE_PROJECT_ID ? '자유 생성' : '결과')} ${record.seed}`;
 }
 
+async function recordImage(
+  projectId: string,
+  record: GenerationSummary,
+): Promise<{ name: string; dataUrl: string }> {
+  const dataUrl = await libraryApi().readImageDataUrl({
+    kind: 'record',
+    projectId,
+    generationId: record.id,
+  });
+  return { name: recordName(projectId, record), dataUrl };
+}
+
 export function sceneImages(project: Project | undefined): Array<FreeImage | undefined> {
   return Object.values(project?.sceneImg2Img ?? {}).map((scene) => scene.image);
 }
@@ -376,12 +388,7 @@ export function makeAidFromRecord(
 ): Promise<void> {
   const label = section === 'characterReferences' ? '캐릭터 레퍼런스' : '바이브';
   return run(`${label}를 만드는 중`, async () => {
-    const dataUrl = await libraryApi().readImageDataUrl({
-      kind: 'record',
-      projectId,
-      generationId: record.id,
-    });
-    const name = recordName(projectId, record);
+    const { name, dataUrl } = await recordImage(projectId, record);
     await addAidFromImage(section, { name: `${name}.png`, dataUrl }, name, projectId);
     const where = projectId === FREE_PROJECT_ID ? '자유 생성' : '이 작업';
     toast(`${label} 「${name}」을(를) 만들어 ${where}에 넣었습니다.`);
@@ -393,12 +400,7 @@ export function makeReferenceFromRecord(
   record: GenerationSummary,
 ): Promise<void> {
   return run('인페인트를 만드는 중', async () => {
-    const dataUrl = await libraryApi().readImageDataUrl({
-      kind: 'record',
-      projectId,
-      generationId: record.id,
-    });
-    const name = recordName(projectId, record);
+    const { name, dataUrl } = await recordImage(projectId, record);
     const reference = createReference(name);
     updateLibrary((library) => ({ ...library, references: [...library.references, reference] }));
     setPendingReference({ referenceId: reference.id, dataUrl, name: `${name}.png` });
