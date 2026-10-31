@@ -103,6 +103,8 @@ async function createServices(): Promise<AppServices> {
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
     streaming: () => library.settings?.streaming ?? false,
     finishedKept: () => library.settings?.keepFinishedJobs ?? 300,
+    maxAttempts: () => (library.settings?.requestRetries ?? 3) + 1,
+    requestTimeoutMs: () => (library.settings?.requestTimeoutSec ?? 180) * 1000,
     onPreview: (preview) => broadcast('generation:preview', preview),
     followUps: async (job, records) => {
       const jobs = await buildFollowUpJobs(job, records, {

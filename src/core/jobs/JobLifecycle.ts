@@ -2,7 +2,7 @@ import type { GenerationJobSnapshot, JobStatus, QueuedGenerationJob } from '../d
 
 /** 허용하지 않은 상태 변화는 오류로 막는다. 큐는 상태를 직접 바꾸지 않는다. */
 
-const MAX_ATTEMPTS = 4;
+const DEFAULT_MAX_ATTEMPTS = 4;
 
 const TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   queued: ['generating', 'cancelled'],
@@ -61,13 +61,17 @@ export function restoreQueuedJob(value: unknown): QueuedGenerationJob | undefine
   }
 }
 
-export function createQueuedJob(snapshot: GenerationJobSnapshot, id: string): QueuedGenerationJob {
+export function createQueuedJob(
+  snapshot: GenerationJobSnapshot,
+  id: string,
+  maxAttempts = DEFAULT_MAX_ATTEMPTS,
+): QueuedGenerationJob {
   return {
     ...structuredClone(snapshot),
     id,
     status: 'queued',
     attempts: 0,
-    maxAttempts: MAX_ATTEMPTS,
+    maxAttempts,
   };
 }
 

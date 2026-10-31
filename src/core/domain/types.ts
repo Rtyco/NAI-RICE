@@ -448,6 +448,10 @@ export type AppSettings = {
   };
   /** 0~1000ms */
   requestDelayMs: number;
+  /** 오류가 다시 시도할 수 있는 종류일 때만. 큐에 넣을 때 정해진다. */
+  requestRetries: number;
+  /** 요청 하나를 기다리는 초 */
+  requestTimeoutSec: number;
   /** V4·V4.5·V5에만 적용된다. */
   streaming: boolean;
   /** V5 무료 할당량을 다 쓰면 저장한 다음 계정으로 바꾼다. */

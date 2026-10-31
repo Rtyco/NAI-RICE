@@ -33,7 +33,7 @@ import { VibeEncoder } from './VibeEncoder';
 type JobInputs = { image?: Buffer; mask?: Buffer; aid?: Buffer[] };
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 10_000];
-const REQUEST_TIMEOUT_MS = 180_000;
+const DEFAULT_TIMEOUT_MS = 180_000;
 
 type QueueDependencies = {
   persistencePath: string;
@@ -49,6 +49,10 @@ type QueueDependencies = {
   requestDelayMs?: () => number;
   /** 요청마다 읽는다. */
   streaming?: () => boolean;
+  /** 큐에 넣을 때 읽는다. 첫 시도 포함. */
+  maxAttempts?: () => number;
+  /** ms. 요청마다 읽는다. */
+  requestTimeoutMs?: () => number;
   /** 끝난 작업을 남기는 수. 기본 300. */
   finishedKept?: () => number;
   onPreview?: (preview: GenerationPreview) => void;
@@ -124,7 +128,7 @@ export class GenerationQueue {
     return jobs.map((job, index) => {
       const id = existing.has(job.id) ? `${job.id}-${randomUUID()}` : job.id;
       existing.add(id);
-      const item = createQueuedJob(job, id);
+      const item = createQueuedJob(job, id, this.dependencies.maxAttempts?.());
       if (anlasEstimates?.[index] !== undefined) item.anlasEstimate = anlasEstimates[index];
       return item;
     });
@@ -387,7 +391,10 @@ export class GenerationQueue {
       const controller = new AbortController();
       this.activeController = controller;
       this.activeJobId = job.id;
-      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const timeout = setTimeout(
+        () => controller.abort(),
+        this.dependencies.requestTimeoutMs?.() ?? DEFAULT_TIMEOUT_MS,
+      );
       try {
         const records = await this.generateOnce(job, controller.signal);
         for (const record of records) await this.dependencies.library.addGeneration(record);

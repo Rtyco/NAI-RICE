@@ -38,6 +38,37 @@ function RequestDelayCard() {
   );
 }
 
+function RequestRetryCard() {
+  const { requestRetries, requestTimeoutSec } = useLibrary().settings;
+  return (
+    <Card title="요청 실패">
+      <div className="four-column-fields">
+        <NumberField
+          label="실패하면 다시 시도"
+          value={requestRetries}
+          min={0}
+          max={10}
+          integer
+          suffix="번"
+          onChange={(value) => patchSettings((current) => ({ ...current, requestRetries: value }))}
+        />
+        <NumberField
+          label="응답 기다리는 시간"
+          value={requestTimeoutSec}
+          min={30}
+          max={600}
+          step={10}
+          integer
+          suffix="초"
+          onChange={(value) =>
+            patchSettings((current) => ({ ...current, requestTimeoutSec: value }))
+          }
+        />
+      </div>
+    </Card>
+  );
+}
+
 function StreamingCard() {
   const streaming = useLibrary().settings.streaming;
   return (
@@ -241,6 +272,7 @@ export function AccountTab() {
       </Card>
 
       <RequestDelayCard />
+      <RequestRetryCard />
       <StreamingCard />
       <AnlasConfirmCard />
       <NotifyCard />

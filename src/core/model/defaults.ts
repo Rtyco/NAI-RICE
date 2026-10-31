@@ -267,6 +267,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     filenameTemplate: DEFAULT_EXPORT_FILENAME_TEMPLATE,
   },
   requestDelayMs: 300,
+  requestRetries: 3,
+  requestTimeoutSec: 180,
   streaming: false,
   accountRotation: true,
   anlasConfirm: { mode: 'any', over: 100 },

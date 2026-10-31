@@ -29,7 +29,10 @@ const job = (id: string, projectId: string, status: string) => ({
   maxAttempts: 4,
 });
 
-async function queueWith(jobs: unknown[], finishedKept?: () => number) {
+async function queueWith(
+  jobs: unknown[],
+  options: { finishedKept?: () => number; maxAttempts?: () => number } = {},
+) {
   root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
   const persistencePath = path.join(root, 'queue.json');
   await writeFile(persistencePath, JSON.stringify({ paused: false, jobs }));
@@ -41,7 +44,7 @@ async function queueWith(jobs: unknown[], finishedKept?: () => number) {
     token: async () => 'token',
     emit: (snapshot) => emitted.push(snapshot),
     onRecord: () => undefined,
-    finishedKept,
+    ...options,
   });
   await queue.initialize();
   return { queue, emitted, persistencePath };
@@ -65,7 +68,7 @@ describe('GenerationQueue', () => {
 
   it('keeps as many finished jobs as the setting says', async () => {
     const jobs = Array.from({ length: 30 }, (_, i) => job(`done-${i}`, 'a', 'completed'));
-    const { queue } = await queueWith(jobs, () => 10);
+    const { queue } = await queueWith(jobs, { finishedKept: () => 10 });
     const ids = queue.getSnapshot().jobs.map((item) => item.id);
     expect(ids).toEqual(Array.from({ length: 10 }, (_, i) => `done-${i + 20}`));
   });
@@ -157,6 +160,7 @@ describe('GenerationQueue 실패 처리', () => {
     outcomes: Array<Error | 'ok'>,
     followUps?: 'refine' | 'broken',
     result?: Buffer,
+    maxAttempts?: number,
   ) {
     root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
     const library = new Library(root);
@@ -183,6 +187,7 @@ describe('GenerationQueue 실패 처리', () => {
       token: async () => 'token',
       emit: () => undefined,
       onRecord: () => undefined,
+      ...(maxAttempts && { maxAttempts: () => maxAttempts }),
       ...(followUps && {
         followUps: async (job, records) => {
           if (followUps === 'broken') throw new Error('입력을 만들지 못함');
@@ -216,6 +221,18 @@ describe('GenerationQueue 실패 처리', () => {
     expect(calls()).toBe(2);
     expect(job().attempts).toBe(2);
   }, 10_000);
+
+  it('다시 시도 횟수를 0으로 두면 다시 시도할 수 있는 오류도 한 번에 실패로 끝내', async () => {
+    const { queue, job, calls } = await runningQueue(
+      [serverError(), 'ok'],
+      undefined,
+      undefined,
+      1,
+    );
+    await queue.enqueue([textJob('a')]);
+    await until(() => job().status === 'failed');
+    expect(calls()).toBe(1);
+  });
 
   it('다시 시도할 수 없는 오류는 한 번에 실패로 끝내', async () => {
     const { queue, job, calls } = await runningQueue([
