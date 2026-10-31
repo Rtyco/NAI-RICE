@@ -269,6 +269,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   requestDelayMs: 300,
   streaming: false,
   accountRotation: true,
+  anlasConfirm: { mode: 'any', over: 100 },
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   layout: {

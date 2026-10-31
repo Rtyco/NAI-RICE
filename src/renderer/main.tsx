@@ -80,6 +80,7 @@ function createPreviewApi(): DesktopApi {
     removeAccount: async () => ({ stored: false, secureStorageAvailable: true }),
     queueSnapshot: async () => queue,
     enqueueGeneration: unsupported,
+    estimateGeneration: async () => 0,
     pauseQueue: async () => ({ ...queue, paused: true }),
     resumeQueue: async () => queue,
     cancelQueue: async () => queue,

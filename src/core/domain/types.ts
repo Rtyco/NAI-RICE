@@ -452,6 +452,8 @@ export type AppSettings = {
   streaming: boolean;
   /** V5 무료 할당량을 다 쓰면 저장한 다음 계정으로 바꾼다. */
   accountRotation: boolean;
+  /** 큐에 넣기 전 예상 Anlas를 묻는 기준. over는 `over` Anlas 이상일 때만. */
+  anlasConfirm: { mode: 'off' | 'any' | 'over'; over: number };
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

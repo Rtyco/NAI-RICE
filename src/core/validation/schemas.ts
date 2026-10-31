@@ -472,6 +472,13 @@ export const appSettingsSchema = z.object({
   requestDelayMs: z.number().int().min(0).max(1000).default(300),
   streaming: z.boolean().default(false),
   accountRotation: z.boolean().catch(true).default(true),
+  anlasConfirm: z
+    .object({
+      mode: z.enum(['off', 'any', 'over']).catch('any'),
+      over: z.number().int().min(1).max(100000).catch(100),
+    })
+    .catch({ mode: 'any', over: 100 })
+    .default({ mode: 'any', over: 100 }),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({

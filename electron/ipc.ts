@@ -198,6 +198,7 @@ export function registerIpc(services: AppServices): void {
 
   ipcMain.handle('generation:snapshot', () => toQueueView(queue.getSnapshot()));
   ipcMain.handle('generation:enqueue', (_event, request: unknown) => requests.enqueue(request));
+  ipcMain.handle('generation:estimate', (_event, request: unknown) => requests.estimate(request));
   ipcMain.handle('generation:pause', async () => toQueueView(await queue.pause()));
   ipcMain.handle('generation:resume', async () => toQueueView(await queue.resume()));
   ipcMain.handle('generation:cancel', async (_event, jobId?: string) =>

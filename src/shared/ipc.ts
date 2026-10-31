@@ -271,6 +271,8 @@ export type GenerationPreview = { jobId: string; dataUrl: string; step: number; 
 export type QueueApi = {
   queueSnapshot: () => Promise<QueueView>;
   enqueueGeneration: (request: GenerationEnqueueRequest) => Promise<GenerationEnqueueResult>;
+  /** 예상 Anlas. 이어 붙는 다듬기·구분선 지우기 최대치 포함. */
+  estimateGeneration: (request: GenerationEnqueueRequest) => Promise<number>;
   pauseQueue: () => Promise<QueueView>;
   resumeQueue: () => Promise<QueueView>;
   cancelQueue: (jobId?: string) => Promise<QueueView>;

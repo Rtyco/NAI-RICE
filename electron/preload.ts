@@ -76,6 +76,7 @@ const api: DesktopApi = {
 
   queueSnapshot: () => ipcRenderer.invoke('generation:snapshot'),
   enqueueGeneration: (request) => ipcRenderer.invoke('generation:enqueue', request),
+  estimateGeneration: (request) => ipcRenderer.invoke('generation:estimate', request),
   pauseQueue: () => ipcRenderer.invoke('generation:pause'),
   resumeQueue: () => ipcRenderer.invoke('generation:resume'),
   cancelQueue: (jobId) => ipcRenderer.invoke('generation:cancel', jobId),

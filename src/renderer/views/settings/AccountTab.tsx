@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../../components/Icon';
-import { Card, NumberField, Toggle } from '../../components/ui';
+import { Card, NumberField, SelectField, Toggle } from '../../components/ui';
 import { run, toast, useLibrary, useStore } from '../../store';
 import { accountApi } from '../../desktop';
 import { shownV5Quota } from '../../../core/providers/NaiCost';
@@ -47,6 +47,42 @@ function StreamingCard() {
         checked={streaming}
         onChange={(value) => patchSettings((current) => ({ ...current, streaming: value }))}
       />
+    </Card>
+  );
+}
+
+function AnlasConfirmCard() {
+  const rule = useLibrary().settings.anlasConfirm;
+  const patch = (value: Partial<typeof rule>) =>
+    patchSettings((current) => ({
+      ...current,
+      anlasConfirm: { ...current.anlasConfirm, ...value },
+    }));
+  return (
+    <Card title="Anlas 사용 확인">
+      <div className="four-column-fields">
+        <SelectField
+          label="생성 큐에 넣기 전에 묻기"
+          value={rule.mode}
+          options={[
+            { value: 'any', label: 'Anlas가 들 때마다' },
+            { value: 'over', label: '정한 값 이상일 때' },
+            { value: 'off', label: '묻지 않음' },
+          ]}
+          onChange={(mode) => patch({ mode })}
+        />
+        {rule.mode === 'over' && (
+          <NumberField
+            label="기준"
+            value={rule.over}
+            min={1}
+            max={100000}
+            integer
+            suffix="Anlas"
+            onChange={(over) => patch({ over })}
+          />
+        )}
+      </div>
     </Card>
   );
 }
@@ -193,6 +229,7 @@ export function AccountTab() {
 
       <RequestDelayCard />
       <StreamingCard />
+      <AnlasConfirmCard />
 
       <Card title="Anlas가 차감되는 경우">
         <p>• 캔버스 1024×1024 초과 또는 Steps 28 초과 (모든 모델) — 생성 전 확인</p>

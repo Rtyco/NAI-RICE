@@ -1,5 +1,6 @@
 import type { GenerationJobSnapshot, QueueSnapshot } from '../../src/core/domain/types';
 import { toQueueView } from '../../src/core/jobs/QueueView';
+import { followUpAnlas } from '../../src/core/model/jobCost';
 import { estimateJobAnlas } from '../../src/core/providers/NaiCost';
 import { encodedOnlyMessage, vibeCacheKey } from '../../src/core/providers/NovelAIRequestBuilder';
 import { generationEnqueueRequestSchema } from '../../src/core/validation/schemas';
@@ -19,6 +20,12 @@ type Account = {
   readonly latest: TokenStatus | undefined;
   token(): Promise<string>;
 };
+
+function parseJobs(request: unknown): GenerationJobSnapshot[] {
+  const parsed = generationEnqueueRequestSchema.safeParse(request);
+  if (!parsed.success) throw new Error('생성 작업 형식이 올바르지 않습니다.');
+  return parsed.data.jobs;
+}
 
 /** 렌더러를 믿지 않아 작업을 스키마로 확인하고 예상 Anlas도 직접 계산한다. */
 export class GenerationRequests {
@@ -53,16 +60,29 @@ export class GenerationRequests {
     return encodes;
   }
 
-  async enqueue(request: unknown): Promise<GenerationEnqueueResult> {
-    const parsed = generationEnqueueRequestSchema.safeParse(request);
-    if (!parsed.success) throw new Error('생성 작업 형식이 올바르지 않습니다.');
-    const jobs = parsed.data.jobs as GenerationJobSnapshot[];
+  private async estimates(jobs: GenerationJobSnapshot[]): Promise<number[]> {
     const account = this.account.latest;
     const encodes = await this.vibeEncodes(jobs);
-    const estimates = jobs.map(
+    return jobs.map(
       (job, index) =>
         estimateJobAnlas(job, account) + (encodes.get(index) ?? 0) * VIBE_ENCODE_ANLAS,
     );
+  }
+
+  /** 큐에 넣기 전 확인용. 이어 붙는 다듬기·구분선 지우기까지 더한다. */
+  async estimate(request: unknown): Promise<number> {
+    const jobs = parseJobs(request);
+    const account = this.account.latest;
+    const estimates = await this.estimates(jobs);
+    return jobs.reduce(
+      (sum, job, index) => sum + estimates[index] + followUpAnlas(job, account),
+      0,
+    );
+  }
+
+  async enqueue(request: unknown): Promise<GenerationEnqueueResult> {
+    const jobs = parseJobs(request);
+    const estimates = await this.estimates(jobs);
     await this.account.token();
     return { snapshot: toQueueView(await this.queue.enqueue(jobs, estimates)) };
   }

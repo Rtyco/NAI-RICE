@@ -37,6 +37,7 @@ import { autoLineFixOn, buildLineFixJobs } from '../core/model/lineFix';
 import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
+import { confirmDialog } from './components/dialogStack';
 import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
 import { applyPendingDrawing, saveMask } from './freeImageOps';
@@ -97,8 +98,21 @@ export type GenerateOptions = {
   comboKey?: string;
 };
 
+async function confirmAnlas(jobs: GenerationJobSnapshot[]): Promise<boolean> {
+  const rule = useStore.getState().library?.settings.anlasConfirm;
+  if (!rule || rule.mode === 'off') return true;
+  const anlas = await queueApi().estimateGeneration({ jobs });
+  if (anlas <= 0 || (rule.mode === 'over' && anlas < rule.over)) return true;
+  return confirmDialog({
+    title: 'Anlas 사용 확인',
+    message: `예상 약 ${anlas.toLocaleString()} Anlas가 차감됩니다. 예상값이며 실제 차감량과 다를 수 있습니다.`,
+    confirmLabel: '생성',
+  });
+}
+
 /** 씬 상세·자유 생성은 이미지 칸에 생성 대기 수가 보여, 알림이 생성 버튼만 가린다. */
 async function enqueue(jobs: GenerationJobSnapshot[], message: string): Promise<void> {
+  if (!(await confirmAnlas(jobs))) return;
   const result = await queueApi().enqueueGeneration({ jobs });
   useStore.setState({ queue: result.snapshot });
   const { view, detailEmotionId } = useStore.getState();
