@@ -107,11 +107,14 @@
 
 /* ── 설정 창 ─────────────────────────────────── */
 /* 탭마다 창 크기가 바뀌지 않게 「화면 · 테마」 탭 크기로 고정한다. */
+.modal.wide:has(.settings-layout) {
+  width: min(1080px, calc(100vw - 40px));
+}
 .settings-layout {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
   gap: 16px;
-  height: min(460px, calc(100vh - 160px));
+  height: min(640px, calc(100vh - 160px));
 }
 .settings-tabs {
   display: flex;
