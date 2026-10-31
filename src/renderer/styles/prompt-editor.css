@@ -617,15 +617,32 @@ textarea.syntax-input::selection {
 .prompt-cell:is(:hover, :focus-within) > .expand-text-button {
   opacity: 1;
 }
+/* 이름 칸은 가장 긴 이름만큼만(최대 64px) 두고 모든 줄이 같은 폭을 쓴다. */
 .scene-option-chars {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: fit-content(64px) minmax(0, 1fr);
+  gap: 4px 6px;
   padding-left: 8px;
   border-left: 1px solid var(--line-strong);
 }
+.scene-option-chars .emotion-extra-prompt {
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
 .scene-option-chars .emotion-extra-prompt > span {
   padding-top: 5px;
+  overflow-wrap: anywhere;
+}
+@container (max-width: 280px) {
+  .scene-option-chars {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scene-option-chars .emotion-extra-prompt {
+    row-gap: 2px;
+  }
+  .scene-option-chars .emotion-extra-prompt > span {
+    padding-top: 0;
+  }
 }
 /* 지우기는 늘 보이되, 그 줄에 올리기 전에는 흐리게 둔다. */
 .scene-slot-head .row-remove,
