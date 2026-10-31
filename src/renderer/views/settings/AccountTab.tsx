@@ -82,19 +82,6 @@ function StreamingCard() {
   );
 }
 
-function NotifyCard() {
-  const notify = useLibrary().settings.notifyWhenDone;
-  return (
-    <Card title="알림">
-      <Toggle
-        label="창이 뒤에 있을 때 생성이 끝나면 알림"
-        checked={notify}
-        onChange={(value) => patchSettings((current) => ({ ...current, notifyWhenDone: value }))}
-      />
-    </Card>
-  );
-}
-
 function AnlasConfirmCard() {
   const rule = useLibrary().settings.anlasConfirm;
   const patch = (value: Partial<typeof rule>) =>
@@ -275,7 +262,6 @@ export function AccountTab() {
       <RequestRetryCard />
       <StreamingCard />
       <AnlasConfirmCard />
-      <NotifyCard />
 
       <Card title="Anlas가 차감되는 경우">
         <p>• 캔버스 1024×1024 초과 또는 Steps 28 초과 (모든 모델) — 생성 전 확인</p>

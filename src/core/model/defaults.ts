@@ -273,6 +273,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accountRotation: true,
   anlasConfirm: { mode: 'any', over: 100 },
   notifyWhenDone: true,
+  flashWhenDone: true,
+  taskbarProgress: true,
   confirmResultDelete: true,
   keepBackups: 20,
   keepFinishedJobs: 300,

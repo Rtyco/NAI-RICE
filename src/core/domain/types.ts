@@ -458,8 +458,12 @@ export type AppSettings = {
   accountRotation: boolean;
   /** 큐에 넣기 전 예상 Anlas를 묻는 기준. over는 `over` Anlas 이상일 때만. */
   anlasConfirm: { mode: 'off' | 'any' | 'over'; over: number };
-  /** 창이 앞에 없을 때 큐가 끝나면 Windows 알림과 작업 표시줄 깜박임. */
+  /** 창이 앞에 없을 때 큐가 끝나면 Windows 알림 */
   notifyWhenDone: boolean;
+  /** 창이 앞에 없을 때 큐가 끝나면 작업 표시줄 깜박임 */
+  flashWhenDone: boolean;
+  /** 생성 중 작업 표시줄 아이콘의 진행 막대 */
+  taskbarProgress: boolean;
   /** 결과 삭제(휴지통) 전에 묻는다. 씬 단위 「결과만 삭제」는 늘 묻는다. */
   confirmResultDelete: boolean;
   /** 앱을 열 때 남기는 library.json 자동 백업 수 */

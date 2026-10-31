@@ -455,7 +455,7 @@ export const vibeSchema = z.object({
 const exportFormatSchema = z.enum(['png', 'webp', 'avif']);
 export const exportQualitySchema = z.number().int().min(1).max(100);
 
-export const appSettingsSchema = z.object({
+const appSettingsObjectSchema = z.object({
   outputFilenameTemplate: z.string().min(1).default(DEFAULT_OUTPUT_FILENAME_TEMPLATE),
   keepDiagnosticCanvas: z.boolean().default(true),
   storageFormat: z.enum(['png', 'webp-lossless']).default('webp-lossless'),
@@ -481,6 +481,8 @@ export const appSettingsSchema = z.object({
     })
     .catch(() => ({ ...DEFAULT_SETTINGS.anlasConfirm })),
   notifyWhenDone: z.boolean().catch(DEFAULT_SETTINGS.notifyWhenDone),
+  flashWhenDone: z.boolean().catch(DEFAULT_SETTINGS.flashWhenDone),
+  taskbarProgress: z.boolean().catch(DEFAULT_SETTINGS.taskbarProgress),
   confirmResultDelete: z.boolean().catch(DEFAULT_SETTINGS.confirmResultDelete),
   keepBackups: z.number().int().min(1).max(200).catch(DEFAULT_SETTINGS.keepBackups),
   keepFinishedJobs: z.number().int().min(10).max(2000).catch(DEFAULT_SETTINGS.keepFinishedJobs),
@@ -529,6 +531,14 @@ export const appSettingsSchema = z.object({
     })
     .default({ autoCheck: true, skippedVersion: '', seenVersion: '' }),
 });
+
+/** 1.1.5의 notifyWhenDone은 작업 표시줄 깜박임도 함께 껐다. */
+function readFlashWhenDone(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || 'flashWhenDone' in value) return value;
+  return { ...value, flashWhenDone: (value as { notifyWhenDone?: unknown }).notifyWhenDone };
+}
+
+export const appSettingsSchema = z.preprocess(readFlashWhenDone, appSettingsObjectSchema);
 
 /** 예전 「자유 인페인팅」 모드(mode 'inpaint', 이미지는 `inpaint`)를 i2i 인페인팅으로 읽는다. */
 function readFreeInpaintMode(value: unknown): unknown {

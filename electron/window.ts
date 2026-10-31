@@ -64,12 +64,18 @@ export function showQueueProgress(value: number | null, paused: boolean): void {
 }
 
 /** 창이 앞에 있으면 알리지 않는다. */
-export function notifyQueueDone(title: string, done: QueueDone): void {
+export function notifyQueueDone(
+  title: string,
+  done: QueueDone,
+  ways: { notice: boolean; flash: boolean },
+): void {
   const window = BrowserWindow.getAllWindows()[0];
   if (!window || window.isFocused()) return;
-  window.flashFrame(true);
-  window.once('focus', () => window.flashFrame(false));
-  if (!Notification.isSupported()) return;
+  if (ways.flash) {
+    window.flashFrame(true);
+    window.once('focus', () => window.flashFrame(false));
+  }
+  if (!ways.notice || !Notification.isSupported()) return;
   const notice = new Notification({
     title,
     body: `생성 ${done.completed}장을 마쳤습니다.${done.failed ? ` 실패 ${done.failed}장` : ''}`,

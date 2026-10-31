@@ -94,10 +94,13 @@ async function createServices(): Promise<AppServices> {
   );
   const queueFile = path.join(userData, 'generation-queue-v2.json');
   const notifier = new QueueNotifier({
-    progress: showQueueProgress,
-    finished: (done) => {
-      if (settings().notifyWhenDone) notifyQueueDone(APP_NAME, done);
-    },
+    progress: (value, paused) =>
+      showQueueProgress(settings().taskbarProgress ? value : null, paused),
+    finished: (done) =>
+      notifyQueueDone(APP_NAME, done, {
+        notice: settings().notifyWhenDone,
+        flash: settings().flashWhenDone,
+      }),
   });
   const queue = new GenerationQueue({
     persistencePath: queueFile,

@@ -99,6 +99,12 @@ const ICONS = {
       <path d="M5 19 19 5" />
     </>
   ),
+  bell: (
+    <>
+      <path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15Z" />
+      <path d="M10 21h4" />
+    </>
+  ),
   keyboard: (
     <>
       <rect x="3" y="6" width="18" height="12" rx="2" />
