@@ -7,7 +7,6 @@ import {
   renderOutputFilename,
   validateOutputFilenameTemplate,
 } from '../../../core/output/OutputFilename';
-import { LineFixFields } from '../../components/LineFixDialog';
 import { EXPORT_SCOPES } from '../../exportPicks';
 import { Card, NumberField, SelectField, TemplateField, Toggle } from '../../components/ui';
 import { useLibrary } from '../../store';
@@ -125,12 +124,6 @@ export function OutputTab() {
           onChange={(filenameTemplate) => setExport({ filenameTemplate })}
         />
         {exportError && <p className="field-error">{exportError}</p>}
-      </Card>
-      <Card title="구분선 지우기">
-        <LineFixFields
-          value={settings.lineFix}
-          onChange={(lineFix) => patchSettings((current) => ({ ...current, lineFix }))}
-        />
       </Card>
     </>
   );

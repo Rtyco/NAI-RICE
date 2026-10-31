@@ -18,7 +18,7 @@ const saveLineFix = (value: LineFixSettings) =>
     settings: { ...current.settings, lineFix: value },
   }));
 
-export function LineFixFields(props: {
+function LineFixFields(props: {
   value: LineFixSettings;
   onChange: (value: LineFixSettings) => void;
 }) {
