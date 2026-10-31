@@ -25,6 +25,7 @@ import {
   deleteProjects,
   duplicateProject,
   exportProjectFile,
+  exportSceneNames,
   openProjectFolder,
 } from '../projectOps';
 import { SECTIONS } from '../sections';
@@ -345,6 +346,11 @@ export function Sidebar() {
               label: 'NAI RICE 작업 파일로 내보내기',
               accessKey: 'R',
               onSelect: () => exportProjectFile(project, 'rice'),
+            },
+            {
+              label: '씬 이름을 텍스트로 내보내기',
+              accessKey: 'T',
+              onSelect: () => exportSceneNames(project),
             },
           ],
           folder: () => openProjectFolder(project.id),

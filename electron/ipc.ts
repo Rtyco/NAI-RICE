@@ -161,6 +161,9 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('file:save-json', (_event, data: unknown, name: string, title: string) =>
     exporter.saveJson(data, name, title || 'JSON 파일 저장'),
   );
+  ipcMain.handle('file:save-text', (_event, text: string, name: string, title: string) =>
+    exporter.saveText(String(text), name, title || '텍스트 파일 저장'),
+  );
   ipcMain.handle('file:open-image', () => files.pickImage());
   ipcMain.handle('file:open-vibe', () => files.pickVibe());
   ipcMain.handle('file:export-vibes', (_event, list: Vibe[]) => vibes.export(list));

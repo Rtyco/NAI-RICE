@@ -50,6 +50,19 @@ export class Exporter {
     return result.filePath;
   }
 
+  async saveText(text: string, name: string, title: string): Promise<string | null> {
+    await fs.mkdir(this.exportsDir(), { recursive: true });
+    const stem = sanitizeFilenameStem(name.replace(/\.txt$/i, ''));
+    const result = await this.dialog.showSaveDialog({
+      title,
+      defaultPath: path.join(this.exportsDir(), `${stem}.txt`),
+      filters: [{ name: '텍스트', extensions: ['txt'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    await atomicWrite(result.filePath, `${text}\n`);
+    return result.filePath;
+  }
+
   async saveImageAs(
     projectId: string,
     generationId: string,

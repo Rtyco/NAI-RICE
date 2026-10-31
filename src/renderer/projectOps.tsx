@@ -52,6 +52,21 @@ export function exportProjectFile(project: Project, format: 'sdstudio' | 'rice')
   });
 }
 
+export function exportSceneNames(project: Project): void {
+  const set = useStore
+    .getState()
+    .library?.emotionSets.find((item) => item.id === project.emotionSetId);
+  if (!set) return;
+  void run('내보내는 중', async () => {
+    const saved = await fileApi().saveTextFile(
+      set.emotions.map((emotion) => emotion.name).join(', '),
+      project.name,
+      '씬 이름을 텍스트로 내보내기',
+    );
+    if (saved) toast(`저장했습니다: ${saved}`);
+  });
+}
+
 function projectSceneImages(projectId: string) {
   return sceneImages(useStore.getState().library?.projects.find((item) => item.id === projectId));
 }

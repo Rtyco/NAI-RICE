@@ -63,6 +63,7 @@ function createPreviewApi(): DesktopApi {
     showGeneration: async () => undefined,
     openJsonFile: async () => null,
     saveJsonFile: async () => null,
+    saveTextFile: async () => null,
     openImageFile: async () => null,
     saveImageAs: async () => null,
     copyImage: unsupported,

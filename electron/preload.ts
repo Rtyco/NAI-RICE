@@ -61,6 +61,7 @@ const api: DesktopApi = {
 
   openJsonFile: (title) => ipcRenderer.invoke('file:open-json', title),
   saveJsonFile: (data, name, title) => ipcRenderer.invoke('file:save-json', data, name, title),
+  saveTextFile: (text, name, title) => ipcRenderer.invoke('file:save-text', text, name, title),
   openImageFile: () => ipcRenderer.invoke('file:open-image'),
   saveImageAs: (id, generationId, name, quality) =>
     ipcRenderer.invoke('file:save-image-as', id, generationId, name, quality),

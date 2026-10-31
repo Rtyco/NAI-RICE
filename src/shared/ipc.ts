@@ -234,6 +234,7 @@ export type LibraryApi = {
 export type FileApi = {
   openJsonFile: (title: string) => Promise<OpenTextFileResult | null>;
   saveJsonFile: (data: unknown, suggestedName: string, title: string) => Promise<string | null>;
+  saveTextFile: (text: string, suggestedName: string, title: string) => Promise<string | null>;
   openImageFile: () => Promise<OpenImageResult | null>;
   saveImageAs: (
     projectId: string,
