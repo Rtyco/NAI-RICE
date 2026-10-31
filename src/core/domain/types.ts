@@ -454,6 +454,8 @@ export type AppSettings = {
   accountRotation: boolean;
   /** 큐에 넣기 전 예상 Anlas를 묻는 기준. over는 `over` Anlas 이상일 때만. */
   anlasConfirm: { mode: 'off' | 'any' | 'over'; over: number };
+  /** 창이 앞에 없을 때 큐가 끝나면 Windows 알림과 작업 표시줄 깜박임. */
+  notifyWhenDone: boolean;
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

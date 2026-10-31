@@ -270,6 +270,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   streaming: false,
   accountRotation: true,
   anlasConfirm: { mode: 'any', over: 100 },
+  notifyWhenDone: true,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   layout: {

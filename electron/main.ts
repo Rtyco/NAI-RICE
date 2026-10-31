@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, Menu, net, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, Menu, net, Notification, session, shell } from 'electron';
 import path from 'node:path';
 import { toGenerationSummary } from '../src/core/model/generationSummary';
 import { buildFollowUpJobs } from '../src/core/model/lineFix';
@@ -15,6 +15,7 @@ import { removeStaleTemporaryFiles, renamedFolder } from './services/fsUtils';
 import { GenerationQueue } from './services/GenerationQueue';
 import { GenerationRequests } from './services/GenerationRequests';
 import { Library } from './services/Library';
+import { QueueNotifier, type QueueDone } from './services/QueueNotifier';
 import { TokenVault } from './services/TokenVault';
 import { UpdateChecker } from './services/UpdateChecker';
 import { VibeFiles } from './services/VibeFiles';
@@ -28,10 +29,13 @@ import {
 } from './window';
 
 const APP_NAME = 'NAI RICE';
+// electron-builder.yml의 appId. 없으면 Windows 알림이 뜨지 않는다.
+const APP_ID = 'io.nairice.app';
 const freshRoot = !app.isPackaged && process.env.NAI_RICE_FRESH ? createFreshRoot() : undefined;
 
 // 토큰·큐·화면 설정이 든 폴더. Chromium이 쓰기 시작하기 전에 옮겨야 한다.
 app.setName(APP_NAME);
+if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 app.setPath(
   'userData',
   freshRoot
@@ -40,6 +44,28 @@ app.setPath(
 );
 const moduleDirectory = __dirname;
 registerMediaScheme();
+
+function showQueueProgress(value: number | null, paused: boolean): void {
+  for (const window of BrowserWindow.getAllWindows())
+    window.setProgressBar(value ?? -1, { mode: paused ? 'paused' : 'normal' });
+}
+
+function notifyQueueDone(done: QueueDone): void {
+  const window = BrowserWindow.getAllWindows()[0];
+  if (!window || window.isFocused()) return;
+  window.flashFrame(true);
+  window.once('focus', () => window.flashFrame(false));
+  if (!Notification.isSupported()) return;
+  const notice = new Notification({
+    title: APP_NAME,
+    body: `생성 ${done.completed}장을 마쳤습니다.${done.failed ? ` 실패 ${done.failed}장` : ''}`,
+  });
+  notice.on('click', () => {
+    if (window.isMinimized()) window.restore();
+    window.focus();
+  });
+  notice.show();
+}
 
 async function createServices(): Promise<AppServices> {
   const userData = app.getPath('userData');
@@ -57,12 +83,21 @@ async function createServices(): Promise<AppServices> {
     () => library.settings?.accountRotation ?? true,
   );
   const queueFile = path.join(userData, 'generation-queue-v2.json');
+  const notifier = new QueueNotifier({
+    progress: showQueueProgress,
+    finished: (done) => {
+      if (library.settings?.notifyWhenDone ?? true) notifyQueueDone(done);
+    },
+  });
   const queue = new GenerationQueue({
     persistencePath: queueFile,
     library,
     provider,
     token: (job) => account.tokenFor(job),
-    emit: (snapshot) => broadcast('generation:queue-update', snapshot),
+    emit: (snapshot) => {
+      broadcast('generation:queue-update', snapshot);
+      notifier.update(snapshot);
+    },
     onRecord: (record) => broadcast('generation:record-added', toGenerationSummary(record)),
     anlas: async (token) => (await account.refresh(token))?.anlas,
     requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
