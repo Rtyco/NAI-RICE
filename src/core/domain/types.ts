@@ -456,6 +456,8 @@ export type AppSettings = {
   anlasConfirm: { mode: 'off' | 'any' | 'over'; over: number };
   /** 창이 앞에 없을 때 큐가 끝나면 Windows 알림과 작업 표시줄 깜박임. */
   notifyWhenDone: boolean;
+  /** 결과 삭제(휴지통) 전에 묻는다. 씬 단위 「결과만 삭제」는 늘 묻는다. */
+  confirmResultDelete: boolean;
   tagAutocomplete: boolean;
   appearance: {
     theme: ThemeId;

@@ -20,19 +20,22 @@ export async function deleteResults(
   if (!records.length) return false;
   const favorites = favoriteIds(projectId);
   const pickedFavorites = records.filter((record) => favorites.has(record.id)).length;
-  const ok = await confirmDialog({
-    title: records.length === 1 ? '생성 결과 삭제' : `생성 결과 ${records.length}장 삭제`,
-    message: (
-      <p>
-        {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 전체 캔버스를
-        Windows 휴지통으로 이동합니다.
-        {pickedFavorites > 0 &&
-          ` 대표 이미지 ${pickedFavorites}장이 포함되어 있어 해당 씬의 대표 지정이 풀립니다.`}
-      </p>
-    ),
-    confirmLabel: '삭제',
-    danger: true,
-  });
+  const ask = useStore.getState().library?.settings.confirmResultDelete ?? true;
+  const ok =
+    !ask ||
+    (await confirmDialog({
+      title: records.length === 1 ? '생성 결과 삭제' : `생성 결과 ${records.length}장 삭제`,
+      message: (
+        <p>
+          {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 전체 캔버스를
+          Windows 휴지통으로 이동합니다.
+          {pickedFavorites > 0 &&
+            ` 대표 이미지 ${pickedFavorites}장이 포함되어 있어 해당 씬의 대표 지정이 풀립니다.`}
+        </p>
+      ),
+      confirmLabel: '삭제',
+      danger: true,
+    }));
   if (!ok) return false;
   await run('결과를 삭제하는 중', () =>
     deleteGenerations(

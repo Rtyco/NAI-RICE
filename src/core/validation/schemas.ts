@@ -480,6 +480,7 @@ export const appSettingsSchema = z.object({
     .catch({ mode: 'any', over: 100 })
     .default({ mode: 'any', over: 100 }),
   notifyWhenDone: z.boolean().catch(true).default(true),
+  confirmResultDelete: z.boolean().catch(true).default(true),
   tagAutocomplete: z.boolean().default(true),
   appearance: z
     .object({

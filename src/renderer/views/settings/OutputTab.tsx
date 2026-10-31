@@ -83,6 +83,13 @@ export function OutputTab() {
           onChange={(storageFormat) => patchSettings((current) => ({ ...current, storageFormat }))}
         />
         <Toggle
+          label="결과를 지우기 전에 확인 (휴지통으로 이동)"
+          checked={settings.confirmResultDelete}
+          onChange={(confirmResultDelete) =>
+            patchSettings((current) => ({ ...current, confirmResultDelete }))
+          }
+        />
+        <Toggle
           label="생성에 쓴 전체 캔버스도 보관 (diagnostic 폴더)"
           checked={settings.keepDiagnosticCanvas}
           onChange={(keepDiagnosticCanvas) =>

@@ -271,6 +271,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accountRotation: true,
   anlasConfirm: { mode: 'any', over: 100 },
   notifyWhenDone: true,
+  confirmResultDelete: true,
   tagAutocomplete: true,
   appearance: { theme: 'navy', mode: 'dark' },
   layout: {
