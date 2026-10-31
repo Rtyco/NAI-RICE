@@ -22,7 +22,7 @@ export function InfoTab() {
   const version = useStore((state) => state.version);
   const update = useStore((state) => state.update);
   const busy = useStore((state) => state.busy);
-  const autoCheck = useLibrary().settings.update.autoCheck;
+  const { autoCheck, skippedVersion: skipped } = useLibrary().settings.update;
   return (
     <>
       <Card
@@ -56,6 +56,23 @@ export function InfoTab() {
             }
           />
         </div>
+        {skipped && (
+          <div className="storage-line">
+            <span>
+              건너뛴 버전 <b>{skipped}</b>
+            </span>
+            <button
+              onClick={() =>
+                patchSettings((current) => ({
+                  ...current,
+                  update: { ...current.update, skippedVersion: '' },
+                }))
+              }
+            >
+              다시 알림
+            </button>
+          </div>
+        )}
         {update && (
           <div className={`update-result ${update.newer ? 'newer' : ''}`}>
             <b>{update.message}</b>
