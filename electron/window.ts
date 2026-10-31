@@ -1,9 +1,11 @@
-import { app, BrowserWindow, net, protocol, shell } from 'electron';
+import { app, BrowserWindow, net, Notification, protocol, shell } from 'electron';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { imageMime } from './services/fsUtils';
+import { atomicWrite, imageMime } from './services/fsUtils';
 import type { WindowState } from '../src/shared/ipc';
 import type { Library } from './services/Library';
+import type { QueueDone } from './services/QueueNotifier';
 
 export const MEDIA_SCHEME = 'desk-media';
 
@@ -25,25 +27,58 @@ function sendWindowState(window: BrowserWindow, fullScreen?: boolean, zoomed = f
   window.webContents.send('app:window-state', { ...windowState(window, fullScreen), zoomed });
 }
 
-/** 다시 열 때 같은 배율로 연다. main.ts가 userData 파일로 정한다. */
-type ZoomMemory = { load(): number; save(level: number): void };
-let zoomMemory: ZoomMemory = { load: () => 0, save: () => undefined };
+/** 다시 열 때 같은 배율로 연다. 창을 만들기 전에 정한다. */
+let zoomFile: string | undefined;
 
-export function rememberZoom(memory: ZoomMemory): void {
-  zoomMemory = memory;
+export function rememberZoom(userData: string): void {
+  zoomFile = path.join(userData, 'window-zoom.json');
+}
+
+function savedZoomLevel(): number {
+  if (!zoomFile) return 0;
+  try {
+    const level = (JSON.parse(readFileSync(zoomFile, 'utf8')) as { level?: unknown }).level;
+    return typeof level === 'number' && Number.isFinite(level) ? level : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** 50%~200% */
 export function setWindowZoom(window: BrowserWindow, level: number): void {
   const clamped = Math.max(-3.8, Math.min(3.8, level));
   window.webContents.setZoomLevel(clamped);
-  zoomMemory.save(clamped);
+  if (zoomFile)
+    void atomicWrite(zoomFile, JSON.stringify({ level: clamped })).catch(() => undefined);
   sendWindowState(window, undefined, true);
 }
 
 /** null이면 100%. */
 export function zoomWindow(window: BrowserWindow, step: number | null): void {
   setWindowZoom(window, step === null ? 0 : window.webContents.getZoomLevel() + step);
+}
+
+export function showQueueProgress(value: number | null, paused: boolean): void {
+  for (const window of BrowserWindow.getAllWindows())
+    window.setProgressBar(value ?? -1, { mode: paused ? 'paused' : 'normal' });
+}
+
+/** 창이 앞에 있으면 알리지 않는다. */
+export function notifyQueueDone(title: string, done: QueueDone): void {
+  const window = BrowserWindow.getAllWindows()[0];
+  if (!window || window.isFocused()) return;
+  window.flashFrame(true);
+  window.once('focus', () => window.flashFrame(false));
+  if (!Notification.isSupported()) return;
+  const notice = new Notification({
+    title,
+    body: `생성 ${done.completed}장을 마쳤습니다.${done.failed ? ` 실패 ${done.failed}장` : ''}`,
+  });
+  notice.on('click', () => {
+    if (window.isMinimized()) window.restore();
+    window.focus();
+  });
+  notice.show();
 }
 
 /** app 준비 전에 불러야 한다. */
@@ -107,7 +142,7 @@ export function createWindow(title: string, moduleDirectory: string): void {
       // 세션의 검사기와 사전은 main.ts의 disableSpellChecker가 끈다.
       spellcheck: false,
       // Chromium 확대 단계는 1.2배씩이다(setZoomLevel과 같은 식).
-      zoomFactor: 1.2 ** zoomMemory.load(),
+      zoomFactor: 1.2 ** savedZoomLevel(),
     },
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
