@@ -18,6 +18,7 @@ import { openDialog } from '../components/dialogStack';
 import { BottomSlot } from '../components/BottomSlot';
 import { ExportDialog } from '../components/ExportDialog';
 import { useShortcut } from '../useShortcut';
+import { useDragEdgeScroll } from '../components/useDragEdgeScroll';
 import { EmptyState } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { rangeBetween, useBoxSelection } from '../components/useBoxSelection';
@@ -306,6 +307,7 @@ export function GalleryView({
   useShortcut('Ctrl+Enter', () => onGenerate?.(), Boolean(onGenerate), { inFields: true });
 
   const scroller = selection.containerProps.ref;
+  useDragEdgeScroll(scroller, DRAG_TYPE);
   // 씬 상세에서 PageDown으로 넘어갔으면 그 씬이 화면 밖일 수 있다.
   useLayoutEffect(() => {
     const element = scroller.current;
