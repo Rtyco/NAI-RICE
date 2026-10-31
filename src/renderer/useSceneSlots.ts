@@ -17,6 +17,9 @@ import type { OptionProps } from './components/SceneOptionRows';
 import { useFind } from './find';
 import { useStore } from './store';
 
+/** 「조합 모두 펼치기」. `at`이 바뀔 때마다 접힌 칸을 `open`대로 맞춘다. */
+export type SlotsOpenSignal = { open: boolean; at: number };
+
 export type SceneSlotsChange = Partial<Pick<Emotion, 'slots' | 'prompt' | 'extraPrompts'>>;
 
 const newOption = (): SceneOption => ({
@@ -31,11 +34,17 @@ export function useSceneSlots(props: {
   names: string[];
   foldable?: boolean;
   firstOnCommon?: boolean;
+  openSignal?: SlotsOpenSignal;
   onChange: (patch: SceneSlotsChange) => void;
 }) {
   const { emotion, names } = props;
   const slots = emotion.slots ?? [];
-  const [open, setOpen] = useState(!props.foldable);
+  const [open, setOpen] = useState(!props.foldable || Boolean(props.openSignal?.open));
+  const signalAt = props.openSignal?.at;
+  const signalOpen = props.openSignal?.open;
+  useEffect(() => {
+    if (signalAt !== undefined) setOpen(Boolean(signalOpen));
+  }, [signalAt, signalOpen]);
   // 끝의 빈 칸은 저장하지 않아 화면에서만 센다.
   const [opened, setOpened] = useState(0);
   const [tab, setTabState] = useState(0);

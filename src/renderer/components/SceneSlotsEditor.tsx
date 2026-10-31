@@ -6,7 +6,7 @@ import {
   mergeableFirstSlot,
   optionLabel,
 } from '../../core/model/sceneCombos';
-import { useSceneSlots, type SceneSlotsChange } from '../useSceneSlots';
+import { useSceneSlots, type SceneSlotsChange, type SlotsOpenSignal } from '../useSceneSlots';
 import { Icon } from './Icon';
 import { SceneOptionItem, SceneOptionTable } from './SceneOptionRows';
 
@@ -43,6 +43,7 @@ export function SceneSlotsEditor(props: {
   foldable?: boolean;
   /** 씬 프롬프트가 첫 캐릭터가 아니라 상위·하위 사이로 갈 때 */
   firstOnCommon?: boolean;
+  openSignal?: SlotsOpenSignal;
   onChange: (patch: SceneSlotsChange) => void;
 }) {
   const { emotion, names } = props;

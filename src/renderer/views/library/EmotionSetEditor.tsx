@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { SlotsOpenSignal } from '../../useSceneSlots';
 import type { Emotion, EmotionSet } from '../../../core/domain/types';
 import {
   comboCount,
@@ -51,6 +52,7 @@ function EmotionRow({
   last,
   collapsed,
   opened,
+  combos,
   toggle,
   setExtras,
   save,
@@ -60,6 +62,7 @@ function EmotionRow({
   last: boolean;
   collapsed: boolean;
   opened: number;
+  combos?: SlotsOpenSignal;
   toggle: (open?: boolean) => void;
   setExtras: (count: number) => void;
   save: (recipe: (item: EmotionSet) => EmotionSet) => void;
@@ -191,7 +194,13 @@ function EmotionRow({
               onChange={(negative) => patch({ negative: negative || undefined })}
             />
           </div>
-          <SceneSlotsEditor emotion={emotion} names={[]} foldable onChange={patch} />
+          <SceneSlotsEditor
+            emotion={emotion}
+            names={[]}
+            foldable
+            openSignal={combos}
+            onChange={patch}
+          />
         </div>
       )}
     </div>
@@ -233,6 +242,18 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
     });
   }, [revealId, revealHidden]);
   const allOpen = visible.every((emotion) => !collapsed.has(emotion.id));
+  const [combos, setCombos] = useState<SlotsOpenSignal>();
+  const withCombos = visible.filter((emotion) => emotion.slots?.length);
+  const toggleCombos = () => {
+    const open = !combos?.open;
+    setCombos({ open, at: Date.now() });
+    if (!open) return;
+    setCollapsed((current) => {
+      const next = new Set(current);
+      for (const emotion of withCombos) next.delete(emotion.id);
+      return next;
+    });
+  };
   const add = () => {
     // 새 씬 이름이 검색어와 맞지 않으면 보이지 않는다.
     setQuery('');
@@ -264,6 +285,11 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
           >
             {allOpen ? '모두 접기' : '모두 펼치기'}
           </button>
+          {withCombos.length > 0 && (
+            <button onClick={toggleCombos}>
+              {combos?.open ? '조합 모두 접기' : '조합 모두 펼치기'}
+            </button>
+          )}
           {others.length > 0 && (
             <Menu
               label="다른 모음에서 가져오기"
@@ -293,6 +319,7 @@ export function EmotionSetEditor({ set }: { set: EmotionSet }) {
                 last={index === set.emotions.length - 1}
                 collapsed={collapsed.has(emotion.id)}
                 opened={opened[emotion.id] ?? 0}
+                combos={combos}
                 toggle={(open) => toggle(emotion.id, open)}
                 setExtras={(count) => setOpened((current) => ({ ...current, [emotion.id]: count }))}
                 save={save}
