@@ -463,17 +463,19 @@ export function StorageTab() {
             끝난 기록 비우기
           </button>
         </div>
-        <NumberField
-          label="끝난 큐 기록 보관"
-          value={library.settings.keepFinishedJobs}
-          min={10}
-          max={2000}
-          integer
-          suffix="개"
-          onChange={(keepFinishedJobs) =>
-            patchSettings((current) => ({ ...current, keepFinishedJobs }))
-          }
-        />
+        <div className="four-column-fields">
+          <NumberField
+            label="끝난 큐 기록 보관"
+            value={library.settings.keepFinishedJobs}
+            min={10}
+            max={2000}
+            integer
+            suffix="개"
+            onChange={(keepFinishedJobs) =>
+              patchSettings((current) => ({ ...current, keepFinishedJobs }))
+            }
+          />
+        </div>
       </Card>
       <Card title="백업 · 공유">
         <div className="button-row">
@@ -491,15 +493,17 @@ export function StorageTab() {
           <button onClick={() => void importJsonFromPicker()}>JSON 가져오기</button>
         </div>
         <p className="hint">생성 이미지는 JSON에 포함되지 않습니다</p>
-        <NumberField
-          label="자동 백업 보관 (backups 폴더, 열 때마다 하나)"
-          value={library.settings.keepBackups}
-          min={1}
-          max={200}
-          integer
-          suffix="개"
-          onChange={(keepBackups) => patchSettings((current) => ({ ...current, keepBackups }))}
-        />
+        <div className="four-column-fields">
+          <NumberField
+            label="자동 백업 보관 (backups 폴더)"
+            value={library.settings.keepBackups}
+            min={1}
+            max={200}
+            integer
+            suffix="개"
+            onChange={(keepBackups) => patchSettings((current) => ({ ...current, keepBackups }))}
+          />
+        </div>
       </Card>
     </>
   );
