@@ -55,7 +55,6 @@ export type StoreState = {
   sidebarSections: Record<SidebarSection, boolean>;
   galleryColumns: number;
   galleryAspect: GalleryAspect;
-  /** 씬 상세 결과를 한 장씩 대신 원본을 여러 장 모아 본다. */
   resultGrid: boolean;
   resultGridColumns: number;
   /** 작업 ID → 갤러리 씬 이름 검색어. 씬 상세의 이전·다음도 따른다. 이번 실행 동안만. */

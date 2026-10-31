@@ -79,7 +79,6 @@ function dispatchMenu(target: Element | null, x: number, y: number): boolean {
   return !target.dispatchEvent(event);
 }
 
-/** 고른 항목(포커스)의 메뉴를, 없으면 마우스가 있는 곳의 메뉴를 연다. */
 function openFromKeyboard(): void {
   const focused = document.activeElement;
   if (focused && focused !== document.body) {

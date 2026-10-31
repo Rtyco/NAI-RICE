@@ -380,7 +380,6 @@ export async function saveMask(): Promise<void> {
   dropSourceFiles(latest);
 }
 
-/** 캐릭터 레퍼런스는 그 작업(또는 자유 생성)에 고른 것을 바꿔 끼우고, 바이브는 뒤에 더한다. */
 export function makeAidFromRecord(
   section: AidSection,
   projectId: string,
