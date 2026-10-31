@@ -643,6 +643,11 @@ textarea.syntax-input::selection {
   margin-left: 18px;
   font-size: 12px;
 }
+.scene-option-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .scene-option-table-wrap {
   overflow-x: auto;
 }

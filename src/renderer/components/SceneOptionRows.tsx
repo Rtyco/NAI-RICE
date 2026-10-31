@@ -150,25 +150,28 @@ export function SceneOptionTable(props: {
           <col className="check" />
           <col className="name" />
           <col />
-          {characters.map((index) => (
-            <col key={index} />
-          ))}
           <col className="remove" />
         </colgroup>
         <thead>
           <tr>
             <th />
             <th>이름</th>
-            <th>씬 자리</th>
-            {characters.map((index) => (
-              <th key={index}>{characterName(props.names, index)}</th>
-            ))}
+            <th>{characters.length ? '프롬프트' : '씬 자리'}</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {props.slot.map((option) => {
             const row = props.option(option);
+            const scenePrompt = (
+              <PromptCell
+                title={`${row.title} · 씬 자리`}
+                label="후보 프롬프트"
+                value={option.prompt}
+                repeated={row.repeated()}
+                onChange={(prompt) => row.patch({ prompt })}
+              />
+            );
             return (
               <tr key={option.id} className={option.enabled ? '' : 'off'}>
                 <td>
@@ -178,25 +181,29 @@ export function SceneOptionTable(props: {
                   <OptionName option={option} patch={row.patch} />
                 </td>
                 <td>
-                  <PromptCell
-                    title={`${row.title} · 씬 자리`}
-                    label="후보 프롬프트"
-                    value={option.prompt}
-                    repeated={row.repeated()}
-                    onChange={(prompt) => row.patch({ prompt })}
-                  />
+                  {characters.length ? (
+                    <div className="scene-option-lines">
+                      <div className="emotion-extra-prompt">
+                        <span>씬 자리</span>
+                        {scenePrompt}
+                      </div>
+                      {characters.map((index) => (
+                        <div className="emotion-extra-prompt" key={index}>
+                          <span>{characterName(props.names, index)}</span>
+                          <PromptCell
+                            title={`${row.title} · ${characterName(props.names, index)}`}
+                            label={`${characterName(props.names, index)} 몫`}
+                            value={option.characterPrompts[index] ?? ''}
+                            repeated={row.repeated(index)}
+                            onChange={(value) => row.setCharacterPrompt(index, value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    scenePrompt
+                  )}
                 </td>
-                {characters.map((index) => (
-                  <td key={index}>
-                    <PromptCell
-                      title={`${row.title} · ${characterName(props.names, index)}`}
-                      label={`${characterName(props.names, index)} 몫`}
-                      value={option.characterPrompts[index] ?? ''}
-                      repeated={row.repeated(index)}
-                      onChange={(value) => row.setCharacterPrompt(index, value)}
-                    />
-                  </td>
-                ))}
                 <td>
                   <RemoveOption remove={row.remove} />
                 </td>
