@@ -29,7 +29,6 @@ export function commonResultActions(
   refine: ResultAction;
   lineFix: ResultAction;
   makeReference: ResultAction;
-  /** 결과 막대에는 자리가 없어 우클릭 메뉴에만 있다. */
   aid: ResultAction[];
   file: ResultAction[];
 } {
@@ -67,7 +66,7 @@ export function commonResultActions(
         icon: 'portrait',
         group: 'send',
         accessKey: 'H',
-        menuOnly: true,
+        fold: 1,
         onSelect: () => void makeAidFromRecord('characterReferences', projectId, record),
       },
       {
@@ -75,7 +74,7 @@ export function commonResultActions(
         icon: 'vibe',
         group: 'send',
         accessKey: 'V',
-        menuOnly: true,
+        fold: 1,
         onSelect: () => void makeAidFromRecord('vibes', projectId, record),
       },
     ],
