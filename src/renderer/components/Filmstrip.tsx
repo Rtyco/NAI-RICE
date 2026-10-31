@@ -19,7 +19,7 @@ export function Filmstrip(props: {
 }) {
   const collapsed = useLayout((state) => state.filmstripCollapsed);
   const { records, browser } = props;
-  const { selected, picking } = browser;
+  const { picking } = browser;
   const strip = props.strip ?? true;
   if (!records.length || (strip && collapsed)) return null;
   return (
@@ -33,30 +33,20 @@ export function Filmstrip(props: {
           {...picking.containerProps}
         >
           {records.map((record) => (
-            <button
+            <ResultOption
               key={record.id}
-              role="option"
-              data-select-id={record.id}
-              aria-selected={record.id === selected?.id}
-              className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
-              onClick={(event) => {
-                if (picking.clickItem(event, record.id)) return;
-                browser.setSelectedId(record.id);
-                props.onOpen?.();
-              }}
-              onContextMenu={(event) => {
-                browser.setSelectedId(record.id);
-                showResultMenu(event, props.menu(record));
-              }}
-              title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
+              record={record}
+              browser={browser}
+              menu={props.menu}
+              favorite={record.id === props.favoriteId}
+              onOpen={props.onOpen}
             >
               <img
                 src={projectMedia(props.projectId, record.thumbFile ?? record.file)}
                 alt=""
                 loading="lazy"
               />
-              {record.id === props.favoriteId && <span className="card-favorite">★</span>}
-            </button>
+            </ResultOption>
           ))}
           {picking.boxElement}
         </div>
@@ -81,5 +71,41 @@ export function Filmstrip(props: {
         {props.tools}
       </div>
     </>
+  );
+}
+
+/** 필름스트립과 모아 보기의 결과 한 칸. `children`은 이미지. */
+export function ResultOption(props: {
+  record: GenerationSummary;
+  browser: ResultBrowser;
+  menu: (record: GenerationSummary) => ResultAction[];
+  favorite: boolean;
+  onOpen?: () => void;
+  onDoubleClick?: () => void;
+  children: ReactNode;
+}) {
+  const { record, browser } = props;
+  const { selected, picking } = browser;
+  return (
+    <button
+      role="option"
+      data-select-id={record.id}
+      aria-selected={record.id === selected?.id}
+      className={`${record.id === selected?.id ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
+      onClick={(event) => {
+        if (picking.clickItem(event, record.id)) return;
+        browser.setSelectedId(record.id);
+        props.onOpen?.();
+      }}
+      onDoubleClick={props.onDoubleClick}
+      onContextMenu={(event) => {
+        browser.setSelectedId(record.id);
+        showResultMenu(event, props.menu(record));
+      }}
+      title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
+    >
+      {props.children}
+      {props.favorite && <span className="card-favorite">★</span>}
+    </button>
   );
 }

@@ -3,7 +3,8 @@ import type { GenerationSummary } from '../../core/domain/types';
 import { projectMedia, RESULT_GRID_COLUMN_CHOICES, setResultGridColumns, useStore } from '../store';
 import { isTypingTarget } from '../useShortcut';
 import { Icon } from './Icon';
-import { showResultMenu, type ResultAction } from './resultMenu';
+import { ResultOption } from './Filmstrip';
+import type { ResultAction } from './resultMenu';
 import { StreamPreview } from './StreamPreview';
 import type { ResultBrowser } from './useResultBrowser';
 
@@ -76,25 +77,16 @@ export function ResultGrid(props: {
           </div>
         )}
         {records.map((record) => (
-          <button
+          <ResultOption
             key={record.id}
-            role="option"
-            data-select-id={record.id}
-            aria-selected={record.id === selectedId}
-            className={`${record.id === selectedId ? 'selected' : ''} ${picking.isSelected(record.id) ? 'picked' : ''}`}
-            onClick={(event) => {
-              if (picking.clickItem(event, record.id)) return;
-              browser.setSelectedId(record.id);
-            }}
+            record={record}
+            browser={browser}
+            menu={props.menu}
+            favorite={record.id === props.favoriteId}
             onDoubleClick={() => {
               browser.setSelectedId(record.id);
               onSingle();
             }}
-            onContextMenu={(event) => {
-              browser.setSelectedId(record.id);
-              showResultMenu(event, props.menu(record));
-            }}
-            title={`seed ${record.seed} · ${new Date(record.createdAt).toLocaleString()}`}
           >
             <img
               src={projectMedia(props.projectId, record.file)}
@@ -103,8 +95,7 @@ export function ResultGrid(props: {
               decoding="async"
               draggable={false}
             />
-            {record.id === props.favoriteId && <span className="card-favorite">★</span>}
-          </button>
+          </ResultOption>
         ))}
         {picking.boxElement}
       </div>
