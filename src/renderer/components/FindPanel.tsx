@@ -5,6 +5,7 @@ import { findInLibrary, replaceInLibrary, type FindFieldHit } from '../../core/m
 import {
   editRange,
   findRanges,
+  replaceableRanges,
   replaceAll,
   snippetAround,
   type TextRange,
@@ -146,6 +147,12 @@ function FindPanelBody() {
     [fieldTarget, searching, library, query, wholeTag, findTarget, only],
   );
   const libraryCount = libraryHits.reduce((sum, hit) => sum + hit.ranges.length, 0);
+  const replaceableCount = fieldTarget
+    ? replaceableRanges(fieldText, fieldRanges).length
+    : libraryHits.reduce((sum, hit) => sum + replaceableRanges(hit.text, hit.ranges).length, 0);
+  const currentRange = fieldRanges[current];
+  const currentReplaceable =
+    currentRange !== undefined && replaceableRanges(fieldText, [currentRange]).length > 0;
   const recordsAllowed = scope === 'library' && !names;
   const showRecords = recordsAllowed && includeRecords;
   const records = useRecordSearch(showRecords && searching, query, wholeTag, projectIds);
@@ -201,7 +208,7 @@ function FindPanelBody() {
 
   const replaceOne = () => {
     const range = fieldRanges[current];
-    if (!fieldTarget || !range) return;
+    if (!fieldTarget || !range || !currentReplaceable) return;
     const edit = editRange(fieldText, range, replacement, wholeTag);
     insertText(fieldTarget, edit.start, edit.end, wholeTag ? replacement.trim() : replacement);
     input.current?.focus();
@@ -209,7 +216,7 @@ function FindPanelBody() {
 
   const replaceEverywhere = async () => {
     if (fieldTarget) {
-      if (!fieldRanges.length) return;
+      if (!replaceableCount) return;
       insertText(
         fieldTarget,
         0,
@@ -217,14 +224,14 @@ function FindPanelBody() {
         replaceAll(fieldText, findQuery(find), replacement),
       );
       input.current?.focus();
-      toast(`${fieldRanges.length}개를 바꿨습니다.`);
+      toast(`${replaceableCount}개를 바꿨습니다.`);
       return;
     }
-    if (!libraryCount || !libraryAllowed) return;
+    if (!replaceableCount || !libraryAllowed) return;
     const shown = wholeTag && !names ? replacement.trim() : replacement;
     const confirmed = await confirmDialog({
       title: only ? '이 항목에서 바꾸기' : '라이브러리 전체 바꾸기',
-      message: `${libraryHits.length}개 ${names ? '이름' : '칸'}에서 ${libraryCount}개를 ${
+      message: `${libraryHits.length}개 ${names ? '이름' : '칸'}에서 ${replaceableCount}개를 ${
         shown ? '바꿉니다' : '지웁니다'
       }. 「${query}」${shown ? ` → 「${shown}」` : ''}`,
       confirmLabel: '모두 바꾸기',
@@ -235,7 +242,7 @@ function FindPanelBody() {
       replaceInLibrary(current, findQuery(find), replacement, findTarget, only),
     );
     useFind.setState({
-      undo: { before, after: useStore.getState().library!, count: libraryCount },
+      undo: { before, after: useStore.getState().library!, count: replaceableCount },
     });
     input.current?.focus();
   };
@@ -314,12 +321,25 @@ function FindPanelBody() {
             onKeyDown={onReplaceKey}
           />
           {fieldTarget && (
-            <button disabled={!fieldRanges.length} onClick={replaceOne}>
+            <button
+              disabled={!currentReplaceable}
+              title={
+                currentRange && !currentReplaceable
+                  ? '조각 참조의 일부는 바꾸지 않습니다'
+                  : undefined
+              }
+              onClick={replaceOne}
+            >
               바꾸기
             </button>
           )}
           <button
-            disabled={fieldTarget ? !fieldRanges.length : !libraryCount || !libraryAllowed}
+            disabled={!replaceableCount || (!fieldTarget && !libraryAllowed)}
+            title={
+              replaceableCount < (fieldTarget ? fieldRanges.length : libraryCount)
+                ? '조각 참조의 일부는 바꾸지 않습니다'
+                : undefined
+            }
             onClick={() => void replaceEverywhere()}
           >
             모두 바꾸기

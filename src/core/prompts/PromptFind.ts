@@ -14,7 +14,19 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** 대소문자를 가리지 않는다. 바꾸면 참조가 끊기는 조각 참조(`<세트.조각>`) 안은 건너뛴다. */
+/** 태그 단위로 찾을 때 조각 참조(`<세트.조각>`)는 통째로, `세트.조각`, 세트 이름, 조각 이름도 태그로 본다. */
+function pieceRefParts(text: string, ref: TextRange): TextRange[] {
+  const inner = { start: ref.start + 1, end: ref.end - 1 };
+  const dot = text.indexOf('.', inner.start);
+  const trimmed = (start: number, end: number) => {
+    const part = text.slice(start, end);
+    const lead = part.length - part.trimStart().length;
+    return { start: start + lead, end: start + lead + part.trim().length };
+  };
+  return [ref, inner, trimmed(inner.start, dot), trimmed(dot + 1, inner.end)];
+}
+
+/** 대소문자를 가리지 않는다. */
 export function findRanges(text: string, query: FindQuery): TextRange[] {
   const needle = query.wholeTag ? query.text.trim() : query.text;
   if (!needle || !text) return [];
@@ -25,10 +37,33 @@ export function findRanges(text: string, query: FindQuery): TextRange[] {
         .map(escapeRegExp)
         .join('[ \\t]*,[ \\t]*')}(?=[ \\t]*(?:$|${SEPARATOR}))`
     : escapeRegExp(needle);
+  const ranges = [...text.matchAll(new RegExp(pattern, 'gi'))].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+  if (!query.wholeTag) return ranges;
+  const lower = needle.toLowerCase();
+  for (const ref of pieceRefRanges(text)) {
+    const part = pieceRefParts(text, ref).find(
+      (range) => text.slice(range.start, range.end).toLowerCase() === lower,
+    );
+    if (part && !ranges.some((range) => range.start < part.end && range.end > part.start))
+      ranges.push(part);
+  }
+  return ranges.sort((a, b) => a.start - b.start);
+}
+
+/** 조각 참조의 일부만 바꾸면 참조가 끊기거나 다른 조각을 가리켜, 참조를 통째로 덮는 곳만 바꾼다. */
+export function replaceableRanges(text: string, ranges: TextRange[]): TextRange[] {
   const refs = pieceRefRanges(text);
-  return [...text.matchAll(new RegExp(pattern, 'gi'))]
-    .map((match) => ({ start: match.index, end: match.index + match[0].length }))
-    .filter((range) => !refs.some((ref) => range.start < ref.end && range.end > ref.start));
+  return ranges.filter((range) =>
+    refs.every(
+      (ref) =>
+        range.end <= ref.start ||
+        range.start >= ref.end ||
+        (range.start <= ref.start && range.end >= ref.end),
+    ),
+  );
 }
 
 /** 태그를 지우면 붙은 쉼표 하나도 함께 지운다. `floor` 앞은 앞의 찾은 곳이 이미 고쳤다. */
@@ -64,7 +99,7 @@ export function replaceRanges(
 }
 
 export function replaceAll(text: string, query: FindQuery, replacement: string): string {
-  const ranges = findRanges(text, query);
+  const ranges = replaceableRanges(text, findRanges(text, query));
   return ranges.length ? replaceRanges(text, ranges, replacement, query.wholeTag) : text;
 }
 

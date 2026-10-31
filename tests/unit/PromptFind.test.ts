@@ -34,9 +34,22 @@ describe('프롬프트 찾기', () => {
     expect(found('silver hair', tag(' silver hair '))).toEqual(['silver hair']);
   });
 
-  it('조각 참조 안은 찾지 않아', () => {
-    expect(found('<smile.big>, smile', tag('smile'))).toEqual(['smile']);
-    expect(findRanges('<얼굴.smile>', plain('smile'))).toEqual([]);
+  it('조각 참조도 찾고, 태그 단위면 참조 통째·세트.조각·세트·조각 이름을 태그로 봐', () => {
+    const text = 'a, <HL.캐릭터 눈>, b';
+    expect(found(text, tag('<HL.캐릭터 눈>'))).toEqual(['<HL.캐릭터 눈>']);
+    expect(found(text, tag('hl.캐릭터 눈'))).toEqual(['HL.캐릭터 눈']);
+    expect(found(text, tag('캐릭터 눈'))).toEqual(['캐릭터 눈']);
+    expect(found(text, tag('HL'))).toEqual(['HL']);
+    expect(found(text, tag('눈'))).toEqual([]);
+    expect(found(text, plain('눈'))).toEqual(['눈']);
+    expect(found('<smile.big>, smile', tag('smile'))).toEqual(['smile', 'smile']);
+  });
+
+  it('바꾸기는 조각 참조를 통째로 덮는 곳만 바꿔', () => {
+    expect(replaceAll('<얼굴.smile>, smile', plain('smile'), 'grin')).toBe('<얼굴.smile>, grin');
+    expect(replaceAll('<얼굴.smile>, x', tag('얼굴'), 'face')).toBe('<얼굴.smile>, x');
+    expect(replaceAll('a, <HL.눈>, b', tag('<HL.눈>'), '<HL.입>')).toBe('a, <HL.입>, b');
+    expect(replaceAll('a, <HL.눈>, b', tag('<HL.눈>'), '')).toBe('a, b');
   });
 
   it('특수 문자는 글자 그대로 찾고 빈 검색어는 아무것도 찾지 않아', () => {
@@ -119,6 +132,14 @@ describe('라이브러리 찾기·바꾸기', () => {
     expect(findInLibrary(replaced, tag('grin'))).toHaveLength(hits.length);
     expect(replaced.presets[0].commonNegative).toBe('grin, bad');
     expect(listPromptFields(replaced)).toHaveLength(listPromptFields(library).length);
+  });
+
+  it('씬 프롬프트의 조각 참조를 라이브러리 전체에서 찾아', () => {
+    const base = createDefaultLibrary();
+    const emotion = createEmotion('기쁨', 'smile, <HL.캐릭터 눈>');
+    const library = { ...base, emotionSets: [{ id: 's', name: '씬', emotions: [emotion] }] };
+    const hits = findInLibrary(library, tag('<HL.캐릭터 눈>'));
+    expect(hits.map((hit) => hit.path)).toEqual([['씬', '기쁨', '프롬프트']]);
   });
 
   it('「이 항목」은 그 항목의 칸만 찾고 바꿔', () => {
