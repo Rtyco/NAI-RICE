@@ -721,6 +721,13 @@ export const exportRequestSchema = z.object({
   mode: z.enum(['folder', 'zip']),
 });
 
+export const sheetExportRequestSchema = z.object({
+  name: z.string(),
+  png: z.instanceof(Uint8Array),
+  format: exportFormatSchema,
+  quality: exportQualitySchema,
+});
+
 export const MAX_ENQUEUE_JOBS = 2000;
 /** 비용은 이 크기로 다시 계산한다. */
 const MAX_CANVAS_SIDE = 8192;

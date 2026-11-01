@@ -7,11 +7,39 @@ import {
   renderExportFilename,
   validateOutputFilenameTemplate,
 } from '../../core/output/OutputFilename';
+import { MAX_SHEET_SIDE, sheetLayout } from '../../core/imaging/SceneSheet';
 import { EXPORT_SCOPES, exportPicks, type ExportPick } from '../exportPicks';
-import { projectMedia, run, toast, updateLibrary, useLibrary, useStore } from '../store';
+import { drawSceneSheet, sheetAspect, type SheetOptions } from '../sceneSheet';
+import {
+  projectMedia,
+  readUiState,
+  run,
+  saveUiState,
+  toast,
+  updateLibrary,
+  useLibrary,
+  useStore,
+} from '../store';
 import { Modal } from './Dialogs';
 import { NumberField, SelectField, TemplateField } from './ui';
 import { fileApi } from '../desktop';
+
+const SHEET_KEY = 'export-sheet';
+const SHEET_DEFAULT: SheetOptions = { columns: 5, cellWidth: 384, dark: false };
+
+const readSheetOptions = () =>
+  readUiState(
+    SHEET_KEY,
+    (raw) => {
+      const saved = JSON.parse(raw ?? 'null') as Partial<SheetOptions> | null;
+      return {
+        columns: Number(saved?.columns) || SHEET_DEFAULT.columns,
+        cellWidth: Number(saved?.cellWidth) || SHEET_DEFAULT.cellWidth,
+        dark: saved?.dark === true,
+      };
+    },
+    SHEET_DEFAULT,
+  );
 
 /** 씬마다 한 장은 RisuAI 감정 이미지 업로드용이다. */
 export function ExportDialog({
@@ -29,7 +57,8 @@ export function ExportDialog({
   const [quality, setQuality] = useState(settings.export.quality);
   const [target, setTarget] = useState(settings.export.target);
   const [scope, setScope] = useState<ExportScope>(settings.export.scope);
-  const [mode, setMode] = useState<'folder' | 'zip'>('folder');
+  const [mode, setMode] = useState<'folder' | 'zip' | 'sheet'>('folder');
+  const [sheet, setSheet] = useState(readSheetOptions);
   const [filenameTemplate, setFilenameTemplate] = useState(settings.export.filenameTemplate);
   const templateError = validateOutputFilenameTemplate(
     filenameTemplate,
@@ -71,6 +100,22 @@ export function ExportDialog({
       comboNumber: scope === 'scene' ? undefined : item.comboNumber,
     });
 
+  const sheetItems = selected.map(({ emotion, record }) => ({
+    record,
+    label:
+      scope !== 'scene' && record.comboName
+        ? `${emotion.name} · ${record.comboName}`
+        : emotion.name,
+  }));
+  const sheetSize = sheetLayout(
+    sheetItems.length,
+    sheet.columns,
+    sheet.cellWidth,
+    sheetAspect(sheetItems),
+  );
+  const sheetTooLarge =
+    mode === 'sheet' && Math.max(sheetSize.width, sheetSize.height) > MAX_SHEET_SIDE;
+
   const submit = () =>
     void run('이미지를 내보내는 중', async () => {
       updateLibrary((current) => ({
@@ -80,6 +125,20 @@ export function ExportDialog({
           export: { format, quality, target, scope, filenameTemplate },
         },
       }));
+      if (mode === 'sheet') {
+        saveUiState(SHEET_KEY, JSON.stringify(sheet));
+        const path = await fileApi().exportSheet({
+          name: project.name,
+          png: await drawSceneSheet(project.id, sheetItems, sheet),
+          format,
+          quality,
+        });
+        if (path) {
+          toast(`${sheetItems.length}개 이미지를 한 장으로 내보냈습니다: ${path}`);
+          close();
+        }
+        return;
+      }
       const result = await fileApi().exportImages({
         projectId: project.id,
         name: project.name,
@@ -104,7 +163,7 @@ export function ExportDialog({
           <button onClick={close}>취소</button>
           <button
             className="accent"
-            disabled={!selected.length || !!templateError}
+            disabled={!selected.length || (mode === 'sheet' ? sheetTooLarge : !!templateError)}
             onClick={submit}
           >
             {selected.length}개 내보내기
@@ -152,33 +211,82 @@ export function ExportDialog({
           options={[
             { value: 'folder', label: '폴더' },
             { value: 'zip', label: 'ZIP 파일' },
+            { value: 'sheet', label: '한 장으로 모으기' },
           ]}
           onChange={setMode}
         />
       </div>
-      <p className="hint">{format === 'png' ? '메타데이터 포함' : '메타데이터 없음'}</p>
-      <TemplateField
-        label="파일 이름"
-        value={filenameTemplate}
-        tokens={Object.entries(EXPORT_FILENAME_TOKENS)}
-        initial={DEFAULT_EXPORT_FILENAME_TEMPLATE}
-        onChange={setFilenameTemplate}
-      />
-      {scope !== 'scene' && !namesCombo && (
-        <p className="hint">조합 칸이 있는 씬은 파일 이름 뒤에 조합 이름을 붙입니다.</p>
-      )}
-      {templateError ? (
-        <p className="field-error">{templateError}</p>
+      <p className="hint">
+        {format === 'png' && mode !== 'sheet' ? '메타데이터 포함' : '메타데이터 없음'}
+      </p>
+      {mode === 'sheet' ? (
+        <>
+          <div className="four-column-fields three">
+            <NumberField
+              label="열 수"
+              value={sheet.columns}
+              min={1}
+              max={12}
+              integer
+              onChange={(columns) => setSheet((current) => ({ ...current, columns }))}
+            />
+            <NumberField
+              label="칸 너비"
+              value={sheet.cellWidth}
+              min={128}
+              max={1024}
+              integer
+              suffix="px"
+              onChange={(cellWidth) => setSheet((current) => ({ ...current, cellWidth }))}
+            />
+            <SelectField
+              label="배경"
+              value={sheet.dark ? 'dark' : 'light'}
+              options={[
+                { value: 'light', label: '밝게' },
+                { value: 'dark', label: '어둡게' },
+              ]}
+              onChange={(value) => setSheet((current) => ({ ...current, dark: value === 'dark' }))}
+            />
+          </div>
+          {sheetTooLarge ? (
+            <p className="field-error">
+              한 변은 {MAX_SHEET_SIDE.toLocaleString()}px까지입니다. 열 수나 칸 너비를 줄이십시오.
+            </p>
+          ) : (
+            selected.length > 0 && (
+              <p className="hint">
+                크기: {sheetSize.width.toLocaleString()} × {sheetSize.height.toLocaleString()}px
+              </p>
+            )
+          )}
+        </>
       ) : (
-        selected[0] && (
-          <p className="hint">
-            미리보기:{' '}
-            <code>
-              {fileName(selected[0])}.{format}
-            </code>
-            {selected.length > 1 && ` 외 ${selected.length - 1}개`}
-          </p>
-        )
+        <>
+          <TemplateField
+            label="파일 이름"
+            value={filenameTemplate}
+            tokens={Object.entries(EXPORT_FILENAME_TOKENS)}
+            initial={DEFAULT_EXPORT_FILENAME_TEMPLATE}
+            onChange={setFilenameTemplate}
+          />
+          {scope !== 'scene' && !namesCombo && (
+            <p className="hint">조합 칸이 있는 씬은 파일 이름 뒤에 조합 이름을 붙입니다.</p>
+          )}
+          {templateError ? (
+            <p className="field-error">{templateError}</p>
+          ) : (
+            selected[0] && (
+              <p className="hint">
+                미리보기:{' '}
+                <code>
+                  {fileName(selected[0])}.{format}
+                </code>
+                {selected.length > 1 && ` 외 ${selected.length - 1}개`}
+              </p>
+            )
+          )}
+        </>
       )}
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
       <div className="export-grid">

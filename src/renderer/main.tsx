@@ -68,6 +68,7 @@ function createPreviewApi(): DesktopApi {
     saveImageAs: async () => null,
     copyImage: unsupported,
     exportImages: async () => null,
+    exportSheet: async () => null,
     exportReference: async () => null,
     exportLibrary: async () => null,
     exportProject: async () => null,

@@ -169,6 +169,14 @@ export type ExportRequest = {
 
 export type ExportResult = { path: string; count: number } | null;
 
+export type SheetExportRequest = {
+  name: string;
+  /** 화면에서 그린 PNG */
+  png: Uint8Array;
+  format: ExportFormat;
+  quality: number;
+};
+
 export type OpenTarget =
   | { kind: 'root' }
   | { kind: 'project'; projectId: string }
@@ -245,6 +253,7 @@ export type FileApi = {
   /** WebP로 저장된 결과도 PNG로 넣는다. */
   copyImage: (projectId: string, generationId: string) => Promise<void>;
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
+  exportSheet: (request: SheetExportRequest) => Promise<string | null>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
   /** NAI RICE 작업 파일. 작업이 쓰는 라이브러리 항목과 그림을 함께 넣는다. */

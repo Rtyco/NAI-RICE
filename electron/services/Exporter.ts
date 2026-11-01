@@ -11,7 +11,7 @@ import {
   type ReferenceImagesData,
 } from '../../src/core/backup/Backups';
 import { exportFileNames, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
-import type { ExportRequest, ExportResult } from '../../src/shared/ipc';
+import type { ExportRequest, ExportResult, SheetExportRequest } from '../../src/shared/ipc';
 import { atomicWrite, exists } from './fsUtils';
 import { convertImage, formatFromExtension, toPngWithText } from './Images';
 import type { ExportSource, FileDialogs } from './ports';
@@ -81,6 +81,26 @@ export class Exporter {
     await atomicWrite(
       result.filePath,
       await convertImage(source, formatFromExtension(result.filePath), quality),
+    );
+    return result.filePath;
+  }
+
+  async exportSheet(request: SheetExportRequest): Promise<string | null> {
+    await fs.mkdir(this.exportsDir(), { recursive: true });
+    const stem = sanitizeFilenameStem(request.name);
+    const result = await this.dialog.showSaveDialog({
+      title: '한 장으로 모은 이미지 저장',
+      defaultPath: path.join(this.exportsDir(), `${stem}_${dateStamp()}.${request.format}`),
+      filters: [{ name: request.format.toUpperCase(), extensions: [request.format] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    await atomicWrite(
+      result.filePath,
+      await convertImage(
+        Buffer.from(request.png),
+        formatFromExtension(result.filePath),
+        request.quality,
+      ),
     );
     return result.filePath;
   }

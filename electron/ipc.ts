@@ -3,6 +3,7 @@ import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain
 import {
   exportQualitySchema,
   exportRequestSchema,
+  sheetExportRequestSchema,
   generationFindRequestSchema,
 } from '../src/core/validation/schemas';
 import type {
@@ -180,6 +181,9 @@ export function registerIpc(services: AppServices): void {
   });
   ipcMain.handle('file:export-images', (_event, request: unknown) =>
     exporter.exportImages(exportRequestSchema.parse(request)),
+  );
+  ipcMain.handle('file:export-sheet', (_event, request: unknown) =>
+    exporter.exportSheet(sheetExportRequestSchema.parse(request)),
   );
   ipcMain.handle('file:export-reference', (_event, reference: Reference) =>
     exporter.exportReference(reference),
