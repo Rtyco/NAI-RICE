@@ -18,7 +18,13 @@ import { AccountService } from '../../electron/services/AccountService';
 import type { TokenStore } from '../../electron/services/ports';
 
 let root: string;
-afterEach(() => rm(root, { recursive: true, force: true }));
+let queues: GenerationQueue[] = [];
+afterEach(async () => {
+  // 큐는 완료로 바꾼 뒤에 저장한다. 그 저장 중에 임시 폴더를 지우면 큐에서 처리되지 않은 오류가 난다.
+  await Promise.all(queues.map((queue) => queue.pause()));
+  queues = [];
+  await rm(root, { recursive: true, force: true });
+});
 
 const job = (id: string, projectId: string, status: string) => ({
   id,
@@ -200,6 +206,7 @@ describe('GenerationQueue 실패 처리', () => {
       }),
     });
     await queue.initialize();
+    queues.push(queue);
     const job = () => queue.getSnapshot().jobs[0];
     return { queue, job, calls: () => calls };
   }
@@ -280,8 +287,6 @@ describe('GenerationQueue 실패 처리', () => {
     const { queue } = await runningQueue(['ok'], 'refine');
     await queue.enqueue([{ ...textJob('a'), refine }, textJob('b')]);
     await until(() => queue.getSnapshot().jobs.every((item) => item.status === 'completed'));
-    // 마지막 저장이 끝나기 전에 임시 폴더를 지우지 않게 한다.
-    await queue.pause();
     const jobs = queue.getSnapshot().jobs;
     expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'img2img', 'txt2img']);
     expect(jobs[1]).toMatchObject({
@@ -314,7 +319,6 @@ describe('GenerationQueue 실패 처리', () => {
       () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
       15_000,
     );
-    await queue.pause();
     const jobs = queue.getSnapshot().jobs;
     expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'inpaint', 'img2img', 'txt2img']);
     expect(jobs[1]).toMatchObject({
@@ -334,7 +338,6 @@ describe('GenerationQueue 실패 처리', () => {
       const jobs = queue.getSnapshot().jobs;
       return jobs.length === 2 && jobs.every((item) => item.status === 'completed');
     }, 15_000);
-    await queue.pause();
     const jobs = queue.getSnapshot().jobs;
     expect(jobs.map((item) => item.kind)).toEqual(['txt2img', 'img2img']);
     expect(jobs[1]).toMatchObject({ sourceRecordId: jobs[0].generationId });
@@ -344,8 +347,6 @@ describe('GenerationQueue 실패 처리', () => {
     const { queue } = await runningQueue(['ok'], 'broken');
     await queue.enqueue([{ ...textJob('a'), refine }, textJob('b')]);
     await until(() => queue.getSnapshot().jobs.every((item) => item.status === 'completed'));
-    // 마지막 저장이 끝나기 전에 임시 폴더를 지우지 않게 한다.
-    await queue.pause();
     expect(queue.getSnapshot().jobs.map((item) => item.id)).toEqual(['a', 'b']);
   });
 
@@ -414,6 +415,7 @@ describe('GenerationQueue 실패 처리', () => {
       onRecord: () => undefined,
     });
     await queue.initialize();
+    queues.push(queue);
     const v5 = (id: string): Txt2ImgJobSnapshot => ({
       ...textJob(id),
       settings: { ...DEFAULT_GENERATION_SETTINGS, model: 'nai-diffusion-5-curated', steps: 28 },
@@ -423,7 +425,6 @@ describe('GenerationQueue 실패 처리', () => {
       () => queue.getSnapshot().jobs.every((item) => item.status === 'completed'),
       15_000,
     );
-    await queue.pause();
     expect(used).toEqual(['first', 'second', 'second']);
     expect(overlapped).toBe(false);
     expect(activeId).toBe('a1');
