@@ -1,6 +1,7 @@
 import type { QueueView } from '../core/domain/types';
 import { isActive, isFinished } from '../core/jobs/JobLifecycle';
 import { queueApi } from './desktop';
+import { formatEstimate } from './lib/duration';
 import { run, useStore } from './store';
 
 export const STATUS: Record<string, string> = {
@@ -42,5 +43,10 @@ export function summarizeQueue(queue: QueueView) {
       : active.length
         ? '대기 중'
         : '대기 없음';
-  return { active, current, failed, finished, status };
+  const estimate =
+    !queue.paused && queue.remainingMs !== undefined
+      ? ` (${formatEstimate(queue.remainingMs)})`
+      : '';
+  const left = active.length ? `남은 작업 ${active.length}${estimate}` : '';
+  return { active, current, failed, finished, status, left };
 }

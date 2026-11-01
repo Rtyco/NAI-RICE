@@ -90,7 +90,7 @@ function QueueBarContent() {
   const summary = useRef<HTMLDivElement>(null);
   useQueueBarFit(summary);
 
-  const { active, current, failed, finished, status } = summarizeQueue(queue);
+  const { active, current, failed, finished, status, left } = summarizeQueue(queue);
 
   return (
     <footer className={`queue-bar ${open ? 'open' : ''}`}>
@@ -106,7 +106,7 @@ function QueueBarContent() {
         {current && <StreamPreview jobIds={[current.id]} className="queue-preview" />}
         <span className="queue-status">
           {status}
-          {active.length > 0 && <b> · 남은 작업 {active.length}</b>}
+          {left && <b> · {left}</b>}
           {failed > 0 && <b className="error-text"> · 실패 {failed}</b>}
         </span>
         <div className="header-spacer" />

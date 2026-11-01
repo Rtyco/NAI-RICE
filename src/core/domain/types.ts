@@ -828,6 +828,8 @@ export type QueueJobView = Pick<
 export type QueueView = {
   paused: boolean;
   updatedAt: string;
+  /** ms. 끝낸 작업이 없어 잴 수 없으면 비어 있다. */
+  remainingMs?: number;
   jobs: QueueJobView[];
 };
 

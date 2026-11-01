@@ -78,14 +78,14 @@ type Popup = 'side' | 'queue';
 
 function QueueButtons({ open, onOpen }: { open: boolean; onOpen: () => void }) {
   const queue = useStore((state) => state.queue);
-  const { active, current, failed, status } = summarizeQueue(queue);
+  const { active, current, failed, status, left } = summarizeQueue(queue);
   const phase = current ? 'busy' : queue.paused && active.length ? 'paused' : '';
   return (
     <>
       <PaletteButton
         icon="queue"
         label="생성 큐 보기"
-        title={`생성 큐 · ${status}${active.length ? ` · 남은 작업 ${active.length}` : ''}`}
+        title={`생성 큐 · ${status}${left && ` · ${left}`}`}
         className={`palette-queue ${phase} ${open ? 'active' : ''}`}
         badge={active.length || undefined}
         aria-expanded={open}
