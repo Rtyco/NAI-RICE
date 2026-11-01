@@ -38,6 +38,17 @@ describe('설정 읽기', () => {
     ]);
   });
 
+  it('1.1.5 설정에는 큐 알림과 바뀐 점 창이 켜진 채로 들어간다', () => {
+    const library = createDefaultLibrary();
+    const old: Record<string, unknown> = { ...library.settings };
+    delete old.notifyEnqueued;
+    const parsed = librarySchema.parse({
+      ...library,
+      settings: { ...old, update: { autoCheck: true, skippedVersion: '', seenVersion: '1.1.5' } },
+    }).settings;
+    expect([parsed.notifyEnqueued, parsed.update.showWhatsNew]).toEqual([true, true]);
+  });
+
   it('1.1.4 이하 화면 설정에는 프롬프트 글자 크기 기본값(13px)이 들어간다', () => {
     const library = createDefaultLibrary();
     const parsed = librarySchema.parse({

@@ -484,6 +484,7 @@ const appSettingsObjectSchema = z.object({
   flashWhenDone: z.boolean().catch(DEFAULT_SETTINGS.flashWhenDone),
   taskbarProgress: z.boolean().catch(DEFAULT_SETTINGS.taskbarProgress),
   confirmResultDelete: z.boolean().catch(DEFAULT_SETTINGS.confirmResultDelete),
+  notifyEnqueued: z.boolean().catch(DEFAULT_SETTINGS.notifyEnqueued),
   keepBackups: z.number().int().min(1).max(200).catch(DEFAULT_SETTINGS.keepBackups),
   keepFinishedJobs: z.number().int().min(10).max(2000).catch(DEFAULT_SETTINGS.keepFinishedJobs),
   tagAutocomplete: z.boolean().default(true),
@@ -528,8 +529,9 @@ const appSettingsObjectSchema = z.object({
       autoCheck: z.boolean().default(true),
       skippedVersion: z.string().default(''),
       seenVersion: z.string().default(''),
+      showWhatsNew: z.boolean().default(true),
     })
-    .default({ autoCheck: true, skippedVersion: '', seenVersion: '' }),
+    .default({ autoCheck: true, skippedVersion: '', seenVersion: '', showWhatsNew: true }),
 });
 
 /** 1.1.5의 notifyWhenDone은 작업 표시줄 깜박임도 함께 껐다. */

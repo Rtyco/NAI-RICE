@@ -3,7 +3,8 @@ import { Card, NumberField, SelectField, Toggle } from '../../components/ui';
 import { useLibrary } from '../../store';
 import { patchSettings } from './patchSettings';
 
-type NotifyKey = 'notifyWhenDone' | 'flashWhenDone' | 'taskbarProgress';
+type NotifyKey =
+  'notifyWhenDone' | 'flashWhenDone' | 'taskbarProgress' | 'confirmResultDelete' | 'notifyEnqueued';
 
 function NotifyToggle(props: { label: string; setting: NotifyKey; settings: AppSettings }) {
   return (
@@ -15,39 +16,36 @@ function NotifyToggle(props: { label: string; setting: NotifyKey; settings: AppS
   );
 }
 
-function AnlasConfirmCard() {
-  const rule = useLibrary().settings.anlasConfirm;
+function AnlasConfirmFields({ rule }: { rule: AppSettings['anlasConfirm'] }) {
   const patch = (value: Partial<typeof rule>) =>
     patchSettings((current) => ({
       ...current,
       anlasConfirm: { ...current.anlasConfirm, ...value },
     }));
   return (
-    <Card title="Anlas 사용 확인">
-      <div className="four-column-fields">
-        <SelectField
-          label="생성 큐에 넣기 전에 묻기"
-          value={rule.mode}
-          options={[
-            { value: 'any', label: 'Anlas가 들 때마다' },
-            { value: 'over', label: '정한 값 이상일 때' },
-            { value: 'off', label: '묻지 않음' },
-          ]}
-          onChange={(mode) => patch({ mode })}
+    <div className="four-column-fields">
+      <SelectField
+        label="Anlas 사용 확인"
+        value={rule.mode}
+        options={[
+          { value: 'any', label: 'Anlas가 들 때마다' },
+          { value: 'over', label: '정한 값 이상일 때' },
+          { value: 'off', label: '묻지 않음' },
+        ]}
+        onChange={(mode) => patch({ mode })}
+      />
+      {rule.mode === 'over' && (
+        <NumberField
+          label="기준"
+          value={rule.over}
+          min={1}
+          max={100000}
+          integer
+          suffix="Anlas"
+          onChange={(over) => patch({ over })}
         />
-        {rule.mode === 'over' && (
-          <NumberField
-            label="기준"
-            value={rule.over}
-            min={1}
-            max={100000}
-            integer
-            suffix="Anlas"
-            onChange={(over) => patch({ over })}
-          />
-        )}
-      </div>
-    </Card>
+      )}
+    </div>
   );
 }
 
@@ -66,7 +64,31 @@ export function NotifyTab() {
           settings={settings}
         />
       </Card>
-      <AnlasConfirmCard />
+      <Card title="확인 창">
+        <AnlasConfirmFields rule={settings.anlasConfirm} />
+        <NotifyToggle
+          label="생성 결과를 지우기 전에 확인 (휴지통으로 이동)"
+          setting="confirmResultDelete"
+          settings={settings}
+        />
+      </Card>
+      <Card title="안내">
+        <NotifyToggle
+          label="다른 씬을 생성 큐에 넣으면 알림"
+          setting="notifyEnqueued"
+          settings={settings}
+        />
+        <Toggle
+          label="업데이트 후 처음 열 때 바뀐 점 보기"
+          checked={settings.update.showWhatsNew}
+          onChange={(showWhatsNew) =>
+            patchSettings((current) => ({
+              ...current,
+              update: { ...current.update, showWhatsNew },
+            }))
+          }
+        />
+      </Card>
     </>
   );
 }

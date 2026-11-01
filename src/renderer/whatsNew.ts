@@ -11,11 +11,11 @@ export function openWhatsNew(): Promise<void> {
   );
 }
 
-/** 새로 설치했으면 main이 seenVersion을 채워 두어 띄우지 않는다. */
+/** 새로 설치했으면 main이 seenVersion을 채워 두어 띄우지 않는다. 끄면 본 것으로만 적는다. */
 export async function showWhatsNewOnce(): Promise<void> {
   const seen = useStore.getState().library?.settings.update.seenVersion;
   if (seen === undefined || (seen && compareVersions(seen, WHATS_NEW_VERSION) >= 0)) return;
-  await openWhatsNew();
+  if (useStore.getState().library?.settings.update.showWhatsNew) await openWhatsNew();
   patchSettings((current) => ({
     ...current,
     update: { ...current.update, seenVersion: WHATS_NEW_VERSION },

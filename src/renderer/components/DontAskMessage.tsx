@@ -1,17 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Toggle } from './ui';
 
-export function AnlasConfirmMessage(props: {
-  anlas: number;
+export function DontAskMessage(props: {
+  children: ReactNode;
   onSkipChange: (skip: boolean) => void;
 }) {
   const [skip, setSkip] = useState(false);
   return (
     <>
-      <p>
-        예상 약 {props.anlas.toLocaleString()} Anlas가 차감됩니다. 예상값이며 실제 차감량과 다를 수
-        있습니다.
-      </p>
+      {props.children}
       <Toggle
         label="다시 묻지 않음"
         checked={skip}

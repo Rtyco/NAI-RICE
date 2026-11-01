@@ -466,6 +466,8 @@ export type AppSettings = {
   taskbarProgress: boolean;
   /** 결과 삭제(휴지통) 전에 묻는다. 씬 단위 「결과만 삭제」는 늘 묻는다. */
   confirmResultDelete: boolean;
+  /** 지금 화면 밖의 씬을 큐에 넣으면 토스트로 알린다. */
+  notifyEnqueued: boolean;
   /** 앱을 열 때 남기는 library.json 자동 백업 수 */
   keepBackups: number;
   /** 큐에 남기는 끝난 작업 수. 실패·중단은 세지 않고 남긴다. */
@@ -501,6 +503,8 @@ export type AppSettings = {
     skippedVersion: string;
     /** 바뀐 점 안내까지 확인한 앱 버전. 비면 1.1.1 이하에서 올라왔다. */
     seenVersion: string;
+    /** 끄면 seenVersion만 올리고 창은 띄우지 않는다. */
+    showWhatsNew: boolean;
   };
 };
 

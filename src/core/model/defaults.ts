@@ -276,6 +276,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   flashWhenDone: true,
   taskbarProgress: true,
   confirmResultDelete: true,
+  notifyEnqueued: true,
   keepBackups: 20,
   keepFinishedJobs: 300,
   tagAutocomplete: true,
@@ -292,7 +293,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     comboOptions: 'first',
   },
   lineFix: DEFAULT_LINE_FIX,
-  update: { autoCheck: true, skippedVersion: '', seenVersion: '' },
+  update: { autoCheck: true, skippedVersion: '', seenVersion: '', showWhatsNew: true },
 };
 
 export function createDefaultLibrary(): Library {

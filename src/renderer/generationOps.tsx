@@ -1,4 +1,5 @@
 import type { GenerationSummary } from '../core/domain/types';
+import { confirmWithSkip } from './components/confirmWithSkip';
 import { confirmDialog, openDialog } from './components/dialogStack';
 import { DirectorToolDialog } from './components/DirectorToolDialog';
 import { Img2ImgDialog } from './components/Img2ImgDialog';
@@ -6,6 +7,7 @@ import { LineFixDialog } from './components/LineFixDialog';
 import { SceneSetDialog } from './components/SceneSetDialog';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { deleteGenerations, emotionRecords, run, toast, useStore } from './store';
+import { patchSettings } from './views/settings/patchSettings';
 
 export function favoriteIds(projectId: string): Set<string> {
   const project = useStore.getState().library?.projects.find((item) => item.id === projectId);
@@ -23,19 +25,22 @@ export async function deleteResults(
   const ask = useStore.getState().library?.settings.confirmResultDelete ?? true;
   const ok =
     !ask ||
-    (await confirmDialog({
-      title: records.length === 1 ? '생성 결과 삭제' : `생성 결과 ${records.length}장 삭제`,
-      message: (
-        <p>
-          {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 전체 캔버스를
-          Windows 휴지통으로 이동합니다.
-          {pickedFavorites > 0 &&
-            ` 대표 이미지 ${pickedFavorites}장이 포함되어 있어 해당 씬의 대표 지정이 풀립니다.`}
-        </p>
-      ),
-      confirmLabel: '삭제',
-      danger: true,
-    }));
+    (await confirmWithSkip(
+      {
+        title: records.length === 1 ? '생성 결과 삭제' : `생성 결과 ${records.length}장 삭제`,
+        message: (
+          <p>
+            {records.length === 1 ? '이 결과' : `결과 ${records.length}장`}의 이미지와 전체 캔버스를
+            Windows 휴지통으로 이동합니다.
+            {pickedFavorites > 0 &&
+              ` 대표 이미지 ${pickedFavorites}장이 포함되어 있어 해당 씬의 대표 지정이 풀립니다.`}
+          </p>
+        ),
+        confirmLabel: '삭제',
+        danger: true,
+      },
+      () => patchSettings((current) => ({ ...current, confirmResultDelete: false })),
+    ));
   if (!ok) return false;
   await run('결과를 삭제하는 중', () =>
     deleteGenerations(
