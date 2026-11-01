@@ -37,8 +37,10 @@ import { autoLineFixOn, buildLineFixJobs } from '../core/model/lineFix';
 import { buildRefineJobs, freeAutoRefine, projectRefineSettings } from '../core/model/refine';
 import { validateOutputFilenameTemplate } from '../core/output/OutputFilename';
 import { modelLabel, supportsInpaint } from '../core/providers/NaiModels';
+import { createElement } from 'react';
+import { AnlasConfirmMessage } from './components/AnlasConfirmMessage';
 import { confirmDialog } from './components/dialogStack';
-import { flushSaves, resolveFreeGeneration, run, toast, useStore } from './store';
+import { flushSaves, resolveFreeGeneration, run, toast, updateLibrary, useStore } from './store';
 import { libraryApi, queueApi } from './desktop';
 import { applyPendingDrawing, saveMask } from './freeImageOps';
 import type { AidValue } from './components/AidChip';
@@ -103,11 +105,25 @@ async function confirmAnlas(jobs: GenerationJobSnapshot[]): Promise<boolean> {
   if (!rule || rule.mode === 'off') return true;
   const anlas = await queueApi().estimateGeneration({ jobs });
   if (anlas <= 0 || (rule.mode === 'over' && anlas < rule.over)) return true;
-  return confirmDialog({
+  let skip = false;
+  const confirmed = await confirmDialog({
     title: 'Anlas 사용 확인',
-    message: `예상 약 ${anlas.toLocaleString()} Anlas가 차감됩니다. 예상값이며 실제 차감량과 다를 수 있습니다.`,
+    message: createElement(AnlasConfirmMessage, {
+      anlas,
+      onSkipChange: (value) => (skip = value),
+    }),
     confirmLabel: '생성',
   });
+  // 취소하면서 고른 「다시 묻지 않음」은 버린다.
+  if (confirmed && skip)
+    updateLibrary((library) => ({
+      ...library,
+      settings: {
+        ...library.settings,
+        anlasConfirm: { ...library.settings.anlasConfirm, mode: 'off' },
+      },
+    }));
+  return confirmed;
 }
 
 /** 씬 상세·자유 생성은 이미지 칸에 생성 대기 수가 보여, 알림이 생성 버튼만 가린다. */
