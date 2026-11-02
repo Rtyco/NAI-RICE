@@ -63,15 +63,12 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
                 />
                 <button
                   className="piece-ref mono"
-                  title="눌러서 참조 복사"
+                  title="참조 복사"
                   onClick={() => void copyText(ref)}
                 >
                   {ref}
                 </button>
-                <label
-                  className="toggle-field compact"
-                  title="같은 seed면 같은 줄 · 빈 줄은 넣지 않음"
-                >
+                <label className="toggle-field compact">
                   <input
                     type="checkbox"
                     checked={piece.multi}
@@ -108,7 +105,7 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
             </div>
           );
         })}
-        {!set.pieces.length && <p className="hint">조각 없음</p>}
+        {!set.pieces.length && <p className="hint">조각이 없습니다.</p>}
       </div>
     </Card>
   );

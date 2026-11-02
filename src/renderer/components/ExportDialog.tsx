@@ -278,7 +278,7 @@ export function ExportDialog({
           ) : (
             selected[0] && (
               <p className="hint">
-                미리보기:{' '}
+                미리 보기:{' '}
                 <code>
                   {fileName(selected[0])}.{format}
                 </code>

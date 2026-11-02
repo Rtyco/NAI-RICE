@@ -492,7 +492,7 @@ export function StorageTab() {
           </button>
           <button onClick={() => void importJsonFromPicker()}>JSON 가져오기</button>
         </div>
-        <p className="hint">생성 이미지는 JSON에 포함되지 않습니다</p>
+        <p className="hint">생성 이미지는 JSON에 포함되지 않습니다.</p>
         <div className="four-column-fields">
           <NumberField
             label="자동 백업 보관 (backups 폴더)"

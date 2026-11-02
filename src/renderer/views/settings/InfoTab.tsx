@@ -46,7 +46,7 @@ export function InfoTab() {
             <Icon name="refresh" /> 지금 확인
           </button>
           <Toggle
-            label="프로그램을 열 때 자동으로 확인"
+            label="시작 시 자동으로 업데이트 확인"
             checked={autoCheck}
             onChange={(value) =>
               patchSettings((current) => ({

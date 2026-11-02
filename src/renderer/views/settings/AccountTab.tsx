@@ -44,7 +44,7 @@ function RequestRetryCard() {
     <Card title="요청 실패">
       <div className="four-column-fields">
         <NumberField
-          label="실패하면 다시 시도"
+          label="실패 시 다시 시도"
           value={requestRetries}
           min={0}
           max={10}
@@ -53,7 +53,7 @@ function RequestRetryCard() {
           onChange={(value) => patchSettings((current) => ({ ...current, requestRetries: value }))}
         />
         <NumberField
-          label="응답 기다리는 시간"
+          label="응답 대기 시간"
           value={requestTimeoutSec}
           min={30}
           max={600}
@@ -74,7 +74,7 @@ function StreamingCard() {
   return (
     <Card title="스트리밍">
       <Toggle
-        label="생성 과정 보기 (스트리밍)"
+        label="생성 과정 표시 (스트리밍)"
         checked={streaming}
         onChange={(value) => patchSettings((current) => ({ ...current, streaming: value }))}
       />
@@ -176,7 +176,7 @@ export function AccountTab() {
           </button>
         </div>
         <Toggle
-          label="V5 무료 할당량을 다 쓰면 다음 계정으로 바꾸기"
+          label="V5 무료 할당량 소진 시 다음 계정으로 전환"
           checked={rotation}
           onChange={(value) => patchSettings((current) => ({ ...current, accountRotation: value }))}
         />

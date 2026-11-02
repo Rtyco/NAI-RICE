@@ -204,7 +204,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
                 ))}
               </div>
             </div>
-            {medium && <p className="hint">네거티브 프롬프트는 보내지 않습니다</p>}
+            {medium && <p className="hint">네거티브 프롬프트는 보내지 않습니다.</p>}
           </>
         )}
       </Card>

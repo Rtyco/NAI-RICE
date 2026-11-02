@@ -64,7 +64,7 @@ export function DrawToolbar(props: {
       <span className="zone-divider" />
       <div
         className="draw-colors"
-        title="전경색·배경색 (X: 바꾸기 · D: 검정·흰색 · Alt+클릭: 스포이트)"
+        title="전경/배경 색상 (X: 전환 · D: 검정·흰색 · Alt+클릭: 스포이트)"
       >
         <input
           type="color"

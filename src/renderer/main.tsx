@@ -22,7 +22,7 @@ function createPreviewApi(): DesktopApi {
     checkedAt: new Date().toISOString(),
   };
   const unsupported = async (): Promise<never> => {
-    throw new Error('브라우저 미리보기에서는 데스크톱 전용 기능을 사용할 수 없습니다.');
+    throw new Error('브라우저 미리 보기에서는 데스크톱 전용 기능을 사용할 수 없습니다.');
   };
   const none = () => () => undefined;
   return {

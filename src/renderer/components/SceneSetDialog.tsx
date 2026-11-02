@@ -210,7 +210,7 @@ export function SceneSetDialog(props: {
           </div>
           {oversized && (
             <Toggle
-              label="무료 면적(1024×1024)을 넘으니 비율을 지켜 줄여 보내기"
+              label="비율을 유지해 무료 면적(1024×1024) 안으로 축소"
               checked={shrink}
               onChange={setShrink}
             />

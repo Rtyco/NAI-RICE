@@ -522,7 +522,7 @@ export function PromptTextarea({
               key={`${issue.start}-${issue.message}`}
               type="button"
               className={`syntax-issue ${issue.level}`}
-              title="눌러서 위치로 이동"
+              title="위치로 이동"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => jump(issue.start)}
             >

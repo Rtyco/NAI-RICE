@@ -87,7 +87,7 @@ export function ListFolder(props: {
         onContextMenu={(event) =>
           showContextMenu(event, [
             { label: folded ? '펼치기' : '접기', accessKey: 'F', onSelect: toggle },
-            { label: '이름 변경', accessKey: 'M', onSelect: () => props.setRenaming(true) },
+            { label: '이름 바꾸기', accessKey: 'M', onSelect: () => props.setRenaming(true) },
             { label: '안의 항목 모두 선택', accessKey: 'A', onSelect: props.onPickAll },
             'divider',
             ...folderColorMenu(props.scope, props.name, color),

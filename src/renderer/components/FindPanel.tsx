@@ -251,7 +251,7 @@ function FindPanelBody() {
     if (!undo) return;
     updateLibrary(() => undo.before);
     useFind.setState({ undo: undefined });
-    toast('바꾸기를 되돌렸습니다.');
+    toast('바꾸기를 실행 취소했습니다.');
   };
 
   const onFindKey = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -356,7 +356,7 @@ function FindPanelBody() {
       {undo && undo.after === library && (
         <div className="find-undo">
           <span>{undo.count}개를 바꿨습니다.</span>
-          <button onClick={undoReplace}>되돌리기</button>
+          <button onClick={undoReplace}>실행 취소</button>
         </div>
       )}
       {!fieldTarget && searching && (

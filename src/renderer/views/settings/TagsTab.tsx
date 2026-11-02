@@ -30,7 +30,7 @@ export function TagsTab() {
     <>
       <Card title="태그 자동완성">
         <Toggle
-          label="태그 후보 보이기"
+          label="태그 후보 표시"
           checked={tagAutocomplete}
           onChange={(value) => patchSettings((current) => ({ ...current, tagAutocomplete: value }))}
         />

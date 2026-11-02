@@ -386,7 +386,7 @@ export function ProjectPromptPanel({ projectId }: { projectId: string }) {
             void openDialog((close) => <PreviewDialog resolved={resolved} close={close} />)
           }
         >
-          <Icon name="info" size={14} /> 최종 요청 미리보기
+          <Icon name="info" size={14} /> 최종 요청 미리 보기
         </button>
       }
     />

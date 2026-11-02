@@ -70,7 +70,7 @@ export function PanelResizer({ panel }: { panel: PanelId }) {
       aria-valuemin={lowestWidth(panel)}
       aria-valuemax={max}
       tabIndex={0}
-      title="끌어서 폭 조절 · 두 번 누르면 기본 폭"
+      title="폭 조절"
       style={{ [side]: `calc(var(${column}, ${initial}px) - 3px)` }}
       onPointerDown={onPointerDown}
       onDoubleClick={() => commitWidth(panel, initial)}

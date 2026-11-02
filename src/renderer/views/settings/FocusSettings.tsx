@@ -37,7 +37,7 @@ export function EdgePeekToggle() {
   const edgePeek = useLibrary().settings.layout.edgePeek;
   return (
     <Toggle
-      label="창 가장자리에 마우스를 대면 숨긴 패널 보이기"
+      label="숨긴 패널 잠깐 보기 (창 가장자리)"
       checked={edgePeek}
       onChange={(value) => patchLayout({ edgePeek: value })}
     />
@@ -72,9 +72,9 @@ export function SimpleUiGrid() {
 const UI_TOGGLES: Array<{ key: Exclude<UiOption, 'simpleUi'>; label: string }> = [
   { key: 'chipEdit', label: '설정 줄 칩 옆 편집 버튼' },
   { key: 'chipNames', label: '설정 줄 칩 이름 (자리가 있을 때)' },
-  { key: 'chipWrap', label: '설정 줄이 넘치면 다음 줄로 넘기기' },
-  { key: 'mediumFold', label: '창이 1280px보다 좁으면 히스토리를 접고 사이드바를 아이콘만 남기기' },
-  { key: 'narrowOverlay', label: '좁은 창(960px 아래)에서 다시 연 패널을 이미지 위에 겹쳐 열기' },
+  { key: 'chipWrap', label: '설정 줄 줄바꿈 (넘칠 때)' },
+  { key: 'mediumFold', label: '좁은 창 패널 접기 (1280px 미만: 히스토리 접기, 사이드바 아이콘만)' },
+  { key: 'narrowOverlay', label: '좁은 창 패널 겹쳐 열기 (960px 미만)' },
 ];
 
 function UiToggle({ option, label }: { option: UiOption; label: string }) {

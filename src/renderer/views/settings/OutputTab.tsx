@@ -50,7 +50,7 @@ export function OutputTab() {
           <p className="field-error">{error}</p>
         ) : (
           <p className="hint">
-            미리보기:{' '}
+            미리 보기:{' '}
             <code>
               {preview}.{settings.storageFormat === 'png' ? 'png' : 'webp'}
             </code>

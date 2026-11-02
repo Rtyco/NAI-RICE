@@ -128,7 +128,7 @@ export function HistoryPanel({ projectId }: { projectId: string }) {
             더 보기 ({records.length - limit}장)
           </button>
         )}
-        {!records.length && !waiting && <p className="hint">결과가 없습니다</p>}
+        {!records.length && !waiting && <p className="hint">결과가 없습니다.</p>}
       </div>
     </aside>
   );

@@ -25,7 +25,7 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
   return [
     { label: '열기', accessKey: 'O', onSelect: actions.open },
     {
-      label: '이름 변경',
+      label: '이름 바꾸기',
       accessKey: 'M',
       disabled: !actions.rename,
       onSelect: () => actions.rename?.(),

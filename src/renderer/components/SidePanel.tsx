@@ -32,7 +32,7 @@ export function SidePanelLayout(props: {
 
 export function SidePanelToggle() {
   const shown = useLayout(sidePanelShownOf);
-  const label = shown ? '입력 패널 숨기기' : '입력 패널 보이기';
+  const label = shown ? '입력 패널 숨기기' : '입력 패널 표시';
   return (
     <button
       className={`icon-button ${shown ? 'active' : ''}`}

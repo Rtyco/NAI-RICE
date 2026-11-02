@@ -60,7 +60,7 @@ export function addEmotionTo(setId: string): string | undefined {
 
 export async function renameEmotion(setId: string, emotion: Emotion): Promise<void> {
   const name = await promptDialog({
-    title: '씬 이름 변경',
+    title: '씬 이름 바꾸기',
     label: '이름',
     initial: emotion.name,
     confirmLabel: '변경',
@@ -219,7 +219,7 @@ export function emotionMenu(
         ),
     },
     'divider',
-    { label: '이름 변경', accessKey: 'M', onSelect: () => void renameEmotion(set.id, emotion) },
+    { label: '이름 바꾸기', accessKey: 'M', onSelect: () => void renameEmotion(set.id, emotion) },
     {
       label: '씬 복제',
       accessKey: 'U',

@@ -268,7 +268,7 @@ export function PreviewDialog({
   const combo = combos.find((item) => item.key === comboKey) ?? combos[0];
   if (!resolved.preset || !resolved.promptSet) {
     return (
-      <Modal title="최종 요청 미리보기" onClose={close}>
+      <Modal title="최종 요청 미리 보기" onClose={close}>
         <p>생성 설정과 캐릭터를 먼저 선택하십시오.</p>
       </Modal>
     );
@@ -281,7 +281,7 @@ export function PreviewDialog({
     generationKindFor(resolved.project.mode),
   );
   return (
-    <Modal title="최종 요청 미리보기" onClose={close} wide>
+    <Modal title="최종 요청 미리 보기" onClose={close} wide>
       {prompts.missingPieces.length > 0 && (
         <p className="hint error-text">
           없는 프롬프트 조각: {prompts.missingPieces.join(', ')} · 생성 불가
@@ -412,7 +412,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
           label="⋯"
           items={[
             {
-              label: '최종 요청 미리보기 (Ctrl+P)',
+              label: '최종 요청 미리 보기 (Ctrl+P)',
               onSelect: openPreview,
             },
             { label: '작업 폴더 열기', onSelect: () => openProjectFolder(project.id) },
