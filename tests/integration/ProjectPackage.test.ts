@@ -5,7 +5,12 @@ import sharp from 'sharp';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Exporter } from '../../electron/services/Exporter';
 import { Library } from '../../electron/services/Library';
-import { importPackageResults, readPackageManifest } from '../../electron/services/PackageImport';
+import {
+  importPackageResults,
+  importSDStudioResults,
+  readPackageManifest,
+} from '../../electron/services/PackageImport';
+import { withMetadata } from '../../electron/services/Images';
 import { readTarEntry, readTarIndex, TarWriter } from '../../electron/services/TarFile';
 import { parseImportFile } from '../../src/core/backup/Backups';
 import { exportSDStudioProject } from '../../src/core/backup/SDStudioFiles';
@@ -162,5 +167,55 @@ describe('이미지 포함 작업 파일', () => {
       scenes: Record<string, { mains: string[]; imageMap: string[] }>;
     };
     expect(saved.scenes[scene]).toMatchObject({ mains: ['a.png'], imageMap: ['a.png', 'c.png'] });
+  });
+});
+
+describe('SD Studio 백업 가져오기', () => {
+  it('씬 폴더의 그림을 그 씬의 결과로 들이고, 생성 정보와 대표 이미지를 읽어', async () => {
+    root = await mkdtemp(path.join(os.tmpdir(), 'sdstudio-'));
+    const library = new Library(root);
+    await library.load();
+    const blank = await sharp({
+      create: { width: 40, height: 60, channels: 3, background: '#ffffff' },
+    })
+      .png()
+      .toBuffer();
+    const { png: tagged } = await withMetadata(blank, {
+      Comment: JSON.stringify({ prompt: '1girl, smile', uc: 'lowres', seed: 1234, steps: 23 }),
+    });
+    const file = path.join(root, 'backup.tar');
+    const writer = await TarWriter.create(file);
+    await writer.add('outs/기쁨/a.png', tagged);
+    await writer.add('outs/기쁨/b.png', blank);
+    await writer.add('outs/없는 씬/c.png', blank);
+    await writer.add('inpaints/인페인트/d.png', blank);
+    await writer.add(
+      'project.json',
+      Buffer.from(JSON.stringify({ scenes: { 기쁨: { mains: ['b.png'], imageMap: [] } } })),
+    );
+    await writer.finish();
+
+    const settings = createDefaultLibrary().presets[0].generation;
+    const imported = await importSDStudioResults(library, {
+      path: file,
+      projectId: 'project-sd',
+      emotions: { 기쁨: { id: 'e1', name: '기쁨' } },
+      defaults: { presetName: 'P', characterName: '아리아', emotionSetName: '씬', settings },
+    });
+    expect(imported.count).toBe(2);
+    const records = await library.listGenerations('project-sd');
+    expect(records.map((item) => [item.emotionId, item.prompt, item.seed])).toEqual([
+      ['e1', '1girl, smile', 1234],
+      ['e1', '', 0],
+    ]);
+    expect(records[0]).toMatchObject({
+      kind: 'txt2img',
+      negativePrompt: 'lowres',
+      width: 40,
+      height: 60,
+      characterName: '아리아',
+      settings: { steps: 23, width: 40, height: 60 },
+    });
+    expect(imported.favorites).toEqual({ e1: records[1].id });
   });
 });

@@ -73,6 +73,7 @@ const api: DesktopApi = {
   pickImportFile: (title) => ipcRenderer.invoke('file:pick-import', title),
   pathForFile: (file) => webUtils.getPathForFile(file),
   readPackage: (filePath) => ipcRenderer.invoke('file:read-package', filePath),
+  importSDStudioResults: (request) => ipcRenderer.invoke('file:import-sdstudio-results', request),
   importPackageResults: (request) => ipcRenderer.invoke('file:import-package-results', request),
   exportReference: (reference) => ipcRenderer.invoke('file:export-reference', reference),
   exportLibrary: (library) => ipcRenderer.invoke('file:export-library', library),

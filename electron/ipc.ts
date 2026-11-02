@@ -6,6 +6,7 @@ import {
   packageResultsRequestSchema,
   projectPackageRequestSchema,
   sdStudioPackageRequestSchema,
+  sdStudioResultsRequestSchema,
   sheetExportRequestSchema,
   generationFindRequestSchema,
 } from '../src/core/validation/schemas';
@@ -21,7 +22,11 @@ import type {
 } from '../src/shared/ipc';
 import type { AccountService } from './services/AccountService';
 import type { Exporter } from './services/Exporter';
-import { importPackageResults, readPackageManifest } from './services/PackageImport';
+import {
+  importPackageResults,
+  importSDStudioResults,
+  readPackageManifest,
+} from './services/PackageImport';
 import type { FilePicker } from './services/FilePicker';
 import type { GenerationQueue } from './services/GenerationQueue';
 import type { GenerationRequests } from './services/GenerationRequests';
@@ -202,6 +207,9 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('file:import-package-results', (_event, request: unknown) => {
     return importPackageResults(library, packageResultsRequestSchema.parse(request));
   });
+  ipcMain.handle('file:import-sdstudio-results', (_event, request: unknown) =>
+    importSDStudioResults(library, sdStudioResultsRequestSchema.parse(request)),
+  );
   ipcMain.handle('file:export-sheet', (_event, request: unknown) =>
     exporter.exportSheet(sheetExportRequestSchema.parse(request)),
   );

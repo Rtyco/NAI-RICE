@@ -2,6 +2,7 @@ import type {
   ExportFormat,
   GenerationKind,
   GenerationRecord,
+  GenerationSettings,
   GenerationSummary,
   GenerationJobSnapshot,
   Library,
@@ -201,6 +202,23 @@ export type PackageResultsRequest = {
   records: GenerationRecord[];
 };
 
+export type SDStudioResultsRequest = {
+  path: string;
+  projectId: string;
+  /** SD Studio 씬 이름(결과 폴더 이름) → 이 작업의 씬 */
+  emotions: Record<string, { id: string; name: string }>;
+  /** 메타데이터에 없는 값 */
+  defaults: {
+    presetName: string;
+    characterName: string;
+    emotionSetName: string;
+    settings: GenerationSettings;
+  };
+};
+
+/** `favorites`: 씬 ID → 결과 ID (SD Studio 대표 이미지) */
+export type SDStudioResultsImport = { count: number; favorites: Record<string, string> };
+
 /** `idMap`: 묶음 안 결과 ID → 새 결과 ID. 가져오지 못한 결과는 없다. */
 export type PackageResultsImport = { idMap: Record<string, string>; count: number };
 
@@ -301,6 +319,7 @@ export type FileApi = {
   /** 묶음 안 project.json */
   readPackage: (path: string) => Promise<string>;
   importPackageResults: (request: PackageResultsRequest) => Promise<PackageResultsImport>;
+  importSDStudioResults: (request: SDStudioResultsRequest) => Promise<SDStudioResultsImport>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
   /** NAI RICE 작업 파일. 작업이 쓰는 라이브러리 항목과 그림을 함께 넣는다. */

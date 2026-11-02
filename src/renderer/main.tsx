@@ -75,6 +75,7 @@ function createPreviewApi(): DesktopApi {
     pathForFile: () => '',
     readPackage: async () => '',
     importPackageResults: async () => ({ idMap: {}, count: 0 }),
+    importSDStudioResults: async () => ({ count: 0, favorites: {} }),
     exportReference: async () => null,
     exportLibrary: async () => null,
     exportProject: async () => null,

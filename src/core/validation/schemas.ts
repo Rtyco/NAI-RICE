@@ -748,6 +748,18 @@ export const packageResultsRequestSchema = z.object({
   records: z.array(generationRecordSchema.extend({ file: z.string().startsWith('results/') })),
 });
 
+export const sdStudioResultsRequestSchema = z.object({
+  path: z.string().regex(/.tar$/i),
+  projectId: z.string().regex(FOLDER_ID),
+  emotions: z.record(z.string(), z.object({ id: z.string(), name: z.string() })),
+  defaults: z.object({
+    presetName: z.string(),
+    characterName: z.string(),
+    emotionSetName: z.string(),
+    settings: generationSettingsSchema,
+  }),
+});
+
 export const sheetExportRequestSchema = z.object({
   name: z.string(),
   png: z.instanceof(Uint8Array),

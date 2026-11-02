@@ -106,13 +106,45 @@ async function importPackageResults(
       idMap[id] ? [[emotionId, idMap[id]]] : [],
     ),
   );
+  setFavorites(results.projectId, favorites);
+  await loadGenerations(results.projectId);
+  toast(`생성 결과 ${count}장을 가져왔습니다.`);
+}
+
+function setFavorites(projectId: string, favorites: Record<string, string>): void {
   updateLibrary((current) => ({
     ...current,
     projects: current.projects.map((project) =>
-      project.id === results.projectId ? { ...project, favorites } : project,
+      project.id === projectId ? { ...project, favorites } : project,
     ),
   }));
-  await loadGenerations(results.projectId);
+}
+
+/** 합친 뒤의 라이브러리에서 씬을 찾는다(같은 이름 항목을 덮어쓰기로 골랐을 수 있다). */
+async function importSDStudioResults(path: string, projectId: string): Promise<void> {
+  const library = useStore.getState().library;
+  const project = library?.projects.find((item) => item.id === projectId);
+  const set = library?.emotionSets.find((item) => item.id === project?.emotionSetId);
+  const preset = library?.presets.find((item) => item.id === project?.presetId);
+  if (!library || !project || !set || !preset) return;
+  const character = library.characters.find(
+    (item) => item.id === project.characters[0]?.characterId,
+  );
+  const { count, favorites } = await fileApi().importSDStudioResults({
+    path,
+    projectId,
+    emotions: Object.fromEntries(
+      set.emotions.map((emotion) => [emotion.name, { id: emotion.id, name: emotion.name }]),
+    ),
+    defaults: {
+      presetName: preset.name,
+      characterName: character?.name ?? '',
+      emotionSetName: set.name,
+      settings: preset.generation,
+    },
+  });
+  setFavorites(projectId, favorites);
+  await loadGenerations(projectId);
   toast(`생성 결과 ${count}장을 가져왔습니다.`);
 }
 
@@ -120,11 +152,9 @@ export async function importPackage(path: string, fileName: string): Promise<voi
   const library = useStore.getState().library;
   if (!library) return;
   if (!path) throw new Error(`파일 위치를 알 수 없습니다: ${fileName}`);
-  const bundle = parseImportFile(
-    await fileApi().readPackage(path),
-    fileName,
-    library.presets[0].id,
-  );
+  const raw = await fileApi().readPackage(path);
+  const sdStudio = (JSON.parse(raw) as { kind?: unknown }).kind === undefined;
+  const bundle = parseImportFile(raw, fileName, library.presets[0].id);
   void openDialog((close) => (
     <ImportReviewDialog
       bundle={bundle}
@@ -135,6 +165,8 @@ export async function importPackage(path: string, fileName: string): Promise<voi
           const results = chosen.results;
           if (results && chosen.projects.some((project) => project.id === results.projectId))
             await importPackageResults(path, results);
+          else if (sdStudio && chosen.projects[0])
+            await importSDStudioResults(path, chosen.projects[0].id);
         })
       }
     />
