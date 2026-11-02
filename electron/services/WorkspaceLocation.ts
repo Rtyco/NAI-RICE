@@ -74,7 +74,7 @@ async function assertWritable(folder: string): Promise<void> {
 
 /**
  * 고른 폴더가 비었으면 그대로, 아니면 그 안의 `NAI RICE`를 쓴다. library.json이 있으면 그 데이터를 쓴다.
- * 없는 폴더는 부모가 있으면 새로 만든다(확인 때 정한 `NAI RICE`나 지운 기본 위치를 다시 넘겨받는다).
+ * 없는 폴더는 부모가 있으면 만든다(확인 때 정한 `NAI RICE`, 지운 기본 위치).
  */
 export async function planMove(current: string, picked: string): Promise<WorkspaceMovePlan> {
   let chosen = path.resolve(picked);

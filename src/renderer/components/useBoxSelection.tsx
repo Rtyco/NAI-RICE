@@ -25,10 +25,7 @@ function isCtrl(event: KeyboardEvent, key: string): boolean {
   return event.ctrlKey && !event.shiftKey && !event.altKey && event.key.toLowerCase() === key;
 }
 
-/**
- * 항목은 data-select-id 요소이고, 항목 위에서 끌면 원래 동작(순서 바꾸기)을 쓴다. `selectAllKey`는 본문 목록 하나에만 준다(늘 떠 있는 사이드바에 주면 함께
- * 골라진다).
- */
+/** 항목 위에서 끌면 순서 바꾸기다. `selectAllKey`는 본문 목록 하나에만 준다(사이드바에도 주면 함께 골라진다). */
 export function useBoxSelection<T extends HTMLElement>(
   ids: string[],
   onDelete: (ids: string[]) => void,

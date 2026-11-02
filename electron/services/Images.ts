@@ -189,10 +189,7 @@ export function formatFromExtension(filePath: string): ExportFormat {
   return 'png';
 }
 
-/**
- * 64 배수 캔버스(`area`는 여백을 뺀 결과 영역)에서 구분선을 찾아 마스크 PNG를 만든다. 없으면 undefined.
- * 마스크는 화면이 칠하는 것과 같은 흰색·검은색이고, `base`(같은 크기의 마스크)에 더한다.
- */
+/** `area`는 64 배수 여백을 뺀 결과 영역. 선이 없으면 undefined. 마스크(화면과 같은 흰·검정)는 `base`에 더한다. */
 export async function findBorderLineMask(
   png: Buffer,
   area: Rect,

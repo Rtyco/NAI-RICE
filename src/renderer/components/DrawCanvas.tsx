@@ -49,8 +49,8 @@ function stamp(
 }
 
 /**
- * NovelAI 웹 Draw처럼 바탕 위 별도 층에 그린다. 바탕·그린 것·지금 획을 캔버스 세 장으로 겹쳐 매 프레임 전체를 다시 그리지 않는다. 획 불투명도는 CSS로 보이고 손을 뗄 때
- * 합친다.
+ * NovelAI 웹 Draw처럼 바탕 위 별도 층. 캔버스 세 장(바탕·그린 것·지금 획)이라 매 프레임 전체를 다시 그리지 않는다.
+ * 획 불투명도는 손을 뗄 때 합친다(그 전에는 CSS).
  */
 export function DrawCanvas(props: {
   base: CanvasImage;

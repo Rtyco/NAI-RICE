@@ -79,10 +79,7 @@ export class AccountService {
     return this.tokenOf(this.list.activeId);
   }
 
-  /**
-   * 사용 중인 계정에 V5 할당량이 없어 Anlas가 들 작업이면, 목록에서 그다음부터 할당량이 남은 계정을
-   * 찾아 바꾼다. 한 번에 한 계정만 쓴다.
-   */
+  /** V5 할당량이 없어 Anlas가 들 작업이면 목록에서 다음으로 할당량이 남은 계정으로 바꾼다. */
   async tokenFor(job: CostJob): Promise<string> {
     await this.load();
     const { activeId, accounts } = this.list;

@@ -1,10 +1,7 @@
 import { useEffect, type RefObject } from 'react';
 import { edgeScrollStep } from './edgeScroll';
 
-/**
- * 기본(HTML5) 끌기 중에는 포인터 이벤트가 오지 않아 dragover 위치로 가장자리 스크롤을 한다. 포인터가 멈춰도
- * 매 프레임 이어 가고, 더 움직이지 않거나 끌기가 끝나면 멈춘다.
- */
+/** HTML5 끌기 중에는 포인터 이벤트가 오지 않아 dragover 위치를 쓴다. 포인터가 멈춰도 매 프레임 이어 간다. */
 export function useDragEdgeScroll(scroller: RefObject<HTMLElement | null>, type: string): void {
   useEffect(() => {
     let y: number | undefined;

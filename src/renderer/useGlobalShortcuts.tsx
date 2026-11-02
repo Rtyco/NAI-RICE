@@ -76,10 +76,7 @@ async function refreshView(): Promise<void> {
   toast('새로 고쳤습니다.');
 }
 
-/**
- * 창 단위 단축키(F11, Ctrl +/-/0·휠 확대, Ctrl+W)는 메인 프로세스가 처리한다. 창이 열려 있으면 화면 이동은 하지 않고, Anlas를 쓰는 동작에는 단축키를 두지
- * 않는다.
- */
+/** F11, Ctrl +/-/0·휠 확대, Ctrl+W는 메인 프로세스가 받는다. Anlas를 쓰는 동작에는 단축키를 두지 않는다. */
 export function useGlobalShortcuts(): void {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
