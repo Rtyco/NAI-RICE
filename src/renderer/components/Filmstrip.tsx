@@ -74,7 +74,7 @@ export function Filmstrip(props: {
   );
 }
 
-/** 필름 스트립과 모아 보기의 결과 한 칸. `children`은 이미지. */
+/** `children`은 이미지 */
 export function ResultOption(props: {
   record: GenerationSummary;
   browser: ResultBrowser;

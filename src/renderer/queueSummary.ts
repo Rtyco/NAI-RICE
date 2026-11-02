@@ -17,7 +17,6 @@ export const STATUS: Record<string, string> = {
 const update = (label: string, action: () => Promise<QueueView>) =>
   run(label, async () => useStore.setState({ queue: await action() }));
 
-/** 생성 큐 막대와 떠 있는 창이 함께 쓴다. */
 export const queueCommands = {
   resume: () => update('큐를 재개하는 중', () => queueApi().resumeQueue()),
   pause: () => update('큐를 일시 중지하는 중', () => queueApi().pauseQueue()),

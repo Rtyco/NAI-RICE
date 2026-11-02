@@ -20,7 +20,6 @@ import { PieceSetEditor } from './PieceSetEditor';
 import { PresetEditor } from './PresetEditor';
 import { UsedBy } from './UsedBy';
 
-/** 라이브러리 화면과 편집 팝업이 함께 쓴다. */
 export function LibraryItemEditor({ section, item }: { section: LibrarySection; item: Item }) {
   if (section === 'presets') return <PresetEditor preset={item as Preset} />;
   if (section === 'characters') return <CharacterEditor character={item as Character} />;

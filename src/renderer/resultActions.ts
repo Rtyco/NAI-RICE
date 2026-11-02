@@ -16,7 +16,6 @@ export function revealResult(projectId: string, record: GenerationSummary): void
   void run('폴더를 여는 중', () => libraryApi().showGeneration(projectId, record.id));
 }
 
-/** 씬 상세와 자유 생성 결과에 똑같이 있는 동작 */
 export function commonResultActions(
   projectId: string,
   record: GenerationSummary,

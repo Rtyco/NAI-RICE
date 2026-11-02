@@ -45,11 +45,9 @@ const FOLDS: Record<FoldPanel, { key: string; part?: FocusPart }> = {
 export type LayoutState = {
   sidebarStage: PanelStage;
   libraryListStage: PanelStage;
-  /** 작업·자유 생성 화면이 함께 쓴다. */
   promptPanelStage: PanelStage;
   filmstripCollapsed: boolean;
   historyCollapsed: boolean;
-  /** 씬 상세·자유 생성·인페인트 편집이 함께 쓴다. */
   sidePanelCollapsed: boolean;
   /** 설정 칩 줄과 씬 이동 줄 */
   topBarCollapsed: boolean;
