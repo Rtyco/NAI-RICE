@@ -20,7 +20,7 @@ import type { TokenStore } from '../../electron/services/ports';
 let root: string;
 let queues: GenerationQueue[] = [];
 afterEach(async () => {
-  // 큐는 완료로 바꾼 뒤에 저장한다. 그 저장 중에 임시 폴더를 지우면 큐에서 처리되지 않은 오류가 난다.
+  // 완료 뒤 저장 중에 임시 폴더를 지우면 처리되지 않은 오류가 난다.
   await Promise.all(queues.map((queue) => queue.pause()));
   queues = [];
   await rm(root, { recursive: true, force: true });

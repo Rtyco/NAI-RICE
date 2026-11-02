@@ -9,7 +9,7 @@ import {
   tarPadding,
 } from '../../src/core/backup/Tar';
 
-/** 임시 파일에 쓰고 끝나면 이름을 바꾼다. 결과가 수백 MB일 수 있어 한 파일씩 쓴다. */
+/** 결과가 수백 MB일 수 있어 메모리에 모으지 않고 한 파일씩 쓴다. */
 export class TarWriter {
   private constructor(
     private readonly handle: fs.FileHandle,
@@ -40,7 +40,6 @@ export class TarWriter {
   }
 }
 
-/** `fill`이 실패하면 쓰던 임시 파일을 지운다. */
 export async function writeTar(
   filePath: string,
   fill: (writer: TarWriter) => Promise<void>,
@@ -57,7 +56,7 @@ export async function writeTar(
 
 export type TarEntry = { offset: number; size: number };
 
-/** 이름 → 내용 위치. 내용은 읽지 않고 헤더만 따라간다. */
+/** 이름 → 내용 위치. 수백 MB일 수 있어 헤더만 읽는다. */
 export async function readTarIndex(filePath: string): Promise<Map<string, TarEntry>> {
   const handle = await fs.open(filePath, 'r');
   const entries = new Map<string, TarEntry>();

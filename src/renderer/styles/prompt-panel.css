@@ -17,9 +17,8 @@
 .prompt-panel-view > .history-panel {
   grid-column: 3;
 }
-/* 여닫는 동안 칸 폭만 움직이고 내용은 열린 폭으로 둔 채 잘라 보인다. 프레임마다 프롬프트 칸과 히스토리를
-   다시 배치하면 씬 300개 갤러리에서 한 프레임이 15~22ms였다. 1px = 테두리.
-   겹쳐 연 패널(.stage-hidden, 가장자리 보기·휴대폰 폭)은 칸 폭과 달라 빼야 잘리지 않는다. */
+/* 여닫는 동안 내용을 다시 배치하면 씬 300개에서 프레임당 15~22ms였다. 1px = 테두리.
+   겹쳐 연 패널(.stage-hidden: 가장자리 보기·휴대폰 폭)은 칸보다 좁아 빼야 잘리지 않는다. */
 .prompt-panel-view > .prompt-panel:not(.stage-hidden) > * {
   min-width: calc(var(--prompt-panel-column, 300px) - 1px);
 }

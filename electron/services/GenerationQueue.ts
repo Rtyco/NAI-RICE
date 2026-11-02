@@ -416,7 +416,7 @@ export class GenerationQueue {
     }
   }
 
-  /** 결과는 이미 저장했다. 여기서 난 오류를 생성 실패로 다루면 완료한 작업을 실패로 바꾸다 던져 큐가 멈춘다. */
+  /** 결과는 이미 저장했다. 여기 오류를 생성 실패로 넘기면 완료한 작업을 실패로 바꾸려다 던져 큐가 멈춘다. */
   private async announceCompleted(
     job: QueuedGenerationJob,
     records: GenerationRecord[],

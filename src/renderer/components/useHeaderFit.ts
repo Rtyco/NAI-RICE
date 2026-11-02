@@ -28,7 +28,7 @@ function useFitLevels(
       for (let next = 1; next <= levels; next++)
         container.classList.toggle(`fit-${next}`, next <= level);
     };
-    // 지금 단계에서 한 단계씩 옮긴다. 패널을 여닫는 동안 프레임마다 0단계부터 다시 붙이면 단계 수만큼 강제 배치가 생긴다.
+    // 0단계부터 다시 붙이면 패널을 여닫는 동안 프레임마다 단계 수만큼 강제 배치가 생긴다.
     const fit = () => {
       let level = Math.min(levels, Math.max(start, fitLevel(container)));
       show(level);

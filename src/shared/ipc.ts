@@ -219,7 +219,7 @@ export type SDStudioResultsRequest = {
 /** `favorites`: 씬 ID → 결과 ID (SD Studio 대표 이미지) */
 export type SDStudioResultsImport = { count: number; favorites: Record<string, string> };
 
-/** `idMap`: 묶음 안 결과 ID → 새 결과 ID. 가져오지 못한 결과는 없다. */
+/** `idMap`: 묶음 안 결과 ID → 새 결과 ID. 가져오지 못한 결과는 빠진다. */
 export type PackageResultsImport = { idMap: Record<string, string>; count: number };
 
 /** `text`는 JSON일 때만. 묶음(tar)은 경로만 돌려준다. */

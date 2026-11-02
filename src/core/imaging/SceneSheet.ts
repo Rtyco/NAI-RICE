@@ -1,4 +1,4 @@
-/** WebP가 받는 가장 긴 변. */
+/** WebP 한 변의 한도 */
 export const MAX_SHEET_SIDE = 16383;
 
 export type SheetLayout = {
@@ -6,14 +6,13 @@ export type SheetLayout = {
   height: number;
   cellWidth: number;
   imageHeight: number;
-  /** 이미지 아래 이름 줄 */
   labelHeight: number;
   fontSize: number;
-  /** 칸 왼쪽 위, 왼쪽에서 오른쪽으로 채운다. */
+  /** 칸 왼쪽 위 */
   cells: Array<{ x: number; y: number }>;
 };
 
-/** `aspect`는 높이/너비. 이미지마다 다르면 가장 큰 값을 넘겨 어느 것도 잘리지 않게 한다. */
+/** `aspect`는 높이/폭. 이미지마다 다르면 가장 큰 값을 넘겨야 잘리지 않는다. */
 export function sheetLayout(
   count: number,
   columns: number,

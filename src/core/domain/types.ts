@@ -458,15 +458,14 @@ export type AppSettings = {
   accountRotation: boolean;
   /** 큐에 넣기 전 예상 Anlas를 묻는 기준. over는 `over` Anlas 이상일 때만. */
   anlasConfirm: { mode: 'off' | 'any' | 'over'; over: number };
-  /** 창이 앞에 없을 때 큐가 끝나면 Windows 알림 */
+  /** 창이 뒤에 있을 때만 */
   notifyWhenDone: boolean;
-  /** 창이 앞에 없을 때 큐가 끝나면 작업 표시줄 깜박임 */
+  /** 창이 뒤에 있을 때만 */
   flashWhenDone: boolean;
-  /** 생성 중 작업 표시줄 아이콘의 진행 막대 */
   taskbarProgress: boolean;
   /** 결과 삭제(휴지통) 전에 묻는다. 씬 단위 「결과만 삭제」는 늘 묻는다. */
   confirmResultDelete: boolean;
-  /** 지금 화면 밖의 씬을 큐에 넣으면 토스트로 알린다. */
+  /** 화면 밖 씬을 큐에 넣었을 때의 토스트 */
   notifyEnqueued: boolean;
   /** 앱을 열 때 남기는 library.json 자동 백업 수 */
   keepBackups: number;
@@ -503,7 +502,7 @@ export type AppSettings = {
     skippedVersion: string;
     /** 바뀐 점 안내까지 확인한 앱 버전. 비면 1.1.1 이하에서 올라왔다. */
     seenVersion: string;
-    /** 끄면 seenVersion만 올리고 창은 띄우지 않는다. */
+    /** 꺼도 seenVersion은 올린다. */
     showWhatsNew: boolean;
   };
 };

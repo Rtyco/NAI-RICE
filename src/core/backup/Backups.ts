@@ -80,7 +80,7 @@ const formats = {
       library: librarySchema.pick(PROJECT_PARTS),
       images: z.record(z.string(), imagesSchema).default({}),
       pictures: z.record(z.string(), z.string()).default({}),
-      // 이미지 포함 작업 파일(tar)만. `file`은 묶음 안 경로다.
+      // 작업 묶음(tar)에만 있다. `file`은 묶음 안 경로.
       results: z.array(generationRecordSchema).default([]),
     }),
   ),
@@ -123,7 +123,7 @@ export type ImportBundle = {
   images: Record<string, ReferenceImagesData>;
   /** 파일 이름 → data URL. 내용 해시 이름이다. */
   pictures: Record<string, string>;
-  /** 이미지 포함 작업 파일의 결과. `projectId`는 새 ID, `favorites`는 원래 작업의 씬 ID → 결과 ID다. */
+  /** `projectId`는 새 ID, `favorites`는 씬 ID → 묶음 안 결과 ID. */
   results?: { projectId: string; records: GenerationRecord[]; favorites: Record<string, string> };
   warnings: string[];
 };

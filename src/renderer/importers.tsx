@@ -91,7 +91,7 @@ export async function importJsonText(raw: string, fileName: string): Promise<voi
   ));
 }
 
-/** 결과 ID가 새로 붙으므로 대표 이미지도 새 ID로 옮긴다. */
+/** 결과 ID가 새로 붙어 대표 이미지도 새 ID로 옮긴다. */
 async function importPackageResults(
   path: string,
   results: NonNullable<ImportBundle['results']>,

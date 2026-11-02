@@ -1,7 +1,7 @@
 import type { QueuedGenerationJob, QueueJobView, QueueSnapshot, QueueView } from '../domain/types';
 import { isActive } from './JobLifecycle';
 
-/** 모델이나 크기를 바꾸면 걸리는 시간도 바뀌어 최근 작업만 잰다. */
+/** 모델이나 크기를 바꾸면 걸리는 시간도 바뀌어 최근 작업만 센다. */
 const RECENT_JOBS = 10;
 
 type TimedJob = Pick<
@@ -9,7 +9,7 @@ type TimedJob = Pick<
   'status' | 'startedAt' | 'completedAt' | 'lineFix' | 'refine'
 >;
 
-/** 구분선 지우기는 선을 찾은 결과만 해서 최대치다. 구분선 지우기 작업은 다듬기를 달고 간다. */
+/** 최대치: 구분선 지우기는 선을 찾은 결과만 하고, 지운 결과마다 다듬기가 붙는다. */
 function followUpCount(job: TimedJob): number {
   const refine = job.refine?.count ?? 0;
   return job.lineFix ? job.lineFix.count * (1 + refine) : refine;

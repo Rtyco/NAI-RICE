@@ -76,7 +76,7 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
 }
 
 const DRAG_TYPE = 'application/x-emotion';
-// 카드 하나가 바뀌어도 격자 전체를 다시 배치한다(씬 300개에서 동작마다 약 12ms). 몇 줄씩 묶으면 바뀐 묶음만 배치한다.
+// 카드 하나가 바뀌어도 격자 전체를 다시 배치한다(씬 300개에서 약 12ms). 묶으면 바뀐 묶음만 배치한다.
 const CHUNK_ROWS = 4;
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
@@ -254,7 +254,7 @@ export function GalleryView({
       if (group) group.push(job);
       else groups.set(job.emotionId, [job]);
     }
-    // 큐 갱신마다 작업 객체가 새로 온다. 상태가 그대로인 씬은 앞의 배열을 써야 카드가 다시 그려지지 않는다.
+    // 큐 갱신마다 작업 객체가 새로 온다. 상태가 같으면 앞 배열을 써야 카드를 다시 그리지 않는다.
     for (const [id, group] of groups) {
       const before = shownJobs.current.get(id);
       if (before && sameJobs(before, group)) groups.set(id, before);

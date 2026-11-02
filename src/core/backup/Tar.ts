@@ -41,7 +41,7 @@ function paxRecord(key: string, value: string): Uint8Array {
   return encoder.encode(`${length} ${key}=${value}\n`);
 }
 
-/** 파일 하나의 헤더(필요하면 PAX 헤더와 그 내용까지). 뒤에 내용과 `tarPadding(size)`를 붙인다. */
+/** PAX 헤더가 필요하면 그 내용까지 든다. 뒤에 내용과 `tarPadding(size)`를 붙여 쓴다. */
 export function tarFileHeader(name: string, size: number, mtime = new Date()): Uint8Array {
   const plain = /^[\x20-\x7e]*$/.test(name) && name.length <= 100;
   const fallback = name.replace(/[^\x20-\x7e]/g, '_').slice(-100);

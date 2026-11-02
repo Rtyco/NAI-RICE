@@ -235,7 +235,7 @@ export class Exporter {
     );
   }
 
-  /** 작업 파일과 고른 결과를 tar 하나로. 결과 기록의 `file`은 묶음 안 경로가 된다. */
+  /** 결과 기록의 `file`은 묶음 안 경로로 바꾼다. */
   async exportProjectPackage(request: ProjectPackageRequest): Promise<string | null> {
     const part = projectLibrary(request.library, request.projectId);
     const records = await this.library.listGenerations(request.projectId);
@@ -283,7 +283,7 @@ export class Exporter {
     return filePath;
   }
 
-  /** SD Studio 백업과 같은 구성: project.json, outs/<씬 이름>/<파일>. 대표 이미지는 씬의 `mains`에 적는다. */
+  /** SD Studio 프로젝트 백업 구성: project.json, outs/<씬 이름>/<파일>. 대표 이미지는 씬의 `mains`. */
   async exportSDStudioPackage(request: SDStudioPackageRequest): Promise<string | null> {
     const records = await this.library.listGenerations(request.projectId);
     const byId = new Map(records.map((record) => [record.id, record]));

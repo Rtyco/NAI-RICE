@@ -178,7 +178,7 @@ export type PromptTokenState =
 
 /**
  * 씬이 여럿이면 가장 긴 씬. 입력이 멈추고 0.25초 뒤에 센다.
- * `scenes`도 그때 부른다: 모든 씬의 요청 프롬프트를 키마다 만들면 씬 300개에서 키 하나에 약 4ms가 든다.
+ * `scenes`도 그때 부른다. 키마다 부르면 씬 300개에서 약 4ms다.
  */
 export function usePromptTokens(
   model: string | undefined,

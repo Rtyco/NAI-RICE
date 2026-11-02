@@ -25,7 +25,6 @@ type PackageStore = Pick<
   'projectDir' | 'emotionOutputDir' | 'toProjectRelative' | 'addGenerations'
 >;
 
-/** 결과 폴더와 thumbs에 쓰고 작업 폴더 기준 경로를 돌려준다. */
 async function saveResult(
   store: PackageStore,
   projectId: string,
@@ -55,7 +54,7 @@ export async function readPackageManifest(filePath: string): Promise<string> {
   return (await readTarEntry(filePath, entry)).toString('utf8');
 }
 
-/** 결과 ID는 새로 받는다. 같은 묶음을 두 번 가져와도 다른 작업의 결과와 ID가 겹치지 않는다. */
+/** 결과 ID는 새로 받는다. 같은 묶음을 두 번 가져와도 ID가 겹치지 않는다. */
 export async function importPackageResults(
   store: PackageStore,
   request: PackageResultsRequest,
@@ -102,7 +101,7 @@ async function decodePixels(bytes: Buffer) {
   return { data, width: info.width, height: info.height };
 }
 
-/** `outs/<씬>/`의 그림을 그 씬의 결과로 들인다. 생성 정보는 그림의 NovelAI 메타데이터(텍스트, 없으면 stealth)에서 읽는다. */
+/** 생성 정보는 그림의 NovelAI 메타데이터(텍스트, 없으면 stealth)에서 읽는다. */
 export async function importSDStudioResults(
   store: PackageStore,
   request: SDStudioResultsRequest,
