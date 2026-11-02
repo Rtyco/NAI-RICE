@@ -59,7 +59,6 @@ const api: DesktopApi = {
   showGeneration: (id, generationId) =>
     ipcRenderer.invoke('library:show-generation', id, generationId),
 
-  openJsonFile: (title) => ipcRenderer.invoke('file:open-json', title),
   saveJsonFile: (data, name, title) => ipcRenderer.invoke('file:save-json', data, name, title),
   saveTextFile: (text, name, title) => ipcRenderer.invoke('file:save-text', text, name, title),
   openImageFile: () => ipcRenderer.invoke('file:open-image'),

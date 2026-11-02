@@ -165,9 +165,6 @@ export function registerIpc(services: AppServices): void {
     workspace.showGeneration(id, generationId),
   );
 
-  ipcMain.handle('file:open-json', (_event, title: string) =>
-    files.pickJson(title || 'JSON 파일 선택'),
-  );
   ipcMain.handle('file:save-json', (_event, data: unknown, name: string, title: string) =>
     exporter.saveJson(data, name, title || 'JSON 파일 저장'),
   );

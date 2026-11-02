@@ -27,20 +27,6 @@ export class FilePicker {
     return { filePath, buffer };
   }
 
-  async pickJson(title: string): Promise<OpenTextFileResult | null> {
-    const picked = await this.pick(
-      title,
-      { name: 'JSON', extensions: ['json'] },
-      '100MB를 초과하는 JSON은 가져올 수 없습니다.',
-    );
-    if (!picked) return null;
-    return {
-      path: picked.filePath,
-      name: path.basename(picked.filePath),
-      text: picked.buffer.toString('utf8'),
-    };
-  }
-
   /** 묶음(tar)은 수백 MB일 수 있어 읽지 않고 경로만 돌려준다. */
   async pickImport(title: string): Promise<ImportFilePick | null> {
     const result = await this.dialog.showOpenDialog({

@@ -61,7 +61,6 @@ function createPreviewApi(): DesktopApi {
     mediaUrl: () => '',
     openInExplorer: async () => undefined,
     showGeneration: async () => undefined,
-    openJsonFile: async () => null,
     saveJsonFile: async () => null,
     saveTextFile: async () => null,
     openImageFile: async () => null,
