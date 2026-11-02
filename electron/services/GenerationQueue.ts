@@ -395,14 +395,11 @@ export class GenerationQueue {
         () => controller.abort(),
         this.dependencies.requestTimeoutMs?.() ?? DEFAULT_SETTINGS.requestTimeoutSec * 1000,
       );
+      let records: GenerationRecord[];
       try {
-        const records = await this.generateOnce(job, controller.signal);
+        records = await this.generateOnce(job, controller.signal);
         for (const record of records) await this.dependencies.library.addGeneration(record);
         complete(job, { generationId: records[0].id, anlasSpent: records[0].anlasSpent });
-        await this.commit();
-        for (const record of records) this.dependencies.onRecord(record);
-        await this.addFollowUps(job, records);
-        return;
       } catch (error) {
         // 진행 중 표시를 풀기 전에 기다려야 기다리는 동안에도 취소할 수 있다.
         if (await this.retryAfterFailure(job, error)) continue;
@@ -414,6 +411,23 @@ export class GenerationQueue {
           this.activeJobId = undefined;
         }
       }
+      await this.announceCompleted(job, records);
+      return;
     }
+  }
+
+  /** 결과는 이미 저장했다. 여기서 난 오류를 생성 실패로 다루면 완료한 작업을 실패로 바꾸다 던져 큐가 멈춘다. */
+  private async announceCompleted(
+    job: QueuedGenerationJob,
+    records: GenerationRecord[],
+  ): Promise<void> {
+    try {
+      await this.commit();
+    } catch (error) {
+      console.warn('큐 파일을 저장하지 못했습니다. 다음 저장에 함께 씁니다.', error);
+      this.dependencies.emit(toQueueView(this.snapshot));
+    }
+    for (const record of records) this.dependencies.onRecord(record);
+    await this.addFollowUps(job, records);
   }
 }

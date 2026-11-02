@@ -167,6 +167,7 @@ describe('GenerationQueue 실패 처리', () => {
     followUps?: 'refine' | 'broken',
     result?: Buffer,
     maxAttempts?: number,
+    emit: (view: QueueView) => void = () => undefined,
   ) {
     root = await mkdtemp(path.join(os.tmpdir(), 'queue-'));
     const library = new Library(root);
@@ -191,7 +192,7 @@ describe('GenerationQueue 실패 처리', () => {
         },
       },
       token: async () => 'token',
-      emit: () => undefined,
+      emit,
       onRecord: () => undefined,
       ...(maxAttempts && { maxAttempts: () => maxAttempts }),
       ...(followUps && {
@@ -228,6 +229,19 @@ describe('GenerationQueue 실패 처리', () => {
     expect(calls()).toBe(2);
     expect(job().attempts).toBe(2);
   }, 10_000);
+
+  it('완료한 뒤 큐 저장이 실패해도 다시 생성하지 않고 다음 작업으로 넘어가', async () => {
+    let failed = false;
+    const { queue, calls } = await runningQueue(['ok'], undefined, undefined, undefined, (view) => {
+      if (failed || view.jobs[0]?.status !== 'completed') return;
+      failed = true;
+      throw new Error('저장 실패');
+    });
+    await queue.enqueue([textJob('a'), textJob('b')]);
+    await until(() => queue.getSnapshot().jobs.every((item) => item.status === 'completed'));
+    expect(failed).toBe(true);
+    expect(calls()).toBe(2);
+  });
 
   it('다시 시도 횟수를 0으로 두면 다시 시도할 수 있는 오류도 한 번에 실패로 끝내', async () => {
     const { queue, job, calls } = await runningQueue(
