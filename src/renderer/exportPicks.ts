@@ -8,6 +8,11 @@ export const EXPORT_SCOPES: Array<{ id: ExportScope; label: string }> = [
   { id: 'all', label: '모든 생성 이미지' },
 ];
 
+export const EXPORT_TARGETS: Array<{ value: 'favorite' | 'latest'; label: string }> = [
+  { value: 'favorite', label: '대표 (없으면 최신)' },
+  { value: 'latest', label: '최신 생성본' },
+];
+
 export type ExportPick = {
   /** 고르기 해제를 기억하는 키. 대표 이미지를 바꿔도 같은 자리면 같다. */
   key: string;
@@ -61,4 +66,17 @@ export function exportPicks(
       return record ? [pick(`${emotion.id}\n${comboKey}`, record)] : [];
     });
   });
+}
+
+export function exportPicksByScope(
+  emotions: Emotion[],
+  records: GenerationSummary[] | undefined,
+  favorites: Record<string, string>,
+  target: 'favorite' | 'latest',
+): Record<ExportScope, ExportPick[]> {
+  return {
+    scene: exportPicks(emotions, records, favorites, target, 'scene'),
+    combo: exportPicks(emotions, records, favorites, target, 'combo'),
+    all: exportPicks(emotions, records, favorites, target, 'all'),
+  };
 }

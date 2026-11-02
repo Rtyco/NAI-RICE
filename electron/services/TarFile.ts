@@ -40,6 +40,21 @@ export class TarWriter {
   }
 }
 
+/** `fill`이 실패하면 쓰던 임시 파일을 지운다. */
+export async function writeTar(
+  filePath: string,
+  fill: (writer: TarWriter) => Promise<void>,
+): Promise<void> {
+  const writer = await TarWriter.create(filePath);
+  try {
+    await fill(writer);
+    await writer.finish();
+  } catch (error) {
+    await writer.abort();
+    throw error;
+  }
+}
+
 export type TarEntry = { offset: number; size: number };
 
 /** 이름 → 내용 위치. 내용은 읽지 않고 헤더만 따라간다. */

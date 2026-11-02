@@ -25,6 +25,30 @@ type PackageStore = Pick<
   'projectDir' | 'emotionOutputDir' | 'toProjectRelative' | 'addGenerations'
 >;
 
+/** 결과 폴더와 thumbs에 쓰고 작업 폴더 기준 경로를 돌려준다. */
+async function saveResult(
+  store: PackageStore,
+  projectId: string,
+  folder: { kind: GenerationRecord['kind']; name: string },
+  fileName: string,
+  id: string,
+  data: Buffer,
+): Promise<{ file: string; thumbFile: string }> {
+  const extension = path.extname(fileName);
+  const target = await uniquePath(
+    store.emotionOutputDir(projectId, folder.kind, folder.name),
+    path.basename(fileName, extension),
+    extension,
+  );
+  const thumb = path.join(store.projectDir(projectId), 'thumbs', `${id}.webp`);
+  await atomicWrite(target, data);
+  await atomicWrite(thumb, await makeThumbnail(data));
+  return {
+    file: store.toProjectRelative(projectId, target),
+    thumbFile: store.toProjectRelative(projectId, thumb),
+  };
+}
+
 export async function readPackageManifest(filePath: string): Promise<string> {
   const entry = (await readTarIndex(filePath)).get('project.json');
   if (!entry) throw new Error('작업 묶음이 아닙니다: project.json이 없습니다.');
@@ -39,31 +63,28 @@ export async function importPackageResults(
   const index = await readTarIndex(request.path);
   const { projectId } = request;
   const idMap = Object.fromEntries(request.records.map((record) => [record.id, randomUUID()]));
-  const relative = (absolute: string) => store.toProjectRelative(projectId, absolute);
   const added: GenerationRecord[] = [];
   const imported: Record<string, string> = {};
   for (const record of request.records) {
     const entry = index.get(record.file);
     if (!entry) continue;
     const data = await readTarEntry(request.path, entry);
-    const extension = path.extname(record.file);
-    const folder = record.emotionId ? record.emotionName : localDate(record.createdAt);
-    const target = await uniquePath(
-      store.emotionOutputDir(projectId, record.kind, folder),
-      path.basename(record.file, extension),
-      extension,
-    );
     const id = idMap[record.id];
     imported[record.id] = id;
-    const thumb = path.join(store.projectDir(projectId), 'thumbs', `${id}.webp`);
-    await atomicWrite(target, data);
-    await atomicWrite(thumb, await makeThumbnail(data));
+    const folder = record.emotionId ? record.emotionName : localDate(record.createdAt);
+    const saved = await saveResult(
+      store,
+      projectId,
+      { kind: record.kind, name: folder },
+      record.file,
+      id,
+      data,
+    );
     added.push({
       ...record,
       id,
       projectId,
-      file: relative(target),
-      thumbFile: relative(thumb),
+      ...saved,
       canvasFile: undefined,
       inputFile: undefined,
       sourceRecordId: record.sourceRecordId ? idMap[record.sourceRecordId] : undefined,
@@ -92,7 +113,6 @@ export async function importSDStudioResults(
     ? sdStudioMains(JSON.parse((await readTarEntry(request.path, manifest)).toString('utf8')))
     : {};
   const { projectId } = request;
-  const relative = (absolute: string) => store.toProjectRelative(projectId, absolute);
   // 묶음 순서가 결과 순서가 되도록 1초씩 띄운다.
   const start = Date.now();
   const added: GenerationRecord[] = [];
@@ -102,18 +122,17 @@ export async function importSDStudioResults(
     const emotion = found && request.emotions[found.scene];
     if (!found || !emotion) continue;
     const data = await readTarEntry(request.path, entry);
-    const extension = path.extname(found.file);
-    const target = await uniquePath(
-      store.emotionOutputDir(projectId, 'txt2img', emotion.name),
-      path.basename(found.file, extension),
-      extension,
-    );
     const id = randomUUID();
-    const thumb = path.join(store.projectDir(projectId), 'thumbs', `${id}.webp`);
     const { width = 0, height = 0 } = await sharp(data).metadata();
     const metadata = await readImageMetadata(data, () => decodePixels(data)).catch(() => null);
-    await atomicWrite(target, data);
-    await atomicWrite(thumb, await makeThumbnail(data));
+    const saved = await saveResult(
+      store,
+      projectId,
+      { kind: 'txt2img', name: emotion.name },
+      found.file,
+      id,
+      data,
+    );
     added.push(
       sdStudioRecord(metadata, {
         id,
@@ -121,8 +140,7 @@ export async function importSDStudioResults(
         emotionId: emotion.id,
         emotionName: emotion.name,
         createdAt: new Date(start + added.length * 1000).toISOString(),
-        file: relative(target),
-        thumbFile: relative(thumb),
+        ...saved,
         width,
         height,
         ...request.defaults,

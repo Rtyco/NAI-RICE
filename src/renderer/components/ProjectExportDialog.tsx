@@ -3,7 +3,7 @@ import { exportSDStudioProject } from '../../core/backup/SDStudioFiles';
 import type { ExportScope, Project } from '../../core/domain/types';
 import type { PackageImageFormat } from '../../shared/ipc';
 import { fileApi } from '../desktop';
-import { EXPORT_SCOPES, exportPicks } from '../exportPicks';
+import { EXPORT_SCOPES, EXPORT_TARGETS, exportPicksByScope } from '../exportPicks';
 import { loadGenerations, run, toast, useLibrary, useResolvedProject, useStore } from '../store';
 import { Modal } from './Dialogs';
 import { ExportPickGrid } from './ExportPickGrid';
@@ -44,13 +44,7 @@ export function ProjectExportDialog({
 
   const emotions = useMemo(() => resolved?.emotionSet?.emotions ?? [], [resolved?.emotionSet]);
   const picksOf = useMemo(
-    () =>
-      Object.fromEntries(
-        EXPORT_SCOPES.map((choice) => [
-          choice.id,
-          exportPicks(emotions, records, project.favorites, target, choice.id),
-        ]),
-      ),
+    () => exportPicksByScope(emotions, records, project.favorites, target),
     [emotions, project.favorites, records, target],
   );
   const candidates = scope === 'none' ? [] : picksOf[scope];
@@ -166,10 +160,7 @@ export function ProjectExportDialog({
               label="사용할 이미지"
               value={target}
               disabled={scope === 'all'}
-              options={[
-                { value: 'favorite', label: '대표 (없으면 최신)' },
-                { value: 'latest', label: '최신 생성본' },
-              ]}
+              options={EXPORT_TARGETS}
               onChange={setTarget}
             />
           </div>

@@ -22,25 +22,15 @@ import type {
 import { atomicWrite, exists } from './fsUtils';
 import { convertImage, formatFromExtension, toPngWithText } from './Images';
 import type { ExportSource, FileDialogs } from './ports';
-import { TarWriter } from './TarFile';
+import { writeTar } from './TarFile';
 
-const FILTERS = [
+type FileFilters = Array<{ name: string; extensions: string[] }>;
+
+const FILTERS: FileFilters = [
   { name: 'PNG (메타데이터 유지)', extensions: ['png'] },
   { name: 'WebP', extensions: ['webp'] },
   { name: 'AVIF', extensions: ['avif'] },
 ];
-
-async function packageImage(
-  source: Buffer,
-  file: string,
-  format: PackageImageFormat,
-  quality: number,
-): Promise<{ data: Buffer; extension: string }> {
-  if (format === 'png') return { data: await toPngWithText(source), extension: '.png' };
-  if (format === 'webp')
-    return { data: await convertImage(source, 'webp', quality), extension: '.webp' };
-  return { data: source, extension: path.extname(file) };
-}
 
 function dateStamp(): string {
   return new Date().toISOString().slice(0, 10).replaceAll('-', '');
@@ -56,31 +46,53 @@ export class Exporter {
     return path.join(this.library.root, 'exports');
   }
 
-  /** 이름 끝의 .json은 있어도 된다. */
-  async saveJson(data: unknown, name: string, title: string): Promise<string | null> {
+  /** 취소하면 null */
+  private async pickSavePath(
+    title: string,
+    fileName: string,
+    filters: FileFilters,
+  ): Promise<string | null> {
     await fs.mkdir(this.exportsDir(), { recursive: true });
-    const stem = sanitizeFilenameStem(name.replace(/\.json$/i, ''));
     const result = await this.dialog.showSaveDialog({
       title,
-      defaultPath: path.join(this.exportsDir(), `${stem}.json`),
-      filters: [{ name: 'JSON', extensions: ['json'] }],
+      defaultPath: path.join(this.exportsDir(), fileName),
+      filters,
     });
-    if (result.canceled || !result.filePath) return null;
-    await atomicWrite(result.filePath, `${JSON.stringify(data, null, 2)}\n`);
-    return result.filePath;
+    return result.canceled || !result.filePath ? null : result.filePath;
+  }
+
+  private async packageImage(
+    projectId: string,
+    file: string,
+    format: PackageImageFormat,
+    quality: number,
+  ): Promise<{ data: Buffer; extension: string }> {
+    const source = await fs.readFile(await this.library.resolveProjectReal(projectId, file));
+    if (format === 'png') return { data: await toPngWithText(source), extension: '.png' };
+    if (format === 'webp')
+      return { data: await convertImage(source, 'webp', quality), extension: '.webp' };
+    return { data: source, extension: path.extname(file) };
+  }
+
+  /** 이름 끝의 .json은 있어도 된다. */
+  async saveJson(data: unknown, name: string, title: string): Promise<string | null> {
+    const stem = sanitizeFilenameStem(name.replace(/\.json$/i, ''));
+    const filePath = await this.pickSavePath(title, `${stem}.json`, [
+      { name: 'JSON', extensions: ['json'] },
+    ]);
+    if (!filePath) return null;
+    await atomicWrite(filePath, `${JSON.stringify(data, null, 2)}\n`);
+    return filePath;
   }
 
   async saveText(text: string, name: string, title: string): Promise<string | null> {
-    await fs.mkdir(this.exportsDir(), { recursive: true });
     const stem = sanitizeFilenameStem(name.replace(/\.txt$/i, ''));
-    const result = await this.dialog.showSaveDialog({
-      title,
-      defaultPath: path.join(this.exportsDir(), `${stem}.txt`),
-      filters: [{ name: '텍스트', extensions: ['txt'] }],
-    });
-    if (result.canceled || !result.filePath) return null;
-    await atomicWrite(result.filePath, `${text}\n`);
-    return result.filePath;
+    const filePath = await this.pickSavePath(title, `${stem}.txt`, [
+      { name: '텍스트', extensions: ['txt'] },
+    ]);
+    if (!filePath) return null;
+    await atomicWrite(filePath, `${text}\n`);
+    return filePath;
   }
 
   async saveImageAs(
@@ -90,39 +102,29 @@ export class Exporter {
     quality: number,
   ): Promise<string | null> {
     const record = await this.library.findGeneration(projectId, generationId);
-    await fs.mkdir(this.exportsDir(), { recursive: true });
-    const result = await this.dialog.showSaveDialog({
-      title: '이미지 다른 이름으로 저장',
-      defaultPath: path.join(this.exportsDir(), `${sanitizeFilenameStem(suggestedName)}.png`),
-      filters: FILTERS,
-    });
-    if (result.canceled || !result.filePath) return null;
-    const source = await fs.readFile(await this.library.resolveProjectReal(projectId, record.file));
-    await atomicWrite(
-      result.filePath,
-      await convertImage(source, formatFromExtension(result.filePath), quality),
+    const filePath = await this.pickSavePath(
+      '이미지 다른 이름으로 저장',
+      `${sanitizeFilenameStem(suggestedName)}.png`,
+      FILTERS,
     );
-    return result.filePath;
+    if (!filePath) return null;
+    const source = await fs.readFile(await this.library.resolveProjectReal(projectId, record.file));
+    await atomicWrite(filePath, await convertImage(source, formatFromExtension(filePath), quality));
+    return filePath;
   }
 
   async exportSheet(request: SheetExportRequest): Promise<string | null> {
-    await fs.mkdir(this.exportsDir(), { recursive: true });
-    const stem = sanitizeFilenameStem(request.name);
-    const result = await this.dialog.showSaveDialog({
-      title: '한 장으로 모은 이미지 저장',
-      defaultPath: path.join(this.exportsDir(), `${stem}_${dateStamp()}.${request.format}`),
-      filters: [{ name: request.format.toUpperCase(), extensions: [request.format] }],
-    });
-    if (result.canceled || !result.filePath) return null;
-    await atomicWrite(
-      result.filePath,
-      await convertImage(
-        Buffer.from(request.png),
-        formatFromExtension(result.filePath),
-        request.quality,
-      ),
+    const filePath = await this.pickSavePath(
+      '한 장으로 모은 이미지 저장',
+      `${sanitizeFilenameStem(request.name)}_${dateStamp()}.${request.format}`,
+      [{ name: request.format.toUpperCase(), extensions: [request.format] }],
     );
-    return result.filePath;
+    if (!filePath) return null;
+    await atomicWrite(
+      filePath,
+      await convertImage(Buffer.from(request.png), formatFromExtension(filePath), request.quality),
+    );
+    return filePath;
   }
 
   async pngOf(projectId: string, generationId: string): Promise<Buffer> {
@@ -155,17 +157,17 @@ export class Exporter {
     };
 
     if (request.mode === 'zip') {
-      const result = await this.dialog.showSaveDialog({
-        title: '감정 이미지 ZIP 저장',
-        defaultPath: path.join(this.exportsDir(), `${stem}_${dateStamp()}.zip`),
-        filters: [{ name: 'ZIP', extensions: ['zip'] }],
-      });
-      if (result.canceled || !result.filePath) return null;
+      const filePath = await this.pickSavePath(
+        '감정 이미지 ZIP 저장',
+        `${stem}_${dateStamp()}.zip`,
+        [{ name: 'ZIP', extensions: ['zip'] }],
+      );
+      if (!filePath) return null;
       const files: Record<string, [Uint8Array, { level: 0 }]> = {};
       for (let index = 0; index < items.length; index += 1)
         files[names[index]] = [await convert(index), { level: 0 }];
-      await atomicWrite(result.filePath, zipSync(files));
-      return { path: result.filePath, count: items.length };
+      await atomicWrite(filePath, zipSync(files));
+      return { path: filePath, count: items.length };
     }
 
     const result = await this.dialog.showOpenDialog({
@@ -248,31 +250,24 @@ export class Exporter {
         Object.entries(favorites).filter(([, id]) => pickedIds.has(id)),
       ),
     };
-    await fs.mkdir(this.exportsDir(), { recursive: true });
-    const result = await this.dialog.showSaveDialog({
-      title: '작업 내보내기 (이미지 포함)',
-      defaultPath: path.join(
-        this.exportsDir(),
-        `${sanitizeFilenameStem(part.projects[0].name)}_${dateStamp()}.tar`,
-      ),
-      filters: [{ name: 'NAI RICE 작업 묶음', extensions: ['tar'] }],
-    });
-    if (result.canceled || !result.filePath) return null;
+    const filePath = await this.pickSavePath(
+      '작업 내보내기 (이미지 포함)',
+      `${sanitizeFilenameStem(part.projects[0].name)}_${dateStamp()}.tar`,
+      [{ name: 'NAI RICE 작업 묶음', extensions: ['tar'] }],
+    );
+    if (!filePath) return null;
     const { images, pictures } = await this.mediaOf(part);
-    const writer = await TarWriter.create(result.filePath);
-    try {
+    await writeTar(filePath, async (writer) => {
       const results = [];
       for (const record of picked) {
-        const source = await fs.readFile(
-          await this.library.resolveProjectReal(request.projectId, record.file),
-        );
-        const { data, extension } = await packageImage(
-          source,
+        const { data, extension } = await this.packageImage(
+          request.projectId,
           record.file,
           request.imageFormat,
           request.quality,
         );
-        const file = `results/${record.file.replace(/.[^./]+$/, '')}${extension}`;
+        const stem = record.file.slice(0, record.file.length - path.extname(record.file).length);
+        const file = `results/${stem}${extension}`;
         await writer.add(file, data);
         results.push({
           ...record,
@@ -284,12 +279,8 @@ export class Exporter {
       }
       const manifest = { ...exportProject(part, images, pictures), results };
       await writer.add('project.json', Buffer.from(JSON.stringify(manifest, null, 2)));
-      await writer.finish();
-    } catch (error) {
-      await writer.abort();
-      throw error;
-    }
-    return result.filePath;
+    });
+    return filePath;
   }
 
   /** SD Studio 백업과 같은 구성: project.json, outs/<씬 이름>/<파일>. 대표 이미지는 씬의 `mains`에 적는다. */
@@ -300,28 +291,20 @@ export class Exporter {
       const record = byId.get(id);
       return record && request.sceneNames[record.emotionId] ? [record] : [];
     });
-    await fs.mkdir(this.exportsDir(), { recursive: true });
-    const result = await this.dialog.showSaveDialog({
-      title: 'SD Studio 프로젝트로 내보내기 (이미지 포함)',
-      defaultPath: path.join(
-        this.exportsDir(),
-        `${sanitizeFilenameStem(request.name)} (SD Studio)_${dateStamp()}.tar`,
-      ),
-      filters: [{ name: 'SD Studio 프로젝트 백업', extensions: ['tar'] }],
-    });
-    if (result.canceled || !result.filePath) return null;
+    const filePath = await this.pickSavePath(
+      'SD Studio 프로젝트로 내보내기 (이미지 포함)',
+      `${sanitizeFilenameStem(request.name)} (SD Studio)_${dateStamp()}.tar`,
+      [{ name: 'SD Studio 프로젝트 백업', extensions: ['tar'] }],
+    );
+    if (!filePath) return null;
     const scenes = (request.project.scenes ?? {}) as Record<string, Record<string, unknown>>;
     const files = new Map<string, string[]>();
     const exported = new Map<string, string>();
-    const writer = await TarWriter.create(result.filePath);
-    try {
+    await writeTar(filePath, async (writer) => {
       for (const record of picked) {
         const scene = request.sceneNames[record.emotionId];
-        const source = await fs.readFile(
-          await this.library.resolveProjectReal(request.projectId, record.file),
-        );
-        const { data, extension } = await packageImage(
-          source,
+        const { data, extension } = await this.packageImage(
+          request.projectId,
           record.file,
           request.imageFormat,
           request.quality,
@@ -348,12 +331,8 @@ export class Exporter {
         'project.json',
         Buffer.from(JSON.stringify({ ...request.project, scenes }, null, 2)),
       );
-      await writer.finish();
-    } catch (error) {
-      await writer.abort();
-      throw error;
-    }
-    return result.filePath;
+    });
+    return filePath;
   }
 
   async exportProject(library: LibraryData, projectId: string): Promise<string | null> {

@@ -8,7 +8,7 @@ import {
   validateOutputFilenameTemplate,
 } from '../../core/output/OutputFilename';
 import { MAX_SHEET_SIDE, sheetLayout } from '../../core/imaging/SceneSheet';
-import { EXPORT_SCOPES, exportPicks, type ExportPick } from '../exportPicks';
+import { EXPORT_SCOPES, EXPORT_TARGETS, exportPicksByScope, type ExportPick } from '../exportPicks';
 import { drawSceneSheet, sheetAspect, type SheetOptions } from '../sceneSheet';
 import {
   readUiState,
@@ -66,13 +66,7 @@ export function ExportDialog({
   );
 
   const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        EXPORT_SCOPES.map((choice) => [
-          choice.id,
-          exportPicks(emotions, records, project.favorites, target, choice.id),
-        ]),
-      ) as Record<ExportScope, ExportPick[]>,
+    () => exportPicksByScope(emotions, records, project.favorites, target),
     [emotions, project.favorites, records, target],
   );
   const candidates = counts[scope];
@@ -199,10 +193,7 @@ export function ExportDialog({
           label="사용할 이미지"
           value={target}
           disabled={scope === 'all'}
-          options={[
-            { value: 'favorite', label: '대표 (없으면 최신)' },
-            { value: 'latest', label: '최신 생성본' },
-          ]}
+          options={EXPORT_TARGETS}
           onChange={setTarget}
         />
         <SelectField

@@ -106,18 +106,22 @@ async function importPackageResults(
       idMap[id] ? [[emotionId, idMap[id]]] : [],
     ),
   );
-  setFavorites(results.projectId, favorites);
-  await loadGenerations(results.projectId);
-  toast(`생성 결과 ${count}장을 가져왔습니다.`);
+  await finishResults(results.projectId, favorites, count);
 }
 
-function setFavorites(projectId: string, favorites: Record<string, string>): void {
+async function finishResults(
+  projectId: string,
+  favorites: Record<string, string>,
+  count: number,
+): Promise<void> {
   updateLibrary((current) => ({
     ...current,
     projects: current.projects.map((project) =>
       project.id === projectId ? { ...project, favorites } : project,
     ),
   }));
+  await loadGenerations(projectId);
+  toast(`생성 결과 ${count}장을 가져왔습니다.`);
 }
 
 /** 합친 뒤의 라이브러리에서 씬을 찾는다(같은 이름 항목을 덮어쓰기로 골랐을 수 있다). */
@@ -143,9 +147,7 @@ async function importSDStudioResults(path: string, projectId: string): Promise<v
       settings: preset.generation,
     },
   });
-  setFavorites(projectId, favorites);
-  await loadGenerations(projectId);
-  toast(`생성 결과 ${count}장을 가져왔습니다.`);
+  await finishResults(projectId, favorites, count);
 }
 
 export async function importPackage(path: string, fileName: string): Promise<void> {
