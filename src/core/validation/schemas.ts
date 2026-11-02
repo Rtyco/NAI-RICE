@@ -780,7 +780,7 @@ const jobSnapshotCommonSchema = z.object({
   projectId: z.string().regex(FOLDER_ID),
   projectName: z.string(),
   characterName: z.string(),
-  // 자유 생성은 감정이 없다.
+  // 자유 생성은 씬이 없다.
   emotionId: z.string(),
   emotionName: z.string(),
   emotionPrompt: z.string(),

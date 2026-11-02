@@ -119,7 +119,7 @@ export type ImportBundle = {
   vibes: Vibe[];
   projects: Project[];
   pieceSets: PieceSet[];
-  /** 레퍼런스 ID → 이미지 */
+  /** 인페인트 ID → 이미지 */
   images: Record<string, ReferenceImagesData>;
   /** 파일 이름 → data URL. 내용 해시 이름이다. */
   pictures: Record<string, string>;
@@ -256,7 +256,7 @@ export function parseImportFile(
   }
   if (kind === 'reference-inpaint-character') {
     if (value.schemaVersion === 1) {
-      // 예전 캐릭터 백업: 감정과 레퍼런스까지 들어 있다.
+      // 예전 캐릭터 백업: 씬과 인페인트까지 들어 있다.
       const data = parse(formats.characterV1, value, '캐릭터 백업');
       const split = splitV1Character(
         data.character,
@@ -456,10 +456,10 @@ export function exportProject(
   };
 }
 
-/** 가져온 ID → 덮어쓸 기존 ID. 생성 설정·캐릭터·감정 모음·프롬프트 조각만. */
+/** 가져온 ID → 덮어쓸 기존 ID. 생성 설정·캐릭터·씬 모음·프롬프트 조각만. */
 export type ImportOverwrites = Record<string, string>;
 
-/** 이름이 같은 하위 항목은 기존 ID를 이어받아야 작업의 선택과 감정별 결과가 이어진다. */
+/** 이름이 같은 하위 항목은 기존 ID를 이어받아야 작업의 선택과 씬별 결과가 이어진다. */
 function keepIdsByName<T extends { id: string; name: string }>(
   previous: T[],
   next: T[],

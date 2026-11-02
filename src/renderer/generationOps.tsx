@@ -63,7 +63,7 @@ export async function deleteShownResult(
   if ((await deleteResults(projectId, [record])) && neighbor) show(neighbor.id);
 }
 
-/** 감정과 대표 이미지는 남긴다. */
+/** 씬과 대표 이미지는 남긴다. */
 export async function clearEmotionResults(
   projectId: string,
   emotions: Array<{ id: string; name: string }>,

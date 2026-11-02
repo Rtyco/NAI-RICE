@@ -298,7 +298,7 @@ export function interpretMetadata(entries: Record<string, unknown>): ImageImport
   if (vibeFile) result.vibeFile = vibeFile;
 
   if (desk) {
-    // 이 앱의 결과면 따로 저장한 원래 값이 감정 섞이지 않은 값이다.
+    // 이 앱의 결과면 따로 저장한 원래 값이 씬 프롬프트가 섞이지 않은 값이다.
     result.commonPositive = desk.commonPositive;
     if (typeof desk.backPositive === 'string') result.backPositive = desk.backPositive;
     if (typeof desk.extraPrompt === 'string') result.extraPrompt = desk.extraPrompt;

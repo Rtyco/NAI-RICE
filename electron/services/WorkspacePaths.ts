@@ -9,7 +9,7 @@ import { assertRealInside, resolveInside, toPosix } from './fsUtils';
  *   library.json
  *   backups/                     library.json 자동 백업
  *   references/<id>/             원본·캔버스·마스크
- *   sources/                     자유 인페인팅 이미지·마스크
+ *   sources/                     자유 생성 인페인팅 이미지·마스크
  *   pictures/                    캐릭터 레퍼런스·바이브 그림(내용 해시 이름)
  *   vibes/                       바이브 인코딩 캐시
  *   projects/<id>/               generations.json, inputs/, outputs/, thumbs/, diagnostic/
@@ -67,7 +67,7 @@ export class WorkspacePaths {
     return resolveInside(path.join(this.root, 'vibes'), `${key}.bin`);
   }
 
-  /** 감정 이름이 바뀌면 이후 결과는 새 이름 폴더에 간다. */
+  /** 씬 이름이 바뀌면 이후 결과는 새 이름 폴더에 간다. */
   emotionOutputDir(projectId: string, kind: GenerationKind, folder: string): string {
     return path.join(
       this.projectDir(projectId),

@@ -56,7 +56,7 @@ export function NumberField(props: {
           onChange={(event) => {
             setDraft(event.target.value);
             const parsed = Number(event.target.value);
-            // 범위 안의 완성된 값은 미리보기가 따라오도록 바로 반영한다.
+            // 범위 안의 완성된 값은 미리 보기가 따라오도록 바로 반영한다.
             if (
               event.target.value.trim() !== '' &&
               Number.isFinite(parsed) &&

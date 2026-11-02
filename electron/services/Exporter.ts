@@ -225,7 +225,7 @@ export class Exporter {
     return { images, pictures };
   }
 
-  /** 레퍼런스 이미지는 포함하고 생성 결과는 뺀다. */
+  /** 인페인트 이미지는 포함하고 생성 결과는 뺀다. */
   async exportLibrary(library: LibraryData): Promise<string | null> {
     const { images, pictures } = await this.mediaOf(library);
     return this.saveJson(

@@ -26,7 +26,7 @@ export async function applyBundle(
   const library = useStore.getState().library;
   if (!library) return;
 
-  // SDStudio처럼 캐릭터와 감정 모음만 있으면 작업을 만들어 준다.
+  // SDStudio처럼 캐릭터와 씬 모음만 있으면 작업을 만들어 준다.
   if (
     !bundle.projects.length &&
     bundle.characters.length === 1 &&

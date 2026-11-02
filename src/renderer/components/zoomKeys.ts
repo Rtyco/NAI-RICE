@@ -11,7 +11,7 @@ type ZoomTarget = { viewport: RefObject<HTMLElement | null>; actions: RefObject<
 
 const targets: ZoomTarget[] = [];
 
-/** 마우스가 올라간 화면, 없으면 마지막에 연 화면. 대화상자가 열려 있으면 그 안의 화면만. */
+/** 마우스가 올라간 화면, 없으면 마지막에 연 화면. 창이 열려 있으면 그 안의 화면만. */
 function activeTarget(): ZoomTarget | undefined {
   const top = [...document.querySelectorAll('.modal-backdrop, .lightbox')].at(-1);
   const shown = targets.filter((target) => {

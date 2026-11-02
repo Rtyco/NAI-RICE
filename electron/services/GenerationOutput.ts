@@ -16,7 +16,7 @@ import { atomicWrite, uniquePath } from './fsUtils';
 import { cropWithMetadata, encodeForStorage, makeThumbnail, withMetadata } from './Images';
 import type { GenerationStore } from './ports';
 
-/** 다시 불러올 때 캐릭터 프롬프트와 감정을 나눠 읽는다. */
+/** 다시 불러올 때 캐릭터 프롬프트와 씬 프롬프트를 나눠 읽는다. */
 export function deskMetadataFor(job: QueuedGenerationJob): DeskMetadata {
   return {
     app: 'reference-inpaint-desk',

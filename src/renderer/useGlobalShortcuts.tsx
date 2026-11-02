@@ -77,7 +77,7 @@ async function refreshView(): Promise<void> {
 }
 
 /**
- * 창 단위 단축키(F11, Ctrl +/-/0·휠 확대, Ctrl+W)는 메인 프로세스가 처리한다. 대화상자가 열려 있으면 화면 이동은 하지 않고, Anlas를 쓰는 동작에는 단축키를 두지
+ * 창 단위 단축키(F11, Ctrl +/-/0·휠 확대, Ctrl+W)는 메인 프로세스가 처리한다. 창이 열려 있으면 화면 이동은 하지 않고, Anlas를 쓰는 동작에는 단축키를 두지
  * 않는다.
  */
 export function useGlobalShortcuts(): void {
@@ -120,11 +120,11 @@ export function useGlobalShortcuts(): void {
         action = () => void groupFromShortcut();
       if (dialogOpen) action = undefined;
 
-      // 찾기는 입력칸·열린 창 안에서도 연다.
+      // 찾기는 입력 칸·열린 창 안에서도 연다.
       if (ctrl && !event.shiftKey && (key.toLowerCase() === 'f' || key.toLowerCase() === 'h'))
         action = () => openFind(key.toLowerCase() === 'h');
 
-      // 저장은 대화상자가 열려 있어도 한다.
+      // 저장은 창이 열려 있어도 한다.
       if (ctrl && !event.shiftKey && key.toLowerCase() === 's')
         action = () =>
           void flushSaves().then(() => {

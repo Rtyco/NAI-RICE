@@ -24,7 +24,7 @@ const GROUPS: Array<{ key: NamedGroup; label: string }> = [
   { key: 'pieceSets', label: '프롬프트 조각' },
 ];
 
-/** 레퍼런스와 작업은 항상 새로 추가한다. */
+/** 인페인트와 작업은 항상 새로 추가한다. */
 const OVERWRITABLE = new Set<NamedGroup>(['presets', 'characters', 'emotionSets', 'pieceSets']);
 
 const SKIP = '__skip';

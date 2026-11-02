@@ -320,7 +320,7 @@ export function DrawCanvas(props: {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return;
-      // 인페인트 편집 팝업 안에서도 쓰므로 맨 위 대화상자 안에 있을 때만 받는다.
+      // 인페인트 편집 팝업 안에서도 쓰므로 맨 위 창 안에 있을 때만 받는다.
       const dialog = [...document.querySelectorAll('.modal-backdrop')].at(-1);
       if (dialog && !dialog.contains(layerRef.current)) return;
       const key = event.key.toLowerCase();

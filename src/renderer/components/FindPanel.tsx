@@ -116,7 +116,7 @@ function FindPanelBody() {
   const fieldText = useTextOf(target, library);
   const [picked, setPicked] = useState(-1);
 
-  // 화면을 옮기면 「이 칸」의 입력칸이 사라질 수 있다.
+  // 화면을 옮기면 「이 칸」의 입력 칸이 사라질 수 있다.
   const fieldTarget = find.scope === 'field' && !names && target?.isConnected ? target : undefined;
   const libraryAllowed = !dialogOpen && !settingsOpen;
   const place = useMemo(() => findPlaceOf(view, library), [view, library]);

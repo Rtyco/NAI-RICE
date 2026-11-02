@@ -23,7 +23,7 @@ import {
   normalizeGenerationSettings,
 } from './defaults';
 
-/** 크롭된 결과를 같은 비율로 키우는 업스케일 우회의 기본값. */
+/** 크롭된 결과를 같은 비율로 키워 다듬을 때의 기본값. */
 export function nearestResolutionPreset(width: number, height: number): Size {
   const { width: w, height: h } = RESOLUTION_PRESETS.reduce((best, item) =>
     ratioError(item, width, height) < ratioError(best, width, height) ? item : best,

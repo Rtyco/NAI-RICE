@@ -17,11 +17,11 @@ type FindState = {
   /** 켜면 프롬프트 대신 항목·세트·씬·조각 이름에서 찾고 바꾼다. */
   names: boolean;
   scope: FindScope;
-  /** 「이 칸」의 프롬프트 입력칸 */
+  /** 「이 칸」의 프롬프트 입력 칸 */
   target?: HTMLTextAreaElement;
   /** 「이 칸」에서 고른 찾은 곳의 순번 */
   current: number;
-  /** 결과를 눌러 옮겨 갈 때, 이 글을 가진 입력칸이 화면 안으로 스크롤한다. */
+  /** 결과를 눌러 옮겨 갈 때, 이 글을 가진 입력 칸이 화면 안으로 스크롤한다. */
   reveal?: string;
   /** 열 때마다 바뀌어 패널이 검색 칸에 포커스를 준다. */
   opened: number;
@@ -61,7 +61,7 @@ export function sectionLabel(section: FindPlace['section']): string {
   return SECTIONS.find((item) => item.id === section)?.label ?? '';
 }
 
-/** 대화상자가 열려 있으면 그 안의 입력칸에서만 쓴다(라이브러리로 옮겨 가면 창이 가려진다). */
+/** 창이 열려 있으면 그 안의 입력 칸에서만 쓴다(라이브러리로 옮겨 가면 창이 가려진다). */
 export function openFind(replacing: boolean): boolean {
   const active = document.activeElement;
   if (active?.closest('.find-panel')) {

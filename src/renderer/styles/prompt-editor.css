@@ -121,7 +121,7 @@
   position: relative;
   min-width: 0;
 }
-/* offsetWidth로 크기를 재면 정수로 반올림돼, 폭이 소수일 때 입력칸과 줄바꿈이 어긋난다. */
+/* offsetWidth로 크기를 재면 정수로 반올림돼, 폭이 소수일 때 입력 칸과 줄바꿈이 어긋난다. */
 .syntax-backdrop {
   position: absolute;
   inset: 0;
@@ -151,7 +151,7 @@ textarea.syntax-input::selection {
   color: transparent;
   background: var(--accent-a33);
 }
-/* 크기를 바꾸면 입력칸 글자와 어긋나므로 padding·border는 주지 않는다. */
+/* 크기를 바꾸면 입력 칸 글자와 어긋나므로 padding·border는 주지 않는다. */
 .syn-region {
   --region: var(--accent);
   color: color-mix(in srgb, var(--region) 65%, var(--text));
@@ -197,7 +197,7 @@ textarea.syntax-input::selection {
 .syn-interaction {
   color: var(--green-text);
 }
-/* 굵기·기울임은 글자 폭이 바뀌어 입력칸 글자와 어긋난다. 색만 바꾼다. */
+/* 굵기·기울임은 글자 폭이 바뀌어 입력 칸 글자와 어긋난다. 색만 바꾼다. */
 .syn-comment {
   color: var(--faint);
 }
@@ -602,8 +602,8 @@ textarea.syntax-input::selection {
   max-height: 160px;
   field-sizing: content;
 }
-/* 크게 편집은 입력칸 오른쪽 위에, 올렸을 때만 */
-/* 크게 편집 버튼은 입력칸 오른쪽 옆 칸에 두어 글을 가리지 않는다. */
+/* 크게 편집은 입력 칸 오른쪽 위에, 올렸을 때만 */
+/* 크게 편집 버튼은 입력 칸 오른쪽 옆 칸에 두어 글을 가리지 않는다. */
 .prompt-cell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

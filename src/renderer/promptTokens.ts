@@ -114,7 +114,7 @@ function countPromptTokens(tokenizer: TokenizerName, prompts: RequestPromptTexts
 
 export type TokenScene = { name?: string; texts: RequestPromptTexts };
 
-/** 생성에서 빠진 씬은 세지 않는다. 조각의 무작위 줄은 미리보기처럼 고른다. */
+/** 생성에서 빠진 씬은 세지 않는다. 조각의 무작위 줄은 미리 보기처럼 고른다. */
 export function projectTokenScenes(resolved: ResolvedProject, pieceSets: PieceSet[]): TokenScene[] {
   const { preset, project } = resolved;
   if (!preset) return [];

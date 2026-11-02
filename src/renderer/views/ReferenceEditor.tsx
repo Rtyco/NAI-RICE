@@ -81,7 +81,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
   const paintChanged = useRef(false);
   const transformStart = useRef<CanvasLayout | null>(null);
 
-  // key로 레퍼런스마다 새로 마운트되니 처음 받은 것만 불러온다.
+  // key로 인페인트마다 새로 마운트되니 처음 받은 것만 불러온다.
   const [mounted] = useState(reference);
   useEffect(() => {
     if (!mounted.image) return;

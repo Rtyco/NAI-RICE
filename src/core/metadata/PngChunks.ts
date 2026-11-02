@@ -98,7 +98,7 @@ function makeChunk(type: string, data: Uint8Array): Uint8Array {
   return chunk;
 }
 
-/** 압축 iTXt. 한국어 감정 이름도 보존된다. */
+/** 압축 iTXt. 한국어 씬 이름도 보존된다. */
 export function makeITextChunk(keyword: string, text: string): Uint8Array {
   const key = encoder.encode(keyword);
   const body = zlibSync(encoder.encode(text));

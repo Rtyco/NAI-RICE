@@ -93,7 +93,7 @@ export function normalizeGenerationSettings(settings: GenerationSettings): Gener
   };
 }
 
-/** medium이면 고정값을 덮어쓴다. 작업·비용·미리보기 모두 이것을 쓴다. */
+/** medium이면 고정값을 덮어쓴다. 작업·비용·미리 보기 모두 이것을 쓴다. */
 export function effectiveGenerationSettings(settings: GenerationSettings): GenerationSettings {
   const normalized = normalizeGenerationSettings(settings);
   return usesMedium(normalized) ? { ...normalized, ...MEDIUM_FIXED } : normalized;

@@ -159,7 +159,7 @@ export type ReferenceSide = 'left' | 'right' | 'top' | 'bottom';
 
 /** 참고 영역 기준이라 해상도·비율을 바꿔도 구도가 유지된다. */
 export type FreePlacement = {
-  /** 이미지 중심. 참고 영역 너비·높이에 대한 비율(0.5가 가운데) */
+  /** 이미지 중심. 참고 영역 폭·높이에 대한 비율(0.5가 가운데) */
   x: number;
   y: number;
   /** 1 = 전체 보이기 크기 */
@@ -270,9 +270,9 @@ export type Project = {
   /** 켜면 인페인트 모드 결과마다 구분선을 찾아 찾은 것만 지운다(`settings.lineFix`). */
   autoLineFix?: boolean;
   excludedEmotionIds: string[];
-  /** 감정 ID → 생성 기록 ID */
+  /** 씬 ID → 생성 기록 ID */
   favorites: Record<string, string>;
-  /** 감정 ID → 씬 상세의 i2i */
+  /** 씬 ID → 씬 상세의 i2i */
   sceneImg2Img?: Record<string, SceneImg2Img>;
   createdAt: string;
   updatedAt: string;
@@ -337,7 +337,7 @@ export type Picture = {
   name: string;
 };
 
-/** V4.5 전용(V5는 500 오류). Opus여도 레퍼런스마다 장당 5 Anlas. */
+/** V4.5 전용(V5는 500 오류). Opus여도 캐릭터 레퍼런스마다 장당 5 Anlas. */
 export type CharacterReference = {
   id: string;
   name: string;

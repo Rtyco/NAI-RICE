@@ -29,7 +29,7 @@ export class ProjectInputs {
     private readonly files: StoredFiles,
   ) {}
 
-  /** 대기 중에 레퍼런스를 고쳐도 등록한 작업은 원래 입력으로 생성된다. */
+  /** 대기 중에 인페인트를 고쳐도 등록한 작업은 원래 입력으로 생성된다. */
   async prepareInputs(projectId: string, reference: Reference): Promise<PreparedInputs> {
     const image = reference.image;
     if (!image) throw new Error('인페인트에 참고 이미지가 없습니다.');

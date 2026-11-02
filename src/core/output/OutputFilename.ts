@@ -1,6 +1,6 @@
 import type { GenerationKind } from '../domain/types';
 
-/** 이 구분 이전의 결과는 `outputs/<감정>/`에 남아 있다. */
+/** 이 구분 이전의 결과는 `outputs/<씬 이름>/`에 남아 있다. */
 export const KIND_FOLDERS: Record<GenerationKind, string> = {
   inpaint: '인페인트',
   txt2img: '일반 생성',

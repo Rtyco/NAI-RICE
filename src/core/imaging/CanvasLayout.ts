@@ -32,7 +32,7 @@ export type ComposedLayout = {
   height: number;
   referenceArea: Rect;
   generationArea: Rect;
-  /** 회전 전. 레퍼런스 영역 밖으로 넘친 부분은 잘라서 그린다. */
+  /** 회전 전. 참고 영역 밖으로 넘친 부분은 잘라서 그린다. */
   imagePlacement: Rect;
   /** 도, 시계 방향 */
   rotation: number;

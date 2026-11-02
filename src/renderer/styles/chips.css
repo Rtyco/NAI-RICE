@@ -269,7 +269,7 @@
   color: var(--muted);
   font-size: 11px;
 }
-/* 입력칸 기본 width: 100%에 여백이 더해져 넘친다. */
+/* 입력 칸 기본 width: 100%에 여백이 더해져 넘친다. */
 .checklist-search {
   width: auto;
   margin: 2px 8px 6px;

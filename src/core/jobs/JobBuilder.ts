@@ -116,7 +116,7 @@ export type RequestPrompts = {
 /** 자유 생성은 문자열 하나. */
 export type ScenePrompts = string | ComboPrompts;
 
-/** 미리보기와 생성이 같이 쓴다. 조각을 먼저 펼치며 multi는 seed로 고른다(seed가 없으면 첫 줄). reference inset은 인페인트의 첫 캐릭터에만 붙는다. */
+/** 미리 보기와 생성이 같이 쓴다. 조각을 먼저 펼치며 multi는 seed로 고른다(seed가 없으면 첫 줄). reference inset은 인페인트의 첫 캐릭터에만 붙는다. */
 export function composeRequestPrompts(
   rawPreset: Preset,
   rawCharacters: Array<Pick<CharacterPromptSet, 'positive' | 'negative'>>,

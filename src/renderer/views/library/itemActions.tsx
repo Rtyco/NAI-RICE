@@ -251,7 +251,7 @@ export function openReferenceFolder(item: Item) {
   );
 }
 
-/** 감정 모음은 empty가 아니면 기본 감정 6개로 시작한다. */
+/** 씬 모음은 empty가 아니면 기본 씬 6개로 시작한다. */
 export function createItem(
   section: LibrarySection,
   library: Library,

@@ -63,7 +63,7 @@ export function useSceneSlots(props: {
     setChosen(undefined);
   };
   const openOnly = (ids: string[]) => setChosen(new Set(ids));
-  // 찾기 결과로 옮겨 오면 그 후보가 그려져야 입력칸이 찾은 곳까지 스크롤한다.
+  // 찾기 결과로 옮겨 오면 그 후보가 그려져야 입력 칸이 찾은 곳까지 스크롤한다.
   const reveal = useFind((state) => state.reveal);
   const revealAt = reveal === undefined ? undefined : optionWithText(slots, reveal);
   const revealSlot = revealAt?.slot;

@@ -308,7 +308,7 @@ export function generateFree(
   }).then(() => undefined);
 }
 
-/** 결과는 원래 감정(또는 자유 생성)에 쌓인다. */
+/** 결과는 원래 씬(또는 자유 생성)에 쌓인다. */
 export function sendResultsToImg2Img(
   projectId: string,
   records: GenerationSummary[],
@@ -468,7 +468,7 @@ export function runFreeDirectorTool(shrink: boolean): Promise<void> {
   }).then(() => undefined);
 }
 
-/** 제외하지 않았고 프롬프트가 있는 감정 */
+/** 제외하지 않았고 프롬프트가 있는 씬 */
 export function batchEmotionIds(projectId: string): string[] {
   const library = useStore.getState().library;
   const project = library?.projects.find((item) => item.id === projectId);

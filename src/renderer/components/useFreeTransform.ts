@@ -94,7 +94,7 @@ export function useFreeTransform(options: {
     if (!active && view.viewport.current) view.viewport.current.style.cursor = '';
   }, [active, view.viewport]);
 
-  // 대화상자의 Esc(닫기)와 마스크 Ctrl+Z보다 먼저 받는다.
+  // 창의 Esc(닫기)와 마스크 Ctrl+Z보다 먼저 받는다.
   useEffect(() => {
     if (!transforming) return;
     const onKey = (event: KeyboardEvent) => {

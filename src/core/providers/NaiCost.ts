@@ -74,7 +74,7 @@ type CostJob = Pick<GenerationJobSnapshot, 'settings' | 'canvasWidth' | 'canvasH
   aid?: { kind: JobAid['kind'] | 'none'; vibes?: unknown[]; references?: unknown[] };
 };
 
-/** 0단계 실측: 무료 조건 안에서도 장당 5 Anlas. NovelAI 문서상 레퍼런스 수만큼 늘어난다(여러 장은 미실측). */
+/** 0단계 실측: 무료 조건 안에서도 장당 5 Anlas. NovelAI 문서상 캐릭터 레퍼런스 수만큼 늘어난다(여러 장은 미실측). */
 const CHARACTER_REFERENCE_ANLAS = 5;
 
 function characterReferences(job: CostJob): number {

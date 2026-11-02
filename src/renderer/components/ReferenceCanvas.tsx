@@ -49,7 +49,7 @@ type Props = {
   onReferenceRectChange: (rect: Rect) => void;
   onOutputRectChange: (rect: Rect) => void;
   onMaskChange: (mask: Uint8Array) => void;
-  /** 자유 인페인팅: 참고·결과 영역 없이 칠하기만 한다. */
+  /** 자유 생성 인페인팅: 참고·결과 영역 없이 칠하기만 한다. */
   maskOnly?: boolean;
   /** 켜져 있을 때만 */
   divider?: DividerLine;

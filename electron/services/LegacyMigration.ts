@@ -90,7 +90,7 @@ export async function migrateV1Workspace(
 
 const LOCKED = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY']);
 
-/** Windows는 백신·탐색기 미리보기가 파일을 잡으면 이름 바꾸기를 거부해 몇 번 다시 시도하고, 안 되면 복사 후 원본 삭제를 시도한다. 원본까지 지웠으면 true. */
+/** Windows는 백신·탐색기 미리 보기가 파일을 잡으면 이름 바꾸기를 거부해 몇 번 다시 시도하고, 안 되면 복사 후 원본 삭제를 시도한다. 원본까지 지웠으면 true. */
 export async function moveDirectory(from: string, to: string, retries = 5): Promise<boolean> {
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {

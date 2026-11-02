@@ -191,7 +191,7 @@ const CATEGORY_LABELS: Record<number, string> = {
   5: '메타',
 };
 
-/** 입력칸 밖으로 넘쳐도 잘리지 않게 body에 띄운다. */
+/** 입력 칸 밖으로 넘쳐도 잘리지 않게 body에 띄운다. */
 function TagSuggestions({
   layer,
   suggestions,

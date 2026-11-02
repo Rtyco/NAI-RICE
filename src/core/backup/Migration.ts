@@ -20,7 +20,7 @@ function stripReferenceDir(file: string): string {
   return file.replace(/^reference\//, '');
 }
 
-/** 감정 ID는 생성 기록과 맞도록 유지한다. */
+/** 씬 ID는 생성 기록과 맞도록 유지한다. */
 export function splitV1Character(
   v1: V1Character,
   presetId: string,

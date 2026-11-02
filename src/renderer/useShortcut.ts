@@ -20,7 +20,7 @@ export function matchesKey(event: KeyboardEvent, combo: string): boolean {
   );
 }
 
-/** 입력 칸(`inFields`면 받는다)과 대화상자에서는 무시한다. `action`은 늘 최신 값을 부른다. */
+/** 입력 칸(`inFields`면 받는다)과 창에서는 무시한다. `action`은 늘 최신 값을 부른다. */
 export function useShortcut(
   combo: string,
   action: () => void,

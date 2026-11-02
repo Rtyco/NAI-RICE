@@ -2,7 +2,7 @@ import type { MenuItem } from './contextMenuStore';
 
 export type ListMenuActions = {
   open: () => void;
-  /** 없으면 이름 변경을 막는다(사이드바를 접었을 때). */
+  /** 없으면 이름 바꾸기를 막는다(사이드바를 접었을 때). */
   rename?: () => void;
   duplicate: () => void;
   exportJson?: () => void;

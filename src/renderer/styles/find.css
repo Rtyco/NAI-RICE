@@ -1,5 +1,5 @@
 /* ── 찾기·바꾸기 ───────────────────────────── */
-/* 문법 레이어와 입력칸 사이에 놓여 찾은 곳만 칠한다. */
+/* 문법 레이어와 입력 칸 사이에 놓여 찾은 곳만 칠한다. */
 .syntax-backdrop.find-layer {
   background: transparent;
   color: transparent;
