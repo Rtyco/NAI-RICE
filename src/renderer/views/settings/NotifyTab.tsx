@@ -53,13 +53,17 @@ export function NotifyTab() {
   const settings = useLibrary().settings;
   return (
     <>
-      <Card title="창이 뒤에 있을 때 생성이 끝나면">
+      <Card title="생성 완료 알림 (창이 뒤에 있을 때)">
         <NotifyToggle label="Windows 알림" setting="notifyWhenDone" settings={settings} />
-        <NotifyToggle label="작업 표시줄 깜빡임" setting="flashWhenDone" settings={settings} />
-      </Card>
-      <Card title="생성 중">
         <NotifyToggle
-          label="작업 표시줄 아이콘에 진행 막대"
+          label="작업 표시줄 아이콘 깜박임"
+          setting="flashWhenDone"
+          settings={settings}
+        />
+      </Card>
+      <Card title="생성 진행">
+        <NotifyToggle
+          label="작업 표시줄 아이콘에 진행률 표시"
           setting="taskbarProgress"
           settings={settings}
         />
@@ -67,19 +71,15 @@ export function NotifyTab() {
       <Card title="확인 창">
         <AnlasConfirmFields rule={settings.anlasConfirm} />
         <NotifyToggle
-          label="생성 결과를 지우기 전에 확인 (휴지통으로 이동)"
+          label="생성 결과 삭제 확인 (휴지통으로 이동)"
           setting="confirmResultDelete"
           settings={settings}
         />
       </Card>
       <Card title="안내">
-        <NotifyToggle
-          label="다른 씬을 생성 큐에 넣으면 알림"
-          setting="notifyEnqueued"
-          settings={settings}
-        />
+        <NotifyToggle label="생성 큐 등록 알림" setting="notifyEnqueued" settings={settings} />
         <Toggle
-          label="업데이트 후 처음 열 때 바뀐 점 보기"
+          label="업데이트 후 바뀐 점 표시"
           checked={settings.update.showWhatsNew}
           onChange={(showWhatsNew) =>
             patchSettings((current) => ({

@@ -231,7 +231,7 @@ export function ExportDialog({
               onChange={(columns) => setSheet((current) => ({ ...current, columns }))}
             />
             <NumberField
-              label="칸 너비"
+              label="칸 폭"
               value={sheet.cellWidth}
               min={128}
               max={1024}
@@ -251,7 +251,7 @@ export function ExportDialog({
           </div>
           {sheetTooLarge ? (
             <p className="field-error">
-              한 변은 {MAX_SHEET_SIDE.toLocaleString()}px까지입니다. 열 수나 칸 너비를 줄이십시오.
+              한 변은 {MAX_SHEET_SIDE.toLocaleString()}px까지입니다. 열 수나 칸 폭을 줄이십시오.
             </p>
           ) : (
             selected.length > 0 && (

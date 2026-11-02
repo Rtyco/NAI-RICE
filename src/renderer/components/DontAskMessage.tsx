@@ -10,7 +10,7 @@ export function DontAskMessage(props: {
     <>
       {props.children}
       <Toggle
-        label="다시 묻지 않음"
+        label="다시 표시 안 함"
         checked={skip}
         onChange={(value) => {
           setSkip(value);
