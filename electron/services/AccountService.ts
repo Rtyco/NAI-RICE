@@ -153,7 +153,6 @@ export class AccountService {
     return status;
   }
 
-  /** 모든 계정을 차례로 조회한다. */
   async validateStored(): Promise<TokenStatus> {
     await this.load();
     if (!this.list.activeId) throw new Error('저장된 NovelAI 토큰이 없습니다.');

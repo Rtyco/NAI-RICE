@@ -35,7 +35,6 @@ import { StoredFiles, type ReferenceImageWrite } from './StoredFiles';
 import { WorkspaceMaintenance } from './WorkspaceMaintenance';
 import { WorkspacePaths } from './WorkspacePaths';
 
-/** library.json 읽기·저장과 백업만 직접 하고 나머지는 맡은 객체에 넘긴다. */
 export class Library
   extends WorkspacePaths
   implements GenerationStore, ExportSource, WorkspaceFolders
