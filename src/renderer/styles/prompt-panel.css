@@ -17,6 +17,14 @@
 .prompt-panel-view > .history-panel {
   grid-column: 3;
 }
+/* 여닫는 동안 칸 폭만 움직이고 내용은 열린 폭으로 둔 채 잘라 보인다. 프레임마다 프롬프트 칸과 히스토리를
+   다시 배치하면 씬 300개 갤러리에서 한 프레임이 15~22ms였다. 1px = 테두리 */
+.prompt-panel-view > .prompt-panel > * {
+  min-width: calc(var(--prompt-panel-column, 300px) - 1px);
+}
+.prompt-panel-view > .history-panel > * {
+  min-width: calc(var(--history-panel-column, 220px) - 1px);
+}
 .prompt-panel.stage-hidden {
   display: none;
 }

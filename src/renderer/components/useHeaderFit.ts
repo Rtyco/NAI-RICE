@@ -24,11 +24,29 @@ function useFitLevels(
   useLayoutEffect(() => {
     const container = ref.current;
     if (!container) return;
+    const show = (level: number) => {
+      for (let next = 1; next <= levels; next++)
+        container.classList.toggle(`fit-${next}`, next <= level);
+    };
+    // 지금 단계에서 한 단계씩 옮긴다. 패널을 여닫는 동안 프레임마다 0단계부터 다시 붙이면 단계 수만큼 강제 배치가 생긴다.
     const fit = () => {
-      let level = 0;
-      for (let next = 1; next <= levels; next++) container.classList.remove(`fit-${next}`);
-      while (level < start) container.classList.add(`fit-${++level}`);
-      while (level < levels && check.current(container)) container.classList.add(`fit-${++level}`);
+      let level = Math.min(levels, Math.max(start, fitLevel(container)));
+      show(level);
+      if (check.current(container)) {
+        while (level < levels) {
+          show(++level);
+          if (!check.current(container)) break;
+        }
+        return;
+      }
+      while (level > start) {
+        show(level - 1);
+        if (check.current(container)) {
+          show(level);
+          break;
+        }
+        level -= 1;
+      }
     };
     let frame = 0;
     // 콜백 안에서 클래스를 바꾸면 Chromium이 ResizeObserver loop 오류를 낸다.

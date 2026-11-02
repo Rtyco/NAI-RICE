@@ -116,13 +116,19 @@ function useFreshChunkHeights(grid: RefObject<HTMLDivElement | null>, layoutKey:
     const element = grid.current;
     if (!element) return;
     let width = element.clientWidth;
+    let timer = 0;
+    // 패널을 여닫는 동안은 폭이 프레임마다 바뀐다. 그때마다 되돌리면 프레임의 배치가 두 배가 되어 멈춘 뒤에 한 번 한다.
     const observer = new ResizeObserver(() => {
       if (element.clientWidth === width) return;
       width = element.clientWidth;
-      reset();
+      clearTimeout(timer);
+      timer = window.setTimeout(reset, 150);
     });
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, [grid, reset, present]);
 }
 

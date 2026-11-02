@@ -217,8 +217,12 @@
   flex-direction: column;
   gap: 4px;
   opacity: 0;
+  /* opacity 0이어도 그린다(패널을 여닫을 때 갤러리 그리기의 약 30%). */
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 120ms ease;
+  transition:
+    opacity 120ms ease,
+    visibility 120ms;
 }
 .card-actions .icon-button {
   width: 28px;
@@ -235,6 +239,7 @@
 .emotion-card:hover .card-actions,
 .emotion-card:focus-within .card-actions {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 .emotion-card:hover .card-favorite,
