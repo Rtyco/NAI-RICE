@@ -1,6 +1,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -8,6 +9,7 @@ import {
   type CSSProperties,
   type MouseEvent,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import type { Emotion, GenerationSummary, QueueJobView } from '../../core/domain/types';
 import { hasScenePrompt, type ResolvedProject } from '../../core/model/defaults';
@@ -71,8 +73,58 @@ function jobState(jobs: QueueJobView[]): { label: string; tone: string } | null 
 }
 
 const DRAG_TYPE = 'application/x-emotion';
+// 카드 하나가 바뀌어도 격자 전체를 다시 배치한다(씬 300개에서 동작마다 약 12ms). 몇 줄씩 묶으면 바뀐 묶음만 배치한다.
+const CHUNK_ROWS = 4;
 const NO_RECORDS: GenerationSummary[] = [];
 const NO_JOBS: QueueJobView[] = [];
+
+/** 카드가 읽는 값(`jobState`, 생성 중인 작업 ID)만 비교한다. */
+function sameJobs(a: QueueJobView[], b: QueueJobView[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((job, index) => job.id === b[index].id && job.status === b[index].status)
+  );
+}
+
+function chunksOf<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let start = 0; start < items.length; start += size)
+    chunks.push(items.slice(start, start + size));
+  return chunks;
+}
+
+/**
+ * Chromium은 한 번 그린 묶음이 화면 밖으로 나가면 그때 높이를 그대로 쓴다(계산 높이가 바뀌어도 따르지 않는다).
+ * 열 수·비율·폭·카드 수가 바뀌면 잠깐 hidden으로 배치해 계산 높이로 되돌린다.
+ */
+function useFreshChunkHeights(grid: RefObject<HTMLDivElement | null>, layoutKey: string) {
+  const reset = useCallback(() => {
+    const element = grid.current;
+    if (!element) return;
+    element.classList.add('reset-chunks');
+    void element.offsetHeight;
+    element.classList.remove('reset-chunks');
+  }, [grid]);
+  const laidOut = useRef(layoutKey);
+  useLayoutEffect(() => {
+    if (laidOut.current === layoutKey) return;
+    laidOut.current = layoutKey;
+    reset();
+  }, [layoutKey, reset]);
+  const present = Boolean(grid.current);
+  useEffect(() => {
+    const element = grid.current;
+    if (!element) return;
+    let width = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth === width) return;
+      width = element.clientWidth;
+      reset();
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [grid, reset, present]);
+}
 
 /** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
@@ -230,6 +282,7 @@ export function GalleryView({
       group.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return groups;
   }, [records]);
+  const shownJobs = useRef(new Map<string, QueueJobView[]>());
   const jobsByEmotion = useMemo(() => {
     const groups = new Map<string, QueueJobView[]>();
     for (const job of queue.jobs) {
@@ -238,6 +291,12 @@ export function GalleryView({
       if (group) group.push(job);
       else groups.set(job.emotionId, [job]);
     }
+    // 큐 갱신마다 작업 객체가 새로 온다. 상태가 그대로인 씬은 앞의 배열을 써야 카드가 다시 그려지지 않는다.
+    for (const [id, group] of groups) {
+      const before = shownJobs.current.get(id);
+      if (before && sameJobs(before, group)) groups.set(id, before);
+    }
+    shownJobs.current = groups;
     return groups;
   }, [queue.jobs, project.id]);
   const recordsOf = (id: string) => recordsByEmotion.get(id) ?? NO_RECORDS;
@@ -308,6 +367,8 @@ export function GalleryView({
 
   const scroller = selection.containerProps.ref;
   useDragEdgeScroll(scroller, DRAG_TYPE);
+  const grid = useRef<HTMLDivElement>(null);
+  useFreshChunkHeights(grid, `${project.id} ${columns} ${aspect} ${emotions.length}`);
   // 씬 상세에서 PageDown으로 넘어갔으면 그 씬이 화면 밖일 수 있다.
   useLayoutEffect(() => {
     const element = scroller.current;
@@ -348,6 +409,35 @@ export function GalleryView({
     .map((emotion) => emotion.id);
   const setPickedExcluded = (exclude: boolean) =>
     updateProject(project.id, (current) => setEmotionsExcluded(current, pickedIds, exclude));
+
+  const cards = [
+    ...emotions.map((emotion) => (
+      <EmotionCard
+        key={emotion.id}
+        projectId={project.id}
+        emotion={emotion}
+        favoriteId={project.favorites[emotion.id]}
+        excluded={excluded.has(emotion.id)}
+        blocked={resolved.missing.length > 0}
+        records={recordsOf(emotion.id)}
+        jobs={jobsByEmotion.get(emotion.id) ?? NO_JOBS}
+        prefer={prefer}
+        startDrag={startDrag}
+        endDrag={endDrag}
+        dropOn={dropOn}
+        dragging={dragging.includes(emotion.id)}
+        picked={selection.isSelected(emotion.id)}
+        returned={emotion.id === lastEmotionId}
+        onPick={selection.clickItem}
+        onMenu={menuFor}
+        onCheck={check}
+      />
+    )),
+    <button key="add" className="emotion-card add-card" onClick={addAndOpen}>
+      <span className="add-card-thumb">＋</span>
+      <footer>씬 추가</footer>
+    </button>,
+  ];
 
   const pickedCovers = () =>
     emotions
@@ -523,6 +613,7 @@ export function GalleryView({
         <p className="hint">「{query.trim()}」 검색 결과가 없습니다.</p>
       )}
       <div
+        ref={grid}
         className="emotion-grid"
         style={
           {
@@ -531,32 +622,15 @@ export function GalleryView({
           } as CSSProperties
         }
       >
-        {emotions.map((emotion) => (
-          <EmotionCard
-            key={emotion.id}
-            projectId={project.id}
-            emotion={emotion}
-            favoriteId={project.favorites[emotion.id]}
-            excluded={excluded.has(emotion.id)}
-            blocked={resolved.missing.length > 0}
-            records={recordsOf(emotion.id)}
-            jobs={jobsByEmotion.get(emotion.id) ?? NO_JOBS}
-            prefer={prefer}
-            startDrag={startDrag}
-            endDrag={endDrag}
-            dropOn={dropOn}
-            dragging={dragging.includes(emotion.id)}
-            picked={selection.isSelected(emotion.id)}
-            returned={emotion.id === lastEmotionId}
-            onPick={selection.clickItem}
-            onMenu={menuFor}
-            onCheck={check}
-          />
+        {chunksOf(cards, columns * CHUNK_ROWS).map((chunk, index) => (
+          <div
+            key={index}
+            className="emotion-chunk"
+            style={{ '--chunk-items': chunk.length } as CSSProperties}
+          >
+            {chunk}
+          </div>
         ))}
-        <button className="emotion-card add-card" onClick={addAndOpen}>
-          <span className="add-card-thumb">＋</span>
-          <footer>씬 추가</footer>
-        </button>
       </div>
       {selection.boxElement}
     </div>

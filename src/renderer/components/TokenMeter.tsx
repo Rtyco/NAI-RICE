@@ -1,6 +1,6 @@
 import { usePromptTokens, type SideUsage, type TokenScene } from '../promptTokens';
 
-export function TokenMeter({ model, scenes }: { model?: string; scenes: TokenScene[] }) {
+export function TokenMeter({ model, scenes }: { model?: string; scenes: () => TokenScene[] }) {
   const state = usePromptTokens(model, scenes);
   if (!state) return null;
   return (

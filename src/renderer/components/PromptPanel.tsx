@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Character, CharacterPromptSet, Preset } from '../../core/domain/types';
 import {
@@ -361,7 +361,7 @@ export function PromptPanelToggle() {
 export function ProjectPromptPanel({ projectId }: { projectId: string }) {
   const resolved = useResolvedProject(projectId);
   const pieceSets = useStore((state) => state.library?.pieceSets);
-  const scenes = useMemo(
+  const scenes = useCallback(
     () => (resolved ? projectTokenScenes(resolved, pieceSets ?? []) : []),
     [resolved, pieceSets],
   );
@@ -398,7 +398,8 @@ export function FreePromptPanel() {
     (state) => resolveFreeGeneration(state.library!),
     (a, b) => a.preset === b.preset && sameCharacters(a.characters, b.characters),
   );
-  const scenes = useStoreMemo((state) => freeTokenScenes(state.library!), sameTokenScenes);
+  const freeScenes = useStoreMemo((state) => freeTokenScenes(state.library!), sameTokenScenes);
+  const scenes = useCallback(() => freeScenes, [freeScenes]);
   const position = useStore((state) => state.library!.freeGeneration.promptPosition);
   return (
     <PromptPanel

@@ -176,22 +176,27 @@ export type PromptTokenState =
   | { status: 'error'; message: string }
   | { status: 'ready'; limit: number; positive: SideUsage; negative: SideUsage };
 
-/** 씬이 여럿이면 가장 긴 씬. 입력이 멈추고 0.25초 뒤에 센다. */
+/**
+ * 씬이 여럿이면 가장 긴 씬. 입력이 멈추고 0.25초 뒤에 센다.
+ * `scenes`도 그때 부른다: 모든 씬의 요청 프롬프트를 키마다 만들면 씬 300개에서 키 하나에 약 4ms가 든다.
+ */
 export function usePromptTokens(
   model: string | undefined,
-  scenes: TokenScene[],
+  scenes: () => TokenScene[],
 ): PromptTokenState | undefined {
   const tokenizer = model ? tokenizerForModel(model) : undefined;
   const limit = model ? modelInfo(model)?.maxPromptTokens : undefined;
   const [state, setState] = useState<PromptTokenState>({ status: 'loading' });
 
   useEffect(() => {
-    if (!tokenizer || !limit || !scenes.length) return;
+    if (!tokenizer || !limit) return;
     let active = true;
     const timer = setTimeout(() => {
+      const composed = scenes();
+      if (!composed.length) return;
       countPromptTokens(
         tokenizer,
-        scenes.map((scene) => scene.texts),
+        composed.map((scene) => scene.texts),
       )
         .then((usage) => {
           if (!active) return;
@@ -200,7 +205,7 @@ export function usePromptTokens(
             usage.forEach((item, index) => {
               if (item[side] > usage[best][side]) best = index;
             });
-            return { count: usage[best][side], scene: scenes[best].name };
+            return { count: usage[best][side], scene: composed[best].name };
           };
           setState({
             status: 'ready',
@@ -219,5 +224,5 @@ export function usePromptTokens(
     };
   }, [tokenizer, limit, scenes]);
 
-  return tokenizer && limit && scenes.length ? state : undefined;
+  return tokenizer && limit ? state : undefined;
 }

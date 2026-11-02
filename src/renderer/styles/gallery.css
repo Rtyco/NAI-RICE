@@ -13,9 +13,28 @@
   margin-bottom: 14px;
 }
 .emotion-grid {
+  container-type: inline-size;
+}
+/* 화면 밖 묶음은 배치를 건너뛴다. 카드 높이 = 칸 폭 ÷ 비율 + 아래 줄 32 + 테두리 2.
+   auto(마지막 높이 기억)는 쓰지 않는다: 열 수·비율·패널 폭을 바꾼 뒤에도 화면 밖 묶음이 예전 높이로 남는다. */
+.emotion-chunk {
+  --card-height: calc(
+    ((100cqw - (var(--gallery-columns, 6) - 1) * 12px) / var(--gallery-columns, 6) - 2px) /
+      (var(--thumb-aspect, 832 / 1216)) + 34px
+  );
+  --chunk-rows: round(up, var(--chunk-items) / var(--gallery-columns, 6), 1);
   display: grid;
   grid-template-columns: repeat(var(--gallery-columns, 6), minmax(0, 1fr));
   gap: 12px;
+  content-visibility: auto;
+  contain-intrinsic-height: calc(var(--chunk-rows) * (var(--card-height) + 12px) - 12px);
+}
+.emotion-chunk + .emotion-chunk {
+  margin-top: 12px;
+}
+/* useFreshChunkHeights */
+.emotion-grid.reset-chunks > .emotion-chunk {
+  content-visibility: hidden;
 }
 .emotion-card {
   position: relative;
@@ -138,6 +157,8 @@
   }
 }
 .emotion-card footer {
+  /* 글꼴(Pretendard가 없으면 맑은 고딕)에 따라 달라지지 않게 고정한다. .emotion-chunk 높이 계산이 쓴다. */
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 6px;
