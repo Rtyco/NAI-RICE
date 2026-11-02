@@ -70,6 +70,7 @@ function createPreviewApi(): DesktopApi {
     exportImages: async () => null,
     exportSheet: async () => null,
     exportProjectPackage: async () => null,
+    exportSDStudioPackage: async () => null,
     pickImportFile: async () => null,
     pathForFile: () => '',
     readPackage: async () => '',

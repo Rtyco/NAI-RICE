@@ -180,6 +180,20 @@ export type ProjectPackageRequest = {
   quality: number;
 };
 
+export type SDStudioPackageRequest = {
+  /** `exportSDStudioProject`의 파일. 씬의 `mains`·`imageMap`은 내보낸 파일로 채운다. */
+  project: Record<string, unknown>;
+  /** 씬 ID → SD Studio 씬 이름 */
+  sceneNames: Record<string, string>;
+  /** 씬 ID → 결과 ID */
+  favorites: Record<string, string>;
+  projectId: string;
+  name: string;
+  generationIds: string[];
+  imageFormat: PackageImageFormat;
+  quality: number;
+};
+
 export type PackageResultsRequest = {
   path: string;
   projectId: string;
@@ -279,6 +293,8 @@ export type FileApi = {
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
   exportSheet: (request: SheetExportRequest) => Promise<string | null>;
   exportProjectPackage: (request: ProjectPackageRequest) => Promise<string | null>;
+  /** SD Studio 「프로젝트 백업 불러오기」로 여는 tar */
+  exportSDStudioPackage: (request: SDStudioPackageRequest) => Promise<string | null>;
   pickImportFile: (title: string) => Promise<ImportFilePick | null>;
   /** 끌어 놓은 파일의 경로. 브라우저 미리 보기에서는 빈 문자열. */
   pathForFile: (file: File) => string;

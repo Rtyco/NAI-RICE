@@ -731,6 +731,17 @@ export const projectPackageRequestSchema = z.object({
   quality: exportQualitySchema,
 });
 
+export const sdStudioPackageRequestSchema = z.object({
+  project: z.record(z.string(), z.unknown()),
+  sceneNames: z.record(z.string(), z.string().min(1)),
+  favorites: z.record(z.string(), z.string()),
+  projectId: z.string().regex(FOLDER_ID),
+  name: z.string(),
+  generationIds: z.array(z.string()),
+  imageFormat: z.enum(['original', 'png', 'webp']),
+  quality: exportQualitySchema,
+});
+
 export const packageResultsRequestSchema = z.object({
   path: z.string().regex(/.tar$/i),
   projectId: z.string().regex(FOLDER_ID),

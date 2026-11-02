@@ -16,6 +16,7 @@ import type {
   ExportResult,
   PackageImageFormat,
   ProjectPackageRequest,
+  SDStudioPackageRequest,
   SheetExportRequest,
 } from '../../src/shared/ipc';
 import { atomicWrite, exists } from './fsUtils';
@@ -283,6 +284,70 @@ export class Exporter {
       }
       const manifest = { ...exportProject(part, images, pictures), results };
       await writer.add('project.json', Buffer.from(JSON.stringify(manifest, null, 2)));
+      await writer.finish();
+    } catch (error) {
+      await writer.abort();
+      throw error;
+    }
+    return result.filePath;
+  }
+
+  /** SD Studio 백업과 같은 구성: project.json, outs/<씬 이름>/<파일>. 대표 이미지는 씬의 `mains`에 적는다. */
+  async exportSDStudioPackage(request: SDStudioPackageRequest): Promise<string | null> {
+    const records = await this.library.listGenerations(request.projectId);
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const picked = request.generationIds.flatMap((id) => {
+      const record = byId.get(id);
+      return record && request.sceneNames[record.emotionId] ? [record] : [];
+    });
+    await fs.mkdir(this.exportsDir(), { recursive: true });
+    const result = await this.dialog.showSaveDialog({
+      title: 'SD Studio 프로젝트로 내보내기 (이미지 포함)',
+      defaultPath: path.join(
+        this.exportsDir(),
+        `${sanitizeFilenameStem(request.name)} (SD Studio)_${dateStamp()}.tar`,
+      ),
+      filters: [{ name: 'SD Studio 프로젝트 백업', extensions: ['tar'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    const scenes = (request.project.scenes ?? {}) as Record<string, Record<string, unknown>>;
+    const files = new Map<string, string[]>();
+    const exported = new Map<string, string>();
+    const writer = await TarWriter.create(result.filePath);
+    try {
+      for (const record of picked) {
+        const scene = request.sceneNames[record.emotionId];
+        const source = await fs.readFile(
+          await this.library.resolveProjectReal(request.projectId, record.file),
+        );
+        const { data, extension } = await packageImage(
+          source,
+          record.file,
+          request.imageFormat,
+          request.quality,
+        );
+        const taken = files.get(scene) ?? [];
+        const stem = path.basename(record.file, path.extname(record.file));
+        let name = `${stem}${extension}`;
+        for (let suffix = 2; taken.includes(name); suffix += 1)
+          name = `${stem}_${suffix}${extension}`;
+        files.set(scene, [...taken, name]);
+        exported.set(record.id, name);
+        await writer.add(`outs/${scene}/${name}`, data);
+      }
+      for (const [emotionId, scene] of Object.entries(request.sceneNames)) {
+        if (!scenes[scene]) continue;
+        const main = exported.get(request.favorites[emotionId] ?? '');
+        scenes[scene] = {
+          ...scenes[scene],
+          imageMap: files.get(scene) ?? [],
+          mains: main ? [main] : [],
+        };
+      }
+      await writer.add(
+        'project.json',
+        Buffer.from(JSON.stringify({ ...request.project, scenes }, null, 2)),
+      );
       await writer.finish();
     } catch (error) {
       await writer.abort();

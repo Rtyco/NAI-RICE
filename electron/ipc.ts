@@ -5,6 +5,7 @@ import {
   exportRequestSchema,
   packageResultsRequestSchema,
   projectPackageRequestSchema,
+  sdStudioPackageRequestSchema,
   sheetExportRequestSchema,
   generationFindRequestSchema,
 } from '../src/core/validation/schemas';
@@ -189,6 +190,9 @@ export function registerIpc(services: AppServices): void {
     const parsed = projectPackageRequestSchema.parse(request);
     return exporter.exportProjectPackage({ ...parsed, library: parsed.library as LibraryData });
   });
+  ipcMain.handle('file:export-sdstudio-package', (_event, request: unknown) =>
+    exporter.exportSDStudioPackage(sdStudioPackageRequestSchema.parse(request)),
+  );
   ipcMain.handle('file:pick-import', (_event, title: string) =>
     files.pickImport(title || '가져올 파일 선택'),
   );

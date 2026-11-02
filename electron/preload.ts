@@ -69,6 +69,7 @@ const api: DesktopApi = {
   exportImages: (request) => ipcRenderer.invoke('file:export-images', request),
   exportSheet: (request) => ipcRenderer.invoke('file:export-sheet', request),
   exportProjectPackage: (request) => ipcRenderer.invoke('file:export-project-package', request),
+  exportSDStudioPackage: (request) => ipcRenderer.invoke('file:export-sdstudio-package', request),
   pickImportFile: (title) => ipcRenderer.invoke('file:pick-import', title),
   pathForFile: (file) => webUtils.getPathForFile(file),
   readPackage: (filePath) => ipcRenderer.invoke('file:read-package', filePath),

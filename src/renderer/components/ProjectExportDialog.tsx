@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { exportSDStudioProject } from '../../core/backup/SDStudioFiles';
 import type { ExportScope, Project } from '../../core/domain/types';
 import type { PackageImageFormat } from '../../shared/ipc';
 import { fileApi } from '../desktop';
@@ -15,7 +16,17 @@ const SCOPES: Array<{ id: PackageScope; label: string }> = [
   ...EXPORT_SCOPES,
 ];
 
-export function ProjectExportDialog({ project, close }: { project: Project; close: () => void }) {
+export type ProjectExportFormat = 'rice' | 'sdstudio';
+
+export function ProjectExportDialog({
+  project,
+  format,
+  close,
+}: {
+  project: Project;
+  format: ProjectExportFormat;
+  close: () => void;
+}) {
   const library = useLibrary();
   const resolved = useResolvedProject(project.id);
   const records = useStore((state) => state.generations[project.id]);
@@ -24,7 +35,10 @@ export function ProjectExportDialog({ project, close }: { project: Project; clos
   }, [records, project.id]);
   const [scope, setScope] = useState<PackageScope>(library.settings.export.scope);
   const [target, setTarget] = useState(library.settings.export.target);
-  const [imageFormat, setImageFormat] = useState<PackageImageFormat>('original');
+  // SD Studio는 PNG의 NovelAI 텍스트로 생성 정보를 읽는다.
+  const [imageFormat, setImageFormat] = useState<PackageImageFormat>(
+    format === 'sdstudio' ? 'png' : 'original',
+  );
   const [quality, setQuality] = useState(library.settings.export.quality);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
 
@@ -42,30 +56,61 @@ export function ProjectExportDialog({ project, close }: { project: Project; clos
   const candidates = scope === 'none' ? [] : picksOf[scope];
   const selected = candidates.filter((item) => !excluded.has(item.key));
 
-  const submit = () =>
-    void run('작업을 내보내는 중', async () => {
+  const generationIds = selected.map((item) => item.record.id);
+
+  const save = async (): Promise<{ saved: string | null; omitted: string[] }> => {
+    if (format === 'rice') {
       const saved =
         scope === 'none'
           ? await fileApi().exportProject(library, project.id)
           : await fileApi().exportProjectPackage({
               library,
               projectId: project.id,
-              generationIds: selected.map((item) => item.record.id),
+              generationIds,
               imageFormat,
               quality,
             });
+      return { saved, omitted: [] };
+    }
+    const { file, omitted, sceneNames } = exportSDStudioProject(project, library);
+    const saved =
+      scope === 'none'
+        ? await fileApi().saveJsonFile(
+            file,
+            `${project.name} (SD Studio).json`,
+            'SD Studio 프로젝트로 내보내기',
+          )
+        : await fileApi().exportSDStudioPackage({
+            project: file,
+            sceneNames,
+            favorites: project.favorites,
+            projectId: project.id,
+            name: project.name,
+            generationIds,
+            imageFormat,
+            quality,
+          });
+    return { saved, omitted };
+  };
+
+  const submit = () =>
+    void run('작업을 내보내는 중', async () => {
+      const { saved, omitted } = await save();
       if (!saved) return;
       toast(
-        scope === 'none'
-          ? `저장했습니다: ${saved}`
-          : `결과 ${selected.length}장을 넣어 저장했습니다: ${saved}`,
+        [
+          scope === 'none'
+            ? `저장했습니다: ${saved}`
+            : `결과 ${selected.length}장을 넣어 저장했습니다: ${saved}`,
+          ...omitted,
+        ].join(' '),
       );
       close();
     });
 
   return (
     <Modal
-      title={`작업 내보내기 · ${project.name}`}
+      title={`${format === 'rice' ? '작업 내보내기' : 'SD Studio 프로젝트로 내보내기'} · ${project.name}`}
       onClose={close}
       wide
       footer={

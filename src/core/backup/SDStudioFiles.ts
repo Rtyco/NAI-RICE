@@ -107,8 +107,10 @@ function exportOption(option: SceneOption, toCharacter: boolean) {
 function exportScenes(set: EmotionSet | undefined, position?: EmotionPosition, common?: Size) {
   const taken = new Set<string>();
   const scenes: Record<string, unknown> = {};
+  const names: Record<string, string> = {};
   for (const emotion of set?.emotions ?? []) {
     const name = uniqueKey(emotion.name, taken);
+    names[emotion.id] = name;
     const extra = emotion.extraPrompts ?? [];
     const middle = position === 'middle';
     const slots = (emotion.slots ?? []).map((slot) =>
@@ -139,7 +141,7 @@ function exportScenes(set: EmotionSet | undefined, position?: EmotionPosition, c
       mains: [],
     };
   }
-  return scenes;
+  return { scenes, names };
 }
 
 /** SDStudio 「현재 프로젝트에 씬만 불러오기」로 읽히는 프로젝트 파일. 조합 칸은 그대로 옮긴다. `presetShareds`가 없으면 SDStudio가 읽다가 멈춘다. */
@@ -150,7 +152,7 @@ export function exportSDStudioScenes(set: EmotionSet, pieceSets: PieceSet[]): SD
     presets: {},
     presetShareds: {},
     inpaints: {},
-    scenes: exportScenes(set),
+    scenes: exportScenes(set).scenes,
     library: pieceLibrary(set.emotions.flatMap(sceneTexts), pieceSets),
   };
 }
@@ -159,6 +161,8 @@ export type SDStudioProjectExport = {
   file: SDStudioProjectFile;
   /** SDStudio 파일에 담지 못해 뺀 것 */
   omitted: string[];
+  /** 씬 ID → SD Studio 씬 이름. 백업(tar)에서는 결과 폴더 이름이다. */
+  sceneNames: Record<string, string>;
 };
 
 /** 작업 하나를 SDStudio 이미지 생성 프리셋 하나와 씬으로. 인페인트 작업도 일반 생성 씬으로 내보낸다. */
@@ -208,6 +212,11 @@ export function exportSDStudioProject(project: Project, library: Library): SDStu
     ...cast.flatMap(({ set }) => [set.positive, set.negative]),
     ...(emotionSet?.emotions ?? []).flatMap(sceneTexts),
   ];
+  const { scenes, names } = exportScenes(
+    emotionSet,
+    scenePosition(settings.emotionPosition, cast.length),
+    { width: settings.width, height: settings.height },
+  );
   const omitted = [
     ...(project.mode === 'reference'
       ? ['인페인트 참고 이미지와 마스크는 빼고 일반 생성 씬으로 내보냈습니다.']
@@ -226,14 +235,12 @@ export function exportSDStudioProject(project: Project, library: Library): SDStu
         SDImageGen: { type: 'SDImageGen', vibes: [], ...(seed !== undefined ? { seed } : {}) },
       },
       inpaints: {},
-      scenes: exportScenes(emotionSet, scenePosition(settings.emotionPosition, cast.length), {
-        width: settings.width,
-        height: settings.height,
-      }),
+      scenes,
       library: pieceLibrary(texts, library.pieceSets),
       ...(extraPrompt ? { extraPrompt } : {}),
     },
     omitted,
+    sceneNames: names,
   };
 }
 
