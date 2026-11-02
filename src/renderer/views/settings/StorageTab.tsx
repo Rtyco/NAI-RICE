@@ -11,7 +11,7 @@ import { confirmDialog, openDialog } from '../../components/dialogStack';
 import { FREE_PROJECT_ID } from '../../../core/model/defaults';
 import { Card, NumberField } from '../../components/ui';
 import { fileApi, libraryApi, queueApi, storageApi } from '../../desktop';
-import { importJsonFromPicker } from '../../importers';
+import { importFromPicker } from '../../importers';
 import { formatBytes } from '../../lib/bytes';
 import { deleteProject } from '../../projectOps';
 import { deleteGenerations, loadGenerations, run, toast, useLibrary, useStore } from '../../store';
@@ -490,7 +490,7 @@ export function StorageTab() {
           >
             전체 백업 (생성 설정·캐릭터·씬 모음·인페인트·작업)
           </button>
-          <button onClick={() => void importJsonFromPicker()}>JSON 가져오기</button>
+          <button onClick={() => void importFromPicker()}>파일 가져오기</button>
         </div>
         <p className="hint">생성 이미지는 JSON에 포함되지 않습니다.</p>
         <div className="four-column-fields">

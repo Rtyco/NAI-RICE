@@ -11,7 +11,7 @@ import { QueueBar } from './components/QueueBar';
 import { NewProjectDialog, Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
 import { EmptyState } from './components/ui';
-import { importJsonFromPicker } from './importers';
+import { importFromPicker } from './importers';
 import { PROJECT_SECTIONS } from './sections';
 import { applyAppearance } from './theme';
 import {
@@ -110,7 +110,7 @@ function Welcome() {
         >
           ＋ 새 작업
         </button>
-        <button onClick={() => void importJsonFromPicker()}>JSON 가져오기</button>
+        <button onClick={() => void importFromPicker()}>파일 가져오기</button>
         <button className="with-icon" onClick={() => setSettingsOpen(true)}>
           <Icon name="settings" /> 프로그램 설정 (NovelAI 토큰)
         </button>

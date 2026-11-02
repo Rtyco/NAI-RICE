@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { openDialog } from './components/dialogStack';
 import { NewProjectDialog } from './components/Sidebar';
 import { appApi } from './desktop';
-import { importJsonFromPicker } from './importers';
+import { importFromPicker } from './importers';
 import { groupFromShortcut } from './components/listFolders';
 import { FREE_PROJECT_ID } from '../core/model/defaults';
 import { openFind } from './find';
@@ -113,7 +113,7 @@ export function useGlobalShortcuts(): void {
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'n')
         action = () => void openDialog((close) => <NewProjectDialog close={close} />);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'o')
-        action = () => void importJsonFromPicker();
+        action = () => void importFromPicker();
       if (ctrl && !event.shiftKey && key === ',') action = () => setSettingsOpen(true);
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'b') action = cycleSidebar;
       if (ctrl && !event.shiftKey && key.toLowerCase() === 'g' && !typing)

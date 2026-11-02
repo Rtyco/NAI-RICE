@@ -2,7 +2,8 @@ import { exportSDStudioProject } from '../core/backup/SDStudioFiles';
 import type { Project } from '../core/domain/types';
 import { readableId } from '../core/model/defaults';
 import { uniqueName } from '../core/model/mutations';
-import { confirmDialog } from './components/dialogStack';
+import { confirmDialog, openDialog } from './components/dialogStack';
+import { ProjectExportDialog } from './components/ProjectExportDialog';
 import { openProject, run, toast, updateLibrary, useStore } from './store';
 import { fileApi, libraryApi } from './desktop';
 import { dropSourceFiles, sceneImages } from './freeImageOps';
@@ -35,13 +36,12 @@ export function openProjectFolder(projectId: string): void {
 }
 
 export function exportProjectFile(project: Project, format: 'sdstudio' | 'rice'): void {
+  if (format === 'rice') {
+    void openDialog((close) => <ProjectExportDialog project={project} close={close} />);
+    return;
+  }
   void run('내보내는 중', async () => {
     const library = useStore.getState().library!;
-    if (format === 'rice') {
-      const saved = await fileApi().exportProject(library, project.id);
-      if (saved) toast(`저장했습니다: ${saved}`);
-      return;
-    }
     const { file, omitted } = exportSDStudioProject(project, library);
     const saved = await fileApi().saveJsonFile(
       file,

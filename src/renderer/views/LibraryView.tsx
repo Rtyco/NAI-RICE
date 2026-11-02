@@ -17,7 +17,7 @@ import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
 import { usePanelCompact } from '../panelWidths';
 import { SidePanelToggle } from '../components/SidePanel';
-import { importJsonFromPicker } from '../importers';
+import { importFromPicker } from '../importers';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';
 import { IconFolder, ListFolder } from '../components/ListFolder';
@@ -364,8 +364,8 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
           </button>
         )}
         {!collapsed && (
-          <button className="link-button" onClick={() => void importJsonFromPicker()}>
-            JSON 가져오기
+          <button className="link-button" onClick={() => void importFromPicker()}>
+            파일 가져오기
           </button>
         )}
       </aside>

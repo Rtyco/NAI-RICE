@@ -36,7 +36,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['휠 클릭', '자동 스크롤'],
       ['Ctrl+Enter', '생성 (프롬프트를 쓰는 중에도)'],
       ['Ctrl+N', '새 작업'],
-      ['Ctrl+O', 'JSON 가져오기'],
+      ['Ctrl+O', '파일 가져오기 (JSON·작업 묶음)'],
       ['Ctrl+S', '지금 저장 (평소에도 자동 저장)'],
       ['Ctrl+,', '프로그램 설정'],
       ['Ctrl+B', '사이드바 펼침 → 아이콘만 → 숨김'],

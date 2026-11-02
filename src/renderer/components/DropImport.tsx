@@ -3,7 +3,8 @@ import { embeddedVibeFile, readImageMetadata } from '../../core/metadata/NaiMeta
 import { readImageText } from '../../core/metadata/WebpMetadata';
 import { VIBE_FILE_PATTERN } from '../../core/vibes/VibeFile';
 import { importVibeFile } from '../aidImport';
-import { importJsonText } from '../importers';
+import { fileApi } from '../desktop';
+import { importJsonText, importPackage } from '../importers';
 import { blobToDataUrl, decodePixels } from '../lib/image';
 import { run } from '../store';
 import { isTypingTarget } from '../useShortcut';
@@ -15,6 +16,10 @@ async function importDroppedFile(file: File): Promise<void> {
   const name = file.name;
   if (VIBE_FILE_PATTERN.test(name)) {
     await importVibeFile(await file.text(), name);
+    return;
+  }
+  if (/\.tar$/i.test(name)) {
+    await importPackage(fileApi().pathForFile(file), name);
     return;
   }
   if (/\.json$/i.test(name) || file.type === 'application/json') {

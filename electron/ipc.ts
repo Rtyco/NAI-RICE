@@ -3,6 +3,8 @@ import type { Library as LibraryData, Reference, Vibe } from '../src/core/domain
 import {
   exportQualitySchema,
   exportRequestSchema,
+  packageResultsRequestSchema,
+  projectPackageRequestSchema,
   sheetExportRequestSchema,
   generationFindRequestSchema,
 } from '../src/core/validation/schemas';
@@ -18,6 +20,7 @@ import type {
 } from '../src/shared/ipc';
 import type { AccountService } from './services/AccountService';
 import type { Exporter } from './services/Exporter';
+import { importPackageResults, readPackageManifest } from './services/PackageImport';
 import type { FilePicker } from './services/FilePicker';
 import type { GenerationQueue } from './services/GenerationQueue';
 import type { GenerationRequests } from './services/GenerationRequests';
@@ -182,6 +185,19 @@ export function registerIpc(services: AppServices): void {
   ipcMain.handle('file:export-images', (_event, request: unknown) =>
     exporter.exportImages(exportRequestSchema.parse(request)),
   );
+  ipcMain.handle('file:export-project-package', (_event, request: unknown) => {
+    const parsed = projectPackageRequestSchema.parse(request);
+    return exporter.exportProjectPackage({ ...parsed, library: parsed.library as LibraryData });
+  });
+  ipcMain.handle('file:pick-import', (_event, title: string) =>
+    files.pickImport(title || '가져올 파일 선택'),
+  );
+  ipcMain.handle('file:read-package', (_event, filePath: unknown) =>
+    readPackageManifest(packageResultsRequestSchema.shape.path.parse(filePath)),
+  );
+  ipcMain.handle('file:import-package-results', (_event, request: unknown) => {
+    return importPackageResults(library, packageResultsRequestSchema.parse(request));
+  });
   ipcMain.handle('file:export-sheet', (_event, request: unknown) =>
     exporter.exportSheet(sheetExportRequestSchema.parse(request)),
   );

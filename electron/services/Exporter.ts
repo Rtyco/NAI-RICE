@@ -11,16 +11,35 @@ import {
   type ReferenceImagesData,
 } from '../../src/core/backup/Backups';
 import { exportFileNames, sanitizeFilenameStem } from '../../src/core/output/OutputFilename';
-import type { ExportRequest, ExportResult, SheetExportRequest } from '../../src/shared/ipc';
+import type {
+  ExportRequest,
+  ExportResult,
+  PackageImageFormat,
+  ProjectPackageRequest,
+  SheetExportRequest,
+} from '../../src/shared/ipc';
 import { atomicWrite, exists } from './fsUtils';
 import { convertImage, formatFromExtension, toPngWithText } from './Images';
 import type { ExportSource, FileDialogs } from './ports';
+import { TarWriter } from './TarFile';
 
 const FILTERS = [
   { name: 'PNG (메타데이터 유지)', extensions: ['png'] },
   { name: 'WebP', extensions: ['webp'] },
   { name: 'AVIF', extensions: ['avif'] },
 ];
+
+async function packageImage(
+  source: Buffer,
+  file: string,
+  format: PackageImageFormat,
+  quality: number,
+): Promise<{ data: Buffer; extension: string }> {
+  if (format === 'png') return { data: await toPngWithText(source), extension: '.png' };
+  if (format === 'webp')
+    return { data: await convertImage(source, 'webp', quality), extension: '.webp' };
+  return { data: source, extension: path.extname(file) };
+}
 
 function dateStamp(): string {
   return new Date().toISOString().slice(0, 10).replaceAll('-', '');
@@ -211,6 +230,65 @@ export class Exporter {
       `전체백업_${dateStamp()}`,
       '전체 백업 저장',
     );
+  }
+
+  /** 작업 파일과 고른 결과를 tar 하나로. 결과 기록의 `file`은 묶음 안 경로가 된다. */
+  async exportProjectPackage(request: ProjectPackageRequest): Promise<string | null> {
+    const part = projectLibrary(request.library, request.projectId);
+    const records = await this.library.listGenerations(request.projectId);
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const picked = request.generationIds.flatMap((id) => byId.get(id) ?? []);
+    const pickedIds = new Set(picked.map((record) => record.id));
+    const favorites =
+      request.library.projects.find((item) => item.id === request.projectId)?.favorites ?? {};
+    part.projects[0] = {
+      ...part.projects[0],
+      favorites: Object.fromEntries(
+        Object.entries(favorites).filter(([, id]) => pickedIds.has(id)),
+      ),
+    };
+    await fs.mkdir(this.exportsDir(), { recursive: true });
+    const result = await this.dialog.showSaveDialog({
+      title: '작업 내보내기 (이미지 포함)',
+      defaultPath: path.join(
+        this.exportsDir(),
+        `${sanitizeFilenameStem(part.projects[0].name)}_${dateStamp()}.tar`,
+      ),
+      filters: [{ name: 'NAI RICE 작업 묶음', extensions: ['tar'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    const { images, pictures } = await this.mediaOf(part);
+    const writer = await TarWriter.create(result.filePath);
+    try {
+      const results = [];
+      for (const record of picked) {
+        const source = await fs.readFile(
+          await this.library.resolveProjectReal(request.projectId, record.file),
+        );
+        const { data, extension } = await packageImage(
+          source,
+          record.file,
+          request.imageFormat,
+          request.quality,
+        );
+        const file = `results/${record.file.replace(/.[^./]+$/, '')}${extension}`;
+        await writer.add(file, data);
+        results.push({
+          ...record,
+          file,
+          thumbFile: undefined,
+          canvasFile: undefined,
+          inputFile: undefined,
+        });
+      }
+      const manifest = { ...exportProject(part, images, pictures), results };
+      await writer.add('project.json', Buffer.from(JSON.stringify(manifest, null, 2)));
+      await writer.finish();
+    } catch (error) {
+      await writer.abort();
+      throw error;
+    }
+    return result.filePath;
   }
 
   async exportProject(library: LibraryData, projectId: string): Promise<string | null> {

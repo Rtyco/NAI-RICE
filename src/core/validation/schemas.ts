@@ -723,6 +723,20 @@ export const exportRequestSchema = z.object({
   mode: z.enum(['folder', 'zip']),
 });
 
+export const projectPackageRequestSchema = z.object({
+  library: z.unknown(),
+  projectId: z.string().regex(FOLDER_ID),
+  generationIds: z.array(z.string()),
+  imageFormat: z.enum(['original', 'png', 'webp']),
+  quality: exportQualitySchema,
+});
+
+export const packageResultsRequestSchema = z.object({
+  path: z.string().regex(/.tar$/i),
+  projectId: z.string().regex(FOLDER_ID),
+  records: z.array(generationRecordSchema.extend({ file: z.string().startsWith('results/') })),
+});
+
 export const sheetExportRequestSchema = z.object({
   name: z.string(),
   png: z.instanceof(Uint8Array),

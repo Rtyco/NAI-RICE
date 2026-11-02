@@ -8,7 +8,15 @@ import {
 import { createProject, createReference } from '../core/model/defaults';
 import { openDialog } from './components/dialogStack';
 import { ImportReviewDialog } from './components/ImportReviewDialog';
-import { openLibrary, openProject, run, toast, updateLibrary, useStore } from './store';
+import {
+  loadGenerations,
+  openLibrary,
+  openProject,
+  run,
+  toast,
+  updateLibrary,
+  useStore,
+} from './store';
 import { fileApi, libraryApi } from './desktop';
 
 export async function applyBundle(
@@ -83,9 +91,61 @@ export async function importJsonText(raw: string, fileName: string): Promise<voi
   ));
 }
 
-export function importJsonFromPicker(): Promise<void> {
-  return run('JSON을 가져오는 중', async () => {
-    const file = await fileApi().openJsonFile('가져올 JSON 선택');
-    if (file) await importJsonText(file.text, file.name);
+/** 결과 ID가 새로 붙으므로 대표 이미지도 새 ID로 옮긴다. */
+async function importPackageResults(
+  path: string,
+  results: NonNullable<ImportBundle['results']>,
+): Promise<void> {
+  const { idMap, count } = await fileApi().importPackageResults({
+    path,
+    projectId: results.projectId,
+    records: results.records,
+  });
+  const favorites = Object.fromEntries(
+    Object.entries(results.favorites).flatMap(([emotionId, id]) =>
+      idMap[id] ? [[emotionId, idMap[id]]] : [],
+    ),
+  );
+  updateLibrary((current) => ({
+    ...current,
+    projects: current.projects.map((project) =>
+      project.id === results.projectId ? { ...project, favorites } : project,
+    ),
+  }));
+  await loadGenerations(results.projectId);
+  toast(`생성 결과 ${count}장을 가져왔습니다.`);
+}
+
+export async function importPackage(path: string, fileName: string): Promise<void> {
+  const library = useStore.getState().library;
+  if (!library) return;
+  if (!path) throw new Error(`파일 위치를 알 수 없습니다: ${fileName}`);
+  const bundle = parseImportFile(
+    await fileApi().readPackage(path),
+    fileName,
+    library.presets[0].id,
+  );
+  void openDialog((close) => (
+    <ImportReviewDialog
+      bundle={bundle}
+      close={close}
+      onImport={(chosen, kept) =>
+        void run('가져오는 중', async () => {
+          await applyBundle(chosen, kept);
+          const results = chosen.results;
+          if (results && chosen.projects.some((project) => project.id === results.projectId))
+            await importPackageResults(path, results);
+        })
+      }
+    />
+  ));
+}
+
+export function importFromPicker(): Promise<void> {
+  return run('파일을 가져오는 중', async () => {
+    const file = await fileApi().pickImportFile('가져올 파일 선택');
+    if (!file) return;
+    if (file.text === undefined) await importPackage(file.path, file.name);
+    else await importJsonText(file.text, file.name);
   }).then(() => undefined);
 }

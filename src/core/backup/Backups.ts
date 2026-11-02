@@ -3,6 +3,7 @@ import type {
   Character,
   CharacterReference,
   EmotionSet,
+  GenerationRecord,
   Library,
   PieceSet,
   Preset,
@@ -23,6 +24,7 @@ import {
 import { createPieceSet, newId, readableId } from '../model/defaults';
 import {
   characterSchema,
+  generationRecordSchema,
   librarySchema,
   presetSchema,
   referenceSchema,
@@ -78,6 +80,8 @@ const formats = {
       library: librarySchema.pick(PROJECT_PARTS),
       images: z.record(z.string(), imagesSchema).default({}),
       pictures: z.record(z.string(), z.string()).default({}),
+      // 이미지 포함 작업 파일(tar)만. `file`은 묶음 안 경로다.
+      results: z.array(generationRecordSchema).default([]),
     }),
   ),
   preset: envelope('reference-inpaint-preset', z.object({ preset: presetSchema })),
@@ -119,6 +123,8 @@ export type ImportBundle = {
   images: Record<string, ReferenceImagesData>;
   /** 파일 이름 → data URL. 내용 해시 이름이다. */
   pictures: Record<string, string>;
+  /** 이미지 포함 작업 파일의 결과. `projectId`는 새 ID, `favorites`는 원래 작업의 씬 ID → 결과 ID다. */
+  results?: { projectId: string; records: GenerationRecord[]; favorites: Record<string, string> };
   warnings: string[];
 };
 
@@ -231,7 +237,15 @@ export function parseImportFile(
   if (kind === 'reference-inpaint-project') {
     const data = parse(formats.project, value, '작업');
     const name = data.library.projects[0]?.name ?? stem;
-    return remapLibrary(data.library, data.images, data.pictures, `작업 "${name}"`);
+    const bundle = remapLibrary(data.library, data.images, data.pictures, `작업 "${name}"`);
+    const project = bundle.projects[0];
+    if (project && data.results.length)
+      bundle.results = {
+        projectId: project.id,
+        records: data.results,
+        favorites: data.library.projects[0].favorites,
+      };
+    return bundle;
   }
   if (kind === 'reference-inpaint-preset') {
     const data = parse(formats.preset, value, '생성 설정');

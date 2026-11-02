@@ -11,7 +11,6 @@ import { MAX_SHEET_SIDE, sheetLayout } from '../../core/imaging/SceneSheet';
 import { EXPORT_SCOPES, exportPicks, type ExportPick } from '../exportPicks';
 import { drawSceneSheet, sheetAspect, type SheetOptions } from '../sceneSheet';
 import {
-  projectMedia,
   readUiState,
   run,
   saveUiState,
@@ -21,6 +20,7 @@ import {
   useStore,
 } from '../store';
 import { Modal } from './Dialogs';
+import { ExportPickGrid } from './ExportPickGrid';
 import { NumberField, SelectField, TemplateField } from './ui';
 import { fileApi } from '../desktop';
 
@@ -289,31 +289,13 @@ export function ExportDialog({
         </>
       )}
       {missing > 0 && <p className="hint">결과 없는 씬 {missing}개 제외</p>}
-      <div className="export-grid">
-        {candidates.map(({ key, emotion, record }) => (
-          <label key={key} className={`export-item ${excluded.has(key) ? 'off' : ''}`}>
-            <input
-              type="checkbox"
-              checked={!excluded.has(key)}
-              onChange={(event) =>
-                setExcluded((current) => {
-                  const next = new Set(current);
-                  if (event.target.checked) next.delete(key);
-                  else next.add(key);
-                  return next;
-                })
-              }
-            />
-            <img
-              src={projectMedia(project.id, record.thumbFile ?? record.file)}
-              alt=""
-              loading="lazy"
-            />
-            <span>{emotion.name}</span>
-            {scope !== 'scene' && record.comboName && <small>{record.comboName}</small>}
-          </label>
-        ))}
-      </div>
+      <ExportPickGrid
+        projectId={project.id}
+        picks={candidates}
+        excluded={excluded}
+        onExcludedChange={setExcluded}
+        showCombo={scope !== 'scene'}
+      />
     </Modal>
   );
 }

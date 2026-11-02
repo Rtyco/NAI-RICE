@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { GenerationSummary, QueueView } from '../src/core/domain/types';
 import type {
   DesktopApi,
@@ -68,6 +68,11 @@ const api: DesktopApi = {
   copyImage: (id, generationId) => ipcRenderer.invoke('file:copy-image', id, generationId),
   exportImages: (request) => ipcRenderer.invoke('file:export-images', request),
   exportSheet: (request) => ipcRenderer.invoke('file:export-sheet', request),
+  exportProjectPackage: (request) => ipcRenderer.invoke('file:export-project-package', request),
+  pickImportFile: (title) => ipcRenderer.invoke('file:pick-import', title),
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  readPackage: (filePath) => ipcRenderer.invoke('file:read-package', filePath),
+  importPackageResults: (request) => ipcRenderer.invoke('file:import-package-results', request),
   exportReference: (reference) => ipcRenderer.invoke('file:export-reference', reference),
   exportLibrary: (library) => ipcRenderer.invoke('file:export-library', library),
   exportProject: (library, projectId) =>

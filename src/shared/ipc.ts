@@ -169,6 +169,30 @@ export type ExportRequest = {
 
 export type ExportResult = { path: string; count: number } | null;
 
+/** original: 저장된 파일 그대로 */
+export type PackageImageFormat = 'original' | 'png' | 'webp';
+
+export type ProjectPackageRequest = {
+  library: Library;
+  projectId: string;
+  generationIds: string[];
+  imageFormat: PackageImageFormat;
+  quality: number;
+};
+
+export type PackageResultsRequest = {
+  path: string;
+  projectId: string;
+  /** `file`은 묶음 안 경로 */
+  records: GenerationRecord[];
+};
+
+/** `idMap`: 묶음 안 결과 ID → 새 결과 ID. 가져오지 못한 결과는 없다. */
+export type PackageResultsImport = { idMap: Record<string, string>; count: number };
+
+/** `text`는 JSON일 때만. 묶음(tar)은 경로만 돌려준다. */
+export type ImportFilePick = { path: string; name: string; text?: string };
+
 export type SheetExportRequest = {
   name: string;
   /** 화면에서 그린 PNG */
@@ -254,6 +278,13 @@ export type FileApi = {
   copyImage: (projectId: string, generationId: string) => Promise<void>;
   exportImages: (request: ExportRequest) => Promise<ExportResult>;
   exportSheet: (request: SheetExportRequest) => Promise<string | null>;
+  exportProjectPackage: (request: ProjectPackageRequest) => Promise<string | null>;
+  pickImportFile: (title: string) => Promise<ImportFilePick | null>;
+  /** 끌어 놓은 파일의 경로. 브라우저 미리 보기에서는 빈 문자열. */
+  pathForFile: (file: File) => string;
+  /** 묶음 안 project.json */
+  readPackage: (path: string) => Promise<string>;
+  importPackageResults: (request: PackageResultsRequest) => Promise<PackageResultsImport>;
   exportReference: (reference: Reference) => Promise<string | null>;
   exportLibrary: (library: Library) => Promise<string | null>;
   /** NAI RICE 작업 파일. 작업이 쓰는 라이브러리 항목과 그림을 함께 넣는다. */

@@ -212,6 +212,10 @@ export class Library
     return this.generations.add(record);
   }
 
+  addGenerations(projectId: string, added: GenerationRecord[]): Promise<void> {
+    return this.generations.edit(projectId, (records, write) => write([...records, ...added]));
+  }
+
   findGeneration(projectId: string, generationId: string): Promise<GenerationRecord> {
     return this.generations.find(projectId, generationId);
   }
