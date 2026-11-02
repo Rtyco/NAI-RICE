@@ -132,6 +132,82 @@ function useFreshChunkHeights(grid: RefObject<HTMLDivElement | null>, layoutKey:
   }, [grid, reset, present]);
 }
 
+const panelMotion = (animation: Animation, grid: Element): animation is CSSTransition =>
+  animation instanceof CSSTransition &&
+  animation.transitionProperty === 'grid-template-columns' &&
+  animation.effect instanceof KeyframeEffect &&
+  Boolean(animation.effect.target?.contains(grid));
+
+/**
+ * 패널 칸이 움직이는 동안(grid-template-columns 전환) 카드 격자의 폭을 고정한다. 보이는 카드를 프레임마다 다시
+ * 배치·그리면 한 줄 8장에서 한 프레임이 25~30ms였다. 시작 폭과 끝 폭 중 넓은 쪽으로 고정해 빈 자리 없이
+ * 오른쪽만 잘려 보이고, 넓어질 때는 시작에, 좁아질 때는 끝에 카드 크기가 맞춰진다.
+ */
+function useFrozenGridWhilePanelsMove(grid: RefObject<HTMLDivElement | null>) {
+  const present = Boolean(grid.current);
+  useEffect(() => {
+    const element = grid.current;
+    const view = element?.parentElement;
+    if (!element || !view) return;
+    const moving = new Map<EventTarget, number>();
+    let fallback = 0;
+    const release = () => {
+      moving.clear();
+      clearTimeout(fallback);
+      element.style.removeProperty('width');
+      view.classList.remove('panel-moving');
+    };
+    // 시작 이벤트는 첫 프레임을 그린 뒤에 온다. 전환을 처음과 끝으로 옮겨 두 폭을 재고 되돌린다.
+    // 격자를 먼저 지금 폭으로 묶어 두면 잴 때 카드를 다시 배치하지 않는다.
+    const freeze = () => {
+      element.style.width = `${element.getBoundingClientRect().width}px`;
+      const style = getComputedStyle(view);
+      const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const transitions = document.getAnimations().filter((item) => panelMotion(item, element));
+      const times = transitions.map((transition) => transition.currentTime);
+      const widthAt = (time: (transition: CSSTransition) => number) => {
+        for (const transition of transitions) transition.currentTime = time(transition);
+        return view.clientWidth - padding;
+      };
+      const start = widthAt(() => 0);
+      const end = widthAt((transition) =>
+        Number(transition.effect?.getComputedTiming().endTime ?? 0),
+      );
+      transitions.forEach((transition, index) => (transition.currentTime = times[index]));
+      element.style.width = `${Math.max(start, end)}px`;
+      view.classList.add('panel-moving');
+      // 전환 중에 요소가 빠지면 끝 이벤트가 오지 않는다.
+      clearTimeout(fallback);
+      fallback = window.setTimeout(release, 1000);
+    };
+    const isPanelMotion = (event: TransitionEvent) =>
+      event.propertyName === 'grid-template-columns' &&
+      event.target instanceof Element &&
+      event.target.contains(element);
+    const onRun = (event: TransitionEvent) => {
+      if (!isPanelMotion(event)) return;
+      moving.set(event.target!, (moving.get(event.target!) ?? 0) + 1);
+      freeze();
+    };
+    const onEnd = (event: TransitionEvent) => {
+      if (!isPanelMotion(event)) return;
+      const left = (moving.get(event.target!) ?? 1) - 1;
+      if (left > 0) moving.set(event.target!, left);
+      else moving.delete(event.target!);
+      if (!moving.size) release();
+    };
+    document.addEventListener('transitionrun', onRun);
+    document.addEventListener('transitionend', onEnd);
+    document.addEventListener('transitioncancel', onEnd);
+    return () => {
+      document.removeEventListener('transitionrun', onRun);
+      document.removeEventListener('transitionend', onEnd);
+      document.removeEventListener('transitioncancel', onEnd);
+      release();
+    };
+  }, [grid, present]);
+}
+
 /** 고르기·끌기로 목록이 자주 다시 그려지므로 바뀐 카드만 그리도록 props를 같은 값으로 유지한다. */
 const EmotionCard = memo(function EmotionCard(props: {
   projectId: string;
@@ -375,6 +451,7 @@ export function GalleryView({
   useDragEdgeScroll(scroller, DRAG_TYPE);
   const grid = useRef<HTMLDivElement>(null);
   useFreshChunkHeights(grid, `${project.id} ${columns} ${aspect} ${emotions.length}`);
+  useFrozenGridWhilePanelsMove(grid);
   // 씬 상세에서 PageDown으로 넘어갔으면 그 씬이 화면 밖일 수 있다.
   useLayoutEffect(() => {
     const element = scroller.current;
