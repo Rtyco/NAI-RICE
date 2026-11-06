@@ -37,7 +37,8 @@ import {
 
 const APP_NAME = 'NAI RICE';
 // electron-builder.yml의 appId. 없으면 Windows 알림이 뜨지 않는다.
-const APP_ID = 'io.nairice.app';
+// dev가 같은 ID를 쓰면 작업 표시줄·알림이 electron.exe 아이콘을 기억해 패키징본에도 보인다.
+const APP_ID = app.isPackaged ? 'io.nairice.app' : 'io.nairice.app.dev';
 const freshRoot = !app.isPackaged && process.env.NAI_RICE_FRESH ? createFreshRoot() : undefined;
 
 // 토큰·큐·화면 설정이 든 폴더. Chromium이 쓰기 시작하기 전에 옮겨야 한다.
