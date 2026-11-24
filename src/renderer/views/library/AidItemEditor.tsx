@@ -65,11 +65,12 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
             onChange={(strength) => save({ strength })}
           />
           <NumberField
-            label="충실도 (Fidelity)"
+            label="충실도 (Fidelity · V4.5 전용)"
             value={item.fidelity}
             min={-AID_VALUE_LIMIT}
             max={AID_VALUE_LIMIT}
             step={0.05}
+            disabled={item.target === 'costume'}
             onChange={(fidelity) => save({ fidelity })}
           />
           <SelectField

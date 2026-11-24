@@ -14,6 +14,7 @@ import {
   requestModelId,
   supportsReferenceAid,
   supportsStreaming,
+  supportsV5ReferenceOptions,
   varietySigma,
 } from './NaiModels';
 
@@ -281,6 +282,7 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
       normalize_reference_strength_multiple: aid.normalize,
     };
   const references = aid.references;
+  const v5 = supportsV5ReferenceOptions(modelId);
   return {
     director_reference_images: references.map((reference) => reference.imageBase64),
     director_reference_descriptions: references.map((reference) => ({
@@ -292,8 +294,9 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
     })),
     director_reference_information_extracted: references.map(() => 1),
     director_reference_strength_values: references.map((reference) => reference.strength),
-    director_reference_secondary_strength_values: references.map(
-      (reference) => 1 - reference.fidelity,
+    // V5 정밀 레퍼런스는 세기(Strength)만 쓰고 충실도(secondary strength)는 항상 0이다.
+    director_reference_secondary_strength_values: references.map((reference) =>
+      v5 ? 0 : 1 - reference.fidelity,
     ),
   };
 }

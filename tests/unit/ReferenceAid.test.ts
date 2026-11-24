@@ -113,8 +113,8 @@ describe('캐릭터 레퍼런스·바이브', () => {
     expect(supportsReferenceAid('nai-diffusion-5-full-inpainting', 'vibe')).toBe(false);
   });
 
-  it('V5 정밀 레퍼런스는 의상(costume)과 동일 의상 선호를 NovelAI 웹 base_caption으로 보내', () => {
-    const captionOf = (
+  it('V5 정밀 레퍼런스는 의상(costume)과 동일 의상 선호를 보내고 secondary strength는 항상 0이야', () => {
+    const paramsOf = (
       model: string,
       target: 'character&style' | 'character' | 'style' | 'costume',
       preferSameOutfit?: boolean,
@@ -123,14 +123,21 @@ describe('캐릭터 레퍼런스·바이브', () => {
         ...setup(model),
         aid: {
           kind: 'character',
-          references: [{ ...face, target, preferSameOutfit }],
+          references: [{ ...face, target, preferSameOutfit, fidelity: 0.4 }],
         },
       });
-      const params = buildNovelAIJobRequest(job, { aidBase64: ['REF'] }).body.parameters as {
+      return buildNovelAIJobRequest(job, { aidBase64: ['REF'] }).body.parameters as {
         director_reference_descriptions: Array<{ caption: { base_caption: string } }>;
+        director_reference_secondary_strength_values: number[];
       };
-      return params.director_reference_descriptions[0].caption.base_caption;
     };
+    const captionOf = (
+      model: string,
+      target: 'character&style' | 'character' | 'style' | 'costume',
+      preferSameOutfit?: boolean,
+    ) =>
+      paramsOf(model, target, preferSameOutfit).director_reference_descriptions[0].caption
+        .base_caption;
     const v5 = 'nai-diffusion-5-full-inpainting';
     expect(captionOf(v5, 'costume')).toBe('costume');
     expect(captionOf(v5, 'style')).toBe('style');
@@ -140,10 +147,18 @@ describe('캐릭터 레퍼런스·바이브', () => {
     expect(captionOf(v5, 'character')).toBe('character');
     expect(captionOf(v5, 'character', false)).toBe('character');
     expect(captionOf(v5, 'character', true)).toBe('character_mainoutfit');
-    // V4.5는 동일 의상 선호 값을 무시하고 기본 base_caption을 쓴다.
+    // V5는 Strength만 써서 fidelity 값과 무관하게 secondary strength가 항상 0이다.
+    expect(paramsOf(v5, 'character&style').director_reference_secondary_strength_values).toEqual([
+      0,
+    ]);
+    expect(paramsOf(v5, 'costume').director_reference_secondary_strength_values).toEqual([0]);
+    // V4.5는 동일 의상 선호 값을 무시하고 기본 base_caption과 fidelity를 쓴다.
     const v45 = 'nai-diffusion-4-5-full-inpainting';
     expect(captionOf(v45, 'character&style', false)).toBe('character&style');
     expect(captionOf(v45, 'character', true)).toBe('character');
+    expect(
+      paramsOf(v45, 'character&style').director_reference_secondary_strength_values[0],
+    ).toBeCloseTo(0.6);
     expect(() => captionOf(v45, 'costume')).toThrow('V5');
   });
 

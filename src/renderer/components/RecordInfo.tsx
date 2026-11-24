@@ -5,6 +5,7 @@ import {
   modelLabel,
   referenceTargetLabel,
   samplingExtras,
+  supportsV5ReferenceOptions,
   usesMedium,
 } from '../../core/providers/NaiModels';
 import { libraryApi } from '../desktop';
@@ -61,7 +62,8 @@ export function RecordInfo({
                     캐릭터 레퍼런스 「{reference.name}」 · {referenceTargetLabel(reference.target)}
                     {reference.preferSameOutfit !== undefined &&
                       ` · ${reference.preferSameOutfit ? '동일 의상 선호' : '의상 자유'}`}{' '}
-                    · 세기 {reference.strength} · 충실도 {reference.fidelity}
+                    · 세기 {reference.strength}
+                    {!supportsV5ReferenceOptions(record.model) && ` · 충실도 ${reference.fidelity}`}
                   </div>
                 ))
               : [
