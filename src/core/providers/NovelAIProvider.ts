@@ -39,6 +39,8 @@ export type NovelAIUserStatus = {
   tier?: number;
   v5Quota?: {
     percent: number;
+    /** Opus Usage Boost 추가 사용량(최대 400). */
+    purchasedPercent?: number;
     isNegative: boolean;
     timeUntilNextPercent: number;
   };
@@ -58,6 +60,7 @@ export function parseNovelAIUserStatus(payload: JsonObject): NovelAIUserStatus {
   const purchased = Number(steps?.purchasedTrainingSteps);
   const usage = child(subscription, 'usage');
   const percent = Number(usage?.percent);
+  const purchasedPercent = Number(usage?.purchasedPercent);
   const timeUntilNextPercent = Number(usage?.timeUntilNextPercent);
   const tier = subscription?.tier;
   const isNegative = usage?.isNegative;
@@ -74,6 +77,9 @@ export function parseNovelAIUserStatus(payload: JsonObject): NovelAIUserStatus {
       ? {
           v5Quota: {
             percent: Math.max(0, Math.round(percent)),
+            ...(Number.isFinite(purchasedPercent)
+              ? { purchasedPercent: Math.max(0, Math.round(purchasedPercent)) }
+              : {}),
             isNegative,
             timeUntilNextPercent: Math.max(0, timeUntilNextPercent),
           },

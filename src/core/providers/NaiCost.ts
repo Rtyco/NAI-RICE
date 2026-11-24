@@ -34,7 +34,7 @@ export function checkFreeGeneration(
   return { free: reasons.length === 0, reasons };
 }
 
-export type V5QuotaState = { percent: number; isNegative: boolean };
+export type V5QuotaState = { percent: number; purchasedPercent?: number; isNegative: boolean };
 
 /** NovelAI `user/data`의 `subscription.tier` */
 export const OPUS_TIER = 3;
@@ -100,10 +100,22 @@ function isOpus(account?: CostAccount): boolean {
   return account?.tier === undefined || account.tier >= OPUS_TIER;
 }
 
+/** Opus Usage Boost 추가 사용량 %. 없으면 0. */
+export function shownV5Boost(account: Pick<CostAccount, 'v5Quota'>): number {
+  const purchased = account.v5Quota?.purchasedPercent;
+  return purchased !== undefined && Number.isFinite(purchased) ? Math.max(0, purchased) : 0;
+}
+
+/** 기본 + Usage Boost 합계 %. 조회 전이면 undefined. */
+export function totalV5Quota(account: Pick<CostAccount, 'v5Quota'>): number | undefined {
+  const base = shownV5Quota(account);
+  return base === undefined ? undefined : base + shownV5Boost(account);
+}
+
 function v5QuotaExhausted(job: CostJob, account?: CostAccount): boolean {
   const quota = account?.v5Quota;
   if (!quota || account.v5Spare || modelInfo(job.settings.model)?.generation !== 'v5') return false;
-  return quota.isNegative || quota.percent <= 0;
+  return (quota.isNegative || quota.percent <= 0) && shownV5Boost({ v5Quota: quota }) <= 0;
 }
 
 /** 화면에 보일 V5 할당량 %. 음수면 0이고, 조회 전이면 undefined. */
@@ -112,11 +124,11 @@ export function shownV5Quota(account: Pick<CostAccount, 'v5Quota'>): number | un
   return quota ? (quota.isNegative ? 0 : Math.max(0, quota.percent)) : undefined;
 }
 
-/** V5 무료 생성 할당량이 남은 Opus 계정. 조회 전이면 아니다. */
+/** V5 무료 생성 할당량(기본 또는 Usage Boost)이 남은 Opus 계정. 조회 전이면 아니다. */
 export function hasV5Quota(account: CostAccount & { valid?: boolean }): boolean {
   const quota = account.v5Quota;
   if (!quota || account.valid === false || !isOpus(account)) return false;
-  return !quota.isNegative && quota.percent > 0;
+  return (!quota.isNegative && quota.percent > 0) || shownV5Boost({ v5Quota: quota }) > 0;
 }
 
 /** 이 계정은 V5 할당량이 없어 Anlas가 들지만, 할당량이 남은 Opus 계정이면 무료인 작업. */

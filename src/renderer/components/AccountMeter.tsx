@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { shownV5Quota } from '../../core/providers/NaiCost';
+import { shownV5Boost, shownV5Quota, totalV5Quota } from '../../core/providers/NaiCost';
 import { refreshAccount, run, useStore } from '../store';
 import { Icon } from './Icon';
 
@@ -18,6 +18,8 @@ export function AccountMeter() {
   const [change, setChange] = useState<{ anlas?: number; quota?: number; key: number }>();
   const previous = useRef<{ anlas?: number; quota?: number }>({});
   const quota = shownV5Quota(token);
+  const boost = shownV5Boost(token);
+  const total = totalV5Quota(token);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 5_000);
@@ -26,16 +28,16 @@ export function AccountMeter() {
 
   useEffect(() => {
     const before = previous.current;
-    previous.current = { anlas: token.anlas, quota };
+    previous.current = { anlas: token.anlas, quota: total };
     const anlasDelta =
       before.anlas !== undefined && token.anlas !== undefined ? token.anlas - before.anlas : 0;
-    const quotaDelta = before.quota !== undefined && quota !== undefined ? quota - before.quota : 0;
+    const quotaDelta = before.quota !== undefined && total !== undefined ? total - before.quota : 0;
     setNow(Date.now());
     if (!anlasDelta && !quotaDelta) return;
     setChange({ anlas: anlasDelta || undefined, quota: quotaDelta || undefined, key: Date.now() });
     const timer = setTimeout(() => setChange(undefined), 8_000);
     return () => clearTimeout(timer);
-  }, [token.anlas, quota, token.checkedAt]);
+  }, [token.anlas, total, token.checkedAt]);
 
   if (!token.stored) return <span className="pill token-missing">NovelAI 토큰 미설정</span>;
   const signed = (value: number) =>
@@ -47,6 +49,9 @@ export function AccountMeter() {
       title={[
         (token.accounts?.length ?? 0) > 1 &&
           token.accounts?.find((account) => account.active)?.name,
+        quota !== undefined &&
+          boost > 0 &&
+          `V5 기본 ${quota}% · Usage Boost +${boost}% (합계 ${total}%)`,
         '계정 상태 다시 조회',
         token.checkedAt && `마지막 조회 ${new Date(token.checkedAt).toLocaleTimeString()}`,
       ]
@@ -57,7 +62,9 @@ export function AccountMeter() {
       {quota !== undefined && (
         <span className="meter">
           <small>V5 무료</small>
-          <b>{quota}%</b>
+          <b>
+            {quota}%{boost > 0 && <span className="quota-boost">+{boost}%</span>}
+          </b>
           <span className="quota-track mini">
             <span style={{ width: `${Math.min(100, quota)}%` }} />
           </span>

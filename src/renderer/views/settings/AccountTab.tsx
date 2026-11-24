@@ -3,7 +3,7 @@ import { Icon } from '../../components/Icon';
 import { Card, NumberField, Toggle } from '../../components/ui';
 import { run, toast, useLibrary, useStore } from '../../store';
 import { accountApi } from '../../desktop';
-import { shownV5Quota } from '../../../core/providers/NaiCost';
+import { shownV5Boost, shownV5Quota } from '../../../core/providers/NaiCost';
 import type { AccountSummary, TokenStatus } from '../../../shared/ipc';
 import { patchSettings } from './patchSettings';
 
@@ -86,6 +86,7 @@ function StreamingCard() {
 function AccountRow({ account, busy }: { account: AccountSummary; busy: boolean }) {
   const [name, setName] = useState(account.name);
   const quota = shownV5Quota(account);
+  const boost = shownV5Boost(account);
   const apply = (label: string, call: () => Promise<TokenStatus>) =>
     void run(label, async () => useStore.setState({ token: await call() }));
   return (
@@ -110,8 +111,14 @@ function AccountRow({ account, busy }: { account: AccountSummary; busy: boolean 
           else setName(account.name);
         }}
       />
-      <span className="account-row-value" title="V5 무료 생성 할당량">
+      <span
+        className="account-row-value"
+        title={
+          boost > 0 ? `V5 기본 ${quota ?? 0}% · Usage Boost +${boost}%` : 'V5 무료 생성 할당량'
+        }
+      >
         V5 {quota === undefined ? '—' : `${quota}%`}
+        {boost > 0 && <span className="quota-boost">+{boost}%</span>}
       </span>
       <span className="account-row-value">{account.anlas?.toLocaleString() ?? '—'} Anlas</span>
       <button
@@ -132,6 +139,7 @@ export function AccountTab() {
   const [name, setName] = useState('');
   const rotation = useLibrary().settings.accountRotation;
   const quota = shownV5Quota(token);
+  const boost = shownV5Boost(token);
   return (
     <>
       <Card title="NovelAI 계정">
@@ -214,10 +222,21 @@ export function AccountTab() {
           </div>
           <div className="account-card">
             <span>V5 무료 생성 할당량</span>
-            <strong>{quota === undefined ? '미확인' : `${quota}%`}</strong>
+            <strong>
+              {quota === undefined ? '미확인' : `${quota}%`}
+              {boost > 0 && <span className="quota-boost"> +{boost}%</span>}
+            </strong>
             <div className="quota-track">
               <span style={{ width: `${Math.min(100, quota ?? 0)}%` }} />
             </div>
+            {boost > 0 && (
+              <>
+                <small>Usage Boost {boost}% / 400%</small>
+                <div className="quota-track boost">
+                  <span style={{ width: `${Math.min(100, boost / 4)}%` }} />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </Card>

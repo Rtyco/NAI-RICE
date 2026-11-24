@@ -129,6 +129,7 @@ export type AccountState = {
   tier?: number;
   v5Quota?: {
     percent: number;
+    purchasedPercent?: number;
     isNegative: boolean;
     timeUntilNextPercent: number;
   };

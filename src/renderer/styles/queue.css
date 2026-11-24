@@ -161,6 +161,12 @@
 .account-meter b {
   font-variant-numeric: tabular-nums;
 }
+.quota-boost {
+  margin-left: 3px;
+  color: var(--teal);
+  font-size: 0.9em;
+  font-weight: 700;
+}
 .account-meter em {
   font-style: normal;
   font-size: 11px;

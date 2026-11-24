@@ -73,6 +73,9 @@
   height: 100%;
   background: linear-gradient(90deg, var(--teal), var(--accent));
 }
+.quota-track.boost > span {
+  background: linear-gradient(90deg, var(--orange), var(--teal));
+}
 .template-input {
   font-family: Consolas, monospace;
 }

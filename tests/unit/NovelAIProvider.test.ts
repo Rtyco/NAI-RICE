@@ -1,6 +1,14 @@
 import { zipSync } from 'fflate';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GenerationJobSnapshot } from '../../src/core/domain/types';
+import { DEFAULT_GENERATION_SETTINGS } from '../../src/core/model/defaults';
+import {
+  estimateJobAnlas,
+  hasV5Quota,
+  needsSpareV5Quota,
+  shownV5Boost,
+  totalV5Quota,
+} from '../../src/core/providers/NaiCost';
 import { NovelAIProvider, parseNovelAIUserStatus } from '../../src/core/providers/NovelAIProvider';
 import { NAI_AUGMENT_ENDPOINT } from '../../src/core/providers/NovelAIRequestBuilder';
 
@@ -35,6 +43,54 @@ describe('parseNovelAIUserStatus', () => {
     expect(parseNovelAIUserStatus({ subscription: { tier: 3 } }).tier).toBe(3);
     expect(parseNovelAIUserStatus({ subscription: { tier: '3' } }).tier).toBeUndefined();
     expect(parseNovelAIUserStatus({}).tier).toBeUndefined();
+  });
+
+  it('Opus Usage Boost(purchasedPercent)를 읽고 기본 할당량이 0%여도 무료 잔량으로 본다', () => {
+    const status = parseNovelAIUserStatus({
+      subscription: {
+        tier: 3,
+        usage: {
+          percent: 37,
+          purchasedPercent: 63,
+          isNegative: false,
+          timeUntilNextPercent: 6048,
+        },
+      },
+    });
+    expect(status.v5Quota).toEqual({
+      percent: 37,
+      purchasedPercent: 63,
+      isNegative: false,
+      timeUntilNextPercent: 6048,
+    });
+    expect(shownV5Boost(status)).toBe(63);
+    expect(totalV5Quota(status)).toBe(100);
+
+    const boostOnly = {
+      tier: 3,
+      v5Quota: { percent: 0, purchasedPercent: 63, isNegative: true },
+    };
+    const v5Job = {
+      kind: 'txt2img' as const,
+      settings: {
+        ...DEFAULT_GENERATION_SETTINGS,
+        model: 'nai-diffusion-5-full-inpainting',
+        steps: 28,
+      },
+      canvasWidth: 832,
+      canvasHeight: 1216,
+    };
+    expect(hasV5Quota(boostOnly)).toBe(true);
+    expect(needsSpareV5Quota(v5Job, boostOnly)).toBe(false);
+    expect(estimateJobAnlas(v5Job, boostOnly)).toBe(0);
+
+    const empty = {
+      tier: 3,
+      v5Quota: { percent: 0, purchasedPercent: 0, isNegative: true },
+    };
+    expect(hasV5Quota(empty)).toBe(false);
+    expect(needsSpareV5Quota(v5Job, empty)).toBe(true);
+    expect(estimateJobAnlas(v5Job, empty)).toBeGreaterThan(0);
   });
 
   it('서버가 보고한 100% 초과 잔량을 보존하고 불완전한 응답은 미확인으로 둬', () => {
