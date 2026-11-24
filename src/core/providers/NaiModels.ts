@@ -1,4 +1,5 @@
 import type {
+  AidMode,
   Effort,
   GenerationSettings,
   NaiTagFamily,
@@ -172,16 +173,70 @@ export function maxCharactersFor(id: string | undefined): number {
   return modelInfo(id ?? '')?.maxCharacters ?? 6;
 }
 
-/** V5는 500 오류(0단계 실측). */
-export function supportsReferenceAid(id: string): boolean {
+/** V4.5·V5 모두 지원. 바이브와 달리 V5에도 정밀 레퍼런스가 있다. */
+export function supportsCharacterReference(id: string): boolean {
+  const model = modelInfo(id);
+  return Boolean(model && (model.family.startsWith('v4-5') || model.generation === 'v5'));
+}
+
+/** V5에는 바이브 트랜스퍼가 아직 없다. */
+export function supportsVibe(id: string): boolean {
   return modelInfo(id)?.family.startsWith('v4-5') ?? false;
 }
 
-export const REFERENCE_TARGETS: Array<{ value: ReferenceTarget; label: string; hint: string }> = [
+/** 의상(`costume`) 타깃과 동일 의상 선호 옵션은 V5 전용. */
+export function supportsV5ReferenceOptions(id: string): boolean {
+  return modelInfo(id)?.generation === 'v5';
+}
+
+export function supportsReferenceAid(id: string, kind: AidMode = 'character'): boolean {
+  return kind === 'vibe' ? supportsVibe(id) : supportsCharacterReference(id);
+}
+
+export const REFERENCE_TARGETS: Array<{
+  value: ReferenceTarget;
+  label: string;
+  hint: string;
+  v5Only?: boolean;
+}> = [
   { value: 'character&style', label: '캐릭터와 그림체', hint: 'Character & Style' },
   { value: 'character', label: '캐릭터', hint: 'Character' },
   { value: 'style', label: '그림체', hint: 'Style' },
+  { value: 'costume', label: '의상', hint: 'Outfit · V5 전용', v5Only: true },
 ];
+
+export function supportsSameOutfitOption(target: ReferenceTarget): boolean {
+  return target === 'character&style' || target === 'character';
+}
+
+/** NovelAI V5 웹 기본값: character&style은 켬, character는 끔. */
+export function effectivePreferSameOutfit(
+  target: ReferenceTarget,
+  preferSameOutfit?: boolean,
+): boolean {
+  if (target === 'character&style') return preferSameOutfit ?? true;
+  if (target === 'character') return preferSameOutfit ?? false;
+  return false;
+}
+
+/** NovelAI 웹 V5(2026-11) `director_reference_descriptions[].caption.base_caption` 값. */
+export function referenceBaseCaption(
+  modelId: string,
+  target: ReferenceTarget,
+  preferSameOutfit?: boolean,
+): string {
+  if (target === 'costume') {
+    if (!supportsV5ReferenceOptions(modelId))
+      throw new Error('의상 레퍼런스는 V5 모델에서만 쓸 수 있습니다.');
+    return 'costume';
+  }
+  if (target === 'style') return 'style';
+  if (!supportsV5ReferenceOptions(modelId)) return target;
+  const keepOutfit = effectivePreferSameOutfit(target, preferSameOutfit);
+  if (target === 'character&style')
+    return keepOutfit ? 'character&style' : 'character&style_anyoutfit';
+  return keepOutfit ? 'character_mainoutfit' : 'character';
+}
 
 export function referenceTargetLabel(target: ReferenceTarget): string {
   return REFERENCE_TARGETS.find((item) => item.value === target)?.label ?? target;

@@ -80,7 +80,7 @@ const CHAIN_CHIPS: Array<{ icons: IconName[]; label: string; role: string }> = [
   { icons: ['pin'], label: '위치', role: '캐릭터 위치 (AI · 직접 지정)' },
   { icons: ['expand'], label: '해상도', role: '이미지 크기 (일반 생성)' },
   { icons: ['reference'], label: '인페인트', role: '참고 이미지 · 캔버스 (인페인트 모드)' },
-  { icons: ['portrait', 'vibe'], label: '참고', role: '캐릭터 레퍼런스 ⇄ 바이브 (V4.5)' },
+  { icons: ['portrait', 'vibe'], label: '참고', role: '캐릭터 레퍼런스 (V4.5·V5) ⇄ 바이브 (V4.5)' },
   { icons: ['emotion'], label: '씬 모음', role: '씬 프롬프트' },
   {
     icons: ['border-line', 'upscale'],

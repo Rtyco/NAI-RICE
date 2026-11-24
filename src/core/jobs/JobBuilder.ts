@@ -48,6 +48,7 @@ import {
   maxCharactersFor,
   modelLabel,
   supportsReferenceAid,
+  supportsV5ReferenceOptions,
   naiTagText,
   usesMedium,
 } from '../providers/NaiModels';
@@ -238,10 +239,23 @@ function castFields(
 }
 
 function assertAidModel(aid: JobAid | undefined, model: string): void {
-  if (aid && !supportsReferenceAid(model))
+  if (!aid) return;
+  if (!supportsReferenceAid(model, aid.kind)) {
     throw new Error(
-      `캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(model)}입니다.`,
+      aid.kind === 'vibe'
+        ? `바이브는 V4.5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(model)}입니다.`
+        : `캐릭터 레퍼런스는 V4.5·V5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(model)}입니다.`,
     );
+  }
+  if (
+    aid.kind === 'character' &&
+    !supportsV5ReferenceOptions(model) &&
+    aid.references.some((reference) => reference.target === 'costume')
+  ) {
+    throw new Error(
+      `의상 레퍼런스는 V5 모델에서만 쓸 수 있습니다. 지금 모델은 ${modelLabel(model)}입니다.`,
+    );
+  }
 }
 
 type EmotionJobCommon = Omit<

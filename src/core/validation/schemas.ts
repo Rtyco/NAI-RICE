@@ -402,7 +402,7 @@ export const AID_VALUE_LIMIT = 10;
 const aidValue = z.number().min(-AID_VALUE_LIMIT).max(AID_VALUE_LIMIT);
 const aidValueSchema = (fallback: number) => aidValue.catch(fallback);
 
-const referenceTargetSchema = z.enum(['character&style', 'character', 'style']);
+const referenceTargetSchema = z.enum(['character&style', 'character', 'style', 'costume']);
 
 /** 예전 `styleAware`: 켜기는 character&style, 끄기는 character. */
 function readStyleAware(value: unknown): unknown {
@@ -420,6 +420,7 @@ export const characterReferenceSchema = z.preprocess(
     folder: folderSchema,
     image: pictureSchema,
     target: referenceTargetSchema.catch('character&style'),
+    preferSameOutfit: z.boolean().optional().catch(undefined),
     strength: aidValueSchema(1),
     fidelity: aidValueSchema(1),
     updatedAt: z.string().catch(''),
@@ -829,6 +830,7 @@ const jobSnapshotCommonSchema = z.object({
                 imagePath: z.string().min(1),
                 imageSha256: sha256Schema,
                 target: referenceTargetSchema,
+                preferSameOutfit: z.boolean().optional(),
                 strength: aidValue,
                 fidelity: aidValue,
               }),

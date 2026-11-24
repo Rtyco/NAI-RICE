@@ -1,6 +1,10 @@
 import type { AidMode, CharacterReference, Project, Vibe } from '../../core/domain/types';
 import { aidItems, projectAid, projectAidMode, type AidChoice } from '../../core/model/defaults';
-import { modelLabel, supportsReferenceAid } from '../../core/providers/NaiModels';
+import {
+  modelLabel,
+  supportsReferenceAid,
+  supportsV5ReferenceOptions,
+} from '../../core/providers/NaiModels';
 import { withRo } from '../lib/korean';
 import { pictureMedia, useLibrary } from '../store';
 import { ChecklistChip, type ChecklistItem } from './ChainChip';
@@ -22,8 +26,16 @@ export function AidChip(props: {
   const { value, onChange: patch } = props;
   const mode = projectAidMode(value);
   const aid = projectAid(library, value);
-  const unsupported = Boolean(props.model && !supportsReferenceAid(props.model));
-  const missing = aidItems(aid).some((item) => !item?.image) || unsupported;
+  const character = mode === 'character';
+  const unsupported = Boolean(props.model && !supportsReferenceAid(props.model, mode));
+  const costumeUnsupported = Boolean(
+    character &&
+    props.model &&
+    !supportsV5ReferenceOptions(props.model) &&
+    aid?.kind === 'character' &&
+    aid.references.some((entry) => entry.item?.target === 'costume'),
+  );
+  const missing = aidItems(aid).some((item) => !item?.image) || unsupported || costumeUnsupported;
   const row = (item: CharacterReference | Vibe): ChecklistItem => ({
     id: item.id,
     name: item.name,
@@ -31,7 +43,6 @@ export function AidChip(props: {
     thumb: item.image ? pictureMedia(item.image.file) : '',
     hint: item.image ? undefined : '그림 없음',
   });
-  const character = mode === 'character';
   const next: AidMode = character ? 'vibe' : 'character';
   const section = character ? 'characterReferences' : 'vibes';
   const list: Array<CharacterReference | Vibe> = character
@@ -51,7 +62,7 @@ export function AidChip(props: {
       label={{
         text: '참고',
         icon: character ? 'portrait' : 'vibe',
-        usage: 'V4.5 전용',
+        usage: character ? 'V4.5·V5' : 'V4.5 전용',
       }}
       iconAction={switchMode}
       missing={Boolean(aid) && missing}
@@ -103,15 +114,21 @@ export function AidChip(props: {
           </div>
           {unsupported ? (
             <p className="warning-box aid-warning">
-              {modelLabel(props.model!)}에서는 {label}를 쓸 수 없습니다. V4.5 모델로 바꾸십시오.
+              {modelLabel(props.model!)}에서는 {label}를 쓸 수 없습니다.{' '}
+              {character ? 'V4.5 또는 V5' : 'V4.5'} 모델로 바꾸십시오.
+            </p>
+          ) : costumeUnsupported ? (
+            <p className="warning-box aid-warning">
+              의상 레퍼런스는 V5 모델에서만 쓸 수 있습니다. V5 모델로 바꾸십시오.
             </p>
           ) : (
-            // NovelAI 웹은 V4.5 인페인트에 캐릭터 레퍼런스를 허용하지만 결과가 나빴다. 바이브는 괜찮아 알리기만 한다.
+            // V4.5 인페인트에서는 캐릭터 레퍼런스 결과가 나빴다. V5는 정식 지원한다.
             character &&
-            props.inpaint && (
+            props.inpaint &&
+            (!props.model || !supportsV5ReferenceOptions(props.model)) && (
               <p className="warning-box aid-warning">
-                인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수 있습니다.
-                인페인트에는 바이브를 쓰십시오.
+                V4.5 인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수
+                있습니다.
               </p>
             )
           )}

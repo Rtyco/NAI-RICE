@@ -30,6 +30,7 @@ import {
   NAI_MODELS,
   supportsInpaint,
   supportsReferenceAid,
+  supportsV5ReferenceOptions,
   usesMedium,
 } from '../providers/NaiModels';
 import { comboCount } from './sceneCombos';
@@ -411,6 +412,12 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
   const aid = projectAid(library, project);
   const aidLabel = aid?.kind === 'character' ? '캐릭터 레퍼런스' : '바이브';
   const items = aidItems(aid);
+  const aidModelInvalid =
+    Boolean(aid && preset) &&
+    (!supportsReferenceAid(preset!.generation.model, aid!.kind) ||
+      (aid!.kind === 'character' &&
+        !supportsV5ReferenceOptions(preset!.generation.model) &&
+        aid!.references.some((entry) => entry.item?.target === 'costume')));
   const missing = [
     !preset && '생성 설정',
     // 캐릭터 없이도 생성할 수 있고, 고른 캐릭터가 지워졌을 때만 막는다.
@@ -421,13 +428,13 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     items.some((item) => !item) && aidLabel,
     items.some((item) => item && !item.image) && `${aidLabel} 그림`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && INPAINT_MODEL_MISSING,
-    aid && preset && !supportsReferenceAid(preset.generation.model) && AID_MODEL_MISSING,
+    aidModelInvalid && AID_MODEL_MISSING,
   ].filter(Boolean) as string[];
   return { project, preset, character, promptSet, characters, emotionSet, reference, missing };
 }
 
 /** 경고는 참고 칩 메뉴가 보여서 작업 화면 경고 띠에는 넣지 않는다. */
-export const AID_MODEL_MISSING = 'V4.5 모델';
+export const AID_MODEL_MISSING = '참고 지원 모델';
 /** 작업 화면 경고 띠는 모델 이름으로 따로 알린다. */
 export const INPAINT_MODEL_MISSING = '인페인트 모델';
 const REFERENCE_MISSING = '인페인트';

@@ -51,12 +51,15 @@ function recordAid(aid: JobAid): RecordAid {
   return aid.kind === 'character'
     ? {
         kind: 'character',
-        references: aid.references.map(({ name, target, strength, fidelity }) => ({
-          name,
-          target,
-          strength,
-          fidelity,
-        })),
+        references: aid.references.map(
+          ({ name, target, preferSameOutfit, strength, fidelity }) => ({
+            name,
+            target,
+            ...(preferSameOutfit !== undefined ? { preferSameOutfit } : {}),
+            strength,
+            fidelity,
+          }),
+        ),
       }
     : {
         kind: 'vibe',

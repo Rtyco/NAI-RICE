@@ -10,6 +10,7 @@ import {
   modelInfo,
   NAI_MODELS,
   naiTagHints,
+  referenceBaseCaption,
   requestModelId,
   supportsReferenceAid,
   supportsStreaming,
@@ -48,6 +49,7 @@ export type NaiAidInput =
       references: Array<{
         imageBase64: string;
         target: ReferenceTarget;
+        preferSameOutfit?: boolean;
         strength: number;
         fidelity: number;
       }>;
@@ -259,11 +261,16 @@ export function vibeStrengths(strengths: number[], normalize: boolean): number[]
   return sum > 1 ? strengths.map((value) => value / sum) : strengths;
 }
 
-/** 0단계에서 V4.5로 받아들여진 형식. */
+/** V4.5는 캐릭터 레퍼런스·바이브 모두, V5는 정밀 레퍼런스(캐릭터·그림체·의상)만 지원한다. */
 function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string, unknown> {
   if (!aid) return {};
-  if (!supportsReferenceAid(modelId))
-    throw new Error('캐릭터 레퍼런스와 바이브는 V4.5 모델에서만 쓸 수 있습니다.');
+  if (!supportsReferenceAid(modelId, aid.kind)) {
+    throw new Error(
+      aid.kind === 'vibe'
+        ? '바이브는 V4.5 모델에서만 쓸 수 있습니다.'
+        : '캐릭터 레퍼런스는 V4.5·V5 모델에서만 쓸 수 있습니다.',
+    );
+  }
   if (aid.kind === 'vibe')
     return {
       reference_image_multiple: aid.vibes.map((vibe) => vibe.encodedBase64),
@@ -278,7 +285,7 @@ function aidParams(modelId: string, aid: NaiAidInput | undefined): Record<string
     director_reference_images: references.map((reference) => reference.imageBase64),
     director_reference_descriptions: references.map((reference) => ({
       caption: {
-        base_caption: reference.target,
+        base_caption: referenceBaseCaption(modelId, reference.target, reference.preferSameOutfit),
         char_captions: [],
       },
       legacy_uc: false,
@@ -376,6 +383,7 @@ function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
         references: aid.references.map((reference, index) => ({
           imageBase64: base64[index],
           target: reference.target,
+          preferSameOutfit: reference.preferSameOutfit,
           strength: reference.strength,
           fidelity: reference.fidelity,
         })),

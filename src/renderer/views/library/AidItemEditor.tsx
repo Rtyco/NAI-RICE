@@ -3,9 +3,14 @@ import type { CharacterReference, Picture, Vibe } from '../../../core/domain/typ
 import type { VibeEncodingInfo } from '../../../shared/ipc';
 import { patchItem } from '../../../core/model/mutations';
 import { Icon } from '../../components/Icon';
-import { NAI_MODELS, REFERENCE_TARGETS } from '../../../core/providers/NaiModels';
+import {
+  effectivePreferSameOutfit,
+  NAI_MODELS,
+  REFERENCE_TARGETS,
+  supportsSameOutfitOption,
+} from '../../../core/providers/NaiModels';
 import { AID_VALUE_LIMIT } from '../../../core/validation/schemas';
-import { Card, NumberField, SelectField } from '../../components/ui';
+import { Card, NumberField, SelectField, Toggle } from '../../components/ui';
 import { fileApi, libraryApi } from '../../desktop';
 import { pictureMedia, run, updateLibrary } from '../../store';
 
@@ -49,7 +54,7 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
   return (
     <>
       <PictureCard image={item.image} onChange={(image) => save({ image })} />
-      <Card title="값" subtitle="V4.5 전용 · Opus여도 장당 5 Anlas">
+      <Card title="값" subtitle="V4.5·V5 지원 · Opus여도 장당 5 Anlas">
         <div className="four-column-fields three">
           <NumberField
             label="세기 (Strength)"
@@ -74,9 +79,16 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
               value: target.value,
               label: `${target.label} (${target.hint})`,
             }))}
-            onChange={(target) => save({ target })}
+            onChange={(target) => save({ target, preferSameOutfit: undefined })}
           />
         </div>
+        {supportsSameOutfitOption(item.target) && (
+          <Toggle
+            label="동일 의상 선호 (Prefer same outfit · V5 전용)"
+            checked={effectivePreferSameOutfit(item.target, item.preferSameOutfit)}
+            onChange={(preferSameOutfit) => save({ preferSameOutfit })}
+          />
+        )}
       </Card>
     </>
   );

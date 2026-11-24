@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { JobAid, Reference } from '../../src/core/domain/types';
 import { buildJobs, buildTxt2ImgJobs } from '../../src/core/jobs/JobBuilder';
 import {
+  AID_MODEL_MISSING,
   createCharacter,
   createDefaultLibrary,
   createEmotion,
@@ -17,7 +18,11 @@ import {
   resolveProject,
 } from '../../src/core/model/defaults';
 import { estimateJobAnlas, generationCostWarnings } from '../../src/core/providers/NaiCost';
-import { supportsReferenceAid } from '../../src/core/providers/NaiModels';
+import {
+  supportsCharacterReference,
+  supportsReferenceAid,
+  supportsVibe,
+} from '../../src/core/providers/NaiModels';
 import {
   buildNovelAIEncodeVibeRequest,
   buildNovelAIJobRequest,
@@ -95,11 +100,51 @@ const withHashes = <T extends object>(job: T) => ({
 });
 
 describe('캐릭터 레퍼런스·바이브', () => {
-  it('V4.5만 받고 V5나 V4는 받지 않아', () => {
-    expect(supportsReferenceAid('nai-diffusion-4-5-full-inpainting')).toBe(true);
-    expect(supportsReferenceAid('nai-diffusion-4-5-curated-inpainting')).toBe(true);
-    expect(supportsReferenceAid('nai-diffusion-5-full-inpainting')).toBe(false);
-    expect(supportsReferenceAid('nai-diffusion-4-full-inpainting')).toBe(false);
+  it('캐릭터 레퍼런스는 V4.5·V5를 받고 바이브는 V4.5만 받아', () => {
+    expect(supportsCharacterReference('nai-diffusion-4-5-full-inpainting')).toBe(true);
+    expect(supportsCharacterReference('nai-diffusion-4-5-curated-inpainting')).toBe(true);
+    expect(supportsCharacterReference('nai-diffusion-5-full-inpainting')).toBe(true);
+    expect(supportsCharacterReference('nai-diffusion-5-curated')).toBe(true);
+    expect(supportsCharacterReference('nai-diffusion-4-full-inpainting')).toBe(false);
+    expect(supportsVibe('nai-diffusion-4-5-full-inpainting')).toBe(true);
+    expect(supportsVibe('nai-diffusion-4-5-curated-inpainting')).toBe(true);
+    expect(supportsVibe('nai-diffusion-5-full-inpainting')).toBe(false);
+    expect(supportsReferenceAid('nai-diffusion-5-full-inpainting', 'character')).toBe(true);
+    expect(supportsReferenceAid('nai-diffusion-5-full-inpainting', 'vibe')).toBe(false);
+  });
+
+  it('V5 정밀 레퍼런스는 의상(costume)과 동일 의상 선호를 NovelAI 웹 base_caption으로 보내', () => {
+    const captionOf = (
+      model: string,
+      target: 'character&style' | 'character' | 'style' | 'costume',
+      preferSameOutfit?: boolean,
+    ) => {
+      const [job] = buildTxt2ImgJobs({
+        ...setup(model),
+        aid: {
+          kind: 'character',
+          references: [{ ...face, target, preferSameOutfit }],
+        },
+      });
+      const params = buildNovelAIJobRequest(job, { aidBase64: ['REF'] }).body.parameters as {
+        director_reference_descriptions: Array<{ caption: { base_caption: string } }>;
+      };
+      return params.director_reference_descriptions[0].caption.base_caption;
+    };
+    const v5 = 'nai-diffusion-5-full-inpainting';
+    expect(captionOf(v5, 'costume')).toBe('costume');
+    expect(captionOf(v5, 'style')).toBe('style');
+    expect(captionOf(v5, 'character&style')).toBe('character&style');
+    expect(captionOf(v5, 'character&style', true)).toBe('character&style');
+    expect(captionOf(v5, 'character&style', false)).toBe('character&style_anyoutfit');
+    expect(captionOf(v5, 'character')).toBe('character');
+    expect(captionOf(v5, 'character', false)).toBe('character');
+    expect(captionOf(v5, 'character', true)).toBe('character_mainoutfit');
+    // V4.5는 동일 의상 선호 값을 무시하고 기본 base_caption을 쓴다.
+    const v45 = 'nai-diffusion-4-5-full-inpainting';
+    expect(captionOf(v45, 'character&style', false)).toBe('character&style');
+    expect(captionOf(v45, 'character', true)).toBe('character');
+    expect(() => captionOf(v45, 'costume')).toThrow('V5');
   });
 
   it('캐릭터 레퍼런스는 일반 생성에 0단계 형식으로 붙이고 충실도를 secondary strength로 바꿔', () => {
@@ -263,19 +308,29 @@ describe('캐릭터 레퍼런스·바이브', () => {
     );
   });
 
-  it('방식 버튼으로 캐릭터 레퍼런스나 바이브를 쓰고, 고른 항목·그림·V4.5 모델이 없으면 알려 줘', () => {
+  it('방식 버튼으로 캐릭터 레퍼런스나 바이브를 쓰고, 고른 항목·그림·지원 모델이 없으면 알려 줘', () => {
     const library = createDefaultLibrary();
     const { project, preset } = setup('nai-diffusion-5-full-inpainting');
     const face = {
       ...createCharacterReference('얼굴'),
       image: { file: `${'d'.repeat(24)}.png`, width: 10, height: 10, name: 'a.png' },
     };
+    const outfit = {
+      ...createCharacterReference('의상'),
+      target: 'costume' as const,
+      image: { file: `${'e'.repeat(24)}.png`, width: 10, height: 10, name: 'b.png' },
+    };
     const mood = createVibe('노을');
+    const v45Preset = {
+      ...preset,
+      id: 'preset-v45',
+      generation: { ...preset.generation, model: 'nai-diffusion-4-5-full-inpainting' },
+    };
     const full = {
       ...library,
-      presets: [preset],
+      presets: [preset, v45Preset],
       references: [reference],
-      characterReferences: [face],
+      characterReferences: [face, outfit],
       vibes: [mood],
     };
     const txt = { ...project, mode: 'txt2img' as const };
@@ -283,7 +338,6 @@ describe('캐릭터 레퍼런스·바이브', () => {
       kind: 'character',
       references: [{ id: face.id, item: face }],
     });
-    // 인페인트도 캐릭터 레퍼런스를 쓴다(NovelAI 웹의 V4.5와 같음).
     expect(projectAid(full, { ...project, characterReferenceIds: [face.id] })?.kind).toBe(
       'character',
     );
@@ -296,11 +350,20 @@ describe('캐릭터 레퍼런스·바이브', () => {
       vibes: [{ id: mood.id, item: mood }],
     });
     const missing = (value: typeof project) => resolveProject(full, value).missing;
-    expect(missing({ ...txt, characterReferenceIds: [face.id] })).toContain('V4.5 모델');
+    // V5는 캐릭터·의상 레퍼런스를 지원하고 바이브는 지원하지 않는다.
+    expect(missing({ ...txt, characterReferenceIds: [face.id] })).not.toContain(AID_MODEL_MISSING);
+    expect(missing({ ...txt, characterReferenceIds: [outfit.id] })).not.toContain(
+      AID_MODEL_MISSING,
+    );
+    expect(missing({ ...txt, vibeIds: [mood.id] })).toContain(AID_MODEL_MISSING);
+    // V4.5는 의상 레퍼런스를 지원하지 않는다.
+    expect(
+      missing({ ...txt, presetId: v45Preset.id, characterReferenceIds: [outfit.id] }),
+    ).toContain(AID_MODEL_MISSING);
     expect(missing({ ...txt, characterReferenceIds: ['gone'] })).toContain('캐릭터 레퍼런스');
     expect(missing({ ...txt, vibeIds: [mood.id] })).toContain('바이브 그림');
     expect(missing({ ...txt, vibeIds: ['gone'] })).toContain('바이브');
-    expect(missing(txt)).not.toContain('V4.5 모델');
+    expect(missing(txt)).not.toContain(AID_MODEL_MISSING);
   });
 
   it('라이브러리의 캐릭터 레퍼런스·바이브를 읽고, 잘못된 값은 기본값으로 바꿔', () => {
@@ -310,6 +373,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
       characterReferences: [
         { id: 'c', name: '얼굴', target: 'x', fidelity: 20 },
         { id: 'd', name: '옛 항목', styleAware: false, fidelity: 1.5, strength: -2 },
+        { id: 'e', name: '의상', target: 'costume', preferSameOutfit: true },
       ],
       vibes: [{ id: 'v', name: '노을', strength: 0.3, image: { file: '../x.png' } }],
       projects: [
@@ -331,6 +395,10 @@ describe('캐릭터 레퍼런스·바이브', () => {
       target: 'character',
       strength: -2,
       fidelity: 1.5,
+    });
+    expect(parsed.characterReferences[2]).toMatchObject({
+      target: 'costume',
+      preferSameOutfit: true,
     });
     expect(parsed.projects[0].vibeIds).toEqual(['v']);
     expect(parsed.projects[0].characterReferenceIds).toEqual(['c']);

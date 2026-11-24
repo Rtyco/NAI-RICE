@@ -326,8 +326,8 @@ export type RefineSettings = {
   seedMode: 'source' | 'random';
 };
 
-/** NovelAI `base_caption` 값. */
-export type ReferenceTarget = 'character&style' | 'character' | 'style';
+/** NovelAI `base_caption` 값. `costume`은 V5 전용. */
+export type ReferenceTarget = 'character&style' | 'character' | 'style' | 'costume';
 
 /** 작업 폴더 `pictures/`에 내용 해시 이름으로 둔다. */
 export type Picture = {
@@ -337,13 +337,15 @@ export type Picture = {
   name: string;
 };
 
-/** V4.5 전용(V5는 500 오류). Opus여도 캐릭터 레퍼런스마다 장당 5 Anlas. */
+/** V4.5·V5 전용. Opus여도 캐릭터 레퍼런스마다 장당 5 Anlas. */
 export type CharacterReference = {
   id: string;
   name: string;
   folder?: FolderName;
   image?: Picture;
   target: ReferenceTarget;
+  /** V5 전용(캐릭터·캐릭터와 그림체). 없으면 character&style은 켬, character는 끔. */
+  preferSameOutfit?: boolean;
   /** 0~1 밖의 값도 그대로 보낸다. */
   strength: number;
   /** 요청의 secondary strength는 1 - fidelity. */
@@ -383,6 +385,7 @@ export type JobReference = {
   imagePath: string;
   imageSha256: string;
   target: ReferenceTarget;
+  preferSameOutfit?: boolean;
   strength: number;
   fidelity: number;
 };
@@ -404,6 +407,7 @@ export type RecordAid =
       references: Array<{
         name: string;
         target: ReferenceTarget;
+        preferSameOutfit?: boolean;
         strength: number;
         fidelity: number;
       }>;

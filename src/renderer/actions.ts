@@ -72,6 +72,9 @@ async function prepareAid(
           name: item!.name,
           ...(await libraryApi().prepareAidInput(projectId, item!.image!.file, 'character')),
           target: item!.target,
+          ...(item!.preferSameOutfit !== undefined
+            ? { preferSameOutfit: item!.preferSameOutfit }
+            : {}),
           strength: item!.strength,
           fidelity: item!.fidelity,
         })),

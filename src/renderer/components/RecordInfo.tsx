@@ -58,7 +58,9 @@ export function RecordInfo({
             {record.aid.kind === 'character'
               ? record.aid.references.map((reference, index) => (
                   <div key={index}>
-                    캐릭터 레퍼런스 「{reference.name}」 · {referenceTargetLabel(reference.target)}{' '}
+                    캐릭터 레퍼런스 「{reference.name}」 · {referenceTargetLabel(reference.target)}
+                    {reference.preferSameOutfit !== undefined &&
+                      ` · ${reference.preferSameOutfit ? '동일 의상 선호' : '의상 자유'}`}{' '}
                     · 세기 {reference.strength} · 충실도 {reference.fidelity}
                   </div>
                 ))
