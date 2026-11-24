@@ -470,7 +470,14 @@ const appSettingsObjectSchema = z.object({
     })
     .default(() => ({ ...DEFAULT_SETTINGS.export })),
   // 예전 naiTags(직접 고친 품질 태그 문구)는 읽지 않는다.
-  requestDelayMs: z.number().int().min(0).max(1000).default(300),
+  requestDelayMs: z.number().int().min(0).max(10_000).default(300),
+  requestDelayRandom: z.boolean().catch(DEFAULT_SETTINGS.requestDelayRandom),
+  requestDelayJitterMs: z
+    .number()
+    .int()
+    .min(0)
+    .max(10_000)
+    .catch(DEFAULT_SETTINGS.requestDelayJitterMs),
   requestRetries: z.number().int().min(0).max(10).catch(DEFAULT_SETTINGS.requestRetries),
   requestTimeoutSec: z.number().int().min(30).max(600).catch(DEFAULT_SETTINGS.requestTimeoutSec),
   streaming: z.boolean().default(false),

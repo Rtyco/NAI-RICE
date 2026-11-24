@@ -8,32 +8,71 @@ import type { AccountSummary, TokenStatus } from '../../../shared/ipc';
 import { patchSettings } from './patchSettings';
 
 function RequestDelayCard() {
-  const delay = useLibrary().settings.requestDelayMs;
+  const {
+    requestDelayMs: delay,
+    requestDelayRandom: random,
+    requestDelayJitterMs: jitter,
+  } = useLibrary().settings;
   const setDelay = (requestDelayMs: number) =>
     patchSettings((current) => ({ ...current, requestDelayMs }));
+  const setJitter = (requestDelayJitterMs: number) =>
+    patchSettings((current) => ({ ...current, requestDelayJitterMs }));
   return (
-    <Card title="요청 간격">
+    <Card
+      title="요청 간격"
+      subtitle={random ? `매 요청 ${delay}~${delay + jitter}ms` : `${delay}ms`}
+    >
       <div className="delay-row">
         <input
           type="range"
           min={0}
-          max={1000}
+          max={5000}
           step={50}
-          value={delay}
-          aria-label="요청 간격"
+          value={Math.min(5000, delay)}
+          aria-label="기본 요청 간격"
           onChange={(event) => setDelay(Number(event.target.value))}
         />
         <NumberField
           label=""
           value={delay}
           min={0}
-          max={1000}
+          max={10000}
           step={50}
           integer
           suffix="ms"
           onChange={setDelay}
         />
       </div>
+      <Toggle
+        label="요청 간격 무작위화"
+        checked={random}
+        onChange={(requestDelayRandom) =>
+          patchSettings((current) => ({ ...current, requestDelayRandom }))
+        }
+      />
+      {random && (
+        <div className="delay-row">
+          <input
+            type="range"
+            min={0}
+            max={5000}
+            step={50}
+            value={Math.min(5000, jitter)}
+            aria-label="무작위 추가 간격"
+            onChange={(event) => setJitter(Number(event.target.value))}
+          />
+          <NumberField
+            label="추가 폭"
+            value={jitter}
+            min={0}
+            max={10000}
+            step={50}
+            integer
+            suffix="ms"
+            onChange={setJitter}
+          />
+        </div>
+      )}
     </Card>
   );
 }

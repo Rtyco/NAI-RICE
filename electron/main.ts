@@ -114,7 +114,14 @@ async function createServices(): Promise<AppServices> {
     },
     onRecord: (record) => broadcast('generation:record-added', toGenerationSummary(record)),
     anlas: async (token) => (await account.refresh(token))?.anlas,
-    requestDelayMs: () => library.settings?.requestDelayMs ?? 0,
+    requestDelayMs: () => {
+      const current = settings();
+      return {
+        baseMs: current.requestDelayMs,
+        random: current.requestDelayRandom,
+        jitterMs: current.requestDelayJitterMs,
+      };
+    },
     streaming: () => library.settings?.streaming ?? false,
     finishedKept: () => settings().keepFinishedJobs,
     maxAttempts: () => settings().requestRetries + 1,

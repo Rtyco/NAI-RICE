@@ -450,8 +450,12 @@ export type AppSettings = {
     /** 씬 내보내기 파일 이름. 토큰은 `EXPORT_FILENAME_TOKENS`. */
     filenameTemplate: string;
   };
-  /** 0~1000ms */
+  /** 0~10000ms */
   requestDelayMs: number;
+  /** 켜면 매 요청마다 기본 간격에 0~`requestDelayJitterMs` 사이 무작위 지연 추가. */
+  requestDelayRandom: boolean;
+  /** 0~10000ms */
+  requestDelayJitterMs: number;
   /** 오류가 다시 시도할 수 있는 종류일 때만. 큐에 넣을 때 정해진다. */
   requestRetries: number;
   /** 요청 하나를 기다리는 초 */

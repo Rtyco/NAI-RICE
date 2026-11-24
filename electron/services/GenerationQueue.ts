@@ -27,7 +27,7 @@ import { saveGenerationOutput } from './GenerationOutput';
 import type { GenerationPreview } from '../../src/shared/ipc';
 import { ensurePng } from './Images';
 import type { GenerationStore, ImageGenerator } from './ports';
-import { RequestPacer } from './RequestPacer';
+import { RequestPacer, type RequestDelayConfig } from './RequestPacer';
 import { VibeEncoder } from './VibeEncoder';
 
 /** `aid`는 캐릭터 레퍼런스 그림들 또는 인코딩할 바이브 원본들. */
@@ -46,7 +46,7 @@ type QueueDependencies = {
   /** 조회 실패는 무시한다. */
   anlas?: (token: string) => Promise<number | undefined>;
   /** ms. 요청마다 읽는다. */
-  requestDelayMs?: () => number;
+  requestDelayMs?: () => RequestDelayConfig;
   /** 요청마다 읽는다. */
   streaming?: () => boolean;
   /** 큐에 넣을 때 읽는다. 첫 시도 포함. */

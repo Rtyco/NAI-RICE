@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RequestPacer } from '../../electron/services/RequestPacer';
+import { RequestPacer, resolveRequestDelay } from '../../electron/services/RequestPacer';
 import { VibeEncoder } from '../../electron/services/VibeEncoder';
 import type { JobVibe } from '../../src/core/domain/types';
 
@@ -38,6 +38,16 @@ describe('RequestPacer', () => {
     const started = Date.now();
     await pacer.send(controller.signal, async () => undefined);
     expect(Date.now() - started).toBeLessThan(100);
+  });
+
+  it('adds random jitter within range only when randomization is enabled', () => {
+    expect(resolveRequestDelay({ baseMs: 300, random: false, jitterMs: 500 }, () => 0.9)).toBe(300);
+    expect(resolveRequestDelay({ baseMs: 300, random: true, jitterMs: 500 }, () => 0)).toBe(300);
+    expect(resolveRequestDelay({ baseMs: 300, random: true, jitterMs: 500 }, () => 0.5)).toBe(550);
+    expect(resolveRequestDelay({ baseMs: 300, random: true, jitterMs: 500 }, () => 1)).toBe(800);
+    expect(resolveRequestDelay({ baseMs: 20_000, random: true, jitterMs: 20_000 }, () => 1)).toBe(
+      20_000,
+    );
   });
 });
 
