@@ -24,11 +24,13 @@ import { accountApi, appApi, libraryApi, queueApi } from './desktop';
 
 export type { LibrarySection };
 
+export type LibraryViewSection = 'projects' | LibrarySection;
+
 export type View =
   | { kind: 'home' }
   | { kind: 'project'; projectId: string }
   | { kind: 'free' }
-  | { kind: 'library'; section: LibrarySection; itemId?: string };
+  | { kind: 'library'; section: LibraryViewSection; itemId?: string };
 
 export type Toast = { id: number; kind: 'info' | 'error'; message: string };
 
@@ -57,6 +59,8 @@ export type StoreState = {
   galleryAspect: GalleryAspect;
   resultGrid: boolean;
   resultGridColumns: number;
+  freeResultGrid: boolean;
+  freeResultGridColumns: number;
   /** 작업 ID → 갤러리 씬 이름 검색어. 씬 상세의 이전·다음도 따른다. 이번 실행 동안만. */
   sceneQueries: Record<string, string>;
   /** 씬 상세 오른쪽 패널이 보여 주는 쪽. 씬을 넘겨도 유지한다(이번 실행 동안). */
@@ -124,6 +128,8 @@ const GALLERY_ASPECT_KEY = 'gallery-aspect';
 export const RESULT_GRID_COLUMN_CHOICES = [2, 3, 4, 5, 6] as const;
 const RESULT_GRID_KEY = 'result-grid';
 const RESULT_GRID_COLUMNS_KEY = 'result-grid-columns';
+const FREE_RESULT_GRID_KEY = 'free-result-grid';
+const FREE_RESULT_GRID_COLUMNS_KEY = 'free-result-grid-columns';
 
 const readGalleryColumns = () =>
   readUiState(
@@ -175,6 +181,15 @@ export const useStore = create<StoreState>(() => ({
   resultGrid: readUiState(RESULT_GRID_KEY, (raw) => raw === '1', false),
   resultGridColumns: readUiState(
     RESULT_GRID_COLUMNS_KEY,
+    (raw) => {
+      const value = Number(raw);
+      return (RESULT_GRID_COLUMN_CHOICES as readonly number[]).includes(value) ? value : 4;
+    },
+    4,
+  ),
+  freeResultGrid: readUiState(FREE_RESULT_GRID_KEY, (raw) => raw === '1', false),
+  freeResultGridColumns: readUiState(
+    FREE_RESULT_GRID_COLUMNS_KEY,
     (raw) => {
       const value = Number(raw);
       return (RESULT_GRID_COLUMN_CHOICES as readonly number[]).includes(value) ? value : 4;
@@ -463,7 +478,7 @@ export function resultGeneration(library: Library, projectId: string): Generatio
   return normalizeGenerationSettings((preset ?? library.presets[0]).generation);
 }
 
-export function openLibrary(section: LibrarySection, itemId?: string): void {
+export function openLibrary(section: LibraryViewSection, itemId?: string): void {
   set({
     view: { kind: 'library', section, itemId },
     detailEmotionId: undefined,
@@ -512,6 +527,16 @@ export function setResultGrid(on: boolean): void {
 export function setResultGridColumns(columns: number): void {
   set({ resultGridColumns: columns });
   saveUiState(RESULT_GRID_COLUMNS_KEY, String(columns));
+}
+
+export function setFreeResultGrid(on: boolean): void {
+  set({ freeResultGrid: on });
+  saveUiState(FREE_RESULT_GRID_KEY, on ? '1' : '0');
+}
+
+export function setFreeResultGridColumns(columns: number): void {
+  set({ freeResultGridColumns: columns });
+  saveUiState(FREE_RESULT_GRID_COLUMNS_KEY, String(columns));
 }
 
 export function setSceneQuery(projectId: string, query: string): void {

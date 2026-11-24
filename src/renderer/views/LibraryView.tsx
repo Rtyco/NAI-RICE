@@ -1,5 +1,11 @@
 import { useState, type MouseEvent, type ReactNode } from 'react';
-import type { CharacterReference, Reference, Vibe } from '../../core/domain/types';
+import type {
+  CharacterReference,
+  Library,
+  Project,
+  Reference,
+  Vibe,
+} from '../../core/domain/types';
 import { projectsUsing } from '../../core/model/defaults';
 import {
   groupIntoFolder,
@@ -13,11 +19,15 @@ import {
 } from '../../core/model/folders';
 import { showContextMenu } from '../components/contextMenuStore';
 import { AccountMeter } from '../components/AccountMeter';
+import { openDialog } from '../components/dialogStack';
 import { Icon } from '../components/Icon';
 import { PanelResizer } from '../components/PanelResizer';
 import { usePanelCompact } from '../panelWidths';
+import { NewProjectDialog } from '../components/Sidebar';
 import { SidePanelToggle } from '../components/SidePanel';
+import { Menu } from '../components/ui';
 import { importFromPicker } from '../importers';
+import { exportProjectFile, exportSceneNames, openProjectFolder } from '../projectOps';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';
 import { IconFolder, ListFolder } from '../components/ListFolder';
@@ -26,13 +36,14 @@ import { folderKey, useFoldedFolders, useGroupTarget } from '../components/listF
 import { cycleLibraryList, libraryListStageOf, stageTitle, useLayout } from '../layout';
 import {
   openLibrary,
+  openProject,
   pictureMedia,
   referenceMedia,
   toggleFolder,
   updateLibrary,
   useLibrary,
   useStore,
-  type LibrarySection,
+  type LibraryViewSection,
 } from '../store';
 import {
   createItem,
@@ -54,7 +65,24 @@ import { useShortcut } from '../useShortcut';
 
 const DRAG_TYPE = 'application/x-library-item';
 
-function itemAvatar(section: LibrarySection, item: Item, collapsed: boolean): ReactNode {
+function itemAvatar(
+  section: LibraryViewSection,
+  item: Item,
+  library: Library,
+  collapsed: boolean,
+): ReactNode {
+  if (section === 'projects') {
+    const project = item as Project;
+    const reference = library.references.find((entry) => entry.id === project.referenceId);
+    const thumb = reference?.image
+      ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
+      : undefined;
+    return (
+      <span className="avatar">
+        {thumb ? <img src={thumb} alt="" draggable={false} /> : project.name.slice(0, 1) || '?'}
+      </span>
+    );
+  }
   const reference = section === 'references' ? (item as Reference) : undefined;
   const picture =
     section === 'characterReferences' || section === 'vibes'
@@ -70,7 +98,7 @@ function itemAvatar(section: LibrarySection, item: Item, collapsed: boolean): Re
   return collapsed && <span className="avatar">{item.name.slice(0, 1) || '?'}</span>;
 }
 
-export function LibraryView({ section, itemId }: { section: LibrarySection; itemId?: string }) {
+export function LibraryView({ section, itemId }: { section: LibraryViewSection; itemId?: string }) {
   const library = useLibrary();
   const items = library[section] as Item[];
   const selected = items.find((item) => item.id === itemId) ?? items[0];
@@ -127,8 +155,14 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
   };
   useShortcut('Alt+ArrowUp', () => step(-1));
   useShortcut('Alt+ArrowDown', () => step(1));
+  const openNewProject = () =>
+    void openDialog((close) => (
+      <NewProjectDialog close={close} onCreated={(id) => openLibrary('projects', id)} />
+    ));
   useShortcut('Ctrl+Shift+N', () =>
-    openLibrary(section, createItem(section, useStore.getState().library!)),
+    section === 'projects'
+      ? openNewProject()
+      : openLibrary(section, createItem(section, useStore.getState().library!)),
   );
   const duplicateShown = () => selected && void duplicateItem(section, selected);
   useShortcut('Ctrl+Shift+D', duplicateShown);
@@ -140,16 +174,33 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     () => selected && void deleteItem(section, selected),
     !selection.selected.size,
   );
+  const projectExports = (project: Project) => [
+    {
+      label: 'SD Studio 프로젝트로 내보내기',
+      accessKey: 'S',
+      onSelect: () => exportProjectFile(project, 'sdstudio'),
+    },
+    {
+      label: 'NAI RICE 작업 파일로 내보내기',
+      accessKey: 'R',
+      onSelect: () => exportProjectFile(project, 'rice'),
+    },
+    {
+      label: '씬 이름을 텍스트로 내보내기',
+      accessKey: 'T',
+      onSelect: () => exportSceneNames(project),
+    },
+  ];
   const renderItem = (item: Item) => {
-    const uses = projectsUsing(library, info.kind, item.id).length;
+    const uses = info.kind === 'project' ? 0 : projectsUsing(library, info.kind, item.id).length;
     const picked = !collapsed && selection.isSelected(item.id);
     return (
       <ListRow
         key={item.id}
         id={item.id}
         name={item.name}
-        avatar={itemAvatar(section, item, collapsed)}
-        subtitle={`${itemSubtitle(section, item)}${uses ? ` · 작업 ${uses}` : ''}`}
+        avatar={itemAvatar(section, item, library, collapsed)}
+        subtitle={`${itemSubtitle(section, item, library)}${uses ? ` · 작업 ${uses}` : ''}`}
         renameLabel="이름"
         deleteTitle="삭제"
         collapsed={collapsed}
@@ -185,7 +236,12 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
         remove={() => void deleteItem(section, item)}
         menu={{
           duplicate: () => void duplicateItem(section, item),
-          exportJson: exportable(section) ? () => exportItem(section, item) : undefined,
+          exportJson:
+            section !== 'projects' && exportable(section)
+              ? () => exportItem(section, item)
+              : undefined,
+          exports: section === 'projects' ? projectExports(item as Project) : undefined,
+          folder: section === 'projects' ? () => openProjectFolder(item.id) : undefined,
           exportVibes:
             section === 'vibes'
               ? () => exportVibeItems(picked ? [...selection.selected] : [item.id])
@@ -201,9 +257,14 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
     );
   };
   const add = (event: MouseEvent) => {
+    if (section === 'projects') {
+      openNewProject();
+      return;
+    }
+    const target = section;
     const create = (empty: boolean) =>
-      openLibrary(section, createItem(section, useStore.getState().library!, { empty }));
-    if (section !== 'emotionSets') {
+      openLibrary(target, createItem(target, useStore.getState().library!, { empty }));
+    if (target !== 'emotionSets') {
       create(false);
       return;
     }
@@ -388,6 +449,26 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               <div className="header-spacer" />
               <AccountMeter />
               <span className="zone-divider" />
+              {section === 'projects' && (
+                <>
+                  <button
+                    className="accent with-icon"
+                    title="작업 화면 열기"
+                    onClick={() => openProject(selected.id)}
+                  >
+                    <Icon name="project" /> <span className="head-label">작업 열기</span>
+                  </button>
+                  <button
+                    className="with-icon"
+                    title="폴더 열기"
+                    onClick={() => openProjectFolder(selected.id)}
+                  >
+                    <Icon name="folder" /> <span className="head-label">폴더 열기</span>
+                  </button>
+                  <Menu label="내보내기" items={projectExports(selected as Project)} />
+                  <span className="zone-divider" />
+                </>
+              )}
               {section === 'references' && (
                 <button
                   className="with-icon"
@@ -397,7 +478,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
                   <Icon name="folder" /> <span className="head-label">폴더 열기</span>
                 </button>
               )}
-              {exportable(section) && (
+              {section !== 'projects' && exportable(section) && (
                 <>
                   <button
                     className="with-icon"
@@ -439,7 +520,7 @@ export function LibraryView({ section, itemId }: { section: LibrarySection; item
               </button>
               {section === 'references' && <SidePanelToggle />}
             </header>
-            <UsedBy section={section} id={selected.id} />
+            {section !== 'projects' && <UsedBy section={section} id={selected.id} />}
             <div className={`library-editor-body ${section === 'references' ? 'fill' : ''}`}>
               <LibraryItemEditor section={section} item={selected} />
             </div>

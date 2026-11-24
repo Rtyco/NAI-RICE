@@ -5,6 +5,7 @@ import type {
   Library,
   PieceSet,
   Preset,
+  Project,
   Reference,
   Vibe,
 } from '../../../core/domain/types';
@@ -42,7 +43,16 @@ import { modelInfo } from '../../../core/providers/NaiModels';
 import { confirmDialog, openDialog } from '../../components/dialogStack';
 import { DeleteUsedDialog } from './DeleteUsedDialog';
 import { sectionInfo } from '../../sections';
-import { openLibrary, run, toast, updateLibrary, useStore, type LibrarySection } from '../../store';
+import {
+  openLibrary,
+  run,
+  toast,
+  updateLibrary,
+  useStore,
+  type LibrarySection,
+  type LibraryViewSection,
+} from '../../store';
+import { deleteProject, deleteProjects, duplicateProject } from '../../projectOps';
 import { fileApi, libraryApi } from '../../desktop';
 import { importVibeFile } from '../../aidImport';
 
@@ -51,15 +61,26 @@ export type Item = { id: string; name: string; folder?: string };
 /** 조각 세트면 `<세트.조각>` 참조도 바꾼다. */
 export function withName(
   library: Library,
-  section: LibrarySection,
+  section: LibraryViewSection,
   id: string,
   name: string,
 ): Library {
   if (section === 'pieceSets') return renamePieceSet(library, id, name);
+  if (section === 'projects')
+    return patchItem(library, 'projects', id, (entry) => ({
+      ...entry,
+      name,
+      updatedAt: new Date().toISOString(),
+    }));
   return patchItem(library, section, id, (entry) => ({ ...entry, name }));
 }
 
-export async function deleteItem(section: LibrarySection, item: Item) {
+export async function deleteItem(section: LibraryViewSection, item: Item) {
+  if (section === 'projects') {
+    await deleteProject(item);
+    openLibrary('projects');
+    return;
+  }
   const library = useStore.getState().library!;
   if (section === 'presets' && library.presets.length <= 1) {
     toast('생성 설정은 최소 하나가 있어야 합니다.', 'error');
@@ -85,7 +106,11 @@ export async function deleteItem(section: LibrarySection, item: Item) {
     openLibrary(section);
     return;
   }
-  const users = projectsUsing(library, sectionInfo(section).kind, item.id);
+  const kind = sectionInfo(section).kind as Exclude<
+    ReturnType<typeof sectionInfo>['kind'],
+    'project'
+  >;
+  const users = projectsUsing(library, kind, item.id);
   let replacementId: string | undefined;
   if (users.length) {
     let result: { replacementId: string } | null = null;
@@ -124,8 +149,13 @@ export async function deleteItem(section: LibrarySection, item: Item) {
 }
 
 /** 작업이 쓰던 항목은 대신할 항목을 묻지 않고 연결을 비운다. */
-export async function deleteItems(section: LibrarySection, items: Item[]): Promise<boolean> {
+export async function deleteItems(section: LibraryViewSection, items: Item[]): Promise<boolean> {
   if (!items.length) return false;
+  if (section === 'projects') {
+    await deleteProjects(items);
+    openLibrary('projects');
+    return true;
+  }
   if (items.length === 1) {
     await deleteItem(section, items[0]);
     return true;
@@ -135,7 +165,10 @@ export async function deleteItems(section: LibrarySection, items: Item[]): Promi
     toast('생성 설정은 최소 하나가 있어야 합니다.', 'error');
     return false;
   }
-  const kind = sectionInfo(section).kind;
+  const kind = sectionInfo(section).kind as Exclude<
+    ReturnType<typeof sectionInfo>['kind'],
+    'project'
+  >;
   const users = new Map<string, string>();
   for (const item of items)
     for (const project of projectsUsing(library, kind, item.id))
@@ -181,7 +214,12 @@ export async function deleteItems(section: LibrarySection, items: Item[]): Promi
   return true;
 }
 
-export async function duplicateItem(section: LibrarySection, item: Item) {
+export async function duplicateItem(section: LibraryViewSection, item: Item) {
+  if (section === 'projects') {
+    const copy = duplicateProject(item as Project, { open: false });
+    openLibrary('projects', copy.id);
+    return;
+  }
   const library = useStore.getState().library!;
   const name = duplicateName(library, section, item.name);
   let id = '';
@@ -298,7 +336,15 @@ export function createItem(
   return item.id;
 }
 
-export function itemSubtitle(section: LibrarySection, item: Item): string {
+export function itemSubtitle(section: LibraryViewSection, item: Item, library?: Library): string {
+  if (section === 'projects') {
+    const project = item as Project;
+    const mode = project.mode === 'reference' ? '인페인트' : '일반 생성';
+    const characterId = project.characters[0]?.characterId;
+    const character =
+      library?.characters.find((entry) => entry.id === characterId)?.name ?? '캐릭터 없음';
+    return `${mode} · ${character}`;
+  }
   if (section === 'presets') {
     const preset = item as Preset;
     return `${modelInfo(preset.generation.model)?.label.replace('NAI Diffusion ', '') ?? preset.generation.model} · ${preset.generation.steps} steps`;

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -27,6 +27,7 @@ import { SidePanelLayout, SidePanelToggle } from '../components/SidePanel';
 import { PromptPanelToggle } from '../components/PromptPanel';
 import { AutoRefineToggle } from '../components/RefineChip';
 import { ResultBar } from '../components/ResultActions';
+import { ResultGrid } from '../components/ResultGrid';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
 import { NumberField, Toggle } from '../components/ui';
@@ -37,6 +38,7 @@ import {
   projectMedia,
   resolveFreeGeneration,
   run,
+  setFreeResultGrid,
   toast,
   updateFreeGeneration,
   useLibrary,
@@ -45,7 +47,7 @@ import {
 import { freeRefineTarget } from '../refineTargets';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
-import { useShortcut } from '../useShortcut';
+import { isTypingTarget, useShortcut } from '../useShortcut';
 import { FreeChainBar } from './free/FreeChainBar';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
@@ -77,6 +79,12 @@ export function FreeView() {
   const [stage, setStage] = useState<FreeStage>('source');
   const drawing = free.mode === 'img2img' && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
+  const grid = useStore((state) => state.freeResultGrid);
+  const showGrid = grid && records.length > 0 && !showSource && !drawing;
+  const toggleGrid = () => {
+    setStage('result');
+    setFreeResultGrid(!showGrid);
+  };
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
       const saved = await fileApi().saveImageAs(
@@ -145,6 +153,18 @@ export function FreeView() {
     : generateCountLabel(free.count, refine ? free.count * refine.count : 0);
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
   useShortcut('Ctrl+Enter', generate, canGenerate && !busy, { inFields: true });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || drawing || isTypingTarget(event.target)) return;
+      const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
+      const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
+      // 한글 입력 상태에서도 받으려고 code로 본다.
+      if (plain && event.code === 'KeyG' && records.length && !dialogOpen) toggleGrid();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
   const promptActions = (record: GenerationSummary): ResultAction[] =>
@@ -220,6 +240,7 @@ export function FreeView() {
       labelled={Boolean(image)}
       running={running}
       pending={pending}
+      onGrid={toggleGrid}
       onContextMenu={selected && ((event) => showResultMenu(event, resultActions(selected)))}
     />
   );
@@ -353,17 +374,30 @@ export function FreeView() {
                   drawable={free.mode === 'img2img'}
                 />
               )}
-              <FreeSourceStage
-                target={FREE_TARGET}
-                image={image}
-                drawing={drawing}
-                showSource={showSource}
-                inpainting={inpainting}
-                sourceLabel={sourceLabel}
-                filmstrip={records.length > 0}
-                preset={preset}
-                result={resultStage}
-              />
+              {showGrid ? (
+                <ResultGrid
+                  projectId={FREE_PROJECT_ID}
+                  records={records}
+                  browser={browser}
+                  menu={resultActions}
+                  running={running}
+                  pending={pending}
+                  scope="free"
+                  onSingle={toggleGrid}
+                />
+              ) : (
+                <FreeSourceStage
+                  target={FREE_TARGET}
+                  image={image}
+                  drawing={drawing}
+                  showSource={showSource}
+                  inpainting={inpainting}
+                  sourceLabel={sourceLabel}
+                  filmstrip={records.length > 0}
+                  preset={preset}
+                  result={resultStage}
+                />
+              )}
               {!showSource && !drawing && selected && (
                 <ResultBar
                   projectId={FREE_PROJECT_ID}
@@ -376,6 +410,7 @@ export function FreeView() {
                 records={records}
                 browser={browser}
                 menu={resultActions}
+                strip={!showGrid}
                 onOpen={() => setStage('result')}
               />
             </section>

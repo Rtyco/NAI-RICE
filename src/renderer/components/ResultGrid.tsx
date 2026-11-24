@@ -1,6 +1,12 @@
 import { useEffect, type CSSProperties } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
-import { projectMedia, RESULT_GRID_COLUMN_CHOICES, setResultGridColumns, useStore } from '../store';
+import {
+  projectMedia,
+  RESULT_GRID_COLUMN_CHOICES,
+  setFreeResultGridColumns,
+  setResultGridColumns,
+  useStore,
+} from '../store';
 import { isTypingTarget } from '../useShortcut';
 import { Icon } from './Icon';
 import { ResultOption } from './Filmstrip';
@@ -17,9 +23,14 @@ export function ResultGrid(props: {
   favoriteId?: string;
   running: string[];
   pending: number;
+  scope?: 'detail' | 'free';
   onSingle: () => void;
 }) {
-  const columns = useStore((state) => state.resultGridColumns);
+  const scope = props.scope ?? 'detail';
+  const columns = useStore((state) =>
+    scope === 'free' ? state.freeResultGridColumns : state.resultGridColumns,
+  );
+  const setColumns = scope === 'free' ? setFreeResultGridColumns : setResultGridColumns;
   const { records, browser, onSingle } = props;
   const { selected, picking } = browser;
   const selectedId = selected?.id;
@@ -107,7 +118,7 @@ export function ResultGrid(props: {
               className={choice === columns ? 'active' : ''}
               aria-pressed={choice === columns}
               title={`한 줄에 ${choice}장`}
-              onClick={() => setResultGridColumns(choice)}
+              onClick={() => setColumns(choice)}
             >
               {choice}
             </button>

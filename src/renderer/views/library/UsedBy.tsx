@@ -4,7 +4,11 @@ import { sectionInfo } from '../../sections';
 
 export function UsedBy({ section, id }: { section: LibrarySection; id: string }) {
   const library = useLibrary();
-  const projects = projectsUsing(library, sectionInfo(section).kind, id);
+  const kind = sectionInfo(section).kind as Exclude<
+    ReturnType<typeof sectionInfo>['kind'],
+    'project'
+  >;
+  const projects = projectsUsing(library, kind, id);
   if (!projects.length) return <p className="hint">아직 이 항목을 쓰는 작업이 없습니다.</p>;
   return (
     <div className="used-by">

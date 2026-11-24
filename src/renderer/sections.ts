@@ -1,11 +1,12 @@
 import type { Library } from '../core/domain/types';
 import type { IconName } from './components/Icon';
-import type { LibrarySection } from './store';
+import type { LibraryViewSection } from './store';
 
 export const SECTIONS: Array<{
-  id: LibrarySection;
+  id: LibraryViewSection;
   key: keyof Library;
   kind:
+    | 'project'
     | 'preset'
     | 'character'
     | 'emotionSet'
@@ -20,6 +21,16 @@ export const SECTIONS: Array<{
   /** 1은 작업 화면 */
   shortcut: string;
 }> = [
+  {
+    id: 'projects',
+    shortcut: '9',
+    key: 'projects',
+    kind: 'project',
+    projectPart: false,
+    label: '작업',
+    icon: 'project',
+    role: '생성 조합 · 추가 프롬프트 · 후처리',
+  },
   {
     id: 'presets',
     shortcut: '2',
@@ -94,11 +105,11 @@ export const SECTIONS: Array<{
 
 export const PROJECT_SECTIONS = SECTIONS.filter((section) => section.projectPart);
 
-/** 캐릭터 레퍼런스·바이브는 그림이 `pictures/`에 있어 전체 백업으로만 옮긴다. */
-export function exportable(section: LibrarySection): boolean {
-  return section !== 'characterReferences' && section !== 'vibes';
+/** 캐릭터 레퍼런스·바이브는 그림이 `pictures/`에 있어 전체 백업으로만 옮긴다. 작업은 자체 내보내기를 쓴다. */
+export function exportable(section: LibraryViewSection): boolean {
+  return section !== 'projects' && section !== 'characterReferences' && section !== 'vibes';
 }
 
-export function sectionInfo(id: LibrarySection) {
+export function sectionInfo(id: LibraryViewSection) {
   return SECTIONS.find((section) => section.id === id)!;
 }

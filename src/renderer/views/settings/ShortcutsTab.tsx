@@ -12,6 +12,7 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
       ['6', '캐릭터 레퍼런스'],
       ['7', '바이브'],
       ['8', '프롬프트 조각'],
+      ['9', '작업 (라이브러리 편집)'],
       ['Ctrl+Tab / Ctrl+Shift+Tab', '다음·이전 작업'],
     ],
   },
@@ -110,6 +111,9 @@ const SHORTCUTS: Array<{ title: string; keys: Array<[string, string]> }> = [
     keys: [
       ['← / →', '이전·다음 결과'],
       ['Home / End', '첫·마지막 결과'],
+      ['G', '모아 보기 ↔ 한 장씩 보기'],
+      ['↑ / ↓', '모아 보기에서 위·아래 결과'],
+      ['Enter / 두 번 클릭', '모아 보기에서 고른 결과를 한 장으로 보기'],
       ['Ctrl+C', '보고 있는 결과 이미지 복사'],
       ['Ctrl+Shift+S', '보고 있는 결과를 다른 이름으로 저장'],
       ['Shift+Alt+R', '보고 있는 결과를 폴더에서 보기'],

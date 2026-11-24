@@ -77,7 +77,13 @@ function PartSelect(props: {
   );
 }
 
-export function NewProjectDialog({ close }: { close: () => void }) {
+export function NewProjectDialog({
+  close,
+  onCreated,
+}: {
+  close: () => void;
+  onCreated?: (projectId: string) => void;
+}) {
   const library = useLibrary();
   const [name, setName] = useState('');
   const [presetId, setPresetId] = useState(library.presets[0].id);
@@ -113,7 +119,8 @@ export function NewProjectDialog({ close }: { close: () => void }) {
       references: referenceId === NEW ? [...current.references, reference] : current.references,
       projects: [...current.projects, project],
     }));
-    openProject(project.id);
+    if (onCreated) onCreated(project.id);
+    else openProject(project.id);
     close();
   };
 

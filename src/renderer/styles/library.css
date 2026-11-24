@@ -198,3 +198,31 @@
 .library-editor-body .card-head.sticky {
   top: -12px;
 }
+
+/* ── 작업 편집기 ──────────────────────────────── */
+.project-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.project-editor-part {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.project-editor-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-editor-select select {
+  flex: 1;
+  min-width: 0;
+}
+.project-editor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}

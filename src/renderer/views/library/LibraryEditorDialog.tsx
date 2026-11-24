@@ -5,11 +5,18 @@ import type {
   EmotionSet,
   PieceSet,
   Preset,
+  Project,
   Reference,
   Vibe,
 } from '../../../core/domain/types';
 import { Modal } from '../../components/Dialogs';
-import { openLibrary, updateLibrary, useLibrary, type LibrarySection } from '../../store';
+import {
+  openLibrary,
+  updateLibrary,
+  useLibrary,
+  type LibrarySection,
+  type LibraryViewSection,
+} from '../../store';
 import { ReferenceEditor } from '../ReferenceEditor';
 import { CharacterReferenceEditor, VibeEditor } from './AidItemEditor';
 import { CharacterEditor } from './CharacterEditor';
@@ -18,9 +25,11 @@ import { sectionInfo } from '../../sections';
 import { withName, type Item } from './itemActions';
 import { PieceSetEditor } from './PieceSetEditor';
 import { PresetEditor } from './PresetEditor';
+import { ProjectEditor } from './ProjectEditor';
 import { UsedBy } from './UsedBy';
 
-export function LibraryItemEditor({ section, item }: { section: LibrarySection; item: Item }) {
+export function LibraryItemEditor({ section, item }: { section: LibraryViewSection; item: Item }) {
+  if (section === 'projects') return <ProjectEditor project={item as Project} />;
   if (section === 'presets') return <PresetEditor preset={item as Preset} />;
   if (section === 'characters') return <CharacterEditor character={item as Character} />;
   if (section === 'emotionSets') return <EmotionSetEditor set={item as EmotionSet} />;

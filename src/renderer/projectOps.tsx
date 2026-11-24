@@ -8,7 +8,7 @@ import { fileApi, libraryApi } from './desktop';
 import { dropSourceFiles, sceneImages } from './freeImageOps';
 
 /** 생성 결과와 대표 이미지는 가져오지 않는다. */
-export function duplicateProject(project: Project): void {
+export function duplicateProject(project: Project, options?: { open?: boolean }): Project {
   const library = useStore.getState().library!;
   const name = uniqueName(
     `${project.name} 복사본`,
@@ -24,10 +24,11 @@ export function duplicateProject(project: Project): void {
     updatedAt: now,
   };
   updateLibrary((current) => ({ ...current, projects: [...current.projects, copy] }));
-  openProject(copy.id);
+  if (options?.open !== false) openProject(copy.id);
   toast(
     `${name}을(를) 만들었습니다. 같은 생성 설정·캐릭터·씬 모음·인페인트를 사용하며 생성 결과는 따로 쌓입니다.`,
   );
+  return copy;
 }
 
 export function openProjectFolder(projectId: string): void {

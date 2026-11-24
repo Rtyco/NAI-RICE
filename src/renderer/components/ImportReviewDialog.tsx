@@ -80,7 +80,7 @@ export function ImportReviewDialog(props: {
     );
     // 보고 있는 항목과 같은 이름 하나만 가져오면 덮어쓰기가 기본.
     if (view.kind !== 'library' || !view.itemId) return defaults;
-    const key = view.section as NamedGroup;
+    const key = view.section;
     const items = OVERWRITABLE.has(key) ? bundle[key] : [];
     const viewed =
       items.length === 1 &&
