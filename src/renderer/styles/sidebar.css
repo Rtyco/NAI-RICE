@@ -280,11 +280,12 @@
   background: var(--bg-3);
 }
 .sidebar-card.grow {
-  flex: 1 1 auto;
+  /* basis가 auto이면 작업 항목이 많을수록 아래 라이브러리 칸을 밀어 줄인다. */
+  flex: 1 1 0;
   transition: flex-grow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sidebar-card.grow.folded {
-  flex-grow: 0;
+  flex: 0 0 auto;
 }
 /* 창이 낮으면 라이브러리 칸이 스크롤로 줄어 작업 목록이 아바타 네 개쯤은 남긴다. */
 .sidebar-card:not(.grow) {
