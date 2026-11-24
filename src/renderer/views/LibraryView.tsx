@@ -27,7 +27,7 @@ import { NewProjectDialog } from '../components/Sidebar';
 import { SidePanelToggle } from '../components/SidePanel';
 import { Menu } from '../components/ui';
 import { importFromPicker } from '../importers';
-import { exportProjectFile, exportSceneNames, openProjectFolder } from '../projectOps';
+import { openProjectFolder, projectAvatarUrl, projectExportMenu } from '../projectOps';
 import { useBoxSelection } from '../components/useBoxSelection';
 import { dragPayload } from '../components/listDrag';
 import { IconFolder, ListFolder } from '../components/ListFolder';
@@ -73,10 +73,7 @@ function itemAvatar(
 ): ReactNode {
   if (section === 'projects') {
     const project = item as Project;
-    const reference = library.references.find((entry) => entry.id === project.referenceId);
-    const thumb = reference?.image
-      ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
-      : undefined;
+    const thumb = projectAvatarUrl(library, project);
     return (
       <span className="avatar">
         {thumb ? <img src={thumb} alt="" draggable={false} /> : project.name.slice(0, 1) || '?'}
@@ -174,23 +171,6 @@ export function LibraryView({ section, itemId }: { section: LibraryViewSection; 
     () => selected && void deleteItem(section, selected),
     !selection.selected.size,
   );
-  const projectExports = (project: Project) => [
-    {
-      label: 'SD Studio 프로젝트로 내보내기',
-      accessKey: 'S',
-      onSelect: () => exportProjectFile(project, 'sdstudio'),
-    },
-    {
-      label: 'NAI RICE 작업 파일로 내보내기',
-      accessKey: 'R',
-      onSelect: () => exportProjectFile(project, 'rice'),
-    },
-    {
-      label: '씬 이름을 텍스트로 내보내기',
-      accessKey: 'T',
-      onSelect: () => exportSceneNames(project),
-    },
-  ];
   const renderItem = (item: Item) => {
     const uses = info.kind === 'project' ? 0 : projectsUsing(library, info.kind, item.id).length;
     const picked = !collapsed && selection.isSelected(item.id);
@@ -240,7 +220,7 @@ export function LibraryView({ section, itemId }: { section: LibraryViewSection; 
             section !== 'projects' && exportable(section)
               ? () => exportItem(section, item)
               : undefined,
-          exports: section === 'projects' ? projectExports(item as Project) : undefined,
+          exports: section === 'projects' ? projectExportMenu(item as Project) : undefined,
           folder: section === 'projects' ? () => openProjectFolder(item.id) : undefined,
           exportVibes:
             section === 'vibes'
@@ -465,7 +445,7 @@ export function LibraryView({ section, itemId }: { section: LibraryViewSection; 
                   >
                     <Icon name="folder" /> <span className="head-label">폴더 열기</span>
                   </button>
-                  <Menu label="내보내기" items={projectExports(selected as Project)} />
+                  <Menu label="내보내기" items={projectExportMenu(selected as Project)} />
                   <span className="zone-divider" />
                 </>
               )}

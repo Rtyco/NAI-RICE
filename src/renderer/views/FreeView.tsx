@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { GenerationSummary } from '../../core/domain/types';
 import { isActive } from '../../core/jobs/JobLifecycle';
 import {
@@ -32,13 +32,13 @@ import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { Icon } from '../components/Icon';
 import { NumberField, Toggle } from '../components/ui';
 import { useResultBrowser } from '../components/useResultBrowser';
+import { useResultGrid } from '../components/useResultGrid';
 import { fileApi, libraryApi } from '../desktop';
 import { FREE_TARGET, sendToFreeDirector, sendToFreeImg2Img } from '../freeImageOps';
 import {
   projectMedia,
   resolveFreeGeneration,
   run,
-  setFreeResultGrid,
   toast,
   updateFreeGeneration,
   useLibrary,
@@ -47,7 +47,7 @@ import {
 import { freeRefineTarget } from '../refineTargets';
 import { commonResultActions } from '../resultActions';
 import { topBarShownOf, useLayout } from '../layout';
-import { isTypingTarget, useShortcut } from '../useShortcut';
+import { useShortcut } from '../useShortcut';
 import { FreeChainBar } from './free/FreeChainBar';
 import { FreeImagePanel } from './free/FreeImagePanel';
 import { FreeModeSwitch } from './free/FreeModeSwitch';
@@ -79,12 +79,13 @@ export function FreeView() {
   const [stage, setStage] = useState<FreeStage>('source');
   const drawing = free.mode === 'img2img' && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
-  const grid = useStore((state) => state.freeResultGrid);
-  const showGrid = grid && records.length > 0 && !showSource && !drawing;
-  const toggleGrid = () => {
-    setStage('result');
-    setFreeResultGrid(!showGrid);
-  };
+  const { showGrid, toggleGrid } = useResultGrid({
+    scope: 'free',
+    hasRecords: records.length > 0,
+    visible: !showSource && !drawing,
+    shortcutEnabled: !drawing,
+    onShowResult: () => setStage('result'),
+  });
   const saveAs = (record: GenerationSummary) =>
     void run('이미지를 저장하는 중', async () => {
       const saved = await fileApi().saveImageAs(
@@ -153,18 +154,6 @@ export function FreeView() {
     : generateCountLabel(free.count, refine ? free.count * refine.count : 0);
   const generate = () => void (director ? runFreeDirectorTool(shrink) : generateFree());
   useShortcut('Ctrl+Enter', generate, canGenerate && !busy, { inFields: true });
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || drawing || isTypingTarget(event.target)) return;
-      const plain = !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
-      const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
-      // 한글 입력 상태에서도 받으려고 code로 본다.
-      if (plain && event.code === 'KeyG' && records.length && !dialogOpen) toggleGrid();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   // 디렉터 툴 결과에는 프롬프트와 seed가 없다.
   const promptActions = (record: GenerationSummary): ResultAction[] =>

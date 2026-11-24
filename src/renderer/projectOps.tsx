@@ -1,11 +1,38 @@
-import type { Project } from '../core/domain/types';
+import type { Library, Project } from '../core/domain/types';
 import { readableId } from '../core/model/defaults';
 import { uniqueName } from '../core/model/mutations';
 import { confirmDialog, openDialog } from './components/dialogStack';
 import { ProjectExportDialog, type ProjectExportFormat } from './components/ProjectExportDialog';
-import { openProject, run, toast, updateLibrary, useStore } from './store';
+import { openProject, referenceMedia, run, toast, updateLibrary, useStore } from './store';
 import { fileApi, libraryApi } from './desktop';
 import { dropSourceFiles, sceneImages } from './freeImageOps';
+
+export function projectAvatarUrl(library: Library, project: Project): string | undefined {
+  const reference = library.references.find((item) => item.id === project.referenceId);
+  return reference?.image
+    ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
+    : undefined;
+}
+
+export function projectExportMenu(project: Project) {
+  return [
+    {
+      label: 'SD Studio 프로젝트로 내보내기',
+      accessKey: 'S',
+      onSelect: () => exportProjectFile(project, 'sdstudio'),
+    },
+    {
+      label: 'NAI RICE 작업 파일로 내보내기',
+      accessKey: 'R',
+      onSelect: () => exportProjectFile(project, 'rice'),
+    },
+    {
+      label: '씬 이름을 텍스트로 내보내기',
+      accessKey: 'T',
+      onSelect: () => exportSceneNames(project),
+    },
+  ];
+}
 
 /** 생성 결과와 대표 이미지는 가져오지 않는다. */
 export function duplicateProject(project: Project, options?: { open?: boolean }): Project {

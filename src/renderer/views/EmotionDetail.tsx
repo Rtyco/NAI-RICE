@@ -19,6 +19,7 @@ import { ResultBar } from '../components/ResultActions';
 import { ResultGrid } from '../components/ResultGrid';
 import { showResultMenu, type ResultAction } from '../components/resultMenu';
 import { useResultBrowser } from '../components/useResultBrowser';
+import { useResultGrid } from '../components/useResultGrid';
 import { Menu } from '../components/ui';
 import { deleteEmotion, duplicateEmotionIn, patchEmotion } from '../emotionOps';
 import { openDirectorToolDialog } from '../generationOps';
@@ -28,7 +29,6 @@ import {
   openEmotion,
   projectMedia,
   run,
-  setResultGrid,
   toast,
   updateProject,
   useStore,
@@ -77,12 +77,13 @@ export function EmotionDetail({
   const [stage, setStage] = useState<FreeStage>('source');
   const drawing = img2imgOn && stage === 'draw';
   const showSource = Boolean(image) && stage === 'source';
-  const grid = useStore((state) => state.resultGrid);
-  const showGrid = grid && records.length > 0 && !showSource && !drawing;
-  const toggleGrid = () => {
-    setStage('result');
-    setResultGrid(!showGrid);
-  };
+  const { showGrid, toggleGrid } = useResultGrid({
+    scope: 'detail',
+    hasRecords: records.length > 0,
+    visible: !showSource && !drawing,
+    shortcutEnabled: !drawing,
+    onShowResult: () => setStage('result'),
+  });
 
   const browser = useResultBrowser(project.id, records, {
     preferredId: favoriteId,
@@ -126,8 +127,6 @@ export function EmotionDetail({
       const dialogOpen = Boolean(document.querySelector('.modal-backdrop'));
       if (plain && event.key.toLowerCase() === 'f' && selected && !dialogOpen)
         setFavorite(favoriteId === selected.id ? undefined : selected.id);
-      // 한글 입력 상태에서도 받으려고 code로 본다.
-      if (plain && event.code === 'KeyG' && records.length && !dialogOpen) toggleGrid();
       if (event.key === 'PageDown' && next) openEmotion(next.id);
       if (event.key === 'PageUp' && previous) openEmotion(previous.id);
     };

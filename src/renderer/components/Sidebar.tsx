@@ -24,9 +24,9 @@ import {
   deleteProject,
   deleteProjects,
   duplicateProject,
-  exportProjectFile,
-  exportSceneNames,
   openProjectFolder,
+  projectAvatarUrl,
+  projectExportMenu,
 } from '../projectOps';
 import { SECTIONS } from '../sections';
 import { sidebarStageOf, useLayout } from '../layout';
@@ -34,7 +34,6 @@ import {
   openFree,
   openLibrary,
   openProject,
-  referenceMedia,
   toggleFolder,
   toggleSidebarSection,
   updateLibrary,
@@ -179,13 +178,6 @@ export function NewProjectDialog({
   );
 }
 
-function projectAvatar(library: Library, project: Project): string | undefined {
-  const reference = library.references.find((item) => item.id === project.referenceId);
-  return reference?.image
-    ? referenceMedia(reference.id, reference.image.originalFile, reference.updatedAt)
-    : undefined;
-}
-
 function projectSubtitle(library: Library, project: Project): string {
   const characterId = project.characters[0]?.characterId;
   return library.characters.find((item) => item.id === characterId)?.name ?? '캐릭터 없음';
@@ -240,7 +232,7 @@ function SectionTitle(props: {
 
 export function Sidebar() {
   const projects = useStore((state) => state.library!.projects);
-  const avatars = useProjectInfo(projectAvatar);
+  const avatars = useProjectInfo(projectAvatarUrl);
   const subtitles = useProjectInfo(projectSubtitle);
   const counts = useStore(
     useShallow((state) =>
@@ -343,23 +335,7 @@ export function Sidebar() {
         remove={() => void deleteProject(project)}
         menu={{
           duplicate: () => duplicateProject(project),
-          exports: [
-            {
-              label: 'SD Studio 프로젝트로 내보내기',
-              accessKey: 'S',
-              onSelect: () => exportProjectFile(project, 'sdstudio'),
-            },
-            {
-              label: 'NAI RICE 작업 파일로 내보내기',
-              accessKey: 'R',
-              onSelect: () => exportProjectFile(project, 'rice'),
-            },
-            {
-              label: '씬 이름을 텍스트로 내보내기',
-              accessKey: 'T',
-              onSelect: () => exportSceneNames(project),
-            },
-          ],
+          exports: projectExportMenu(project),
           folder: () => openProjectFolder(project.id),
           pickedCount: selection.selected.size,
           removePicked: () => removeMany([...selection.selected]),
