@@ -480,7 +480,7 @@ export function Sidebar() {
               </button>
               <button
                 className="with-icon danger-quiet"
-                title="고른 작업 삭제"
+                title="선택한 작업 삭제"
                 onClick={() => removeMany([...selection.selected])}
               >
                 <Icon name="trash" size={14} />
@@ -488,11 +488,11 @@ export function Sidebar() {
               </button>
               <button
                 className="link-button with-icon"
-                title="선택 취소 (Esc)"
+                title="선택 해제 (Esc)"
                 onClick={selection.clear}
               >
                 <Icon name="close" size={14} />
-                <span className="bar-label">선택 취소</span>
+                <span className="bar-label">선택 해제</span>
               </button>
             </div>
           )}

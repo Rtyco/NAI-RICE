@@ -74,7 +74,7 @@ export async function clearEmotionResults(
   const targets = records.filter((record) => !favorites.has(record.id));
   const kept = records.length - targets.length;
   if (!targets.length) {
-    toast(kept ? '대표 이미지 말고는 지울 결과가 없습니다.' : '지울 결과가 없습니다.');
+    toast(kept ? '대표 이미지를 제외하면 삭제할 결과가 없습니다.' : '삭제할 결과가 없습니다.');
     return false;
   }
   const names = emotions.slice(0, 6).map((emotion) => emotion.name);

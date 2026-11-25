@@ -329,9 +329,9 @@ export function emotionsMenu(projectId: string, set: EmotionSet, emotions: Emoti
   const setExcluded = (exclude: boolean) =>
     updateProject(projectId, (current) => setEmotionsExcluded(current, ids, exclude));
   return [
-    { heading: `고른 씬 ${emotions.length}개` },
+    { heading: `선택한 씬 ${emotions.length}개` },
     {
-      label: '고른 씬 생성',
+      label: '선택한 씬 생성',
       accessKey: 'G',
       disabled: !ready.length,
       onSelect: () => void generateEmotions(projectId, ready),

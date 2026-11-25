@@ -220,7 +220,7 @@ function ChecklistFolder(props: {
         <Icon name="chevron" size={11} className="section-chevron" />
         <Icon name="folder" size={13} className="folder-icon" />
         <span>{props.name}</span>
-        {props.checked > 0 && <em>{props.checked}개 고름</em>}
+        {props.checked > 0 && <em>{props.checked}개 선택</em>}
         <small>{props.count}</small>
       </button>
       {!folded && props.children}

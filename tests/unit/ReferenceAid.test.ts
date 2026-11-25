@@ -223,7 +223,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
     expect(estimateJobAnlas(job)).toBe(10);
     expect(() =>
       buildNovelAIJobRequest(job, { imageBase64: 'IMG', maskBase64: 'MASK', aidBase64: ['A'] }),
-    ).toThrow('참고 그림');
+    ).toThrow('참고 이미지');
   });
 
   it('바이브는 인페인트에도 붙이고 바이브마다 인코딩 결과와 세기를 보내', () => {
@@ -254,7 +254,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
       normalize_reference_strength_multiple: true,
     });
     expect(() => buildNovelAIJobRequest(job, { imageBase64: 'IMG', maskBase64: 'MASK' })).toThrow(
-      '참고 그림',
+      '참고 이미지',
     );
     // NovelAI 웹은 바이브를 두 자리 수까지 받아 4개 넘게도 넣는다.
     const many = { kind: 'vibe', vibes: Array(12).fill(sunset) };
@@ -376,7 +376,7 @@ describe('캐릭터 레퍼런스·바이브', () => {
       missing({ ...txt, presetId: v45Preset.id, characterReferenceIds: [outfit.id] }),
     ).toContain(AID_MODEL_MISSING);
     expect(missing({ ...txt, characterReferenceIds: ['gone'] })).toContain('캐릭터 레퍼런스');
-    expect(missing({ ...txt, vibeIds: [mood.id] })).toContain('바이브 그림');
+    expect(missing({ ...txt, vibeIds: [mood.id] })).toContain('바이브 이미지');
     expect(missing({ ...txt, vibeIds: ['gone'] })).toContain('바이브');
     expect(missing(txt)).not.toContain(AID_MODEL_MISSING);
   });

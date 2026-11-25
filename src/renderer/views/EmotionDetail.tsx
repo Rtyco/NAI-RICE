@@ -382,7 +382,7 @@ export function EmotionDetail({
                     )
                   }
                 >
-                  대표 빼고 모두 선택
+                  대표 제외 모두 선택
                 </button>
               </>
             }

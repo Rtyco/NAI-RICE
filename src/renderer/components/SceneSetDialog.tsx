@@ -141,7 +141,7 @@ export function SceneSetDialog(props: {
               <input
                 type="checkbox"
                 checked={allChecked}
-                aria-label="모두 고르기"
+                aria-label="모두 선택"
                 onChange={() =>
                   emotions.forEach((emotion) =>
                     patchRow(emotion.id, {

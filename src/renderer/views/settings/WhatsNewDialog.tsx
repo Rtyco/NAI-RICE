@@ -4,7 +4,7 @@ import { setSettingsOpen } from '../../store';
 const ADDED: Array<{ title: string; lead: string; items: string[] }> = [
   {
     title: '작업과 내보내기',
-    lead: '작업을 이미지와 함께 내보내고 가져오며, 고른 이미지를 한 장으로 모아 저장할 수 있게 바꿨습니다.',
+    lead: '작업을 이미지와 함께 내보내고 가져오며, 선택한 이미지를 한 장으로 모아 저장할 수 있게 바꿨습니다.',
     items: [
       '「작업 내보내기 (이미지 포함)」「SD Studio 프로젝트로 내보내기 (이미지 포함)」',
       '작업 묶음·SD Studio 프로젝트 백업 가져오기',

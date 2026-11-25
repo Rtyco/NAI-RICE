@@ -46,7 +46,7 @@ export function FreeImagePanel({
         <span className="hint">
           {image
             ? `${fromReference ? '인페인트 · ' : ''}${image.name} · ${image.outputRect.width}×${image.outputRect.height}`
-            : '아직 고르지 않았습니다'}
+            : '선택된 이미지 없음'}
         </span>
       </div>
       <div className="free-source-loads">

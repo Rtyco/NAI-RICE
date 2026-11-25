@@ -404,7 +404,7 @@ export function ReferenceEditor({ reference }: { reference: Reference }) {
     <SidePanelLayout className="canvas-view" panelClassName="canvas-settings" panel={settings}>
       <section className="canvas-panel">
         {working && (
-          <div className="segmented stage-tabs" role="group" aria-label="편집할 것">
+          <div className="segmented stage-tabs" role="group" aria-label="편집 모드">
             <button
               className={stage === 'mask' ? 'active' : ''}
               aria-pressed={stage === 'mask'}

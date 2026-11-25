@@ -145,7 +145,7 @@ export function LineFixDialog(props: {
       <LineFixFields value={options} onChange={setOptions} />
       {unsupported.length > 0 && (
         <p className="field-error">
-          {unsupported.map(modelLabel).join(', ')}은(는) 인페인팅을 지원하지 않아 모델을 골라야
+          {unsupported.map(modelLabel).join(', ')}은(는) 인페인팅을 지원하지 않아 모델을 선택해야
           합니다.
         </p>
       )}

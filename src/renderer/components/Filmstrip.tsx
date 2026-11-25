@@ -62,7 +62,7 @@ export function Filmstrip(props: {
               <Icon name="trash" size={14} /> 삭제
             </button>
             <button className="link-button" onClick={picking.clear}>
-              선택 취소
+              선택 해제
             </button>
           </>
         ) : (

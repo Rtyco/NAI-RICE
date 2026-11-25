@@ -154,8 +154,8 @@ function CleanupDialog({
       }
     >
       <p>
-        대표(★) 이미지를 뺀 생성 결과를 지웁니다. 결과 이미지와 썸네일, 같은 결과의 전체 캔버스가
-        함께 지워집니다.
+        대표(★) 이미지를 제외한 생성 결과를 삭제합니다. 결과 이미지, 썸네일, 해당 결과의 전체
+        캔버스가 함께 삭제됩니다.
       </p>
       <label className="toggle-field">
         <input
@@ -163,7 +163,7 @@ function CleanupDialog({
           checked={useDate}
           onChange={(event) => setUseDate(event.target.checked)}
         />
-        <span>이 날짜까지 만든 결과만</span>
+        <span>이 날짜 이전 생성 결과만</span>
         <input
           type="date"
           value={before}
@@ -177,14 +177,14 @@ function CleanupDialog({
           checked={permanent}
           onChange={(event) => setPermanent(event.target.checked)}
         />
-        <span>휴지통을 거치지 않고 바로 지우기 (되돌릴 수 없음)</span>
+        <span>휴지통을 거치지 않고 영구 삭제 (되돌릴 수 없음)</span>
       </label>
       <p className="cleanup-preview">
         {!records || !measure
           ? '계산하는 중…'
           : measure.count
-            ? `결과 ${total}장 중 ${measure.count}장 · ${formatBytes(measure.bytes)}를 지웁니다. ${kept}장은 남습니다.`
-            : '지울 결과가 없습니다.'}
+            ? `결과 ${total}장 중 ${measure.count}장(${formatBytes(measure.bytes)})을 삭제합니다. ${kept}장은 남습니다.`
+            : '삭제할 결과가 없습니다.'}
       </p>
     </Modal>
   );
@@ -209,7 +209,7 @@ function ProjectRow({
     void run('점검 결과를 정리하는 중', async () => {
       const fixed = await storageApi().repairProject(usage.projectId);
       toast(
-        `기록 없는 파일 ${fixed.orphanFiles}개를 휴지통으로 보내고, 이미지가 없는 기록 ${fixed.missingRecords}개를 뺐습니다.`,
+        `기록 없는 파일 ${fixed.orphanFiles}개를 휴지통으로 보내고, 이미지가 없는 기록 ${fixed.missingRecords}개를 정리했습니다.`,
       );
       setInspection(undefined);
       if (useStore.getState().generations[usage.projectId]) await loadGenerations(usage.projectId);
@@ -350,7 +350,7 @@ export function StorageTab() {
                   .then((folder) => (folder ? moveWorkspaceTo(folder) : undefined))
               }
             >
-              위치 바꾸기…
+              위치 변경…
             </button>
             {location.root !== location.defaultRoot && (
               <button

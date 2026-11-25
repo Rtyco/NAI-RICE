@@ -144,8 +144,8 @@ export function useSceneSlots(props: {
     const ok =
       !filled ||
       (await confirmDialog({
-        title: `캐릭터 ${index + 1} 몫 삭제`,
-        message: `후보 ${filled}개의 캐릭터 ${index + 1} 몫을 지웁니다.`,
+        title: `캐릭터 ${index + 1} 프롬프트 삭제`,
+        message: `후보 ${filled}개의 캐릭터 ${index + 1} 프롬프트를 삭제합니다.`,
         confirmLabel: '삭제',
         danger: true,
       }));

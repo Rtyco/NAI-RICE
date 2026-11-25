@@ -339,7 +339,7 @@ export function buildNovelAIEncodeVibeRequest(
 }
 
 export function encodedOnlyMessage(name: string): string {
-  return `바이브 「${name}」은(는) 원본 그림 없이 인코딩만 가져와서, 가져온 모델·정보 추출 값으로만 쓸 수 있습니다. 생성 설정의 모델이나 바이브의 정보 추출 값을 확인하십시오.`;
+  return `바이브 「${name}」은(는) 원본 이미지 없이 인코딩만 가져와서, 가져온 모델·정보 추출 값으로만 사용할 수 있습니다. 생성 설정의 모델이나 바이브의 정보 추출 값을 확인하십시오.`;
 }
 
 /** 같은 그림·모델·information_extracted면 결과가 같아 캐시한다. 파일 이름이라 영문·숫자·하이픈만 남긴다. */
@@ -379,7 +379,7 @@ export type NaiJobInputs = { imageBase64?: string; maskBase64?: string; aidBase6
 
 function jobAidInput(aid: JobAid, base64: string[] | undefined): NaiAidInput {
   const count = aid.kind === 'character' ? aid.references.length : aid.vibes.length;
-  if (base64?.length !== count) throw new Error('작업에 참고 그림이 없습니다.');
+  if (base64?.length !== count) throw new Error('작업에 참고 이미지가 없습니다.');
   return aid.kind === 'character'
     ? {
         kind: 'character',

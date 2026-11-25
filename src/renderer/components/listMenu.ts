@@ -40,7 +40,7 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
           {
             label:
               actions.pickedCount > 1
-                ? `고른 ${actions.pickedCount}개를 바이브 묶음으로 내보내기`
+                ? `선택한 ${actions.pickedCount}개를 바이브 묶음으로 내보내기`
                 : '바이브 파일로 내보내기',
             accessKey: 'V',
             onSelect: actions.exportVibes,
@@ -54,7 +54,7 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
           {
             label:
               actions.pickedCount > 1
-                ? `고른 ${actions.pickedCount}개를 폴더로 묶기`
+                ? `선택한 ${actions.pickedCount}개를 폴더로 묶기`
                 : '폴더로 묶기',
             accessKey: 'G',
             hint: 'Ctrl+G',
@@ -68,7 +68,7 @@ export function listMenu(actions: ListMenuActions): MenuItem[] {
     'divider',
     actions.pickedCount > 1
       ? {
-          label: `고른 ${actions.pickedCount}개 삭제`,
+          label: `선택한 ${actions.pickedCount}개 삭제`,
           accessKey: 'D',
           danger: true,
           onSelect: actions.removePicked,

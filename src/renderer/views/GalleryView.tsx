@@ -414,11 +414,11 @@ export function GalleryView({
       {/* 모든 씬의 체크(일괄 생성 대상)는 아래 큐 막대, 고른 카드에 할 일(체크 포함)은 위 막대에 둔다. */}
       <div className="toolbar gallery-toolbar">
         {selection.selected.size > 0 ? (
-          <section className="toolbar-zone active" aria-label="고른 카드">
+          <section className="toolbar-zone active" aria-label="선택한 카드">
             <b className="zone-count">카드 {selection.selected.size}개</b>
             <button
               className="with-icon"
-              title="고른 씬을 일괄 생성에 포함"
+              title="선택한 씬을 일괄 생성에 포함"
               disabled={pickedIds.every((id) => !excluded.has(id))}
               onClick={() => setPickedExcluded(false)}
             >
@@ -426,7 +426,7 @@ export function GalleryView({
             </button>
             <button
               className="with-icon"
-              title="고른 씬을 일괄 생성에서 제외"
+              title="선택한 씬을 일괄 생성에서 제외"
               disabled={pickedIds.every((id) => excluded.has(id))}
               onClick={() => setPickedExcluded(true)}
             >
@@ -434,21 +434,21 @@ export function GalleryView({
             </button>
             <button
               className="with-icon"
-              title="고른 씬의 대표 이미지 다듬기 (i2i)"
+              title="선택한 씬의 대표 이미지 다듬기 (i2i)"
               onClick={() => openImg2ImgDialog(project.id, pickedCovers())}
             >
               <Icon name="upscale" size={14} /> 다듬기
             </button>
             <button
               className="with-icon"
-              title="고른 씬의 대표 이미지 구분선 지우기"
+              title="선택한 씬의 대표 이미지 구분선 지우기"
               onClick={() => openLineFixDialog(project.id, pickedCovers())}
             >
               <Icon name="border-line" size={14} /> 구분선 지우기
             </button>
             <button
               className="with-icon"
-              title="고른 씬의 대표 이미지에 디렉터 툴 적용"
+              title="선택한 씬의 대표 이미지에 디렉터 툴 적용"
               onClick={() => openDirectorToolDialog(project.id, pickedCovers())}
             >
               <Icon name="wand" size={14} /> 디렉터 툴
@@ -471,18 +471,18 @@ export function GalleryView({
             >
               <Icon name="trash" size={14} /> 씬 삭제
             </button>
-            <button className="with-icon" title="고르기 취소 (Esc)" onClick={selection.clear}>
-              <Icon name="close" size={14} /> 고르기 취소
+            <button className="with-icon" title="선택 해제 (Esc)" onClick={selection.clear}>
+              <Icon name="close" size={14} /> 선택 해제
             </button>
           </section>
         ) : (
-          <section className="toolbar-zone" aria-label="카드 고르기">
+          <section className="toolbar-zone" aria-label="카드 선택">
             <button
               className="with-icon"
-              title="모두 고르기 (Ctrl+A)"
+              title="모두 선택 (Ctrl+A)"
               onClick={() => selection.selectAll(emotions.map((emotion) => emotion.id))}
             >
-              <Icon name="select-all" size={14} /> 모두 고르기
+              <Icon name="select-all" size={14} /> 모두 선택
             </button>
           </section>
         )}

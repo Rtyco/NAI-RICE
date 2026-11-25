@@ -71,8 +71,10 @@ describe('작업 폴더 옮기기', () => {
 
   it('지금 폴더, 그 안, 그것을 품은 폴더로는 옮기지 않는다', async () => {
     const { root } = await workspace();
-    await expect(planMove(root, root)).rejects.toThrow('지금 쓰는');
-    await expect(planMove(root, path.join(root, 'projects'))).rejects.toThrow('작업 폴더 안');
+    await expect(planMove(root, root)).rejects.toThrow('현재 사용 중인');
+    await expect(planMove(root, path.join(root, 'projects'))).rejects.toThrow(
+      '하위 또는 상위 폴더',
+    );
     expect(isSameOrInside(path.join(base, 'A'), path.join(base, 'a', 'b'))).toBe(
       process.platform === 'win32',
     );

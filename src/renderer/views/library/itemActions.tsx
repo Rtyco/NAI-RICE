@@ -94,7 +94,7 @@ export async function deleteItem(section: LibraryViewSection, item: Item) {
         <p>
           "{item.name}"을(를) 삭제합니다.
           {users.length
-            ? ` 이 조각을 부르는 작업 ${users.length}개(${users.map((project) => project.name).join(', ')})는 조각을 다시 만들기 전까지 생성할 수 없습니다.`
+            ? ` 이 조각을 참조하는 작업 ${users.length}개(${users.map((project) => project.name).join(', ')})는 조각을 다시 만들기 전까지 생성할 수 없습니다.`
             : ''}
         </p>
       ),
@@ -187,8 +187,8 @@ export async function deleteItems(section: LibraryViewSection, items: Item[]): P
         </p>
         {users.size > 0 && (
           <p className="hint">
-            작업 {users.size}개({[...users.values()].join(', ')})가 이 항목을 씁니다. 그 작업은 다른
-            항목을 고르기 전까지 생성할 수 없습니다.
+            작업 {users.size}개({[...users.values()].join(', ')})가 이 항목을 사용 중입니다. 다른
+            항목을 선택하기 전까지 생성할 수 없습니다.
           </p>
         )}
       </>
@@ -354,7 +354,7 @@ export function itemSubtitle(section: LibraryViewSection, item: Item, library?: 
   if (section === 'pieceSets') return `조각 ${(item as PieceSet).pieces.length}개`;
   if (section === 'characterReferences' || section === 'vibes') {
     const image = (item as CharacterReference | Vibe).image;
-    return image ? `${image.width}×${image.height}` : '그림 없음';
+    return image ? `${image.width}×${image.height}` : '이미지 없음';
   }
   const reference = item as Reference;
   return reference.image

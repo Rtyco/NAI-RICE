@@ -393,7 +393,7 @@ function FindOptions(props: {
           disabled={!props.fieldAvailable || names}
           onClick={() => useFind.setState({ scope: 'field' })}
         >
-          이 칸
+          현재 입력란
         </button>
         <button
           className={scope === 'item' ? 'active' : ''}
@@ -472,7 +472,7 @@ function FindResults(props: {
           </button>
         ))}
         {hits.length > SHOWN_HITS && <p className="hint">외 {hits.length - SHOWN_HITS}개 칸</p>}
-        {!hits.length && <p className="hint">{props.where}에서 찾은 곳이 없습니다.</p>}
+        {!hits.length && <p className="hint">{props.where}에서 일치하는 결과가 없습니다.</p>}
         {props.showRecords && (
           <>
             <div className="find-group">
@@ -504,7 +504,7 @@ function FindResults(props: {
               <p className="hint">최신 {recordHits.length}개</p>
             )}
             {records && records !== 'loading' && !records.total && (
-              <p className="hint">생성 기록에서 찾은 곳이 없습니다.</p>
+              <p className="hint">생성 기록에서 일치하는 결과가 없습니다.</p>
             )}
           </>
         )}

@@ -241,7 +241,7 @@ export function AccountTab() {
               )
             }
           >
-            <Icon name="refresh" /> 새로고침
+            <Icon name="refresh" /> 새로 고침
           </button>
         }
       >

@@ -79,7 +79,7 @@ export const SECTIONS: Array<{
     projectPart: false,
     label: '캐릭터 레퍼런스',
     icon: 'portrait',
-    role: '그림의 캐릭터 따라 그리기',
+    role: '참조 이미지의 캐릭터·의상·그림체 반영',
   },
   {
     id: 'vibes',
@@ -89,7 +89,7 @@ export const SECTIONS: Array<{
     projectPart: false,
     label: '바이브',
     icon: 'vibe',
-    role: '그림의 분위기·그림체',
+    role: '참조 이미지의 분위기·그림체 반영',
   },
   {
     id: 'pieceSets',

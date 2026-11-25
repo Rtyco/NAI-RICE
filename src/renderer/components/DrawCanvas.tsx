@@ -419,7 +419,7 @@ export function DrawCanvas(props: {
         <span>
           캔버스 {width}×{height}
         </span>
-        {props.onApply && dirty && <span>합치지 않은 그림이 있습니다</span>}
+        {props.onApply && dirty && <span>합치지 않은 그리기 내용이 있습니다</span>}
       </div>
     </section>
   );

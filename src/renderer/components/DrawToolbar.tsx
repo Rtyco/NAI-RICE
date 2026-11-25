@@ -30,7 +30,10 @@ export function DrawToolbar(props: {
             })),
           ],
         },
-        { fold: 1, items: [{ label: '그린 것 지우기', hint: 'Delete', onSelect: props.onClear }] },
+        {
+          fold: 1,
+          items: [{ label: '그린 내용 지우기', hint: 'Delete', onSelect: props.onClear }],
+        },
         {
           fold: 2,
           items: [
@@ -145,7 +148,7 @@ export function DrawToolbar(props: {
       <span className="zone-divider" />
       <UndoRedoButtons {...props.history} />
       <button data-fold="1" onClick={props.onClear} title="모두 지우기 (Delete)">
-        그린 것 지우기
+        그린 내용 지우기
       </button>
       <div className="toolbar-zone view-zone">
         <CanvasZoom view={props.view} />

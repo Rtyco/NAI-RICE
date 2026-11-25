@@ -126,7 +126,7 @@ export function PostProcessChip({
         {
           id: 'line',
           name: `구분선 지우기 · ${lineFixSummary(lineFix)}`,
-          disabled: project.mode === 'reference' ? undefined : '인페인트 모드에서만 씁니다.',
+          disabled: project.mode === 'reference' ? undefined : '인페인트 모드에서만 사용합니다.',
           edit: { title: '구분선 지우기 설정', open: openLineFixSettings },
         },
         {

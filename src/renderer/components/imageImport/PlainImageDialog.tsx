@@ -40,7 +40,7 @@ export function PlainImageDialog({ image, close }: { image: DroppedImage; close:
     close();
   };
   const addAid = (section: AidSection) =>
-    void run('그림을 넣는 중', async () => {
+    void run('이미지를 추가하는 중', async () => {
       const id = await addAidFromImage(section, image, stem, project?.id);
       const label = section === 'characterReferences' ? '캐릭터 레퍼런스' : '바이브';
       if (project) toast(`새 ${label}를 만들어 작업 "${project.name}"에 넣었습니다.`);

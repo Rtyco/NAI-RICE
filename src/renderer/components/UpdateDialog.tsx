@@ -83,7 +83,7 @@ export function UpdateDialog({ update, close }: { update: UpdateCheckResult; clo
       }
     >
       <p className="update-versions">
-        <span>지금 {update.current}</span>
+        <span>현재 {update.current}</span>
         <b>&rarr; {update.latest}</b>
         {published && <small>{published}</small>}
       </p>

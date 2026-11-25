@@ -34,18 +34,18 @@ export function DeleteUsedDialog(props: {
         {props.section === 'references' ? ' 이미지 폴더는 휴지통으로 이동합니다.' : ''}
       </p>
       <p>
-        이 {title}을(를) 쓰는 작업 {props.users.length}개:{' '}
+        이 {title}을(를) 사용 중인 작업 {props.users.length}개:{' '}
         <b>{props.users.map((project) => project.name).join(', ')}</b>
       </p>
       <label className="stack-field">
-        이 작업들이 대신 쓸 {title}
+        대신 사용할 {title}
         <select value={replacementId} onChange={(event) => setReplacementId(event.target.value)}>
           {others.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.name}
             </option>
           ))}
-          <option value="">(비워 두기 — 작업에서 나중에 고르기)</option>
+          <option value="">(비워 두기 — 작업에서 나중에 선택)</option>
         </select>
       </label>
     </Modal>

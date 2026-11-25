@@ -102,7 +102,9 @@ export class VibeFiles {
       });
     }
     if (!imported.length)
-      throw new Error('가져올 수 있는 바이브가 없습니다. V4·V4.5 인코딩이나 원본 그림이 없습니다.');
+      throw new Error(
+        '가져올 수 있는 바이브가 없습니다. V4·V4.5 인코딩이나 원본 이미지가 없습니다.',
+      );
     return imported;
   }
 
@@ -163,7 +165,7 @@ export class VibeFiles {
     }
     const png =
       vibe.image && !vibe.encodingId ? await this.library.readPicture(vibe.image.file) : undefined;
-    if (!png && !encodings.length) throw new Error(`바이브 「${vibe.name}」에 그림이 없습니다.`);
+    if (!png && !encodings.length) throw new Error(`바이브 「${vibe.name}」에 이미지가 없습니다.`);
     const thumbnail =
       png &&
       `data:image/jpeg;base64,${(

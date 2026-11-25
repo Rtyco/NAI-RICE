@@ -76,7 +76,7 @@ export function PieceSetEditor({ set }: { set: PieceSet }) {
                       save((item) => updatePiece(item, piece.id, { multi: event.target.checked }))
                     }
                   />
-                  줄마다 하나씩 고르기
+                  줄마다 하나씩 선택
                 </label>
                 <div className="row-actions">
                   <ExpandTextButton

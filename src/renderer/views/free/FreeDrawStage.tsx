@@ -33,7 +33,7 @@ export function FreeDrawStage({ target, image }: { target: ImageTarget; image: F
       width={image.width}
       height={image.height}
       onApply={(dataUrl) =>
-        run('그림을 합치는 중', () => replaceImagePixels(target, image.file, dataUrl)).then(
+        run('그린 내용을 합치는 중', () => replaceImagePixels(target, image.file, dataUrl)).then(
           () => undefined,
         )
       }

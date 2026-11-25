@@ -69,7 +69,7 @@ export function CharacterChip(props: {
         })),
         ...checked
           .filter((id) => !library.characters.some((item) => item.id === id))
-          .map((id) => ({ id, name: '(지워진 캐릭터)' })),
+          .map((id) => ({ id, name: '(삭제된 캐릭터)' })),
       ]}
       checked={checked}
       multi

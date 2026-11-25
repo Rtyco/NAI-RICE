@@ -184,7 +184,7 @@ export function ImportReviewDialog(props: {
                   </select>
                   {value === SKIP ? (
                     <span className="hint">
-                      {isBlocked ? `${item.name} · 쓰는 항목이 빠져 함께 제외` : item.name}
+                      {isBlocked ? `${item.name} · 참조 항목이 빠져 함께 제외` : item.name}
                     </span>
                   ) : target ? (
                     <span className="hint">{item.name}</span>

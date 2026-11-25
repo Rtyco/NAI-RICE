@@ -535,10 +535,10 @@ export function ImageImportDialog({
             </Check>
             {embeddedVibes > 0 && (
               <Check checked={useVibes} onChange={setUseVibes}>
-                <b>이미지에 든 바이브 {embeddedVibes}개 가져오기</b>
+                <b>이미지에 포함된 바이브 {embeddedVibes}개 가져오기</b>
                 {!data.vibeFile && (
                   <small>
-                    {`인코딩이 들어 있어 ${modelLabel(data.model ?? '')}에서는 인코딩 비용이 들지 않습니다`}
+                    {`인코딩이 포함되어 있어 ${modelLabel(data.model ?? '')}에서는 인코딩 비용이 들지 않습니다`}
                   </small>
                 )}
               </Check>
@@ -550,9 +550,9 @@ export function ImageImportDialog({
             <b>불러온 항목으로 새 작업 만들기</b>
             <small>
               {makeProject
-                ? '빠진 항목은 새로 만들어 채웁니다.'
+                ? '선택하지 않은 필수 항목은 자동으로 생성됩니다.'
                 : project
-                  ? `현재 작업 "${project.name}"이(가) 새로 만든 항목을 쓰도록 연결합니다.`
+                  ? `현재 작업 "${project.name}"에 새로 만든 항목을 연결합니다.`
                   : '라이브러리에만 추가합니다.'}
             </small>
           </Check>

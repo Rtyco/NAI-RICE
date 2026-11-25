@@ -9,7 +9,7 @@ export function UsedBy({ section, id }: { section: LibrarySection; id: string })
     'project'
   >;
   const projects = projectsUsing(library, kind, id);
-  if (!projects.length) return <p className="hint">아직 이 항목을 쓰는 작업이 없습니다.</p>;
+  if (!projects.length) return <p className="hint">이 항목을 사용 중인 작업이 없습니다.</p>;
   return (
     <div className="used-by">
       <span>사용 중인 작업</span>

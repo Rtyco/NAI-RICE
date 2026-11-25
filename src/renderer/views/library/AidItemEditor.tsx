@@ -17,7 +17,7 @@ import { pictureMedia, run, updateLibrary } from '../../store';
 /** 그림을 바꿔도 이전 파일은 다른 항목이 쓸 수 있어 남긴다. */
 function PictureCard({ image, onChange }: { image?: Picture; onChange: (image: Picture) => void }) {
   const load = () =>
-    void run('그림을 불러오는 중', async () => {
+    void run('이미지를 불러오는 중', async () => {
       const file = await fileApi().openImageFile();
       if (!file) return;
       const stored = await libraryApi().addPicture(file.dataUrl);
@@ -25,7 +25,7 @@ function PictureCard({ image, onChange }: { image?: Picture; onChange: (image: P
     });
   return (
     <Card
-      title="그림"
+      title="이미지"
       subtitle={image ? `${image.name} · ${image.width}×${image.height}` : '아직 없음'}
     >
       <div className="aid-picture">
@@ -35,7 +35,7 @@ function PictureCard({ image, onChange }: { image?: Picture; onChange: (image: P
           <span className="aid-picture-empty" />
         )}
         <button className="with-icon" onClick={load}>
-          <Icon name="plus" size={14} /> {image ? '다른 그림 불러오기' : '파일에서 불러오기'}
+          <Icon name="plus" size={14} /> {image ? '다른 이미지 불러오기' : '파일에서 불러오기'}
         </button>
       </div>
     </Card>
@@ -74,7 +74,7 @@ export function CharacterReferenceEditor({ item }: { item: CharacterReference })
             onChange={(fidelity) => save({ fidelity })}
           />
           <SelectField
-            label="따라 그리기"
+            label="참조 대상"
             value={item.target}
             options={REFERENCE_TARGETS.map((target) => ({
               value: target.value,
@@ -149,7 +149,8 @@ export function VibeEditor({ item }: { item: Vibe }) {
         </div>
         {encodedOnly && (
           <p className="field-error">
-            인코딩만 있는 바이브입니다. 저장된 인코딩의 모델·정보 추출 값으로만 쓸 수 있습니다.
+            원본 이미지 없이 인코딩만 저장된 바이브입니다. 저장된 모델과 정보 추출 값으로만 사용할
+            수 있습니다.
           </p>
         )}
         <p className="hint">

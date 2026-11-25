@@ -33,7 +33,7 @@ export function FreePromptFields(props: {
         label="네거티브"
         hint={
           props.preset && usesMedium(props.preset.generation)
-            ? 'Medium에서는 쓰이지 않음'
+            ? 'Medium에서는 사용되지 않음'
             : undefined
         }
         title={
@@ -45,7 +45,7 @@ export function FreePromptFields(props: {
         tone="negative"
         rows={3}
         value={free.negative}
-        placeholder="이번 생성에서만 뺄 태그"
+        placeholder="이번 생성에서만 제외할 태그"
         counter={false}
         onChange={(negative) => updateFreeGeneration({ negative })}
       />
@@ -62,7 +62,7 @@ export function FreePromptFields(props: {
                 disabled={blocked}
                 title={
                   blocked
-                    ? '캐릭터 프롬프트가 없어 고를 수 없습니다'
+                    ? '캐릭터 프롬프트가 없어 선택할 수 없습니다'
                     : value === 'character-end'
                       ? 'V4 이상에서 그 캐릭터에만 적용됩니다'
                       : PROMPT_POSITIONS[value]

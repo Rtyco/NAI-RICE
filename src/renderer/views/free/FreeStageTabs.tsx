@@ -12,7 +12,7 @@ export function FreeStageTabs(props: {
 }) {
   const { stage, onStage, hasImage } = props;
   return (
-    <div className="segmented stage-tabs" role="group" aria-label="왼쪽에 보일 것">
+    <div className="segmented stage-tabs" role="group" aria-label="표시 화면">
       {hasImage && (
         <button
           className={stage === 'source' ? 'active' : ''}

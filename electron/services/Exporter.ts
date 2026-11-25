@@ -157,11 +157,9 @@ export class Exporter {
     };
 
     if (request.mode === 'zip') {
-      const filePath = await this.pickSavePath(
-        '감정 이미지 ZIP 저장',
-        `${stem}_${dateStamp()}.zip`,
-        [{ name: 'ZIP', extensions: ['zip'] }],
-      );
+      const filePath = await this.pickSavePath('씬 이미지 ZIP 저장', `${stem}_${dateStamp()}.zip`, [
+        { name: 'ZIP', extensions: ['zip'] },
+      ]);
       if (!filePath) return null;
       const files: Record<string, [Uint8Array, { level: 0 }]> = {};
       for (let index = 0; index < items.length; index += 1)
@@ -171,7 +169,7 @@ export class Exporter {
     }
 
     const result = await this.dialog.showOpenDialog({
-      title: '감정 이미지를 저장할 폴더 선택',
+      title: '씬 이미지를 저장할 폴더 선택',
       defaultPath: this.exportsDir(),
       buttonLabel: '이 폴더에 저장',
       properties: ['openDirectory', 'createDirectory'],

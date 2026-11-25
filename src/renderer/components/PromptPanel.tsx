@@ -157,7 +157,7 @@ export function PromptPanel(props: {
   const own = props.projectId ? 1 : 0;
   const presetShared = preset && sharedHint(presetUses, own);
   const unusedInMedium =
-    preset && usesMedium(preset.generation) ? 'Medium에서는 쓰이지 않음' : undefined;
+    preset && usesMedium(preset.generation) ? 'Medium에서는 사용되지 않음' : undefined;
 
   const patchPreset = (
     value: Partial<Pick<Preset, 'commonPositive' | 'backPositive' | 'commonNegative'>>,
@@ -245,7 +245,7 @@ export function PromptPanel(props: {
               {presetShared && <p className="hint">{presetShared}</p>}
             </>
           ) : (
-            <p className="hint">위쪽에서 생성 설정을 고르십시오.</p>
+            <p className="hint">상단에서 생성 설정을 선택하십시오.</p>
           )}
         </PromptCard>
 
@@ -267,7 +267,7 @@ export function PromptPanel(props: {
                   {characters.every((item) =>
                     foldedGroups.includes(`character:${item.character.id}`),
                   )
-                    ? '모두 펴기'
+                    ? '모두 펼치기'
                     : '모두 접기'}
                 </button>
               </>

@@ -81,7 +81,7 @@ export function PresetEditor({ preset }: { preset: Preset }) {
   const shown = effectiveGenerationSettings(g);
   const tagText = naiTagText(g.model, shown);
   const autoNsfw = addsAutoNsfw(g.model, shown.ucPreset);
-  const unusedInMedium = medium ? 'Medium에서는 쓰이지 않음' : undefined;
+  const unusedInMedium = medium ? 'Medium에서는 사용되지 않음' : undefined;
   const { width, height, img2imgStrength, img2imgNoise } = normalizeGenerationSettings(g);
   const sizePreset = RESOLUTION_PRESETS.find(
     (item) => item.width === width && item.height === height,

@@ -138,7 +138,7 @@ async function readImageStream(
   }
   handle(parser.flush());
   const images = finals.filter(Boolean);
-  if (!images.length) throw new NaiApiError('server', '스트리밍 응답에 최종 그림이 없습니다.');
+  if (!images.length) throw new NaiApiError('server', '스트리밍 응답에 최종 이미지가 없습니다.');
   return images;
 }
 

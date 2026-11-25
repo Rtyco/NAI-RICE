@@ -428,7 +428,7 @@ export function resolveProject(library: Library, project: Project): ResolvedProj
     inpaint && !reference && REFERENCE_MISSING,
     inpaint && reference && !reference.image && REFERENCE_IMAGE_MISSING,
     items.some((item) => !item) && aidLabel,
-    items.some((item) => item && !item.image) && `${aidLabel} 그림`,
+    items.some((item) => item && !item.image) && `${aidLabel} 이미지`,
     inpaint && preset && !supportsInpaint(preset.generation.model) && INPAINT_MODEL_MISSING,
     aidModelInvalid && AID_MODEL_MISSING,
   ].filter(Boolean) as string[];

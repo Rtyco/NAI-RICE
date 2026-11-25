@@ -93,9 +93,9 @@ export async function planMove(current: string, picked: string): Promise<Workspa
       throw new Error(`「${root}」 폴더가 이미 있고 비어 있지 않습니다.`);
   }
   if (isSameOrInside(root, current) && isSameOrInside(current, root))
-    throw new Error('지금 쓰는 작업 폴더입니다.');
+    throw new Error('현재 사용 중인 작업 폴더입니다.');
   if (isSameOrInside(current, root) || isSameOrInside(root, current))
-    throw new Error('작업 폴더 안이나 작업 폴더를 품은 폴더로는 옮길 수 없습니다.');
+    throw new Error('작업 폴더의 하위 또는 상위 폴더로는 이동할 수 없습니다.');
   await assertWritable(chosen);
   if (await exists(path.join(root, 'library.json'))) return { root, mode: 'existing', bytes: 0 };
   const bytes = (await listFiles(current)).reduce((sum, file) => sum + file.size, 0);

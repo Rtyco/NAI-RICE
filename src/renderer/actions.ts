@@ -62,7 +62,7 @@ async function prepareAid(
   const items = aidItems(aid);
   if (items.some((item) => !item?.image))
     throw new Error(
-      `고른 ${aid.kind === 'character' ? '캐릭터 레퍼런스' : '바이브'} 중 지워졌거나 그림이 없는 것이 있습니다. 참고 칩에서 다시 고르십시오.`,
+      `선택한 ${aid.kind === 'character' ? '캐릭터 레퍼런스' : '바이브'} 중 삭제되었거나 이미지가 없는 항목이 있습니다. 참고 칩에서 다시 선택하십시오.`,
     );
   if (aid.kind === 'character') {
     return {
@@ -240,7 +240,7 @@ async function prepareImageInput(
   inpaint: boolean,
   model: string,
 ): Promise<ImageJobInput> {
-  if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 고르십시오.');
+  if (!source) throw new Error('i2i로 다시 그릴 이미지를 먼저 선택하십시오.');
   if (inpaint) {
     if (!source.maskFile) throw new Error('다시 그릴 곳에 마스크를 칠하십시오.');
     if (!supportsInpaint(model))
@@ -447,7 +447,7 @@ export function runFreeDirectorTool(shrink: boolean): Promise<void> {
     if (!state.token.stored) throw new Error('설정(⚙)에서 NovelAI 토큰을 먼저 저장하십시오.');
     const free = library.freeGeneration;
     const source = free.image;
-    if (!source) throw new Error('디렉터 툴을 적용할 이미지를 먼저 고르십시오.');
+    if (!source) throw new Error('디렉터 툴을 적용할 이미지를 먼저 선택하십시오.');
     const settings = free.augment ?? DEFAULT_AUGMENT_SETTINGS;
     const size = directorToolSize(source.outputRect, shrink);
     const image = await libraryApi().prepareSourceInput({

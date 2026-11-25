@@ -41,7 +41,7 @@ export function AidChip(props: {
     name: item.name,
     folder: item.folder,
     thumb: item.image ? pictureMedia(item.image.file) : '',
-    hint: item.image ? undefined : '그림 없음',
+    hint: item.image ? undefined : '이미지 없음',
   });
   const next: AidMode = character ? 'vibe' : 'character';
   const section = character ? 'characterReferences' : 'vibes';
@@ -77,7 +77,7 @@ export function AidChip(props: {
       itemId={ids.length === 1 ? ids[0] : undefined}
       value={
         !names.length
-          ? '쓰지 않음'
+          ? '사용 안 함'
           : names.length > 2
             ? `${names[0]} 외 ${names.length - 1}개`
             : names.join(', ')
@@ -87,7 +87,7 @@ export function AidChip(props: {
         ...list.map(row),
         ...ids
           .filter((id) => !list.some((item) => item.id === id))
-          .map((id) => ({ id, name: `(지워진 ${label})`, noEdit: true })),
+          .map((id) => ({ id, name: `(삭제된 ${label})`, noEdit: true })),
       ]}
       checked={ids}
       multi
@@ -114,12 +114,12 @@ export function AidChip(props: {
           </div>
           {unsupported ? (
             <p className="warning-box aid-warning">
-              {modelLabel(props.model!)}에서는 {label}를 쓸 수 없습니다.{' '}
+              {modelLabel(props.model!)}에서는 {label}를 사용할 수 없습니다.{' '}
               {character ? 'V4.5 또는 V5' : 'V4.5'} 모델로 바꾸십시오.
             </p>
           ) : costumeUnsupported ? (
             <p className="warning-box aid-warning">
-              의상 레퍼런스는 V5 모델에서만 쓸 수 있습니다. V5 모델로 바꾸십시오.
+              의상 레퍼런스는 V5 모델에서만 사용할 수 있습니다. V5 모델로 바꾸십시오.
             </p>
           ) : (
             // V4.5 인페인트에서는 캐릭터 레퍼런스 결과가 나빴다. V5는 정식 지원한다.
@@ -127,7 +127,7 @@ export function AidChip(props: {
             props.inpaint &&
             (!props.model || !supportsV5ReferenceOptions(props.model)) && (
               <p className="warning-box aid-warning">
-                V4.5 인페인트에서는 캐릭터 레퍼런스를 쓰면 이미지가 제대로 생성되지 않을 수
+                V4.5 인페인트에서는 캐릭터 레퍼런스 사용 시 이미지가 제대로 생성되지 않을 수
                 있습니다.
               </p>
             )

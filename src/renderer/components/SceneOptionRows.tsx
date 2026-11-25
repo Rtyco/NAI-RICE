@@ -120,7 +120,7 @@ export function SceneOptionItem(props: OptionProps & { open: boolean; toggle: ()
                   <span>{characterName(names, index)}</span>
                   <PromptCell
                     title={`${props.title} · ${characterName(names, index)}`}
-                    label={`${characterName(names, index)} 몫`}
+                    label={`${characterName(names, index)} 프롬프트`}
                     value={option.characterPrompts[index] ?? ''}
                     placeholder="이 캐릭터 프롬프트에 붙음"
                     repeated={props.repeated(index)}
@@ -192,7 +192,7 @@ export function SceneOptionTable(props: {
                           <span>{characterName(props.names, index)}</span>
                           <PromptCell
                             title={`${row.title} · ${characterName(props.names, index)}`}
-                            label={`${characterName(props.names, index)} 몫`}
+                            label={`${characterName(props.names, index)} 프롬프트`}
                             value={option.characterPrompts[index] ?? ''}
                             repeated={row.repeated(index)}
                             onChange={(value) => row.setCharacterPrompt(index, value)}

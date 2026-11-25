@@ -54,7 +54,7 @@ export function SceneSlotsEditor(props: {
     hasFixedScenePrompt(emotion) && (
       <button
         className={className}
-        title="씬 프롬프트를 조합 칸 1로 옮기기"
+        title="씬 프롬프트를 조합 칸 1로 이동"
         onClick={state.moveScenePrompt}
       >
         씬 프롬프트 → 칸 1
@@ -96,13 +96,17 @@ export function SceneSlotsEditor(props: {
         {slots.length > 1 && (
           <span className="scene-slots-formula">= {slots.map(enabledCount).join(' × ')}</span>
         )}
-        <button className="link-button" title="다음 캐릭터 몫 칸 추가" onClick={state.addCharacter}>
+        <button
+          className="link-button"
+          title="다음 캐릭터 프롬프트 칸 추가"
+          onClick={state.addCharacter}
+        >
           ＋ 캐릭터
         </button>
         {characterCount > names.length && (
           <button
             className="link-button"
-            title={`캐릭터 ${characterCount} 몫 칸 삭제`}
+            title={`캐릭터 ${characterCount} 프롬프트 칸 삭제`}
             onClick={() => void state.removeCharacter()}
           >
             － 캐릭터
@@ -140,7 +144,7 @@ export function SceneSlotsEditor(props: {
           )}
           {!props.foldable && slot.length > 1 && (
             <button className="link-button" onClick={() => state.setAllOpen(!state.allOpen)}>
-              {state.allOpen ? '모두 접기' : '모두 펴기'}
+              {state.allOpen ? '모두 접기' : '모두 펼치기'}
             </button>
           )}
           {slotIndex === 0 && mergeableFirstSlot(emotion) && (

@@ -124,7 +124,7 @@ export function DetailSidePanel({
             negativePlacement={`${sceneSide ?? '공통'} 네거티브 뒤에 붙습니다`}
             negativeHint={
               resolved.preset && usesMedium(resolved.preset.generation)
-                ? 'Medium에서는 쓰이지 않음'
+                ? 'Medium에서는 사용되지 않음'
                 : undefined
             }
             onChange={patch}
